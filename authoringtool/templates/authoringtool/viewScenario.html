@@ -1,0 +1,227 @@
+{% extends "main.html" %}
+{% block atcontent %}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>{{ myScenario.name }} Scenario Details</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            Authoring Tool
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'scenarios' %}">Scenarios</a>
+          </li>
+          <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <!-- End Page Title -->
+    <section class="section">
+      <div class="row mb-2">
+        <div class="col-sm-10">
+          <a type="button"
+                  class="btn btn-secondary"
+                  href="{% url 'scenarios' %}">Back to Scenarios</a>
+          {% if can_edit %}
+            <a type="button"
+            class="btn btn-warning"
+            href="{% url 'updateScenario' id=myScenario.id %}">Update Scenario</a>
+            <a type="button"
+              class="btn btn-primary"
+              href="{% url 'createPhase' id=myScenario.id %}">Create Phase</a>
+          {% endif %}
+            <a type="button"
+              class="btn btn-primary"
+              href="{% url 'ai_metrics' scenario_id=myScenario.id %}">Scenario Metrics &amp; AI</a>
+          
+        </div>
+      </div>
+      <div class="row">
+        <!-- Column for the card -->
+        <div class="col-lg-6">
+          <div class="card">
+            <img src="{{ myScenario.image.url }}"
+                 alt="{{ myScenario.name }}"
+                 class="card-img-top"
+                 height="auto"
+                 width="auto">
+            <div class="card-body">
+              <h5 class="card-title">{{ myScenario.name }}</h5>
+              <p class="card-text">
+                <strong>Description:</strong> {{ myScenario.description }}
+              </p>
+              <p class="card-text">
+                <strong>Age of Students:</strong> {{ min_age }} - {{ max_age }} years of age
+              </p>
+              <p class="card-text">
+                <strong>Language:</strong> {{ myScenario.language }}
+              </p>
+              <p class="card-text">
+                <strong>Suggested Learning Time:</strong> {{ myScenario.suggested_learning_time }} minutes
+              </p>
+              <p class="card-text">
+                <strong>Upload PDF Files:</strong>
+              </p>
+              {% if can_edit or request.user.is_superuser %}
+                <form method="post" enctype="multipart/form-data" class="mb-3">
+                  {% csrf_token %}
+                  <div class="input-group">
+                    <input type="file" name="rag_pdf" accept=".pdf" class="form-control" required>
+                    <button type="submit" class="btn btn-success">Upload</button>
+                  </div>
+                </form>
+              {% endif %}
+
+              {% if rag_files %}
+                <h5 class="mt-4"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Uploaded PDFs</h5>
+                <ul class="list-group">
+                  {% for f in rag_files %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <a href="#" data-bs-toggle="modal" data-bs-target="#modal_{{ forloop.counter }}" class="text-primary">
+                        <i class="bi bi-file-earmark-pdf"></i> {{ f }}
+                      </a>
+                      {% if can_edit or request.user.is_superuser %}
+                        <a href="{% url 'delete_rag_pdf' scenario_id=myScenario.id filename=f %}" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                        </a>
+                      {% endif %}
+                    </li>
+
+                    <!-- Modal for viewing PDF -->
+                    <div class="modal fade" id="modal_{{ forloop.counter }}" tabindex="-1" aria-labelledby="pdfModalLabel_{{ forloop.counter }}" aria-hidden="true">
+                      <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="pdfModalLabel_{{ forloop.counter }}">{{ f }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <iframe src="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" width="100%" height="700px" style="border: none;"></iframe>
+                          </div>
+                          <div class="modal-footer">
+                            <a href="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" class="btn btn-success" download>
+                              <i class="bi bi-download"></i> Download
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+
+              {% if myScenario.video_url %}
+                <p class="card-text">
+                  <strong>Video URL:</strong> {{ myScenario.video_url }}
+                </p>
+              {% endif %}
+              <p class="card-text">
+                <strong>Created on:</strong> {{ myScenario.created_on }}
+              </p>
+              <p class="card-text">
+                <strong>LLM Evaluation:</strong> {{ llm_html }}
+              </p>
+              <p> 
+              <strong>Created by:</strong> {{ myScenario.created_by.get_full_name }}
+              </p>
+              <p> 
+              <strong>Originated by:</strong> {{ myScenario.origin_scenario.name }}
+              </p>
+              <p> 
+              <strong>Original Creator:</strong> {{ myScenario.origin_scenario.created_by.get_full_name }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Column for the accordion -->
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Phases</h5>
+              <!-- Default Accordion -->
+              <div class="accordion" id="accordionExample">
+                {% for phase in Phases %}
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ phase.id }}">
+                      <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                              type="button"
+                              data-bs-toggle="collapse"
+                              data-bs-target="#collapse{{ phase.id }}"
+                              aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                              aria-controls="collapse{{ phase.id }}">{{ phase.name }}</button>
+                    </h2>
+                    <div id="collapse{{ phase.id }}"
+                         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                         aria-labelledby="heading{{ phase.id }}"
+                         data-bs-parent="#accordionExample">
+                      <div class="accordion-body">
+                        <p>
+                          <strong>{{ phase.description }}</strong>
+                        </p>
+                        <strong>Activities:</strong>
+                        <ul>
+                          {% for activity in phase.activities.all %}
+                            <li> <a href="{% url 'activity' scenario_id=myScenario.id phase_id=phase.id activity_id=activity.id %}"> {{ activity.name }}</a> - {{ activity.created_on }}</li>
+                          {% empty %}
+                            <li>No activities found for this phase.</li>
+                          {% endfor %}
+                        </ul>
+                        <a type="button"
+                           class="btn btn-outline-primary"
+                           href="{% url 'phase' scenario_id=myScenario.id phase_id=phase.id %}">View</a>
+                        {% if can_edit %}
+                          <a type="button"
+                            class="btn btn-outline-primary"
+                            href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=phase.id %}">Update</a>
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#basicModal{{ phase.id }}">Delete</button>
+                        {% endif %}
+                        <!-- Basic Modal -->
+                        <div class="modal fade" id="basicModal{{ phase.id }}" tabindex="-1">
+                          <div class="modal-dialog">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title">Confirmation</h5>
+                                <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body">Are you sure you wanna delete the {{ phase.name }} phase?</div>
+                              <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <a type="button"
+                                   class="btn btn-primary"
+                                   href="{% url 'deletePhase' scenario_id=myScenario.id phase_id=phase.id %}">Yes</a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- End Basic Modal-->
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+                <!-- End Default Accordion Example -->
+              </div>
+            </div>
+          </div>
+        </div>
+          <div class="col-lg-12">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Scenario Activity Chart</h5>
+              </div>
+              <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+              <script>mermaid.initialize({ startOnLoad: true });</script>
+              <div class="mermaid">{{ mermaid_graph_definition | safe }}</div>
+            </div>
+          </div>
+        </div>
+    </section>
+  </main>
+  <!-- End #main -->
+{% endblock atcontent %}

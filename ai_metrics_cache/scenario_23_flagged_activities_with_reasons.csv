@@ -1,0 +1,16 @@
+Activity,Category,Flag,Reason
+Δραστηριότητα 3,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (31.0s) is > 1 std above mean (23.40 ± 6.09).
+Δραστηριότητα 3,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (16.1s) is > 1 std below mean (23.40 ± 6.09).
+Δραστηριότητα 1 α,Moderate,Dynamic correctness threshold,Dynamic correctness: Moderate group's %Wrong (34.5%) exceeds mean+std threshold (34.45%).
+Δραστηριότητα 1 β,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (67.2%) exceeds mean+std threshold (65.41%).
+Δραστηριότητα 1 β,Low,"Engagement risk (too slow, question)",Engagement risk: Low group's Avg Time (49.5s) is > 1 std above mean (41.70 ± 5.58).
+Δραστηριότητα 6,Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (53.9%) or Low (100.0%) group not at extremes, Moderate wrong is high (61.5%)."
+Δραστηριότητα 8,Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (61.3%) or Low (73.8%) group not at extremes, Moderate wrong is high (71.8%)."
+Δραστηριότητα 10,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (80.9%) exceeds mean+std threshold (73.44%).
+Δραστηριότητα 11,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (85.5%) exceeds mean+std threshold (80.70%).
+Εξάρτηση περιόδου από μάζα,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (84.3%) exceeds mean+std threshold (75.86%).
+Πείραμα,Moderate,"Engagement risk (too slow, non-question)",Engagement risk: Moderate group's Avg Time (217.2s) is > 1 std above mean (191.40 ± 18.58).
+Πείραμα 1,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (173.0s) is > 1 std above mean (145.87 ± 19.37).
+Πείραμα 2,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (71.4s) is > 1 std above mean (57.23 ± 11.39).
+Πείραμα 2,Low,"Engagement risk (too fast, non-question)",Engagement risk: Low group's Avg Time (43.5s) is > 1 std below mean (57.23 ± 11.39).
+Δραστηριότητα 9,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (97.3s) is > 1 std above mean (61.50 ± 25.88).

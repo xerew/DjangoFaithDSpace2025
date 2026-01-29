@@ -1,0 +1,272 @@
+{% extends "main.html" %}
+{% block atcontent %}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>{{ myScenario.name }} — Metrics &amp; AI</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">Authoring Tool</li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'scenarios' %}">Scenarios</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
+          </li>
+          <li class="breadcrumb-item active">Metrics &amp; AI</li>
+        </ol>
+      </nav>
+    </div>
+    <!-- End Page Title -->
+
+    <section class="section">
+        <div class="row mb-3">
+            <div class="col-sm-10">
+                <a class="btn btn-secondary"
+                    href="{% url 'viewScenario' id=myScenario.id %}">
+                    ← Back to Scenario
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <button id="btn-load-category-metrics"
+                        data-scenario-id="{{ myScenario.id }}"
+                        class="btn btn-success">
+                    Show Metrics by Performance Category
+                </button>
+                <div id="category-metrics-results" class="mt-4">
+                    <!-- Metrics table will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <button id="btn-load-risk-flags"
+                        data-scenario-id="{{ myScenario.id }}"
+                        class="btn btn-danger">
+                    Show Activities in Risk
+                </button>
+                <div id="risk-flags-results" class="mt-4">
+                    <!-- Flags table will be rendered here -->
+                </div>
+            </div>
+        </div>
+        {% if can_edit or request.user.is_superuser %}
+        <div class="row">
+            <div class="col-lg-12">
+                <button id="btn-generate-context" class="btn btn-primary" data-scenario-id="{{ myScenario.id }}">Generate LLM Context</button>
+                <form style="display:none;">{% csrf_token %}</form>
+                <div id="context-status" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="row mb-3">
+            <div class="col-sm-10">
+                <a class="btn btn-secondary"
+                    href="{% url 'proposal_list' scenario_id=myScenario.id %}">
+                    Proposals
+                </a>
+            </div>
+        </div>
+
+    </section>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script>
+    document.getElementById('btn-load-category-metrics')
+        .addEventListener('click', () => {
+            const sid = document.getElementById('btn-load-category-metrics').dataset.scenarioId;
+            const target = document.getElementById('category-metrics-results');
+            target.innerHTML = '<p>⏳ Computing metrics by performance category…</p>';
+
+            fetch(`/authoringtool/category_metrics/${sid}/`)
+            .then(r => r.json())
+            .then(({ task_id }) => pollCategoryStatus(task_id));
+        });
+
+        function pollCategoryStatus(taskId) {
+            fetch(`/authoringtool/category_metrics_status/${taskId}/`)
+                .then(r => r.json())
+                .then(resp => {
+                    console.log("Raw response:", resp);
+                    if (resp.status === 'done') {
+                        renderCategoryTable(resp.data);
+                    } else {
+                        setTimeout(() => pollCategoryStatus(taskId), 1000);
+                    }
+                });
+        }
+
+        function renderCategoryTable(dataRows) {
+        const container = document.getElementById('category-metrics-results');
+        const grouped = {};
+
+        for (const row of dataRows) {
+            const key = `${row.Phase}|||${row.Activity}`;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(row);
+        }
+
+        let html = '';
+        for (const [key, rows] of Object.entries(grouped)) {
+            const [phase, activity] = key.split('|||');
+            html += `<h5 class="mt-4">${phase} — <span class="text-info">${activity}</span> (${rows[0].Type})</h5>`;
+
+            html += `
+            <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
+                        <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
+                        <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            for (const row of rows) {
+                html += `<tr>
+                    <td>${row.Category}</td>
+                    <td>${row.Total}</td>
+                    <td>${row.Correct}</td>
+                    <td>${row.Wrong}</td>
+                    <td>${row['% Correct']}</td>
+                    <td>${row['% Wrong']}</td>
+                    <td>${row['Avg Time']}</td>
+                    <td>${row["Next Low"]}</td>
+                    <td>${row["Next Moderate"]}</td>
+                    <td>${row["Next High"]}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table>`;
+        }
+
+        container.innerHTML = html;
+        }
+        // Metric Analysis
+        document.getElementById('btn-load-risk-flags')
+            .addEventListener('click', () => {
+                const sid = document.getElementById('btn-load-risk-flags').dataset.scenarioId;
+                const target = document.getElementById('risk-flags-results');
+                target.innerHTML = '<p>⏳ Computing risk flags…</p>';
+
+                fetch(`/authoringtool/risk_flags/${sid}/`)
+                .then(r => r.json())
+                .then(({ task_id }) => pollRiskFlagsStatus(task_id));
+            });
+
+        function pollRiskFlagsStatus(taskId) {
+            fetch(`/authoringtool/risk_flags_status/${taskId}/`)
+                .then(r => r.json())
+                .then(resp => {
+                    if (resp.status === 'done') {
+                        renderRiskFlagsTable(resp.data);
+                    } else if (resp.status === 'error') {
+                        document.getElementById('risk-flags-results').innerHTML =
+                            `<div class="alert alert-danger">${resp.error}</div>`;
+                    } else {
+                        setTimeout(() => pollRiskFlagsStatus(taskId), 1000);
+                    }
+                });
+        }
+
+        function renderRiskFlagsTable(dataRows) {
+            const container = document.getElementById('risk-flags-results');
+            if (!dataRows || !dataRows.length) {
+                container.innerHTML = '<div class="alert alert-info">No activities flagged as risky.</div>';
+                return;
+            }
+
+            // Optionally group by Activity
+            let grouped = {};
+            for (const row of dataRows) {
+                const key = `${row.Activity}`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(row);
+            }
+
+            let html = '';
+            for (const [activity, rows] of Object.entries(grouped)) {
+                html += `<h5 class="mt-4 text-danger">${activity}</h5>`;
+                html += `<table class="table table-bordered table-sm">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>Category At Risk</th>
+                            <th>Flag Type</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                for (const row of rows) {
+                    html += `<tr>
+                        <td>${row.Category}</td>
+                        <td>${row.Flag}</td>
+                        <td>${row.Reason}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+            container.innerHTML = html;
+        }
+
+    ///////////////// LLM /////////////////
+    document.getElementById("btn-generate-context").addEventListener("click", () => {
+        const button = document.getElementById("btn-generate-context");
+        const scenarioId = button.dataset.scenarioId;
+        const statusDiv = document.getElementById("context-status");
+
+        // Disable button and show status
+        button.disabled = true;
+        button.innerText = "Calculating... ⏳";
+        statusDiv.innerHTML = "⏳ LLM context generation started. This may take a few minutes...";
+
+        fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "started") {
+                const taskId = data.task_id;
+
+                const interval = setInterval(() => {
+                    fetch(`/authoringtool/scenarios/llm_context_status/${taskId}/`)
+                        .then(res => res.json())
+                        .then(status => {
+                            if (status.state === "SUCCESS") {
+                                clearInterval(interval);
+                                button.disabled = false;
+                                button.innerText = "Generate LLM Context";
+                                statusDiv.innerHTML = "✅ Context generation completed!";
+                            } else if (status.state === "FAILURE") {
+                                clearInterval(interval);
+                                button.disabled = false;
+                                button.innerText = "Generate LLM Context";
+                                statusDiv.innerHTML = "❌ An error occurred during generation.";
+                            } else {
+                                statusDiv.innerHTML = `⏳ Still generating... [${status.state}]`;
+                            }
+                        });
+                }, 5000);
+            } else {
+                button.disabled = false;
+                button.innerText = "Generate LLM Context";
+                statusDiv.innerHTML = "❌ Error starting the task.";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            button.disabled = false;
+            button.innerText = "Generate LLM Context";
+            statusDiv.innerHTML = "❌ Request failed.";
+        });
+    });
+  </script>
+{% endblock atcontent %}

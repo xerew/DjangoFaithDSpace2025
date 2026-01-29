@@ -1,0 +1,3 @@
+id,activity__name,phase__name,proposal_type,status,created_at,reviewed_at,reviewer__username,flag_ids,categories
+172,Τελικά συμπεράσματα,Αναστοχασμός,skip,new,2025-11-20 12:19:03.533682+00:00,,,[1121],High
+171,Απόδειξη ηλιοκεντρικού συστήματος,Αναστοχασμός,skip,new,2025-11-20 12:19:03.439472+00:00,,,[1120],Low

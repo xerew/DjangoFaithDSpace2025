@@ -1,0 +1,193 @@
+{% extends "main.html" %}
+{% block atcontent %}
+{% load group_tags %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Activity Proposals</h1>
+    <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item active">Proposals</li>
+        </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="row mb-3">
+      <div class="col-sm-10">
+        <a class="btn btn-secondary" href="{% url 'ai_metrics' scenario_id=myScenario.id %}">← Back to AI Metrics</a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Review Suggested Activity Improvements</h5>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Phase</th>
+                  <th>Activity</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for proposal in proposals %}
+                <tr>
+                  <td>{{ proposal.scenario.name }}</td>
+                  <td>{{ proposal.phase.name }}</td>
+                  <td>{{ proposal.activity.name }}</td>
+                  <td>{{ proposal.get_proposal_type_display }}</td>
+                  <td>
+                    {% if proposal.status == "new" %}<span class="badge bg-warning text-dark">New</span>
+                    {% elif proposal.status == "accepted" %}<span class="badge bg-success">Accepted</span>
+                    {% elif proposal.status == "rejected" %}<span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% with user_review=user_reviews|dict_get:proposal.id %}
+                      {% if user_review.status == "new" %}
+                        <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                        </form>
+                        <form method="post" action="{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                        </form>
+                      {% elif user_review.status == "accepted" %}
+                        <span class="badge bg-success">Accepted</span>
+                      {% elif user_review.status == "rejected" %}
+                        <span class="badge bg-danger">Rejected</span>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                </tr>
+                <tr class="table-light">
+                  <td colspan="6">
+                    <div class="accordion" id="accordion-{{ proposal.id }}">
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading-{{ proposal.id }}">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ proposal.id }}" aria-expanded="false" aria-controls="collapse-{{ proposal.id }}">
+                            View Suggested Action
+                          </button>
+                        </h2>
+                        <div id="collapse-{{ proposal.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ proposal.id }}" data-bs-parent="#accordion-{{ proposal.id }}">
+                          <div class="accordion-body">
+                            <div class="p-3 bg-light border rounded shadow-sm">
+                              <h6 class="fw-bold mb-2 text-primary">Edit Suggested Action</h6>
+                              <form method="post" action="{% url 'edit_proposal_json' pk=proposal.pk scenario_id=myScenario.id %}">
+                                {% csrf_token %}
+                                {% with user_review=user_reviews|dict_get:proposal.id %}
+                                  {% if user_review.teacher_edited_json %}
+                                    <script id="json-parsed-{{ proposal.id }}" type="application/json">
+                                      {{ user_review.teacher_edited_json|safe }}
+                                    </script>
+                                  {% else %}
+                                    <script id="json-parsed-{{ proposal.id }}" type="application/json">
+                                      {{ proposal.json_translated_action|safe }}
+                                    </script>
+                                  {% endif %}
+                                {% endwith %}
+                                <script>
+                                  document.addEventListener("DOMContentLoaded", () => {
+                                    const allAccordions = document.querySelectorAll(".accordion-collapse");
+                                    allAccordions.forEach((collapseEl) => {
+                                      const idMatch = collapseEl.id.match(/collapse-(\d+)/);
+                                      if (!idMatch) return;
+                                      const proposalId = idMatch[1];
+
+                                      collapseEl.addEventListener("show.bs.collapse", () => {
+                                        console.log("🟢 Expanding proposal:", proposalId);
+                                        const scriptEl = document.getElementById(`json-parsed-${proposalId}`);
+                                        if (!scriptEl) {
+                                          console.warn(`❌ Script element not found for proposal ${proposalId}`);
+                                          return;
+                                        }
+
+                                        try {
+                                          const parsed = JSON.parse(scriptEl.textContent);
+                                          console.log("✅ Parsed JSON for proposal", proposalId, parsed);
+
+                                          const form = collapseEl.querySelector("form");
+                                          if (!form) {
+                                            console.warn("❌ No form found inside accordion for proposal", proposalId);
+                                            return;
+                                          }
+
+                                          form.querySelector(`[name='activity_name']`).value = parsed.activity_name || '';
+                                          form.querySelector(`[name='content']`).value = parsed.content || '';
+                                          form.querySelector(`[name='explanation']`).value = parsed.explanation || '';
+
+                                          const answers = parsed.answers || [];
+                                          const answerContainer = form.querySelector(`#answer-fields-${proposalId}`);
+                                          answerContainer.innerHTML = "";
+                                          answers.forEach((ans, idx) => {
+                                            const input = document.createElement("input");
+                                            input.type = "text";
+                                            input.name = `answer_text_${idx + 1}`;
+                                            input.className = "form-control mb-1";
+                                            input.value = ans.text || '';
+                                            answerContainer.appendChild(input);
+                                          });
+                                        } catch (e) {
+                                          console.error(`❌ Failed to parse JSON for proposal ${proposalId}:`, e);
+                                          console.error("Raw data:", scriptEl?.textContent);
+                                        }
+                                      });
+                                    });
+                                  });
+                                </script>
+                                <div class="mb-2">
+                                  <label class="form-label">Activity Name</label>
+                                  <input name="activity_name" class="form-control">
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label">Content</label>
+                                  <textarea name="content" class="form-control"></textarea>
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label">Answers</label>
+                                  <div id="answer-fields-{{ proposal.id }}"></div>
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label">Explanation</label>
+                                  <textarea name="explanation" class="form-control"></textarea>
+                                </div>
+                                <div class="mt-2">
+                                  <button type="submit" class="btn btn-sm btn-warning">📂 Save Edit</button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6">No proposals available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% if show_create_button %}
+              <div class="mb-3">
+                <form method="post" action="{% url 'create_personal_scenario' scenario_id=myScenario.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary">
+                    ✅ Create My Personalized Scenario with Accepted Proposals
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

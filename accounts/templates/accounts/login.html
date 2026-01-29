@@ -1,0 +1,128 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>fAith - Login</title>
+  <link href="{% static 'img/logo.png' %}" rel="icon">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/style.css' %}" rel="stylesheet">
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .footer {
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <main class="content">
+      <div class="container">
+        <section class="section register d-flex align-items-center justify-content-center">
+          <div class="row w-100">
+            <!-- Left Side: Trust AI Lab Platform Info -->
+            <div class="col-lg-6 order-lg-1 d-flex flex-column align-items-center justify-content-center bg-light p-4">
+              <h3 class="text-center">Trust AI Lab Platform for STEM Education</h3>
+              <p class="text-center">
+                The <strong>Trust AI Lab platform</strong>, developed by the ICCS-IMU team, is an Exploratory Learning Environment designed to enhance students’ inquiry and problem-solving skills through virtual and remote labs.
+              </p>
+              <p>The <strong>Trust AI Lab platform</strong> consists of the following components:</p>
+              <ul>
+                <li style="text-align: justify;"><strong>Plato, an AI Learning Companion for STEM education:</strong> Supports students by providing automated guidance and feedback in STEM laboratory courses. It also monitors student engagement and provides personalized learning recommendations.</li>
+                <li style="text-align: justify;"><strong>Trust AI Lab Authoring Tool:</strong> Helps teachers design and implement inquiry-based learning scenarios.</li>
+                <li style="text-align: justify;"><strong>Dashboard Analytics:</strong> Assists teachers in assessing students’ performance.</li>
+              </ul>
+              <div class="text-center mt-3">
+                <img src="{% static 'img/trustflow_1.png' %}" alt="Trust AI Lab Diagram" class="img-fluid">
+              </div>
+            </div>
+
+            <!-- Right Side: Login Form with Image -->
+            <div class="col-lg-6 order-lg-2 d-flex flex-column align-items-center justify-content-center">
+              <div class="logo-login mb-3">
+                <img src="{% static 'img/logo.png' %}" alt="Platform Logo">
+              </div>
+              <div class="card mb-3 w-75">
+                <div class="card-body">
+                  <div class="pt-4 pb-2">
+                    <h5 class="card-title text-center pb-0 fs-4">Login to Your Account</h5>
+                    <p class="text-center small">Enter your username & password to login</p>
+                  </div>
+                  
+                  <!-- Django Messages -->
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                  
+                  <form method="post" action="{% url 'login' %}" class="row g-3">{% csrf_token %}
+                    <div class="col-12">
+                      <label for="yourUsername" class="form-label">Username</label>
+                      <div class="input-group has-validation">
+                        <span class="input-group-text">@</span>
+                        <input type="text" name="username" class="form-control" id="yourUsername" required>
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <label for="yourPassword" class="form-label">Password</label>
+                      <input type="password" name="password" class="form-control" id="yourPassword" required>
+                    </div>
+                    <div class="col-12">
+                      <button class="btn btn-primary w-100" type="submit">Login</button>
+                    </div>
+                    <div class="col-12">
+                      <p class="small mb-0">Don't have an account? <a href="{% url 'register' %}">Create an account</a></p>
+                      <p class="small mb-0">Forgot password? <a href="{% url 'password_reset' %}">Reset Password</a></p>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Full-width EU Acknowledgment Footer -->
+    <footer class="footer login-footer text-center py-3">
+      <div class="eu-acknowledgement">
+        <div class="eu-logo-text">
+          <img src="{% static 'img/eu_flag.png' %}" alt="EU Logo" class="eu-logo">
+          <span class="eu-funded-text">Funded by the European Union</span>
+        </div>
+        <p class="eu-text">
+          This application was developed as part of the FAITH and DSPACE projects, funded under grant agreement No. 101135932 and No. 101086701. Views and opinions expressed are those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.
+        </p>
+      </div>
+      <div>
+        Designed by <a href="http://imu.ntua.gr/wp/">IMU NTUA | ICCS</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+
+</html>

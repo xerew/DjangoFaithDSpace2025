@@ -1,0 +1,1878 @@
+{% extends "main.html" %}
+
+{% block atcontent %}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Dashboard</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="{% url 'index' %}">Home</a>
+          </li>
+          <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+      </nav>
+    </div>
+    <section class="section dashboard">
+      <div class="row">
+        <!-- Global Scenario Select Dropdown -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Filters</h5>
+			  <form id="filter-form">
+				  <div class="row mb-2">
+					<label class="col-sm-2 col-form-label">Scenario Selection</label>
+					<div class="col-sm-10">
+            <select id="scenarioSelect" class="form-select">
+              <option value="">Select Scenario</option>
+              {% for scenario in scenarios %}
+                <option value="{{ scenario.id }}" {% if scenario.name == "Photoelectric Effect" %}selected{% endif %}>
+                {{ scenario.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+				  </div>
+				  <div class="row mb-2">
+					<label class="col-sm-2 col-form-label">Student Groups (Optional)</label>
+					<div class="col-sm-10">
+					  <select id="groupSelect" class="form-select" name="group_ids" multiple>
+						<!-- Groups will be loaded dynamically -->
+					  </select>
+					</div>
+				  </div>
+				  <script>
+					document.getElementById("scenarioSelect").addEventListener("change", function() {
+					  const scenarioId = this.value;
+					  if (scenarioId) {
+						  fetch(`/authoringtool/get_teacher_groups/${scenarioId}/`)
+							  .then(response => response.json())
+							  .then(data => {
+								  const groupSelect = document.getElementById("groupSelect");
+								  groupSelect.innerHTML = ''; // Clear previous options
+				  
+								  if (!data.groups || data.groups.length === 0) {
+									  groupSelect.innerHTML = '<option value="">No groups available</option>';
+									  return;
+								  }
+				  
+								  data.groups.forEach(group => {
+									  console.log("Group Data:", group);  // Debugging output
+									  if (group.name) {  
+										  groupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
+									  } else {
+										  console.error("Invalid group data:", group);
+										  groupSelect.innerHTML += `<option value="">(Error: Missing Name)</option>`;
+									  }
+								  });
+							  })
+							  .catch(error => {
+								  console.error("Error fetching groups:", error);
+								  document.getElementById("groupSelect").innerHTML = '<option value="">Error loading groups</option>';
+							  });
+					  }
+					});
+				  </script>
+				<div class="row mb-2">
+                  <label class="col-sm-2 col-form-label">Start Date</label>
+                  <div class="col-sm-10">
+                    <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
+                  </div>
+                </div>
+                <div class="row mb-2">
+                  <label class="col-sm-2 col-form-label">End Date</label>
+                  <div class="col-sm-10">
+                    <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <button class="btn btn-outline-primary" type="submit">Apply</button>
+                  <button type="button" id="reset-button" class="btn btn-outline-secondary">Reset</button>
+				  <button type="button" id="generateDownloadButton" class="btn btn-outline-success">Generate and Download CSV</button>
+                  <script>
+                    document.addEventListener("DOMContentLoaded", () => {
+                        const generateDownloadButton = document.getElementById("generateDownloadButton");
+                        const scenarioSelect = document.getElementById("scenarioSelect");
+                        const startDateInput = document.getElementById("start-date-input");
+                        const endDateInput = document.getElementById("end-date-input");
+						const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+            
+                        generateDownloadButton.addEventListener("click", () => {
+                            const scenarioId = scenarioSelect.value;
+                            const startDate = startDateInput.value;
+                            const endDate = endDateInput.value;
+							const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+            
+                            if (!scenarioId || !startDate || !endDate) {
+                                alert("Please select a scenario and specify start and end dates.");
+                                return;
+                            }
+            
+                            // Disable the button and update text while processing
+                            generateDownloadButton.disabled = true;
+                            generateDownloadButton.textContent = "Generating CSV...";
+            
+                            // Start the Celery task
+                            const url = `/authoringtool/student_performance_metrics/${scenarioId}/?start_date=${startDate}&end_date=${endDate}&group_ids=${selectedGroups.join(",")}`;
+                            fetch(url)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.task_id) {
+                                        pollTaskStatus(data.task_id, scenarioId, selectedGroups, startDate, endDate);
+                                    } else {
+                                        throw new Error("Failed to retrieve task ID.");
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error starting task:", error);
+                                    alert("Failed to start the CSV generation task.");
+                                    generateDownloadButton.disabled = false;
+                                    generateDownloadButton.textContent = "Generate and Download CSV";
+                                });
+                        });
+            
+                        function pollTaskStatus(taskId) {
+                          const pollUrl = `/authoringtool/get_student_performance_metrics_task_status/${taskId}/`;
+                          const pollInterval = setInterval(() => {
+                              fetch(pollUrl)
+                                  .then(response => response.json())
+                                  .then(data => {
+                                      if (data.status === "completed") {
+                                          clearInterval(pollInterval);
+                      
+                                          // Create a blob and trigger download
+                                          const csvBlob = new Blob([data.data.csv_content], { type: 'text/csv' });
+                                          const downloadLink = document.createElement('a');
+                                          downloadLink.href = URL.createObjectURL(csvBlob);
+                                          downloadLink.download = `student_performance_metrics.csv`;
+                                          downloadLink.click();
+                                          // Reset button state
+                                          generateDownloadButton.disabled = false;
+                                          generateDownloadButton.textContent = "Generate & Download CSV";
+                                      } else if (data.status === "failed") {
+                                          clearInterval(pollInterval);
+                                          alert(`Task failed: ${data.error}`);
+                                      }
+                                  })
+                                  .catch(error => {
+                                      clearInterval(pollInterval);
+                                      console.error("Error polling task:", error);
+                                      alert("Error while polling task status.");
+                                  });
+                          }, 1000); // Poll every second
+                      }
+            
+                        function downloadCsv(scenarioId, startDate, endDate, timestamp) {
+                            const downloadUrl = `/authoringtool/download_student_performance_metrics/${scenarioId}/?start_date=${startDate}&end_date=${endDate}&timestamp=${timestamp}`;
+                            window.location.href = downloadUrl; // Trigger file download
+                            generateDownloadButton.disabled = false;
+                            generateDownloadButton.textContent = "Generate and Download CSV";
+                        }
+                    });
+                  </script>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">Student Performance</h5>
+              <div id="sankeyLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Student Performance Chart... Please wait.</p>
+              </div>
+              <div id="sankeyChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const filterForm = document.getElementById("filter-form");
+				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+          
+                  // Poll the Sankey task status
+                  function pollSankeyTask(taskId, onSuccess, onError) {
+                    const url = `/authoringtool/get_sankey_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                      fetch(url)
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          return response.json();
+                        })
+                        .then((data) => {
+                          if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data); // Pass the task result
+                          } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error || "Task failed on the server.");
+                          }
+                        })
+                        .catch((error) => {
+                          clearInterval(poll);
+                          onError(error.message);
+                        });
+                    }, 1000); // Poll every second
+                  }
+          
+                  // Fetch and render the Sankey data
+                  function fetchAndRenderSankeyData() {
+                    const scenarioId = scenarioSelect.value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+					const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+          
+                    if (scenarioId) {
+                      const params = new URLSearchParams();
+                      if (startDate) params.append("start_date", startDate);
+                      if (endDate) params.append("end_date", endDate);
+					  if (selectedGroups) params.append("group_ids", selectedGroups);
+          
+                      let url = `/authoringtool/sankey_data/${scenarioId}/`;
+                      if (params.toString()) {
+                        url += `?${params.toString()}`;
+                      }
+          
+                      // Show loading indicator and hide chart
+                      document.getElementById("sankeyLoading").style.display = "block";
+                      document.getElementById("sankeyChart").style.display = "none";
+          
+                      fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          const taskId = data.task_id;
+                          pollSankeyTask(
+                            taskId,
+                            (result) => {
+                              document.getElementById("sankeyLoading").style.display = "none";
+                              document.getElementById("sankeyChart").style.display = "block";
+                              renderSankeyChart(result);
+                            },
+                            (error) => {
+                              document.getElementById("sankeyLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            }
+                          );
+                        })
+                        .catch((error) => {
+                          document.getElementById("sankeyLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                        });
+                    } else {
+                      clearSankeyChart();
+                    }
+                  }
+          
+                  // Render the Sankey chart
+                  function renderSankeyChart(data) {
+                    const sankeyChart = echarts.init(document.querySelector("#sankeyChart"));
+                    const option = {
+                      tooltip: {
+                        trigger: "item",
+                        formatter: function (params) {
+                          if (params.dataType === "edge") {
+                            return `${params.data.source} → ${params.data.target}: ${params.data.value}`;
+                          } else {
+                            return `${params.data.name}`;
+                          }
+                        },
+                      },
+                      series: [
+                        {
+                          type: "sankey",
+                          layout: "none",
+                          emphasis: { focus: "adjacency" },
+                          data: data.nodes.map((node) => {
+                            if (node.name.includes("High Performers")) {
+                              node.itemStyle = { color: "green" };
+                            } else if (node.name.includes("Moderate Performers")) {
+                              node.itemStyle = { color: "orange" };
+                            } else if (node.name.includes("Low Performers")) {
+                              node.itemStyle = { color: "red" };
+                            }
+                            return node;
+                          }),
+                          links: data.links,
+                          nodeAlign: "justify",
+                          layoutIterations: 0,
+                        },
+                      ],
+                    };
+                    sankeyChart.setOption(option);
+                  }
+          
+                  // Clear the Sankey chart
+                  function clearSankeyChart() {
+                    const sankeyChart = echarts.init(document.querySelector("#sankeyChart"));
+                    sankeyChart.clear();
+                  }
+          
+                  // Add event listener for form submission
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderSankeyData();
+                  });
+          
+                  // Trigger initial rendering
+                  scenarioSelect.dispatchEvent(new Event("change"));
+                });
+              </script>
+            </div>
+          </div>          
+        </div>
+        
+		<div class="col-12">
+        <div class="card">
+          <div class="card-body pb-0">
+              <h5 class="card-title">Final Student Performance</h5>
+              <div id="waterfallLoading" style="min-height: 400px; text-align: center; display: none;">
+                  <p style="font-size: 18px; color: gray;">⏳ Generating Final Student Performance Chart... Please wait.</p>
+              </div>
+              <div id="waterfallChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                  document.addEventListener("DOMContentLoaded", () => {
+                      const scenarioSelect = document.getElementById("scenarioSelect");
+                      const startDateInput = document.getElementById("start-date-input");
+                      const endDateInput = document.getElementById("end-date-input");
+                      const filterForm = document.getElementById("filter-form");
+					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+      
+                      function pollFinalPerformanceTask(taskId, onSuccess, onError) {
+                          const url = `/authoringtool/get_final_performance_task_status/${taskId}/`;
+                          const poll = setInterval(() => {
+                              fetch(url)
+                                  .then((response) => {
+                                      if (!response.ok) {
+                                          throw new Error(`HTTP error! status: ${response.status}`);
+                                      }
+                                      return response.json();
+                                  })
+                                  .then((data) => {
+                                      if (data.status === "completed") {
+                                          clearInterval(poll);
+                                          onSuccess(data.data);
+                                      } else if (data.status === "failed") {
+                                          clearInterval(poll);
+                                          onError(data.error || "Task failed on the server.");
+                                      }
+                                  })
+                                  .catch((error) => {
+                                      clearInterval(poll);
+                                      onError(error.message);
+                                  });
+                          }, 1000); // Poll every second
+                      }
+      
+                      function fetchAndRenderWaterfallData() {
+                          const scenarioId = scenarioSelect.value;
+                          const startDate = startDateInput.value;
+                          const endDate = endDateInput.value;
+						  const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+      
+                          if (scenarioId) {
+                              const params = new URLSearchParams();
+                              if (startDate) params.append("start_date", startDate);
+                              if (endDate) params.append("end_date", endDate);
+							  if (selectedGroups) params.append("group_ids", selectedGroups);
+      
+                              let url = `/authoringtool/final_performance_data/${scenarioId}/`;
+                              if (params.toString()) {
+                                  url += `?${params.toString()}`;
+                              }
+      
+                              document.getElementById("waterfallLoading").style.display = "block";
+                              document.getElementById("waterfallChart").style.display = "none";
+      
+                              fetch(url)
+                                  .then((response) => response.json())
+                                  .then((data) => {
+                                      const taskId = data.task_id;
+                                      pollFinalPerformanceTask(
+                                          taskId,
+                                          (result) => {
+                                              document.getElementById("waterfallLoading").style.display = "none";
+                                              document.getElementById("waterfallChart").style.display = "block";
+                                              renderWaterfallChart(result);
+                                          },
+                                          (error) => {
+                                              document.getElementById("waterfallLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                                          }
+                                      );
+                                  })
+                                  .catch((error) => {
+                                      document.getElementById("waterfallLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                                  });
+                          } else {
+                              clearWaterfallChart();
+                          }
+                      }
+      
+                      function renderWaterfallChart(data) {
+                          const chartDom = document.getElementById("waterfallChart");
+                          const waterfallChart = echarts.init(chartDom);
+                          const option = {
+                              title: {
+                                  subtext: "Student Performance Distribution"
+                              },
+                              tooltip: {
+                                  trigger: "axis",
+                                  axisPointer: { type: "shadow" },
+                                  formatter: function (params) {
+                                      var tar = params[1];
+                                      return tar.name + "<br/>" + tar.seriesName + " : " + tar.value;
+                                  }
+                              },
+                              grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+                              xAxis: {
+                                  type: "category",
+                                  splitLine: { show: false },
+                                  data: data.waterfall_data.map((item) => item.name)
+                              },
+                              yAxis: { type: "value" },
+                              series: [
+                                  {
+                                      name: "Placeholder",
+                                      type: "bar",
+                                      stack: "Total",
+                                      itemStyle: {
+                                          borderColor: "transparent",
+                                          color: "transparent"
+                                      },
+                                      data: data.waterfall_data.map((item, index) => (index === 0 ? 0 : data.waterfall_data[index - 1].value))
+                                  },
+                                  {
+                                      name: "Number of Performers",
+                                      type: "bar",
+                                      stack: "Total",
+                                      label: { show: true, position: "inside" },
+                                      itemStyle: {
+                                          color: function (params) {
+                                              const colorList = ["#6171C3", "green", "orange", "red"];
+                                              return colorList[params.dataIndex];
+                                          }
+                                      },
+                                      data: data.waterfall_data.map((item) => item.value)
+                                  }
+                              ]
+                          };
+                          waterfallChart.setOption(option);
+                      }
+      
+                      function clearWaterfallChart() {
+                          const chartDom = document.getElementById("waterfallChart");
+                          const waterfallChart = echarts.init(chartDom);
+                          waterfallChart.clear();
+                      }
+      
+                      filterForm.addEventListener("submit", (event) => {
+                          event.preventDefault();
+                          fetchAndRenderWaterfallData();
+                      });
+      
+                      scenarioSelect.dispatchEvent(new Event("change"));
+                  });
+              </script>
+          </div>
+      </div>
+      
+
+
+
+
+
+	</div>
+  </div>
+      
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="row">
+            <div class="col-12">
+
+              <div class="card">
+                <div class="card-body pb-0">
+                  <h5 class="card-title">Activity Answers Report</h5>
+                  <div>
+                    <label>
+                      <input type="radio" name="toggle" value="activities" checked> Activities
+                    </label>
+                    <label>
+                      <input type="radio" name="toggle" value="phases"> Phases
+                    </label>
+                  </div>
+                  <div id="activityLoading" style="min-height: 400px; text-align: center; display: none;">
+                    <p style="font-size: 18px; color: gray;">⏳ Generating Activity Answers Report... Please wait.</p>
+                  </div>
+                  <div id="activityChart" style="min-height: 400px; display: none;" class="echart"></div>
+                  <script>
+                    document.addEventListener("DOMContentLoaded", () => {
+                      const scenarioSelect = document.getElementById("scenarioSelect");
+                      const toggleOptions = document.getElementsByName("toggle");
+                      const startDateInput = document.getElementById("start-date-input");
+                      const endDateInput = document.getElementById("end-date-input");
+                      const filterForm = document.getElementById("filter-form");
+                      const activityLoading = document.getElementById("activityLoading");
+                      const activityChartElement = document.getElementById("activityChart");
+                      const activityChart = echarts.init(activityChartElement);
+					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+              
+                      // Poll the task status
+                      function pollActivityTask(taskId, onSuccess, onError) {
+                        const url = `/authoringtool/get_activity_answers_data_task_status/${taskId}/`;
+                        const poll = setInterval(() => {
+                          fetch(url)
+                            .then((response) => {
+                              if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                              }
+                              return response.json();
+                            })
+                            .then((data) => {
+                              if (data.status === "completed") {
+                                clearInterval(poll);
+                                onSuccess(data.data); // Pass the task result
+                              } else if (data.status === "failed") {
+                                clearInterval(poll);
+                                onError(data.error || "Task failed on the server.");
+                              }
+                            })
+                            .catch((error) => {
+                              clearInterval(poll);
+                              onError(error.message);
+                            });
+                        }, 1000); // Poll every second
+                      }
+              
+                      // Fetch and render data
+                      function fetchAndRenderActivityData() {
+                        const scenarioId = scenarioSelect.value;
+                        const toggleValue = document.querySelector('input[name="toggle"]:checked').value;
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+						const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+              
+                        if (scenarioId) {
+                          const params = new URLSearchParams();
+                          if (startDate) params.append("start_date", startDate);
+                          if (endDate) params.append("end_date", endDate);
+						  if (selectedGroups) params.append("group_ids", selectedGroups);
+                          params.append("type", toggleValue);
+              
+                          const url = `/authoringtool/activity_answers_data/${scenarioId}/?${params.toString()}`;
+              
+                          // Show loading indicator and hide chart
+                          activityLoading.style.display = "block";
+                          activityChartElement.style.display = "none";
+              
+                          fetch(url)
+                            .then((response) => response.json())
+                            .then((data) => {
+                              const taskId = data.task_id;
+                              pollActivityTask(
+                                taskId,
+                                (result) => {
+                                  activityLoading.style.display = "none"; // Hide loading indicator
+                                  activityChartElement.style.display = "block"; // Show chart
+                                  renderActivityChart(result);
+                                },
+                                (error) => {
+                                  activityLoading.innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                                }
+                              );
+                            })
+                            .catch((error) => {
+                              activityLoading.innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            });
+                        } else {
+                          clearActivityChart();
+                        }
+                      }
+              
+                      // Render the chart
+                      function renderActivityChart(data) {
+                        // Define the maximum length for activity names
+                        const maxLength = 20;
+
+                        // Truncate activity names exceeding the maximum length
+                        const truncatedCategories = data.categories.map(name =>
+                          name.length > maxLength ? name.substring(0, maxLength) + "..." : name
+                        );
+                        const option = {
+                          tooltip: {
+                            trigger: "axis",
+                            axisPointer: { type: "shadow" },
+                          },
+                          legend: { data: ["Correct", "Incorrect"] },
+                          xAxis: {
+                            type: "category",
+                            data: truncatedCategories,//data.categories,
+                            axisLabel: {
+                              rotate: 30,
+                              interval: 0,
+                            },
+                          },
+                          yAxis: { type: "value" },
+                          series: [
+                            {
+                              name: "Correct",
+                              type: "bar",
+                              stack: "total",
+                              color: "#8EAC91",
+                              label: { show: true, position: "inside" },
+                              data: data.correct,
+                            },
+                            {
+                              name: "Incorrect",
+                              type: "bar",
+                              stack: "total",
+                              color: "#E0A863",
+                              label: { show: true, position: "inside" },
+                              data: data.incorrect,
+                            },
+                          ],
+                          grid: {
+                            left: "3%",
+                            right: "4%",
+                            bottom: "3%",
+                            containLabel: true,
+                          },
+                        };
+              
+                        activityChart.clear(); // Clear the chart before setting new options
+                        activityChart.setOption(option);
+              
+                        // Trigger resize after rendering
+                        setTimeout(() => {
+                          activityChart.resize();
+                        }, 500);
+                      }
+              
+                      // Clear the chart
+                      function clearActivityChart() {
+                        activityChart.clear();
+                      }
+              
+                      // Handle "Apply" button
+                      filterForm.addEventListener("submit", (event) => {
+                        event.preventDefault();
+                        fetchAndRenderActivityData();
+                      });
+              
+                      // Handle radio button changes
+                      toggleOptions.forEach((option) =>
+                        option.addEventListener("change", () => {
+                          fetchAndRenderActivityData();
+                        })
+                      );
+                    });
+                  </script>
+                </div>
+              </div>
+                            
+              
+            
+              
+              <div class="card">
+                <div class="card-body pb-0">
+                  <h5 class="card-title">Performance Overview</h5>
+                  <div id="performanceLoading" style="min-height: 400px; text-align: center; display: none;">
+                    <p style="font-size: 18px; color: gray;">⏳ Generating Performance Overview Chart... Please wait.</p>
+                  </div>
+                  <div id="performanceChart" style="min-height: 400px; display: none;" class="echart"></div>
+                  <script>
+                    document.addEventListener("DOMContentLoaded", () => {
+                      const scenarioSelect = document.getElementById("scenarioSelect");
+                      const startDateInput = document.getElementById("start-date-input");
+                      const endDateInput = document.getElementById("end-date-input");
+                      const filterForm = document.getElementById("filter-form");
+					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+              
+                      function pollPerformanceTask(taskId, onSuccess, onError) {
+                        const url = `/authoringtool/get_performance_data_task_status/${taskId}/`;
+                        const poll = setInterval(() => {
+                          fetch(url)
+                            .then((response) => {
+                              if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                              }
+                              return response.json();
+                            })
+                            .then((data) => {
+                              if (data.status === "completed") {
+                                clearInterval(poll);
+                                onSuccess(data.data); // Pass the task result
+                              } else if (data.status === "failed") {
+                                clearInterval(poll);
+                                onError(data.error || "Task failed on the server.");
+                              }
+                            })
+                            .catch((error) => {
+                              clearInterval(poll);
+                              onError(error.message);
+                            });
+                        }, 1000); // Poll every second
+                      }
+              
+                      function fetchAndRenderPerformanceData() {
+                        const scenarioId = scenarioSelect.value;
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+						const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+              
+                        if (scenarioId) {
+                          const params = new URLSearchParams();
+                          if (startDate) params.append("start_date", startDate);
+                          if (endDate) params.append("end_date", endDate);
+						  if (selectedGroups) params.append("group_ids", selectedGroups);
+              
+                          let url = `/authoringtool/performance_data/${scenarioId}/`;
+                          if (params.toString()) {
+                            url += `?${params.toString()}`;
+                          }
+              
+                          // Show loading indicator and hide the chart
+                          document.getElementById("performanceLoading").style.display = "block";
+                          document.getElementById("performanceChart").style.display = "none";
+              
+                          fetch(url)
+                            .then((response) => response.json())
+                            .then((data) => {
+                              const taskId = data.task_id;
+                              pollPerformanceTask(
+                                taskId,
+                                (result) => {
+                                  document.getElementById("performanceLoading").style.display = "none";
+                                  document.getElementById("performanceChart").style.display = "block";
+                                  renderPerformanceChart(result);
+                                },
+                                (error) => {
+                                  document.getElementById("performanceLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                                }
+                              );
+                            })
+                            .catch((error) => {
+                              document.getElementById("performanceLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            });
+                        } else {
+                          clearPerformanceChart();
+                        }
+                      }
+              
+                      function renderPerformanceChart(data) {
+                        const categories = Object.keys(data);
+                        const low = categories.map((phase) => parseFloat(data[phase].Low.toFixed(2)));
+                        const mid = categories.map((phase) => parseFloat(data[phase].Mid.toFixed(2)));
+                        const high = categories.map((phase) => parseFloat(data[phase].High.toFixed(2)));
+              
+                        const performanceChart = echarts.init(document.querySelector("#performanceChart"));
+                        const option = {
+                          tooltip: {
+                            trigger: "axis",
+                            axisPointer: { type: "shadow" },
+                            formatter: function (params) {
+                              let result = params[0].name + "<br/>";
+                              params.forEach((item) => {
+                                result +=
+                                  item.marker +
+                                  " " +
+                                  item.seriesName +
+                                  ": " +
+                                  item.data.toFixed(2) +
+                                  "%<br/>";
+                              });
+                              return result;
+                            },
+                          },
+                          legend: {
+                            data: ["Low Performers", "Moderate Performers", "High Performers"],
+                          },
+                          xAxis: {
+                            type: "category",
+                            data: categories,
+                            axisLabel: {
+                              rotate: 0,
+                              interval: 0,
+                            },
+                          },
+                          yAxis: {
+                            type: "value",
+                            name: "Percentage",
+                            min: 0,
+                            max: 100,
+                            axisLabel: {
+                              formatter: "{value} %",
+                            },
+                          },
+                          series: [
+                            {
+                              name: "Low Performers",
+                              type: "bar",
+                              stack: "performance",
+                              data: low,
+                              color: "red",
+                            },
+                            {
+                              name: "Moderate Performers",
+                              type: "bar",
+                              stack: "performance",
+                              data: mid,
+                              color: "orange",
+                            },
+                            {
+                              name: "High Performers",
+                              type: "bar",
+                              stack: "performance",
+                              data: high,
+                              color: "green",
+                            },
+                          ],
+                          grid: {
+                            left: "3%",
+                            right: "4%",
+                            bottom: "3%",
+                            containLabel: true,
+                          },
+                        };
+                        performanceChart.clear(); // Clear the chart before setting new options
+                        performanceChart.setOption(option);
+                        // Trigger resize after rendering
+                        setTimeout(() => {
+                          performanceChart.resize();
+                        }, 500);
+                      }
+              
+                      function clearPerformanceChart() {
+                        const performanceChart = echarts.init(document.querySelector("#performanceChart"));
+                        performanceChart.clear();
+                      }
+              
+                      filterForm.addEventListener("submit", (event) => {
+                        event.preventDefault();
+                        fetchAndRenderPerformanceData();
+                      });
+                    });
+                  </script>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">Average Time Spent per Activity/Phase</h5>
+              <div>
+                <label>
+                  <input type="radio" name="timeToggle" value="activities_timing" checked> Activities
+                </label>
+                <label>
+                  <input type="radio" name="timeToggle" value="phases_timing"> Phases
+                </label>
+              </div>
+              <div id="timeSpentLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Time Spent per Activity/Phase Chart... Please wait.</p>
+              </div>
+              <div id="timeSpentChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const timeToggleOptions = document.getElementsByName("timeToggle");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const filterForm = document.getElementById("filter-form");
+                  const timeSpentLoading = document.getElementById("timeSpentLoading");
+                  const timeSpentChartElement = document.getElementById("timeSpentChart");
+                  const timeSpentChart = echarts.init(timeSpentChartElement);
+				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+          
+                  // Poll task status
+                  function pollTimeSpentTask(taskId, onSuccess, onError) {
+                    const url = `/authoringtool/get_time_spent_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                      fetch(url)
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          return response.json();
+                        })
+                        .then((data) => {
+                          if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data); // Pass task result
+                          } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error || "Task failed on the server.");
+                          }
+                        })
+                        .catch((error) => {
+                          clearInterval(poll);
+                          onError(error.message);
+                        });
+                    }, 1000); // Poll every second
+                  }
+          
+                  // Fetch and render data
+                  function fetchAndRenderTimeSpentData() {
+                    const scenarioId = scenarioSelect.value;
+                    const toggleValue = document.querySelector('input[name="timeToggle"]:checked').value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+					const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+          
+                    if (scenarioId) {
+                      let url = `/authoringtool/time_spent_data/${scenarioId}/?type=${toggleValue}`;
+                      if (startDate || endDate) {
+                        const params = new URLSearchParams();
+                        if (startDate) params.append("start_date", startDate);
+                        if (endDate) params.append("end_date", endDate);
+						if (selectedGroups) params.append("group_ids", selectedGroups);
+                        url += `&${params.toString()}`;
+                      }
+          
+                      // Show loading indicator and hide chart
+                      timeSpentLoading.style.display = "block";
+                      timeSpentChartElement.style.display = "none";
+          
+                      fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          const taskId = data.task_id;
+                          pollTimeSpentTask(
+                            taskId,
+                            (result) => {
+                              timeSpentLoading.style.display = "none"; // Hide loading indicator
+                              timeSpentChartElement.style.display = "block"; // Show chart
+                              renderTimeSpentChart(result);
+                            },
+                            (error) => {
+                              timeSpentLoading.innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            }
+                          );
+                        })
+                        .catch((error) => {
+                          timeSpentLoading.innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                        });
+                    } else {
+                      clearTimeSpentChart();
+                    }
+                  }
+          
+                  // Render the chart
+                  function renderTimeSpentChart(data) {
+                    const maxLength = 20;
+
+                    // Truncate activity names exceeding the maximum length
+                    const truncatedCategories = data.categories.map(name =>
+                      name.length > maxLength ? name.substring(0, maxLength) + "..." : name
+                    );
+
+                    const formattedTimeSpent = data.time_spent.map((value) =>
+                      parseFloat(value.toFixed(2))
+                    );
+          
+                    const option = {
+                      tooltip: {
+                        trigger: "axis",
+                        axisPointer: { type: "shadow" },
+                      },
+                      legend: {
+                        data: ["Average Time Spent"],
+                      },
+                      xAxis: {
+                        type: "category",
+                        data: truncatedCategories,//data.categories,
+                        axisLabel: {
+                          rotate: 30,
+                          interval: 0,
+                        },
+                      },
+                      yAxis: {
+                        type: "value",
+                        name: "Time (seconds)",
+                        min: 0,
+                        max: Math.ceil(Math.max(...formattedTimeSpent) + 10),
+                        interval: 10,
+                        axisLabel: {
+                          formatter: "{value} s",
+                        },
+                      },
+                      series: [
+                        {
+                          name: "Average Time Spent",
+                          type: "bar",
+                          data: formattedTimeSpent,
+                          color: "#8EAC91",
+                        },
+                      ],
+                      grid: {
+                        left: "3%",
+                        right: "4%",
+                        bottom: "3%",
+                        containLabel: true,
+                      },
+                    };
+          
+                    timeSpentChart.clear(); // Clear chart before setting new options
+                    timeSpentChart.setOption(option);
+          
+                    // Trigger resize after rendering
+                    setTimeout(() => {
+                      timeSpentChart.resize();
+                    }, 500);
+                  }
+          
+                  // Clear the chart
+                  function clearTimeSpentChart() {
+                    timeSpentChart.clear();
+                  }
+          
+                  // Update chart only when "Apply" is clicked
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderTimeSpentData();
+                  });
+
+                  // Update chart when radio button changes
+                  timeToggleOptions.forEach((option) =>
+                    option.addEventListener("change", () => {
+                      fetchAndRenderTimeSpentData();
+                    })
+                  );
+                });
+              </script>
+            </div>
+          </div>
+          
+          
+          
+          
+          
+          
+          
+          
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">Detailed Phase Scores Overview</h5>
+              <div id="detailedPhaseScoresLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Detailed Phase Scores Overview... Please wait.</p>
+              </div>
+              <div id="detailedPhaseScoresChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const filterForm = document.getElementById("filter-form");
+				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+          
+                  function pollDetailedPhaseScoresTask(taskId, onSuccess, onError) {
+                    const url = `/authoringtool/get_detailed_phase_scores_data_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                      fetch(url)
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          return response.json();
+                        })
+                        .then((data) => {
+                          if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data); // Pass the task result
+                          } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error || "Task failed on the server.");
+                          }
+                        })
+                        .catch((error) => {
+                          clearInterval(poll);
+                          onError(error.message);
+                        });
+                    }, 1000); // Poll every second
+                  }
+          
+                  function fetchAndRenderDetailedPhaseScores() {
+                    const scenarioId = scenarioSelect.value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+					const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+          
+                    if (scenarioId) {
+                      const params = new URLSearchParams();
+                      if (startDate) params.append("start_date", startDate);
+                      if (endDate) params.append("end_date", endDate);
+					  if (selectedGroups) params.append("group_ids", selectedGroups);
+          
+                      let url = `/authoringtool/detailed_phase_scores_data/${scenarioId}/`;
+                      if (params.toString()) {
+                        url += `?${params.toString()}`;
+                      }
+          
+                      // Show loading indicator and hide the chart
+                      document.getElementById("detailedPhaseScoresLoading").style.display = "block";
+                      document.getElementById("detailedPhaseScoresChart").style.display = "none";
+          
+                      fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          const taskId = data.task_id;
+                          pollDetailedPhaseScoresTask(
+                            taskId,
+                            (result) => {
+                              document.getElementById("detailedPhaseScoresLoading").style.display = "none"; // Hide loading indicator
+                              document.getElementById("detailedPhaseScoresChart").style.display = "block"; // Show chart
+                              renderDetailedPhaseScoresChart(result);
+                            },
+                            (error) => {
+                              document.getElementById("detailedPhaseScoresLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            }
+                          );
+                        })
+                        .catch((error) => {
+                          document.getElementById("detailedPhaseScoresLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                        });
+                    } else {
+                      clearDetailedPhaseScoresChart();
+                    }
+                  }
+          
+                  function renderDetailedPhaseScoresChart(data) {
+                    // Format data
+                    const formattedLow = data.low.map((value) => parseFloat(value.toFixed(2)));
+                    const formattedMid = data.mid.map((value) => parseFloat(value.toFixed(2)));
+                    const formattedHigh = data.high.map((value) => parseFloat(value.toFixed(2)));
+                    const formattedAverage = data.average.map((value) => parseFloat(value.toFixed(2)));
+          
+                    const detailedPhaseScoresChart = echarts.init(document.querySelector("#detailedPhaseScoresChart"));
+                    const option = {
+                      tooltip: {
+                        trigger: "axis",
+                        axisPointer: { type: "shadow" },
+                        formatter: function (params) {
+                          let result = params[0].name + "<br/>";
+                          params.forEach((item) => {
+                            result +=
+                              item.marker +
+                              " " +
+                              item.seriesName +
+                              ": " +
+                              item.data.toFixed(2) +
+                              "<br/>";
+                          });
+                          return result;
+                        },
+                      },
+                      legend: {
+                        data: ["Low Performers", "Moderate Performers", "High Performers", "Average Score"],
+                      },
+                      xAxis: {
+                        type: "category",
+                        data: data.categories,
+                      },
+                      yAxis: {
+                        type: "value",
+                        name: "Score",
+                        axisLabel: {
+                          formatter: "{value}",
+                        },
+                      },
+                      series: [
+                        {
+                          name: "Low Performers",
+                          type: "bar",
+                          data: formattedLow,
+                          color: "red",
+                        },
+                        {
+                          name: "Moderate Performers",
+                          type: "bar",
+                          data: formattedMid,
+                          color: "orange",
+                        },
+                        {
+                          name: "High Performers",
+                          type: "bar",
+                          data: formattedHigh,
+                          color: "green",
+                        },
+                        {
+                          name: "Average Score",
+                          type: "line",
+                          data: formattedAverage,
+                          color: "blue",
+                          lineStyle: {
+                            width: 2,
+                            type: "dotted",
+                          },
+                          markLine: {
+                            data: [{ type: "average", name: "Overall Avg" }],
+                          },
+                        },
+                      ],
+                      grid: {
+                        left: "3%",
+                        right: "4%",
+                        bottom: "3%",
+                        containLabel: true,
+                      },
+                    };
+                    detailedPhaseScoresChart.clear();
+                    detailedPhaseScoresChart.setOption(option);
+                  }
+          
+                  function clearDetailedPhaseScoresChart() {
+                    const detailedPhaseScoresChart = echarts.init(document.querySelector("#detailedPhaseScoresChart"));
+                    detailedPhaseScoresChart.clear();
+                  }
+          
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderDetailedPhaseScores();
+                  });
+          
+                  scenarioSelect.dispatchEvent(new Event("change"));
+                });
+              </script>
+            </div>
+          </div>
+          
+        
+        
+          
+          
+
+      </div>
+
+      
+        <div class="col-lg-6">
+
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">Number of Performers per Phase</h5>
+              <div id="performersLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Performance by Performer Type Chart... Please wait.</p>
+              </div>
+              <div id="performersChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const filterForm = document.getElementById("filter-form");
+				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+          
+                  function pollPerformersTask(taskId, onSuccess, onError) {
+                    const url = `/authoringtool/get_performers_data_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                      fetch(url)
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          return response.json();
+                        })
+                        .then((data) => {
+                          if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data); // Pass the task result
+                          } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error); // Pass the error
+                          }
+                        })
+                        .catch((error) => {
+                          clearInterval(poll);
+                          onError(error.message);
+                        });
+                    }, 1000); // Poll every second
+                  }
+          
+                  function fetchAndRenderPerformersData() {
+                    const scenarioId = scenarioSelect.value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+					const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+          
+                    if (scenarioId) {
+                      const params = new URLSearchParams();
+                      if (startDate) params.append("start_date", startDate);
+                      if (endDate) params.append("end_date", endDate);
+					  if (selectedGroups) params.append("group_ids", selectedGroups);
+          
+                      let url = `/authoringtool/performers_data/${scenarioId}/`;
+                      if (params.toString()) {
+                        url += `?${params.toString()}`;
+                      }
+          
+                      // Show loading indicator and hide chart
+                      document.getElementById("performersLoading").style.display = "block";
+                      document.getElementById("performersChart").style.display = "none";
+          
+                      fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          const taskId = data.task_id;
+                          pollPerformersTask(
+                            taskId,
+                            (result) => {
+                              document.getElementById("performersLoading").style.display = "none"; // Hide loading indicator
+                              document.getElementById("performersChart").style.display = "block"; // Show chart
+                              renderPerformersChart(result);
+                            },
+                            (error) => {
+                              document.getElementById("performersLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            }
+                          );
+                        })
+                        .catch((error) => {
+                          document.getElementById("performersLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                        });
+                    } else {
+                      clearPerformersChart();
+                    }
+                  }
+          
+                  function renderPerformersChart(data) {
+                    const formattedLow = data.low.map((value) => parseFloat(value.toFixed(2)));
+                    const formattedMid = data.mid.map((value) => parseFloat(value.toFixed(2)));
+                    const formattedHigh = data.high.map((value) => parseFloat(value.toFixed(2)));
+          
+                    var performersChart = echarts.init(document.querySelector("#performersChart"));
+                    var option = {
+                      tooltip: {
+                        trigger: "axis",
+                        axisPointer: { type: "shadow" },
+                        formatter: function (params) {
+                          let result = params[0].name + "<br/>";
+                          params.forEach(function (item) {
+                            result +=
+                              item.marker +
+                              " " +
+                              item.seriesName +
+                              ": " +
+                              item.data.toFixed(0) +
+                              "<br/>";
+                          });
+                          return result;
+                        },
+                      },
+                      legend: {
+                        data: ["Low Performers", "Moderate Performers", "High Performers"],
+                      },
+                      xAxis: [
+                        {
+                          type: "category",
+                          axisTick: { show: false },
+                          data: data.categories,
+                        },
+                      ],
+                      yAxis: [
+                        {
+                          type: "value",
+                          name: "Count",
+                          axisLabel: {
+                            formatter: "{value}",
+                          },
+                          min: 0,
+                        },
+                      ],
+                      series: [
+                        {
+                          name: "Low Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedLow,
+                          color: "red",
+                        },
+                        {
+                          name: "Moderate Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedMid,
+                          color: "orange",
+                        },
+                        {
+                          name: "High Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedHigh,
+                          color: "green",
+                        },
+                      ],
+                      grid: {
+                        left: "3%",
+                        right: "4%",
+                        bottom: "3%",
+                        containLabel: true,
+                      },
+                    };
+                    performersChart.setOption(option);
+          
+                    // Trigger resize after rendering
+                    setTimeout(() => {
+                      performersChart.resize();
+                    }, 500);
+                  }
+          
+                  function clearPerformersChart() {
+                    var performersChart = echarts.init(document.querySelector("#performersChart"));
+                    performersChart.clear();
+                  }
+          
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderPerformersData();
+                  });
+          
+                  scenarioSelect.dispatchEvent(new Event("change"));
+                });
+              </script>
+            </div>
+          </div>
+          
+        </div>
+        <div class="col-lg-6">
+
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">
+                Time Spent in Each Phase by Performer Type
+              </h5>
+              <div id="phaseTimeLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Time Spent Chart... Please wait.</p>
+              </div>
+              <div id="phaseTimeChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const filterForm = document.getElementById("filter-form");
+				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
+                  
+                  function pollTimeSpentTask(taskId, onSuccess, onError) {
+                    const url = `/authoringtool/get_time_spent_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                      fetch(url)
+                        .then((response) => {
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          return response.json();
+                        })
+                        .then((data) => {
+                          if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data); // Pass the task result
+                          } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error); // Pass the error
+                          }
+                        })
+                        .catch((error) => {
+                          clearInterval(poll);
+                          onError(error.message);
+                        });
+                    }, 1000); // Poll every second
+                  }
+          
+                  function fetchAndRenderPhaseTimeData() {
+                    const scenarioId = scenarioSelect.value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+					const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
+          
+                    if (scenarioId) {
+                      const params = new URLSearchParams();
+                      if (startDate) params.append("start_date", startDate);
+                      if (endDate) params.append("end_date", endDate);
+					  if (selectedGroups) params.append("group_ids", selectedGroups);
+          
+                      let url = `/authoringtool/time_spent_by_performer_type/${scenarioId}/`;
+                      if (params.toString()) {
+                        url += `?${params.toString()}`;
+                      }
+          
+                      // Show loading indicator and hide chart
+                      document.getElementById("phaseTimeLoading").style.display = "block";
+                      document.getElementById("phaseTimeChart").style.display = "none";
+          
+                      fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                          const taskId = data.task_id;
+                          pollTimeSpentTask(
+                            taskId,
+                            (result) => {
+                              document.getElementById("phaseTimeLoading").style.display =
+                                "none"; // Hide loading indicator
+                              document.getElementById("phaseTimeChart").style.display =
+                                "block"; // Show chart
+                              renderPhaseTimeChart(result);
+							  // Trigger resize after rendering
+							  setTimeout(() => {
+							    const phaseTimeChart = echarts.init(
+								  document.querySelector("#phaseTimeChart")
+							    );
+							    phaseTimeChart.resize();
+							  }, 500);
+                            },
+                            (error) => {
+                              document.getElementById("phaseTimeLoading").innerHTML =
+                                `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                            }
+                          );
+                        })
+                        .catch((error) => {
+                          document.getElementById("phaseTimeLoading").innerHTML =
+                            `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
+                        });
+                    } else {
+                      clearPhaseTimeChart();
+                    }
+                  }
+          
+                  function renderPhaseTimeChart(data) {
+                    // Format the data to two decimal places
+                    const formattedLow = data.low.map((value) =>
+                      parseFloat(value.toFixed(2))
+                    );
+                    const formattedMid = data.mid.map((value) =>
+                      parseFloat(value.toFixed(2))
+                    );
+                    const formattedHigh = data.high.map((value) =>
+                      parseFloat(value.toFixed(2))
+                    );
+          
+                    var phaseTimeChart = echarts.init(
+                      document.querySelector("#phaseTimeChart")
+                    );
+                    var option = {
+                      tooltip: {
+                        trigger: "axis",
+                        axisPointer: { type: "shadow" },
+                        formatter: function (params) {
+                          let result = params[0].name + "<br/>";
+                          params.forEach(function (item) {
+                            result +=
+                              item.marker +
+                              " " +
+                              item.seriesName +
+                              ": " +
+                              item.data.toFixed(2) +
+                              " seconds<br/>";
+                          });
+                          return result;
+                        },
+                      },
+                      legend: {
+                        data: [
+                          "Low Performers",
+                          "Moderate Performers",
+                          "High Performers",
+                        ],
+                      },
+                      xAxis: [
+                        {
+                          type: "category",
+                          axisTick: { show: false },
+                          data: data.categories,
+                        },
+                      ],
+                      yAxis: [
+                        {
+                          type: "value",
+                          name: "Time Spent (seconds)",
+                          axisLabel: {
+                            formatter: "{value} s",
+                          },
+                          min: 0,
+                        },
+                      ],
+                      series: [
+                        {
+                          name: "Low Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedLow,
+                          color: "red",
+                        },
+                        {
+                          name: "Moderate Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedMid,
+                          color: "orange",
+                        },
+                        {
+                          name: "High Performers",
+                          type: "bar",
+                          emphasis: { focus: "series" },
+                          data: formattedHigh,
+                          color: "green",
+                        },
+                      ],
+                      grid: {
+                        left: "3%",
+                        right: "4%",
+                        bottom: "3%",
+                        containLabel: true,
+                      },
+                    };
+                    phaseTimeChart.setOption(option);
+                  }
+          
+                  function clearPhaseTimeChart() {
+                    var phaseTimeChart = echarts.init(
+                      document.querySelector("#phaseTimeChart")
+                    );
+                    phaseTimeChart.clear();
+                  }
+          
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderPhaseTimeData();
+                  });
+          
+                  //scenarioSelect.addEventListener("change", fetchAndRenderPhaseTimeData);
+                  scenarioSelect.dispatchEvent(new Event("change"));
+                });
+              </script>
+            </div>
+          </div>
+          
+        </div>          
+        
+          
+        <div class="col-lg-12">
+        
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Most Common Paths Taken by Students</h5>
+    
+            <!-- Loading Indicator -->
+            <div id="pathsLoading" style="min-height: 400px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Generating Paths Report... Please wait.</p>
+            </div>
+
+            <!-- All Paths Content (Hidden Initially) -->
+            <div id="pathsContainer" style="display: none;"> <!-- ✅ Entire block hidden until ready -->
+    
+              <!-- Scenario Path Section -->
+              <div id="scenarioPathContainer" style="display: none;">
+                  <h6>Most Common Scenario Path (Unique Paths: <span id="uniqueScenarioPathsCount"></span>):</h6>
+                  <ul id="scenarioCommonPathList"></ul>
+                  <button id="showMoreScenarioPaths" class="btn btn-link" style="display:none;">Show More</button>
+              </div>
+      
+              <!-- Modal for Scenario Paths -->
+              <div class="modal fade" id="scenarioPathsModal" tabindex="-1">
+                  <div class="modal-dialog modal-lg">
+                      <div class="modal-content">
+                          <div class="modal-header">
+                              <h5 class="modal-title">All Scenario Paths</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body">
+                              <ul id="scenarioAllPathsList"></ul>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+    
+              <!-- Phase Paths Section -->
+              <h6 style="margin-top: 20px;">Paths by Phase:</h6>
+              <div id="phasesList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap Modal for Phases will be dynamically injected -->
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // Assuming elements already exist
+        const scenarioCommonPathList = document.getElementById('scenarioCommonPathList');
+        const scenarioAllPathsList = document.getElementById('scenarioAllPathsList');
+        const uniqueScenarioPathsCount = document.getElementById('uniqueScenarioPathsCount');
+        const showMoreScenarioPaths = document.getElementById('showMoreScenarioPaths');
+        const phasesList = document.getElementById('phasesList');
+        const pathsLoading = document.getElementById('pathsLoading');
+        const scenarioPathContainer = document.getElementById('scenarioPathContainer');
+        const pathsContainer = document.getElementById('pathsContainer')
+    
+        function truncateText(text, maxLength = 20) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+    
+        function renderPathActivities(path) {
+            return path.map(activity =>
+                `<a href="${activity.url}" title="${activity.tooltip}" target="_blank">${truncateText(activity.name)}</a>`
+            ).join(' → ');
+        }
+    
+        function renderScenarioPaths(scenarioPaths) {
+            uniqueScenarioPathsCount.textContent = scenarioPaths.unique_path_count;
+    
+            // Render most common scenario path
+            scenarioCommonPathList.innerHTML = `
+                <li>${renderPathActivities(scenarioPaths.most_common_path.path)} 
+                (taken by ${scenarioPaths.most_common_path.count} users)</li>`;
+    
+            // All scenario paths for modal
+            scenarioAllPathsList.innerHTML = scenarioPaths.paths.map(pathData =>
+                `<li>${renderPathActivities(pathData.path)} (taken by ${pathData.count} users)</li>`
+            ).join('');
+    
+            // Show 'Show More' button if multiple unique paths
+            if (scenarioPaths.unique_path_count > 1) {
+                showMoreScenarioPaths.style.display = 'inline-block';
+                showMoreScenarioPaths.onclick = () => new bootstrap.Modal(document.getElementById('scenarioPathsModal')).show();
+            }
+        }
+    
+        function renderPhasePaths(phasePaths) {
+            phasesList.innerHTML = ''; // Clear previous
+    
+            for (const [phaseId, phaseData] of Object.entries(phasePaths)) {
+                const modalId = `phasePathsModal-${phaseId}`;
+                const commonPathHtml = `
+                    <li>${renderPathActivities(phaseData.most_common_path.path)} 
+                    (taken by ${phaseData.most_common_path.count} users)</li>`;
+    
+                const allPathsHtml = phaseData.paths.map(pathData =>
+                    `<li>${renderPathActivities(pathData.path)} (taken by ${pathData.count} users)</li>`
+                ).join('');
+    
+                // Phase container
+                const phaseHtml = `
+                    <div class="mt-3">
+                        <h6>${phaseData.phase_name} (Unique Paths: ${phaseData.unique_path_count})</h6>
+                        <ul>${commonPathHtml}</ul>
+                        <button class="btn btn-link" data-bs-toggle="modal" data-bs-target="#${modalId}">Show More</button>
+                    </div>
+    
+                    <div class="modal fade" id="${modalId}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">All Paths for ${phaseData.phase_name}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <ul>${allPathsHtml}</ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                phasesList.insertAdjacentHTML('beforeend', phaseHtml);
+            }
+        }
+    
+        // Hook form submission to start loading paths
+        document.getElementById('filter-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            fetchAndRenderPaths();
+        });
+    
+        function fetchAndRenderPaths() {
+            const scenarioId = document.getElementById('scenarioSelect').value;
+            const startDate = document.getElementById('start-date-input').value;
+            const endDate = document.getElementById('end-date-input').value;
+            const selectedGroups = Array.from(document.getElementById('groupSelect').selectedOptions).map(opt => opt.value);
+    
+            if (!scenarioId) {
+                alert("Please select a scenario.");
+                return;
+            }
+    
+            let url = `/authoringtool/scenario_paths/${scenarioId}/`;
+            const params = new URLSearchParams();
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+            if (selectedGroups.length > 0) params.append("group_ids", selectedGroups);
+            url += `?${params.toString()}`;
+    
+            // Show loading
+            pathsLoading.style.display = 'block';
+            scenarioPathContainer.style.display = 'none';
+            pathsContainer.style.display = 'none';
+            phasesList.innerHTML = '';
+    
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const taskId = data.task_id;
+                    pollPathsTask(taskId, result => {
+                        pathsLoading.style.display = 'none';
+                        scenarioPathContainer.style.display = 'block';
+                        pathsContainer.style.display = 'block';
+                        renderScenarioPaths(result.scenario_paths);
+                        renderPhasePaths(result.phase_paths);
+                    }, error => {
+                        pathsLoading.innerHTML = `<p style="color: red;">⚠️ Error: ${error}</p>`;
+                    });
+                });
+        }
+    
+        // Polling logic (you had this already)
+        function pollPathsTask(taskId, onSuccess, onError) {
+            const url = `/authoringtool/get_scenario_paths_task_status/${taskId}/`;
+            const poll = setInterval(() => {
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "completed") {
+                            clearInterval(poll);
+                            onSuccess(data.data);
+                        } else if (data.status === "failed") {
+                            clearInterval(poll);
+                            onError(data.error || "Task failed on server.");
+                        }
+                    }).catch(err => {
+                        clearInterval(poll);
+                        onError(err.message);
+                    });
+            }, 1000);
+        }
+    });
+    </script>
+    
+    
+        
+        
+      </div>        
+    </section>
+	<script>
+	document.addEventListener("DOMContentLoaded", () => {
+	  const startDateInput = document.getElementById('start-date-input');
+	  const endDateInput = document.getElementById('end-date-input');
+
+	  // Set default values for start date and end date
+	  if (!startDateInput.value) {
+		  startDateInput.value = '2024-08-25';
+	  }
+	  if (!endDateInput.value) {
+		  endDateInput.value = '2024-08-30';
+	  }
+
+	  document.getElementById('reset-button').addEventListener('click', () => {
+      const scenarioSelect = document.getElementById('scenarioSelect');
+      const filterForm = document.getElementById('filter-form');
+
+      scenarioSelect.value = '';
+      startDateInput.value = '';
+      endDateInput.value = '';
+      filterForm.dispatchEvent(new Event('submit'));
+	  });
+	});
+  </script>
+  </main>
+{% endblock atcontent %}

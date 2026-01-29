@@ -1,0 +1,195 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let answerCount = {{ answers|length }};
+    var isEvaluatable = {% if activity.is_evaluatable %}true{% else %}false{% endif %};
+    let eligibleActivities = [
+    {% for activity in eligible_activities %}
+        { id: "{{ activity.id }}", name: "{{ activity.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    ];
+  
+    function addMoreAnswers() {
+        var answerFieldsList = document.getElementById('answerFieldsList');
+        var newAnswerFields = document.createElement('div');
+        
+        newAnswerFields.classList.add('answerFields', 'mb-3');
+
+        let nextActivityOptions = eligibleActivities.map(activity =>
+        `<option value="${activity.id}">${activity.name}</option>`
+        ).join('');
+
+        let nextActivityDropdownHTML = isEvaluatable ? '' : `
+        <div class="mb-3">
+            <label class="form-label">Next Activity</label>
+            <select class="form-select" name="next_activity_${answerCount}">
+                <option value="">Select Next Activity (Optional)</option>
+                ${nextActivityOptions}
+                <option value="create_new">Create New Activity</option>
+            </select>
+        </div>`;
+
+        newAnswerFields.innerHTML = `
+            <hr class="rounded">
+            <div class="mb-3">
+                <label class="form-label">Answer Text</label>
+                <textarea class="form-control" name="answers[${answerCount}][text]" required></textarea>
+            </div>
+            <div class="mb-3">
+                <input class="form-check-input" type="checkbox" name="answers[${answerCount}][is_correct]">
+                <label class="form-check-label">Is Correct?</label>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Answer Weight</label>
+                <input type="number" class="form-control" name="answers[${answerCount}][answer_weight]" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Image Upload (optional)</label>
+                <input class="form-control" type="file" name="answers[${answerCount}][image]">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Video URL (optional)</label>
+                <input type="text" class="form-control" name="answers[${answerCount}][vid_url]">
+            </div>
+            ${nextActivityDropdownHTML}
+            <button type="button" class="removeAnswer btn btn-danger">Remove</button>
+        `;
+        answerFieldsList.appendChild(newAnswerFields);
+        answerCount++;
+    }
+
+    document.getElementById('addMoreAnswers').addEventListener('click', addMoreAnswers);
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('removeAnswer')) {
+            e.target.closest('.answerFields').remove();
+        }
+    });
+});
+
+    function hideCurrentFileInfo() {
+        // Check if the user has selected a file
+        var fileInput = document.getElementById('formFile');
+        if (fileInput.value) {
+            // Hide the current file info
+            document.getElementById('currentFileInfo').style.display = 'none';
+        }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', function(event) {
+        var button = this;
+    
+        // Use setTimeout to delay the spinner appearance and button disable
+        setTimeout(function() {
+            button.innerHTML = `
+                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                <span>Loading...</span>
+            `;
+            button.disabled = true;
+        }, 100); // Delay in milliseconds
+    
+        // The form will submit normally unless we explicitly stop it
+      });
+</script>
+<style>
+    hr.rounded {
+        border-top: 8px solid #012970; /* Updated color value */
+        border-radius: 5px;
+    }
+</style>
+<main id="main" class="main">
+    <!-- Page title and breadcrumb -->
+    <div class="pagetitle">
+        <h1>Update Answers</h1>
+        <!-- Breadcrumb navigation -->
+    </div>
+
+    <section class="section">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Update Answers for "{{ activity.name }}"</h5>
+                        <form action="{% url 'updateAnswers' scenario_id=scenario phase_id=phase activity_id=activity.id %}" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div id="answerFieldsList">
+                                {% for answer in answers %}
+                                <div class="answerFields mb-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Answer Text</label>
+                                        <textarea class="form-control" name="answers[{{ forloop.counter0 }}][text]" required>{{ answer.text }}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input class="form-check-input" type="checkbox" name="answers[{{ forloop.counter0 }}][is_correct]" {% if answer.is_correct %}checked{% endif %}>
+                                        <label class="form-check-label">Is Correct?</label>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="answerWeight" class="form-label">Answer Weight</label>
+                                        <input type="number" class="form-control" name="answers[{{ forloop.counter0 }}][answer_weight]" value="{{answer.answer_weight}}" required>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
+                                        <div class="col-sm-10">
+                                            <input class="form-control" type="file" id="formFile" name="answers[{{ forloop.counter0 }}][image]" onchange="hideCurrentFileInfo()">
+                                            <!-- Displaying the current file name -->
+                                            {% if answer.image %}
+                                            <p id="currentFileInfo" name="currentFileInfo[{{ forloop.counter0 }}]">Current file: {{ answer.image.name }}</p>
+                                            {% else %}
+                                            <p id="currentFileInfo" name="currentFileInfo[{{ forloop.counter0 }}]">No file currently uploaded.</p>
+                                            {% endif %}
+                                        </div>
+                                        <!-- Checkbox to clear the current image -->
+                                        <div class="row mb-3">
+                                            <div class="col-sm-10">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault{{ forloop.counter0 }}" name="clear_image_{{ forloop.counter0 }}">
+                                                    <label class="form-check-label" for="flexSwitchCheckDefault{{ forloop.counter0 }}">Clear Image?</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="vidUrl" class="form-label">Video URL (optional)</label>
+                                        <input type="text" class="form-control" name="answers[{{ forloop.counter0 }}][vid_url]" value="{{answer.vid_url}}">
+                                    </div>
+                                    {% if not activity.is_evaluatable %}
+                                        <div class="mb-3">
+                                            <label for="next_activity_{{ forloop.counter0 }}" class="col-sm-2 col-form-label">Next Activity:</label>
+                                            <select name="next_activity_{{ forloop.counter0 }}" class="form-select">
+                                                <option value="">Select Next Activity</option>
+                                                <!-- <option value="{{ activity.id }}" {% if answer.next_activity and activity.id == answer.next_activity.id %}selected{% endif %}> -->
+                                                {% for activity in eligible_activities %}
+                                                    <option value="{{ activity.id }}" {% if answer.next_activity_id == activity.id %}selected{% endif %}>
+                                                        {{ activity.name }}
+                                                    </option>
+                                                {% endfor %}
+                                                <option value="create_new">Create New Activity</option>
+                                            </select>
+                                        </div>
+                                    {% endif %}
+                                    <input type="hidden" name="answers[{{ forloop.counter0 }}][id]" value="{{ answer.id }}">
+                                    {% if not forloop.first %}
+                                        <button type="button" class="removeAnswer btn btn-danger">Remove</button>
+                                    {% endif %}
+                                    {% if not forloop.last %}
+                                        <hr class="rounded">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="addMoreAnswers" class="btn btn-info">Add More Answers</button>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">Update Answers</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+{% endblock %}

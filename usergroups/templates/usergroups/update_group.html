@@ -1,0 +1,58 @@
+{% extends "main.html" %}
+
+{% block atcontent %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Update Group: {{ group.name }}</h1>
+  </div>
+  
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Update Group Details</h5>
+            <form method="post" action="{% url 'update_group' group.id %}">
+              {% csrf_token %}
+              <div class="row mb-3">
+                <label for="name" class="col-sm-4 col-form-label">Group Name</label>
+                <div class="col-sm-8">
+                  {{ form.name }}
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="prefix" class="col-sm-4 col-form-label">User Prefix</label>
+                <div class="col-sm-8">
+                  {{ form.prefix }}
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="number_of_users" class="col-sm-4 col-form-label">Number of Users</label>
+                <div class="col-sm-8">
+                  {{ form.number_of_users }}
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="assigned_scenarios" class="col-sm-4 col-form-label">Assign Scenarios</label>
+                <div class="col-sm-8">
+                  {{ form.assigned_scenarios }}
+                </div>
+              </div>
+
+              <div class="row mb-2">
+                <div class="col-sm-10">
+                  <button type="submit" class="btn btn-primary">Update Group</button>
+                  <a href="{% url 'view_group' group.id %}" class="btn btn-secondary">Cancel</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

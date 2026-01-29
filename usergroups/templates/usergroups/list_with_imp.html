@@ -1,0 +1,111 @@
+{% extends "main.html" %}
+{% block atcontent %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Student Groups</h1>
+    <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item active">User Groups</li>
+        </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-12">
+		<div style="margin-bottom:10px">
+			<a href="{% url 'list_groups' %}" class="btn btn-primary">Back to Groups</a>
+		</div>
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Student Group List</h5>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th><a href="?sort=group">Group Name</a></th>
+                  <th><a href="?sort=teacher">Teacher in Charge</a></th>
+                  <th><a href="?sort=num_students">Number of Students</a></th>
+                  <th><a href="?sort=implementations&order={{ order }}">Implementations</a></th>
+                  <th><a href="?sort=first_implementation&order={{ order }}">First Implementation</a></th>
+                  <th><a href="?sort=last_implementation&order={{ order }}">Last Implementation</a></th>
+                  <th><a href="?sort=scenario">Scenarios Assigned</a></th>
+                  <th>Implementations Per Scenario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for data in group_data %}
+                  <tr>
+                    <td>{{ data.group.name }}</td>
+                    <td>{{ data.teacher.username }}</td>
+                    <td>{{ data.num_students }}</td>
+                    <td>{{ data.implementations }}</td>
+                    <td>
+                      {% if data.first_implementation %}
+                        {{ data.first_implementation|date:"d/m/Y H:i" }}
+                      {% else %}
+                        No Implementation
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if data.last_implementation %}
+                        {{ data.last_implementation|date:"d/m/Y H:i" }}
+                      {% else %}
+                        No Implementation
+                      {% endif %}
+                    </td>
+                    <td>{{ data.scenarios }}</td>
+                    <td>
+                        {% for scenario, count in data.scenario_implementations.items %}
+                            <span style="display:block; font-weight:bold;">{{ scenario }}: <span style="color:blue;">{{ count }}</span></span>
+                        {% empty %}
+                            No Implementations
+                        {% endfor %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="7">No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <h5 class="card-title mt-4">Total Implementations per Scenario</h5>
+            <table class="table table-bordered table-sm">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Total Implementations <small class="text-muted">(incl. extras)</small></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in totals_rows %}
+                  <tr>
+                    <td>
+                      {{ row.name }}
+                      {% if row.extra %}
+                        <small class="text-muted">(+{{ row.extra }} extra)</small>
+                      {% endif %}
+                    </td>
+                    <td>{{ row.total }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="2">No scenario implementations found.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Grand Total</th>
+                  <th>{{ grand_total_implementations }}</th>
+                </tr>
+              </tfoot>
+            </table>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

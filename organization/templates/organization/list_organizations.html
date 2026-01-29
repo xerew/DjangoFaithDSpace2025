@@ -1,0 +1,83 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<main id="main" class="main">
+
+  <div class="pagetitle">
+    <h1>All Organizations</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Organizations</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row mb-3">
+      <div class="col-lg-12">
+        <a href="{% url 'create_organization' %}" class="btn btn-primary">Create New Organization</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Organization List</h5>
+
+            <!-- Table with hoverable rows -->
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Organization Name</th>
+                  <th scope="col">Short Name</th>
+                  <th scope="col">Country</th>
+                  <th scope="col">Language</th>
+                  <th scope="col">Member</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for org in organizations %}
+                  <tr>
+                    <th scope="row">{{ forloop.counter }}</th>
+                    <td>{{ org.name }}</td>
+                    <td>{{ org.short_name }}</td>
+                    <td>{{ org.country }}</td>
+                    <td>{{ org.language }}</td>
+                    <td>
+                      {% if request.user in org.members.all %}
+                        <i class="bi bi-check-circle-fill" style="color: green;"></i>
+                      {% else %}
+                        <i class="bi bi-x-circle-fill" style="color: red;"></i>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <!-- View Details -->
+                      <a href="{% url 'organization_detail' org.id %}" class="btn btn-info btn-sm">View</a>
+
+                      <!-- Edit button if user is admin of this organization -->
+                      {% if request.user in org.admins.all %}
+                        <a href="{% url 'edit_organization' org.id %}" class="btn btn-warning btn-sm">Edit</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6">No organizations found.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <!-- End Table with hoverable rows -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+
+{% endblock %}

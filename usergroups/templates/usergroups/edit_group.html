@@ -1,0 +1,112 @@
+{% extends "main.html" %}
+{% block atcontent %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Edit Group: {{ group.name }}</h1>
+    <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+          <li class="breadcrumb-item active">Edit Group {{group.name}}</li>
+        </ol>
+    </nav>
+    </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Edit Group</h5>
+                    <form method="post" action="{% url 'edit_group' group.id %}">
+                    {% csrf_token %}
+                    
+                    <!-- Group Name -->
+                    <div class="row mb-3">
+                        <label for="name" class="col-sm-2 col-form-label">Group Name</label>
+                        <div class="col-sm-10">
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                        {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- User Prefix -->
+                    <div class="row mb-3">
+                        <label for="prefix" class="col-sm-2 col-form-label">User Prefix</label>
+                        <div class="col-sm-10">
+                        {{ form.prefix }}
+                        {% if form.prefix.errors %}
+                            <div class="text-danger">{{ form.prefix.errors }}</div>
+                        {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Number of Users -->
+                    <div class="row mb-3">
+                        <label for="number_of_users" class="col-sm-2 col-form-label">Number of Users</label>
+                        <div class="col-sm-10">
+                        {{ form.number_of_users }}
+                        {% if form.number_of_users.errors %}
+                            <div class="text-danger">{{ form.number_of_users.errors }}</div>
+                        {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Assigned Scenarios -->
+                    <div class="row mb-3">
+                        <label for="scenario_select" class="col-sm-2 col-form-label">Assign Scenarios</label>
+                        <div class="col-sm-10">
+                        {% for scenario in scenarios %}
+                            <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="scenarios" value="{{ scenario.id }}" 
+                                    {% if scenario in group.assigned_scenarios.all %}checked{% endif %}>
+                            <label class="form-check-label" for="scenario{{ scenario.id }}">{{ scenario.name }}</label>
+                            </div>
+                        {% endfor %}
+                        {% if form.assigned_scenarios.errors %}
+                            <div class="text-danger">{{ form.assigned_scenarios.errors }}</div>
+                        {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-10">
+                        <button type="submit" class="btn btn-primary" id="formSubmitButtonU">Update Group</button>
+                        <a href="{% url 'view_group' group.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+  </section>
+</main>
+
+<script>
+    document.getElementById('formSubmitButtonU').addEventListener('click', function(event) {
+        var form = document.querySelector('form');  // Get the form element
+        var submitButton = this;
+        var cancelButton = document.getElementById('cancelButton');
+        
+        // Prevent default behavior if the form is not valid
+        if (!form.checkValidity()) {
+          form.reportValidity();  // This will trigger the built-in browser validation messages
+          return;  // Don't proceed if the form is invalid
+        }
+      
+        // If the form is valid, proceed to disable buttons and show spinner
+        setTimeout(function() {
+          submitButton.innerHTML = `
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+            <span>Updating...</span>
+          `;
+          submitButton.disabled = true;
+          cancelButton.disabled = true;
+        }, 100); // Delay in milliseconds
+      });      
+  </script>
+
+{% endblock %}

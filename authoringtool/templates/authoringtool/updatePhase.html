@@ -1,0 +1,103 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+
+<main id="main" class="main">
+
+    <div class="pagetitle">
+      <h1>Scenario Creation</h1>
+      <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'index'%}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'index'%}">Authoring Tool</a></li>
+            <li class="breadcrumb-item active">Scenarios</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+  
+    <section class="section">
+      <div class="row">
+        <div class="col-lg-8">
+  
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Updating Phase</h5>
+  
+              <!-- General Form Elements -->
+              <form action="{% url 'updatePhaseData' scenario_id=scenario_id phase_id=Phase.id %}" method="post" id="phaseForm" enctype="multipart/form-data">{% csrf_token %}
+                <div class="row mb-3">
+                  <label for="inputName" class="col-sm-2 col-form-label">Name</label>
+                  <div class="col-sm-10">
+                    <input type="text" class="form-control" name="name" value="{{Phase.name}}" required>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="inputDesc" class="col-sm-2 col-form-label">Description</label>
+                  <div class="col-sm-10">
+                    <textarea class="form-control" style="height: 100px" name="description"required>{{Phase.description}}</textarea>
+                  </div>
+                </div>
+				{% comment %}
+                <div class="row mb-3">
+                  <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
+                  <div class="col-sm-10">
+                    <input class="form-control" type="file" id="formFile" name="image_upload" onchange="hideCurrentFileInfo()">
+                    <!-- Displaying the current file name -->
+                    {% if phase.image %}
+                    <p id="currentFileInfo">Current file: {{ Phase.image.name }}</p>
+                    {% else %}
+                    <p id="currentFileInfo">No file currently uploaded.</p>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="inputVideo" class="col-sm-2 col-form-label">Video URL</label>
+                  <div class="col-sm-10">
+                    <input type="text" class="form-control" name="video_url" value="{{Phase.video_url}}">
+                  </div>
+                </div>
+				{% endcomment %}
+                <input type="hidden" name="scenario_id" value="{{ scenario_id }}">
+                <div class="row mb-2">
+                  <div class="col-sm-10">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Update Phase</button>
+                  </div>
+                </div>
+              </form><!-- End General Form Elements -->
+  
+            </div>
+          </div>
+  
+        </div>
+      </div>
+    </section>
+  
+  </main><!-- End #main -->
+
+  <script>
+    document.getElementById('submitBtn').addEventListener('click', function(event) {
+		var button = this;
+		var form = document.getElementById('phaseForm');
+
+		if (form.checkValidity() === false) {
+		  event.preventDefault();
+		  event.stopPropagation();
+		  form.classList.add('was-validated');
+		  return;
+		}
+
+		// Use setTimeout to delay the spinner appearance and button disable
+		setTimeout(function() {
+			button.innerHTML = `
+				<span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+				<span>Creating...</span>
+			`;
+			button.disabled = true;
+		}, 100); // Delay in milliseconds
+
+		// The form will submit normally unless we explicitly stop it
+	  });
+  </script>
+
+{% endblock %}

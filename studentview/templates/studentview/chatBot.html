@@ -1,0 +1,222 @@
+{% load static %}
+<html>
+  <head>
+    <title>Chatbot Widget</title>
+
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta content="utf-8" http-equiv="encoding" />
+
+    <!--Import Google Icon Font-->
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Raleway:500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--Import Font Awesome Icon Font-->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+      integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0="
+      crossorigin="anonymous"
+    />
+
+    <!--Import materialize.css-->
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{% static 'chatbot_static/css/materialize.min.css' %}"
+    />
+
+    <!--Main css-->
+    <link rel="stylesheet" type="text/css" href="{% static 'chatbot_static/css/style.css' %}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <!-- Iframe Chatbot Script -->
+    <script>
+      {% comment %} window.addEventListener('message', function(event) {
+          if (event.origin !== "https://trust-ai-lab.eu") {
+              console.error('Received message from unauthorized domain:', event.origin);
+              return; // Security check
+          }
+      
+          if (event.data.type === 'sendUserId') {
+              const userId = event.data.userId;
+              console.log('Received userId:', userId);
+              // Use the userId as needed in the iframe
+          }
+      }); {% endcomment %}
+    </script>
+      <script type="text/javascript">
+        window.addEventListener('message', function(event) {
+            // Always verify the origin of the message!
+            if (event.origin !== "https://trust-ai-lab.eu") {
+                console.error('Received message from unauthorized domain:', event.origin);
+                return;
+            }
+			
+			if (event.data.type === 'pendulumData') {
+              // Forward the pendulum data to chat.js
+              const pendulumDataEvent = new CustomEvent('pendulumDataReceived', {
+                  detail: { pendulumData: event.data.pendulumData }
+              });
+              window.dispatchEvent(pendulumDataEvent);
+              console.log('Received PENDULUM in chatbot:', event.data.pendulumData);
+            }
+        
+            // Handling messages by type
+            if (event.data.type === 'initData') {
+                const userId = event.data.userId;
+                const scenarioId = event.data.scenarioId;
+				const scenarioLang = event.data.scenarioLang;
+                console.log('Received userId:', userId);
+                console.log('Received scenarioId:', scenarioId);
+				console.log('Received scenarioLang:', scenarioLang);
+        
+                // Initialize chatbot or load specific data based on userId and scenarioId
+                initializeChatbot(userId, scenarioId, scenarioLang);
+
+                // Trigger a custom event with userId and scenarioId
+                const customEvent = new CustomEvent('userDataReceived', {
+                  detail: { userId: userId, scenarioId: scenarioId, scenarioLang : scenarioLang }
+                });
+                window.dispatchEvent(customEvent);
+              }
+        });
+                
+        function initializeChatbot(userId, scenarioId, scenarioLang) {
+            // Code to initialize the chatbot or load scenario specific data
+            // This might include setting up user sessions, loading specific dialogs, etc.
+            console.log('Initializing chatbot with User ID:', userId, 'and Scenario ID:', scenarioId, 'with language:', scenarioLang);
+            //sendMessageToRasa(userId, scenarioId, "Ask me");
+        }
+
+        function sendMessageToRasa(userId, scenarioId) {
+          const payload = {
+              sender: userId,
+              message: "Ask me", // Default message
+              metadata: {
+                  user_id: userId,
+                  scenario_id: scenarioId,
+				  scenario_lang: scenarioLang,
+              }
+          };
+          console.log("Sending to Rasa:", payload);
+      
+          fetch('https://trust-ai-lab.eu/rasa/webhooks/rest/webhook', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(payload)
+          })
+          .then(response => response.json())
+          .then(data => console.log('Rasa response:', data))
+          .catch(error => console.error('Error talking to Rasa:', error));
+        }
+
+        window.addEventListener('activityIdReceived', function(event) {
+          console.log('Activity ID received in chatbot.html:', event.detail.activityId);
+          // Post this information to the parent document
+          parent.postMessage({
+            type: 'activityIdReceived',
+            activityId: event.detail.activityId
+          }, '*');  // Adjust the target origin as per your security requirements
+        });
+      
+      </script>   
+    <div class="container">
+      <!-- Modal for rendering the charts, declare this if you want to render charts, 
+         else you remove the modal -->
+      <div id="modal1" class="modal">
+        <canvas id="modal-chart"></canvas>
+      </div>
+
+      <!--chatbot widget -->
+      <div class="widget">
+        <div class="chat_header">
+          <!--Add the name of the bot here -->
+          <span class="chat_header_title">Plato</span>
+          <span class="dropdown-trigger" href="#" data-target="dropdown1">
+            <i class="material-icons"> more_vert </i>
+          </span>
+
+          <!-- Dropdown menu-->
+          <ul id="dropdown1" class="dropdown-content">
+            <li><a href="#" id="clear">Clear</a></li>
+            <li><a href="#" id="restart">Restart</a></li>
+            <li><a href="#" id="close">Close</a></li>
+          </ul>
+        </div>
+
+        <!--Chatbot contents goes here -->
+        <div class="chats" id="chats">
+          <div class="clearfix"></div>
+        </div>
+
+        <!--keypad for user to type the message -->
+        <div class="keypad">
+          <textarea
+            id="userInput"
+            placeholder="Type a message..."
+            class="usrInput"
+          ></textarea>
+          <div id="sendButton">
+            <i class="fa fa-paper-plane" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+
+      <!--bot profile-->
+      <div class="profile_div" id="profile_div">
+        <img class="imgProfile" src="{% static 'chatbot_static/img/botAvatar.png' %}" />
+      </div>
+
+      <!-- Bot pop-up intro -->
+      <div class="tap-target" data-target="profile_div">
+        <div class="tap-target-content">
+          <h5 class="white-text">Hey there 👋</h5>
+          <p class="white-text">
+            Just say when you are ready to start the scenario!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!--JavaScript at end of body for optimized loading-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script
+      type="text/javascript"
+      src="{% static 'chatbot_static/js/lib/materialize.min.js' %}"
+    ></script>
+    <script src="{% static 'chatbot_static/js/lib/uuid.min.js' %}"></script>
+    <!--Main Script -->
+    <script type="text/javascript" src="{% static 'chatbot_static/js/script.js' %}"></script>
+
+    <!--Chart.js Script -->
+    <script type="text/javascript" src="{% static 'chatbot_static/js/lib/chart.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'chatbot_static/js/lib/showdown.min.js' %}"></script>
+  </body>
+</html>

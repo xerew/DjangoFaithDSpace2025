@@ -1,0 +1,409 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    handleVisibility();  // Initial call to set the correct display state
+    
+    const activityTypeSelect = document.getElementById('activityTypeSelect');
+    const isEvaluatableCheckbox = document.getElementById('gridCheck1');
+	const experimentTypeSelect = document.getElementById('experimentTypeSelect');
+    
+    // Add event listeners to select elements for simulation and remote labs
+    document.getElementById('simulationSelect').addEventListener('change', function () {
+        updateIframePreview('simulation');
+    });
+    document.getElementById('remoteLabSelect').addEventListener('change', function () {
+        updateIframePreview('remote_lab');
+    });
+    
+    activityTypeSelect.addEventListener('change', handleVisibility);
+    isEvaluatableCheckbox.addEventListener('change', handleVisibility);
+	experimentTypeSelect.addEventListener('change', function() {
+        toggleExperimentSection(this.value);
+    });
+	
+	// Initialize experiment sections based on current type
+    if (experimentTypeSelect.value) {
+        toggleExperimentSection(experimentTypeSelect.value);
+    }
+    
+    // Ensure submit button exists before adding event listener
+    const submitButton = document.getElementById('submitBtn');
+    if (submitButton) {
+        submitButton.addEventListener('click', function(event) {
+            var button = this;
+
+            // Use setTimeout to delay the spinner appearance and button disable
+            setTimeout(function() {
+                button.innerHTML = `
+                    <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                    <span>Updating...</span>
+                `;
+                button.disabled = true;
+            }, 100); // Delay in milliseconds
+        });
+    }
+	// Add event listener for VR/AR lab selection
+    const vrarSelect = document.getElementById('VRARLabSelect');
+    if (vrarSelect) {
+        vrarSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const qrCodeUrl = selectedOption.getAttribute('data-qrcode-url');
+            const qrCodeSection = document.getElementById('vrarQRCodeDisplay');
+            const qrCodeImage = document.getElementById('vrarQRCodeImage');
+            
+            if (qrCodeUrl) {
+                qrCodeImage.src = qrCodeUrl;
+                qrCodeSection.style.display = 'block';
+            } else {
+                qrCodeSection.style.display = 'none';
+            }
+        });
+    }
+  });
+
+  function toggleMultiSelect() {
+    const checkBox = document.getElementById("gridCheck1");
+    const multiSelectSection = document.getElementById("multiSelectSection");
+    const nextActivityWrapper = document.getElementById('nextActivityWrapper');
+
+    if (checkBox.checked) {
+        multiSelectSection.style.display = "block";  // Show the multi-select section
+        nextActivityWrapper.style.display = "none";
+    } else {
+        multiSelectSection.style.display = "none";  // Hide the multi-select section
+        nextActivityWrapper.style.display = "block";
+    }
+  }
+
+  // Update the iframe preview based on simulation or remote lab selection
+  function updateIframePreview(type) {
+    const iframe = document.getElementById('simulationPreview');
+    let selectedUrl = '';
+
+    if (type === 'simulation') {
+        const simulationSelect = document.getElementById('simulationSelect');
+        selectedUrl = simulationSelect.options[simulationSelect.selectedIndex].getAttribute('data-iframe-url');
+        document.getElementById('remoteLabSelect').value = ''; // Reset remote lab select
+        document.getElementById('VRARLabSelect').value = ''; // Reset VR/AR lab select
+    } else if (type === 'remote_lab') {
+        const remoteLabSelect = document.getElementById('remoteLabSelect');
+        selectedUrl = remoteLabSelect.options[remoteLabSelect.selectedIndex].getAttribute('data-iframe-url');
+        document.getElementById('simulationSelect').value = ''; // Reset simulation select
+        document.getElementById('VRARLabSelect').value = ''; // Reset VR/AR lab select
+    }
+
+    iframe.src = selectedUrl || '';
+  }
+
+  function handleVisibility() {
+    const activityTypeSelect = document.getElementById('activityTypeSelect');
+    const isEvaluatableCheckbox = document.getElementById('gridCheck1');
+
+    const experimentTypeSection = document.getElementById('experimentTypeSection');
+    const nextActivityWrapper = document.getElementById('nextActivityWrapper');
+    const multiSelectSection = document.getElementById("multiSelectSection");
+
+    // Get activity type from selected option (this updates when the user changes the dropdown)
+    const selectedActivityType = activityTypeSelect.options[activityTypeSelect.selectedIndex].text;
+
+    // Debugging: Check values in the console
+    console.log("Selected Activity Type from Dropdown:", selectedActivityType);
+    console.log("Is Evaluatable Checked?", isEvaluatableCheckbox.checked);
+
+    // 1. Check if the activity is "Question" and hide next activity
+    if (selectedActivityType === "Question") {
+        console.log("Hiding Next Activity (Because Type is Question)");
+        nextActivityWrapper.style.display = 'none';
+    } else {
+        console.log("Showing Next Activity");
+        nextActivityWrapper.style.display = 'block';
+    }
+
+    // 2. Show experiment type section if Experiment is selected
+    if (selectedActivityType === "Experiment") {
+        console.log("Showing Experiment Type Section");
+        experimentTypeSection.style.display = 'block';
+    } else {
+        console.log("Hiding Experiment Type Section");
+        experimentTypeSection.style.display = 'none';
+        resetExperimentFields(); // Reset fields if not Experiment
+    }
+
+    // 3. Show multiSelectSection if Evaluatable + Certain Activity Types
+    if (isEvaluatableCheckbox.checked) {
+        console.log("Showing Multi Select Section (Because Evaluatable is checked)");
+        multiSelectSection.style.display = "block";
+        nextActivityWrapper.style.display = "none"; // Hide next activity if evaluatable
+    } else {
+        console.log("Hiding Multi Select Section");
+        multiSelectSection.style.display = "none";
+    }
+
+    toggleExperimentSection(); // Ensure proper display of simulation/remote lab sections
+  }
+
+  function toggleExperimentSection(experimentType) {
+    const simulationSection = document.getElementById('simulationSection');
+    const remoteLabSection = document.getElementById('remoteLabSection');
+    const vrarSection = document.getElementById('vrarSection');
+    const iframeSection = document.getElementById('iframeSection');
+    const qrCodeSection = document.getElementById('vrarQRCodeDisplay');
+
+    // Hide all sections initially
+    simulationSection.style.display = 'none';
+    remoteLabSection.style.display = 'none';
+    vrarSection.style.display = 'none';
+    iframeSection.style.display = 'none';
+    qrCodeSection.style.display = 'none';
+
+    // Show the appropriate section based on experiment type
+    if (experimentType === 'simulation') {
+        simulationSection.style.display = 'block';
+        iframeSection.style.display = 'block';
+        updateIframePreview('simulation');
+    } else if (experimentType === 'remote_lab') {
+        remoteLabSection.style.display = 'block';
+        iframeSection.style.display = 'block';
+        updateIframePreview('remote_lab');
+    } else if (experimentType === 'vr_ar_exp') {
+        vrarSection.style.display = 'block';
+        const vrarSelect = document.getElementById('VRARLabSelect');
+        if (vrarSelect) {
+            const selectedOption = vrarSelect.options[vrarSelect.selectedIndex];
+            if (selectedOption) {
+                const qrCodeUrl = selectedOption.getAttribute('data-qrcode-url');
+                if (qrCodeUrl) {
+                    document.getElementById('vrarQRCodeImage').src = qrCodeUrl;
+                    qrCodeSection.style.display = 'block';
+                }
+            }
+        }
+    }
+  }
+
+  function resetExperimentFields() {
+    document.getElementById('experimentTypeSelect').value = "";
+    document.getElementById('simulationSelect').value = "";
+    document.getElementById('remoteLabSelect').value = "";
+    document.getElementById('VRARLabSelect').value = "";
+    document.getElementById('simulationPreview').src = "";
+    document.getElementById('vrarQRCodeImage').src = "";
+  }
+    
+</script>
+
+<main id="main" class="main">
+
+    <div class="pagetitle">
+      <h1>Activity Editing</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">Authoring Tool</li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'scenarios' %}">Scenarios</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
+          </li>
+          <li class="breadcrumb-item active">Editing Activity</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+  
+    <section class="section">
+      <div class="row">
+        <div class="col-lg-8">
+  
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Editing Activity</h5>
+  
+              <!-- General Form Elements -->
+              <form action="{% url 'updateActivityData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=Activity.id %}" method="post">{% csrf_token %}
+                <div class="row mb-3">
+                    <label for="inputText" class="col-sm-2 col-form-label">Name</label>
+                    <div class="col-sm-10">
+                      <input type="text" class="form-control" name="activity_name" value="{{ Activity.name }}" required>
+                    </div>
+                  </div>
+                <!-- TinyMCE Editor -->
+                <div style="margin-bottom: 25px">
+                    <textarea class="tinymce-editor" name="activity_text">
+                        {{Activity.text}}
+                    </textarea><!-- End TinyMCE Editor -->
+                </div>
+                <div class="row mb-3">
+                    <legend class="col-form-label col-sm-2 pt-0">Is Evaluatable?</legend>
+                    <div class="col-sm-10">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="gridCheck1" name="is_evaluatable" onchange="toggleMultiSelect()" {% if Activity.is_evaluatable %}checked{% endif %}>
+                        <label class="form-check-label" for="gridCheck1">
+                          Check if activity is evaluating the student
+                        </label>
+                      </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <legend class="col-form-label col-sm-2 pt-0">Must Wait?</legend>
+                    <div class="col-sm-10">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="gridCheck2" name="must_wait" {% if activity.must_wait %}checked{% endif %}>
+                        <label class="form-check-label" for="gridCheck2">
+                          Check if the student must wait
+                        </label>
+                      </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label">Select Type</label>
+                    <div class="col-sm-10">
+                      <select class="form-select" aria-label="Default select example" name="activity_type" id="activityTypeSelect" onchange="handleActivityTypeChange()">
+                        {% for option in activityTypes %}
+                        <option value="{{ option.id }}" {% if option.id == current_activity_type_id %}selected{% endif %}>{{ option.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                </div>
+                <!-- Experiment Type Section (Only show if Activity is of type 'Experiment') -->
+                <div id="experimentTypeSection" style="display: {% if current_activity_type_name == 'Experiment' %}block{% else %}none{% endif %};">
+                  <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label">Experiment Type</label>
+                    <div class="col-sm-10">
+                      <select id="experimentTypeSelect" class="form-select" name="experiment_type" onchange="toggleExperimentSection(this.value)">
+                        <option value="">Select Experiment Type</option>
+                        <option value="simulation" {% if current_experiment_type == 'simulation' %}selected{% endif %}>Simulation</option>
+                        <option value="remote_lab" {% if current_experiment_type == 'remote_lab' %}selected{% endif %}>Remote Lab</option>
+                        <option value="vr_ar_exp" {% if current_experiment_type == 'vr_ar_exp' %}selected{% endif %}>VR/AR Lab</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="inputText" class="col-sm-2 col-form-label">Helping Quote</label>
+                  <div class="col-sm-10">
+                    <input type="text" class="form-control" name="helping_quote" value="{{ Activity.helper }}">
+                  </div>
+                </div>
+                <div id="nextActivityWrapper" style="display: {% if current_activity_type_name == 'Question' or Activity.is_evaluatable %}none{% else %}block{% endif %};">  <!-- Initially hidden -->
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">Next Activity</label>
+                        <div class="col-sm-10">
+                            <select class="form-select" name="next_activity_id" id="nextActivitySelect">
+                                <option value="">Select Next Activity (Optional)</option>
+                                <!-- Include the preselected next activity if it exists -->
+                                {% if nextActivity %}
+                                    <option value="{{ nextActivity.id }}" selected>{{ nextActivity.name }}</option>
+                                {% endif %}
+                                <!-- Loop through eligible activities -->
+                                {% for activity in eligible_activities %}
+                                    <!-- Ensure not to duplicate the preselected next activity in the options -->
+                                    {% if not nextActivity or activity.id != nextActivity.id %}
+                                        <option value="{{ activity.id }}">{{ activity.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                                <option value="create_new">Create New Activity</option>
+                            </select>
+                        </div>
+                    </div>         
+                  </div>
+                  <div id="multiSelectSection" style="display: {% if Activity.is_evaluatable %}block{% else %}none{% endif %};">
+                    <div class="row mb-3">
+                      <label class="col-sm-2 col-form-label">Multi Select for Evaluation</label>
+                      <div class="col-sm-10">
+                        <select class="form-select" multiple aria-label="multiple select example" id="nextActivityMultiSelect" name="selected_activities">
+                          <option selected>Select 1 or More</option>
+                          {% for activity in eligible_activities %}
+                            <option value="{{ activity.id }}" {% if activity.id in nextActivityIdsList %}selected{% endif %}>{{ activity.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="row mb-3">
+                      <legend class="col-form-label col-sm-2 pt-0">Primary Evaluation?</legend>
+                      <div class="col-sm-10">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="gridCheckPrimary" name="is_primary_ev" {% if Activity.is_primary_ev %}checked{% endif %}>
+                          <label class="form-check-label" for="gridCheckPrimary">Check if this is the primary evaluation of the phase</label>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                  <div id="simulationSection" style="display: none;">
+                    <div class="row mb-3">
+                      <label class="col-sm-2 col-form-label">Simulation</label>
+                      <div class="col-sm-10">
+                        <select id="simulationSelect" class="form-select" name="simulation" onchange="updateIframePreview()">
+                            <option value="">Select Simulation</option>
+                            {% for simulation in simulations %}
+                            <option value="{{ simulation.id }}" data-iframe-url="{{ simulation.iframe_url }}" {% if existing_sim is not None %}{% if existing_sim.id == simulation.id %}selected{% endif %}{% endif %}>
+                                {{ simulation.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="remoteLabSection" style="display: none;">
+                    <div class="row mb-3">
+                      <label class="col-sm-2 col-form-label">Remote Lab</label>
+                      <div class="col-sm-10">
+                        <select id="remoteLabSelect" class="form-select" name="remote_lab" onchange="updateIframePreview()">
+                          <option value="">Select Remote Lab</option>
+                          {% for lab in remote_labs %}
+                          <option value="{{ lab.id }}" data-iframe-url="{% url 'lti_integration_in' lab.id %}" {% if existingRemote and existingRemote.id == lab.id %}selected{% endif %}>
+                            {{ lab.name }}
+                          </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+				  <!-- VR/AR Experiment Section -->
+                  <div id="vrarSection" style="display: none;">
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">VR/AR Lab</label>
+                        <div class="col-sm-10">
+                            <select id="VRARLabSelect" class="form-select" name="VRAR_lab">
+                                <option value="">Select VR/AR Lab</option>
+                                {% for lab in vr_ar_exp %}
+                                    <option value="{{ lab.id }}" data-qrcode-url="{% if lab.qr_code %}{{ lab.qr_code.url }}{% endif %}" {% if existingVR_AR and existingVR_AR.id == lab.id %}selected{% endif %}>{{ lab.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                  </div>
+                  <div id="iframeSection" style="display: none;">
+                    <iframe id="simulationPreview" width="100%" height="400" src="" frameborder="0" allowfullscreen></iframe>
+                  </div>   
+				<!-- VR/AR QR Code Section -->
+                  <div id="vrarQRCodeDisplay" style="display: none; text-align: center; margin-top: 15px;">
+                    <label class="col-form-label">QR Code:</label><br>
+                    <img id="vrarQRCodeImage" src="" alt="QR Code" width="300" height="300">
+                  </div>  				  
+                <input type="hidden" name="scenario_id" value="{{ myScenario.id }}">
+                <input type="hidden" name="phase_id" value="{{ myPhase.id }}">
+                <div class="row mb-2">
+                  <div class="col-sm-10">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save Changes</button>
+                  </div>
+                </div>
+              </form><!-- End General Form Elements -->
+  
+            </div>
+          </div>
+  
+        </div>
+      </div>
+    </section>
+  
+  </main><!-- End #main -->
+
+{% endblock atcontent %}

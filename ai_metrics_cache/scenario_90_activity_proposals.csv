@@ -1,0 +1,11 @@
+id,activity__name,phase__name,proposal_type,status,created_at,reviewed_at,reviewer__username,flag_ids,categories
+856,Activity 11,Reflection,create,new,2025-07-01 09:56:39.937881+00:00,,,[204],Low
+855,Period dependence on mass,Reflection,create,new,2025-07-01 09:56:34.001255+00:00,,,[205],Low
+854,Activity 10,Reflection,create,new,2025-07-01 09:56:28.913468+00:00,,,[203],Low
+853,Activity 9,Reflection,revise,new,2025-07-01 09:56:24.225964+00:00,,,[207],High
+852,Activity 8,Reflection,create,new,2025-07-01 09:56:19.176715+00:00,,,[202],Moderate
+851,Activity 6,Experiment,create,new,2025-07-01 09:56:12.753719+00:00,,,[201],Moderate
+850,Activity 3,Engagement,revise,new,2025-07-01 09:56:07.959661+00:00,,,"[196, 197]","High, Low"
+849,Activity 1b,Engagement,revise,new,2025-07-01 09:56:03.312701+00:00,,,"[199, 200]",Low
+848,Activity 1a,Engagement,revise,new,2025-07-01 09:55:58.059034+00:00,,,[198],Moderate
+847,Experiment,Engagement,create,new,2025-07-01 09:55:53.840941+00:00,,,[206],Moderate

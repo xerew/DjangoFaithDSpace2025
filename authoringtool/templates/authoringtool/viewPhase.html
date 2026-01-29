@@ -1,0 +1,147 @@
+{% extends "main.html" %}
+{% block atcontent %}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Phase Details</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            Authoring Tool
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'scenarios' %}">Scenarios</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
+          </li>
+          <li class="breadcrumb-item active">{{ myPhase.name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <!-- End Page Title -->
+    <section class="section">
+      <div class="row mb-2">
+        <div class="col-sm-10">
+          <a type="button"
+                  class="btn btn-secondary"
+                  href="{% url 'viewScenario' id=myScenario.id %}">Back to Scenario</a>
+          {% if can_edit %}
+            <a type="button"
+              class="btn btn-primary"
+              href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}">Create Activity</a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <!-- Column for the card -->
+        <div class="col-lg-6">
+          <div class="card">
+            {% if myPhase.image %}
+              <img src="{{ myPhase.image.url }}" alt="{{ myPhase.name }}" class="card-img-top" height="auto" width="auto">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ myPhase.name }}</h5>
+              <p class="card-text">
+                <strong>Description:</strong> {{ myPhase.description }}
+              </p>
+              <p class="card-text">
+                <strong>LLM Evaluation:</strong> {{ llm_html }}
+              </p>
+              {% if myPhase.video_url %}
+                <p class="card-text">
+                  <strong>Video URL:</strong> {{ myPhase.video_url }}
+                </p>
+              {% endif %}
+              <p class="card-text">
+                <strong>Created on:</strong> {{ myPhase.created_on }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Activities</h5>
+          <!-- Table with hoverable rows -->
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Text</th>
+                <th scope="col">Type</th>
+                <th scope="col">Is Evaluatable?</th>
+                <th scope="col">Is Primary?</th>
+                <th scope="col">Helper</th>
+                <th scope="col">Created On</th>
+                <th scope="col">Created By</th>
+                <th scope="col">Options</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for activity in activities %}
+                <tr>
+                  <th scope="row">{{ forloop.counter }}</th>
+                  <td><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"> {{ activity.name }}</a></td>
+                  <td>{{ activity.plain_text|truncatechars:40 }}</td>
+                  <td>{{ activity.activity_type }}</td>
+                  <td>{{ activity.is_evaluatable|yesno:"Yes,No" }}</td>
+                  <td>{{ activity.is_primary_ev|yesno:"Yes,No" }}</td>
+                  <td>{{ activity.helper }}</td>
+                  <td>{{ activity.created_on }}</td>
+                  <td>{{ activity.created_by }}</td>
+                  <td class="icon">
+                    <a class="bi bi-eye"
+                        style="padding-right:5px"
+                        title="View"
+                        href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"></a>
+                    {% if can_edit %}
+                      <a class="bi bi-arrow-repeat"
+                          style="padding-right:5px"
+                          title="Update"
+                          href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"></a>
+                      <a href=""
+                          class="bi bi-trash"
+                          data-bs-toggle="modal"
+                          data-bs-placement="top"
+                          title="Delete"
+                          data-bs-target="#basicModal{{ activity.id }}"></a>
+                      <div class="modal fade" id="basicModal{{ activity.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title">Confirmation</h5>
+                              <button type="button"
+                                      class="btn-close"
+                                      data-bs-dismiss="modal"
+                                      aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">Are you sure you wanna delete the activity?</div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <a type="button"
+                                  class="btn btn-primary"
+                                  href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Yes</a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- End Basic Modal-->
+                    {% endif %}
+                  </td>
+                  
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5">No activities found for this phase.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <!-- End Table with hoverable rows -->
+        </div>
+      </div>
+    </section>
+  </main>
+  <!-- End #main -->
+{% endblock atcontent %}

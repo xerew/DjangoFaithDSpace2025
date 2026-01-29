@@ -1,0 +1,187 @@
+{% extends "main.html" %}
+{% block atcontent %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Scenarios</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          Authoring Tool
+        </li>
+        <li class="breadcrumb-item active">Scenarios</li>
+      </ol>
+      <a type="button"
+        class="btn btn-outline-primary"
+        href="{% url 'createScenario' %}">Create New</a>
+    </nav>
+  </div>
+  <!-- End Page Title -->
+
+  <!-- Accordion for Filters -->
+  <div class="accordion" id="filterAccordion" style="margin-bottom:20px;">
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingOne">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+          Filters
+        </button>
+      </h2>
+      <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#filterAccordion">
+        <div class="accordion-body">
+          <form id="search-form" method="get" action="{% url 'scenarios' %}">
+            <div class="mb-3">
+              <label for="search-input" class="form-label">Search Scenarios</label>
+              <input type="text" class="form-control" name="q" id="search-input" placeholder="Search for scenario name, description, user that created it..." value="{{ query }}">
+            </div>
+            <div class="mb-3">
+              <label for="start-date-input" class="form-label">Start Date</label>
+              <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
+            </div>
+            <div class="mb-3">
+              <label for="end-date-input" class="form-label">End Date</label>
+              <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
+            </div>
+            <div class="mb-3">
+              <label for="language-select" class="form-label">Language</label>
+              <select class="form-control" name="language" id="language-select">
+                <option value="">All Languages</option>
+                {% for lang in languages %}
+                  <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Visibility Filter -->
+            <div class="mb-3">
+              <label for="visibility-select" class="form-label">Visibility</label>
+              <select class="form-control" name="visibility" id="visibility-select">
+                <option value="all" {% if visibility_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="public" {% if visibility_filter == 'public' %}selected{% endif %}>Public</option>
+                <option value="org" {% if visibility_filter == 'org' %}selected{% endif %}>Org-Only</option>
+                <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>Private</option>
+              </select>
+            </div>
+
+            <div class="mb-3 form-check form-switch">
+              <input type="checkbox" class="form-check-input" name="show_mine" id="show-mine-switch" {% if show_mine %}checked{% endif %}>
+              <label class="form-check-label" for="show-mine-switch">Show My Scenarios</label>
+            </div>
+
+            <div class="mb-3">
+              <button class="btn btn-outline-primary" type="submit">Search</button>
+              <button type="button" id="reset-button" class="btn btn-outline-secondary">Reset</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Accordion for Filters -->
+  
+  <section class="section">
+    <!-- Card with an image on left -->
+    {% for scenario in myScenarios %}
+      <div class="card mb-3">
+        <div class="row g-0">
+          <div class="col-md-4">
+            <img src="{{ scenario.image.url }}"
+                 class="img-fluid rounded-start cardimgnick"
+                 alt="{{ scenario.image.name }}"
+                 height="auto" width="auto">
+          </div>
+          <div class="col-md-8">
+            <div class="card-body">
+              <h5 class="card-title">{{ scenario.name }} 
+                <!-- Visibility Badge -->
+                {% if scenario.visibility_status == 'public' %}
+                  <span class="badge bg-success" style="color:white">Public</span>
+                {% elif scenario.visibility_status == 'org' %}
+                  <span class="badge bg-warning" style="color:white">Org-Only</span>
+                {% elif scenario.visibility_status == 'private' %}
+                  <span class="badge bg-danger" style="color:white">Private</span>
+                {% endif %}
+              </h5>
+              <p class="card-text">{{ scenario.description }}</p>
+
+              <a type="button"
+                 class="btn btn-outline-primary"
+                 href="{% url 'viewScenario' id=scenario.id %}">View</a>
+			  <a type="button"
+                  class="btn btn-outline-primary"
+                  href="{% url 'duplicate_scenario' scenario_id=scenario.id %}">Copy</a>
+              
+              <!-- Only allow editing and deleting for the owner -->
+              {% if request.user == scenario.created_by or scenario.can_edit %}
+                <a type="button"
+                  class="btn btn-outline-primary"
+                  href="{% url 'updateScenario' id=scenario.id %}">Update</a>
+                
+
+                <button type="button"
+                  class="btn btn-outline-secondary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#basicModal{{ scenario.id }}">Delete</button>
+                
+                <!-- Modal for deletion confirmation -->
+                <div class="modal fade" id="basicModal{{ scenario.id }}" tabindex="-1">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title">Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete the {{ scenario.name }} scenario?
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <a type="button" class="btn btn-danger" href="{% url 'deleteScenario' id=scenario.id %}">Yes, Delete</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- End Modal for deletion confirmation -->
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End Card with an image on left -->
+      {% endfor %}
+    </section>
+  </main>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#search-input, #start-date-input, #end-date-input, #language-select, #show-mine-switch, #visibility-select').on('input change', function() {
+        $.ajax({
+          url: $('#search-form').attr('action'),
+          data: $('#search-form').serialize(), // Serialize form data
+          success: function(data) {
+            // Replace the scenario list with the new data
+            $('#scenario-list').html($(data).find('#scenario-list').html());
+          }
+        });
+      });
+
+      $('#reset-button').click(function() {
+        // Clear the input fields
+        $('#search-input').val('');
+        $('#start-date-input').val('');
+        $('#end-date-input').val('');
+        $('#language-select').val('');
+        $('#show-mine-switch').prop('checked', false);
+        $('#visibility-select').val('all');
+        
+        // Submit the form to reload the page without filters
+        $('#search-form').submit();
+      });
+
+      // Check if any filter is applied and keep the accordion open if true
+      if ($('#search-input').val() || $('#start-date-input').val() || $('#end-date-input').val() || $('#language-select').val() || ($('#visibility-select').val() && $('#visibility-select').val() !== 'all') || $('#show-mine-switch').is(':checked')) {
+        $('#collapseOne').addClass('show');
+        $('.accordion-button').removeClass('collapsed').attr('aria-expanded', 'true');
+      }
+    });
+  </script>
+  <!-- End #main -->
+{% endblock atcontent %}

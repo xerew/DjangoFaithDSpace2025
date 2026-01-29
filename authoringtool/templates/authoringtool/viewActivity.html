@@ -1,0 +1,229 @@
+{% extends "main.html" %}
+{% block atcontent %}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Activity Details</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            Authoring Tool
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'scenarios' %}">Scenarios</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
+          </li>
+          <li class="breadcrumb-item active">{{ activity.name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <!-- End Page Title -->
+    <section class="section">
+      <div class="row mb-2">
+        <div class="col-sm-10">
+          <a type="button"
+                  class="btn btn-secondary"
+                  href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">Back to Phase</a>
+          {% if can_edit %}
+            <a type="button"
+            class="btn btn-primary"
+            href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Activity</a>
+            {% if activity.activity_type.name == 'Question' %}
+              <a type="button"
+                class="btn btn-outline-primary"
+                href="{% url 'updateAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Answers</a>
+            {% endif %}
+            {% if activity.is_evaluatable %}
+              <a type="button"
+                  class="btn btn-info"
+                  href="{% url 'updateCriterion' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Criterion</a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <!-- Column for the card -->
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">{{ activity.name }}</h5>
+              <p class="card-text">
+                <strong>Activity Type:</strong> {{ activity.activity_type.name }}
+              </p>
+              {% if activity.is_evaluatable %}
+                <p class="card-text">
+                  <strong>Is Evaluatable:</strong> {{ activity.is_evaluatable }}
+                </p>
+				<p class="card-text">
+                  <strong>Is Primary Evaluation:</strong> {{ activity.is_primary_ev }}
+                </p>
+                <p class="card-text">
+                  <strong>Evaluating:</strong>
+                  {% for act in activities %}
+                    <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=act.id %}">
+                      {% if not forloop.first %}-{% endif %} {{ act.name }}</a>
+                  {% endfor %}
+                </p>
+                <p class="card-text">
+                  <strong>High Performers:</strong>{% if high_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=high_activity.id %}"> {{ high_activity.name }} {% else %} Not Set {% endif %}</a>
+                </p>
+                <p class="card-text">
+                  <strong>Mid Performers:</strong>{% if mid_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=mid_activity.id %}"> {{ mid_activity.name }} {% else %} Not Set {% endif %}</a>
+                </p>
+                <p class="card-text">
+                  <strong>Low Performers:</strong>{% if low_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=low_activity.id %}"> {{ low_activity.name }} {% else %} Not Set {% endif %}</a>
+                </p>
+              {% endif %}
+                <p class="card-text">
+                  <strong>Score Limit:</strong> {{ activity.score_limit }}
+                </p>
+              {% if activity.activity_type.name != 'Question' %}
+                {% if not activity.is_evaluatable %}
+                  <p class="card-text">
+                    <strong>Next Activity:</strong>{% if nextActivity.id == None %} End {% else %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=nextActivity.id %}"> {% if nextActivity.id == None %}End{% else %}{{ nextActivity.name }}{% endif %}</a>{% endif %}
+                  </p>
+                {% endif %}
+              {% endif %}
+              <p class="card-text">
+                <strong>Must Wait:</strong> {{ activity.must_wait }}
+              </p>
+              <p class="card-text">
+                <strong>Created on:</strong> {{ activity.created_on }}
+              </p>
+              <p class="card-text">
+                <strong>Content:</strong> {{ activity.text|safe }}
+              </p>
+              {% if activity.activity_type.name == 'Experiment' and not existingRemote and not existingVR_AR %}
+                <p class="card-text">
+                  <strong>Simulation Name:</strong> {{ existingSim.name }}
+                </p>
+                <p class="card-text">
+                  <iframe id="simulationPreview" width="100%" height="400" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                </p>
+              {% elif  activity.activity_type.name == 'Experiment' and existingRemote and not existingVR_AR %}
+              <p class="card-text">
+                <strong>Simulation Name:</strong> {{ existingRemote.name }}
+              </p>
+              <p class="card-text">
+                <iframe id="simulationPreview" width="100%" height="400" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
+              </p>
+			  {% elif activity.activity_type.name == 'Experiment' and existingVR_AR %}
+                <p class="card-text">
+                    <strong>VR/AR Experiment Name:</strong> {{ existingVR_AR.name }}
+                </p>
+                {% if existingVR_AR.qr_code %}
+                    <p class="card-text">
+                        <strong>QR Code for VR/AR Experiment:</strong>
+                    </p>
+                    <div style="text-align: center;">
+                        <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code for {{ existingVR_AR.name }}" width="300" height="300">
+                    </div>
+                {% else %}
+                    <p>No QR Code Available for this VR/AR Experiment.</p>
+                {% endif %}
+              {% endif %}
+              <p class="card-text">
+                <strong>LLM Evaluation:</strong> {{ llm_html }}
+              </p>
+            </div>
+          </div>
+        </div>
+        {% if activity.activity_type.name == 'Question' %}
+          <!-- Column for the accordion -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Answers</h5>
+                <!-- Default Accordion -->
+                {% if answers %}
+                  <div class="accordion" id="accordionExample">
+                    {% for answer in answers %}
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ answer.id }}">
+                          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapse{{ answer.id }}"
+                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                            aria-controls="collapse{{ answer.id }}">Answer {{ forloop.counter }}
+                          </button>
+                        </h2>
+                        <div id="collapse{{ answer.id }}"
+                          class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                          aria-labelledby="heading{{ answer.id }}"
+                          data-bs-parent="#accordionExample">
+                          <div class="accordion-body">
+                            <p>
+                              <strong {% if answer.is_correct %}style="color: green;"{% else %}style="color:red;" {% endif %}>
+                                {% if answer.is_correct %}
+                                  Correct
+                                {% else %}
+                                  Incorrect
+                                {% endif %}
+                              </strong>
+                            </p>
+                            <p>
+                              <strong>Answer Text:</strong> {{ answer.text }}
+                            </p>
+                            <p>
+                              <strong>Answer Weight:</strong> {{ answer.answer_weight }} points
+                            </p>
+                            {% if not activity.is_evaluatable %}
+                              {% if answer.next_activity %}
+                                <p>
+                                  <strong>Next Activity:</strong> <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=answer.next_activity.id %}">{{ answer.next_activity.name }}</a>
+                                </p>
+                              {% else %}
+                                <p>No next activity defined for this answer.</p>
+                              {% endif %}
+                            {% endif %}
+                            {% if can_edit %}
+                              <button type="button"
+                                class="btn btn-outline-secondary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#basicModal{{ answer.id }}">Delete</button>
+                            {% endif %}
+                              <!-- Basic Modal -->
+                            <div class="modal fade" id="basicModal{{ answer.id }}" tabindex="-1">
+                              <div class="modal-dialog">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <h5 class="modal-title">Confirmation</h5>
+                                    <button type="button"
+                                      class="btn-close"
+                                      data-bs-dismiss="modal"
+                                      aria-label="Close"></button>
+                                  </div>
+                                  <div class="modal-body">Are you sure you wanna delete this answer?</div>
+                                  <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <a type="button"
+                                      class="btn btn-primary"
+                                      href="{% url 'deleteAnswer' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id answer_id=answer.id %}">Yes</a>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <!-- End Basic Modal-->
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>                  
+                </div>
+              {% else %}
+                No Answers found for this activity!
+              {% endif %}
+              <!-- End Default Accordion Example -->
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+  <!-- End #main -->
+{% endblock atcontent %}

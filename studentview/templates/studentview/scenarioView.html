@@ -1,0 +1,463 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+    <script type="text/javascript">
+        // Assuming `user_id` and `scenario_id` are available in the Django template context
+		var latestPendulumData = {
+            "Pendulum 1": null,
+            "Pendulum 2": null
+        };
+
+        // Variables to track the last states
+        var lastStates = {
+            "Pendulum 1": {},
+            "Pendulum 2": {}
+        };
+		
+		//var latestExperimentLog = {
+		//	"ExperimentDataLL": null
+		//};  // New global variable to store the latest experiment log
+		
+		
+        function updatePendulumData(pendulumData) {
+            const pendulumName = pendulumData.name;
+            latestPendulumData[pendulumName] = pendulumData;
+    
+            const properties = ['angle', 'length', 'mass', 'gravity', 'friction'];
+            let hasChanged = false;
+    
+            for (const prop of properties) {
+                if (pendulumData[prop] !== lastStates[pendulumName][prop]) {
+                    lastStates[pendulumName][prop] = pendulumData[prop];
+                    hasChanged = true;
+                }
+            }
+    
+            if (hasChanged) {
+                console.log('Updated pendulum data:', latestPendulumData);
+                sendPendulumDataToIframe();
+            }
+        }
+    
+        function sendPendulumDataToIframe() {
+            const iframe = document.querySelector('.chatbot-container iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({ type: 'pendulumData', pendulumData: latestPendulumData}, 'https://trust-ai-lab.eu'); //, experimentData: latestExperimentLog 
+                //console.log('Posted PENDULUM to iframe:', latestPendulumData); //, latestExperimentLog
+            }
+        }
+		
+        function sendMessageToRasa(message) {
+            const userId = '{{ user.id }}';  // Django template variable for user ID
+            const scenarioId = '{{ myScenario.id }}';  // Django template variable for scenario ID
+			const scenarioLang = '{{ myScenario.language }}';
+			
+			console.log('SCENARIO LANG:', scenarioLang);
+
+            const payload = {
+                sender: userId,
+                message: message,
+                metadata: {
+                    scenario_id: scenarioId,
+					scenario_lang: scenarioLang,
+                    user_id: userId,
+					pendulum_lab: latestPendulumData,
+					//experiment_data: latestExperimentLog // LabsLand Integration
+                }
+            };
+
+            console.log("Sending to Rasa:", payload);
+
+            fetch('https://trust-ai-lab.eu/rasa/webhooks/rest/webhook', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => console.log('Rasa response:', data))
+            .catch(error => console.error('Error talking to Rasa:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const iframe = document.querySelector('.chatbot-container iframe');
+        
+            iframe.onload = function() {
+                console.log('Iframe loaded successfully');
+                // Then send the message
+                iframe.contentWindow.postMessage({ type: 'initData', userId: '{{ user.id }}', scenarioId: '{{ myScenario.id }}', scenarioLang: '{{ myScenario.language }}' }, '*'); // Ensure correct domain in production
+            };
+        });
+
+        window.addEventListener('message', function(event) {
+            // Always check the origin here for security reasons
+            if (event.origin !== "https://trust-ai-lab.eu") {
+              return;  // Security check failed
+            }
+			if (event.data.type === 'pendulumLog') {
+                console.log('Pendulum data received from Parent:', event.data.pendulumData);
+                updatePendulumData(event.data.pendulumData);
+            }
+            if (event.data.type === 'activityIdReceived') {
+                console.log('Activity ID received in parent.html:', event.data.activityId);
+				const readyButton = document.getElementById('readyButton');
+				readyButton.style.display = 'none';
+
+                latestPendulumData = {
+                    "Pendulum 1": null,
+                    "Pendulum 2": null
+                };
+
+                sendPendulumDataToIframe();
+
+                // Call fetchNextActivity automatically with the new activity ID
+                fetchAndDisplayActivity(event.data.activityId);
+            }
+          });
+		  
+		function sendReadyMessage() {
+			const iframe = document.querySelector('.chatbot-container iframe');
+			if (iframe && iframe.contentWindow) {
+				// Send a "ready" message to the chatbot iframe
+				iframe.contentWindow.postMessage({ type: 'sendReadyMessage', message: "ready" }, '*');
+			}
+		}
+		
+		function sendRestartAndYes() {
+			const iframe = document.querySelector('.chatbot-container iframe');
+			const readyButton = document.getElementById('readyButton');
+			readyButton.style.display = 'block';
+			if (iframe && iframe.contentWindow) {
+				// First, send the "restart" message
+				iframe.contentWindow.postMessage({ type: 'sendMessage', message: "restart" }, '*');
+
+				// Then, send the "yes" message after a short delay
+				setTimeout(() => {
+					iframe.contentWindow.postMessage({ type: 'sendMessage', message: "yes" }, '*');
+				}, 500);  // Delay of 500ms (adjust if needed)
+			}
+		}
+
+    </script>
+
+    <main id="main" class="main">
+        <div class="pagetitle">
+        <h1>Scenarios</h1>
+        <nav>
+            <ol class="breadcrumb">
+            <li class="breadcrumb-item">Student View</li>
+            <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+            </ol>
+        </nav>
+        </div>
+        <!-- End Page Title -->
+        <section class="section">
+            <div class="container mt-5" style="min-height: 70vh">
+			
+                <div class="row">
+                    <div class="col-md-8" id="activityContainer" data-activity-id="{{ activity.id }}">
+					<button id="readyButton" onclick="sendReadyMessage()" class="btn btn-primary" style="display: block; margin-bottom:5px;">Start</button>
+					{% if is_teacher %}
+					<button id="restartButton" onclick="sendRestartAndYes()"class="btn btn-secondary">Restart</button>
+					{% endif %}
+
+                        <h1 id="activityName"></h1>
+                        <div id="activityContent"></div>
+                        {% if activity_type_name == 'Experiment' %}
+                            <p class="card-text">
+                                <iframe id="simulationPreview" width="100%" height="600" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chatbot-container">
+                            <iframe src="https://trust-ai-lab.eu/studentview/chat/" style="width:100%; height:50vh;"></iframe>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            <script>
+                {% comment %} function fetchAndDisplayActivity(activityId) {
+                    fetch(`/studentview/get_activity/${activityId}`)
+                      .then(response => {
+                        if (!response.ok) {
+                          throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                      })
+                      .then(data => {
+                        document.getElementById('activityName').textContent = data.name;
+                        const contentDiv = document.getElementById('activityContent');
+                        contentDiv.innerHTML = '';  // Clear existing content
+                  
+                        const newContent = document.createElement('div');
+                        newContent.innerHTML = data.content;  // Assume `data.content` contains HTML-safe content
+                        contentDiv.appendChild(newContent);
+						
+						
+                        // Optionally, update the container's data attribute if you plan to use it for further actions
+                        document.getElementById('activityContainer').setAttribute('data-activity-id', data.activity_id);
+                      })
+                      .catch(error => console.error('Error loading the activity:', error));
+                  } {% endcomment %}
+
+                  function fetchAndDisplayActivity(activityId) {
+					// Dispatch activityChanged event before loading the new activity
+					window.dispatchEvent(new Event("activityChanged")); // LABSLAND INTEGRATION
+
+					fetch(`/studentview/get_activity/${activityId}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('Network response was not ok');
+							}
+							return response.json();
+						})
+						.then(data => {
+							document.getElementById('activityName').textContent = data.name;
+							const contentDiv = document.getElementById('activityContent');
+							contentDiv.innerHTML = '';  // Clear existing content
+
+							const newContent = document.createElement('div');
+							newContent.innerHTML = data.content;  // Assume `data.content` contains HTML-safe content
+							contentDiv.appendChild(newContent);
+
+							if (window.MathJax && window.MathJax.typesetPromise) {
+								MathJax.typesetPromise([contentDiv]).catch(function (err) {
+									console.error('MathJax typeset failed: ', err);
+								});
+							}
+
+							// Handle Simulation / Remote Lab iframe
+							if (data.activity_type_name === 'Experiment') {
+							
+								// ✅ Render VR/AR Experiment info if available
+								if (data.vr_ar_data) {
+									const qrTitle = document.createElement('h5');
+									qrTitle.textContent = `Scan to Launch: ${data.vr_ar_data.name}`;
+									qrTitle.style.marginTop = '20px';
+									contentDiv.appendChild(qrTitle);
+
+									if (data.vr_ar_data.qr_code_url) {
+										const qrImage = document.createElement('img');
+										qrImage.src = data.vr_ar_data.qr_code_url;
+										qrImage.alt = 'QR Code';
+										qrImage.style.maxWidth = '300px';
+										qrImage.style.marginBottom = '15px';
+										qrImage.style.display = 'block';
+										contentDiv.appendChild(qrImage);
+									}
+
+									if (data.vr_ar_data.picture_url) {
+										const previewImage = document.createElement('img');
+										previewImage.src = data.vr_ar_data.picture_url;
+										previewImage.alt = 'VR/AR Preview';
+										previewImage.style.maxWidth = '100%';
+										previewImage.style.marginBottom = '15px';
+										previewImage.style.border = '1px solid #ccc';
+										contentDiv.appendChild(previewImage);
+									}
+
+									//if (data.vr_ar_data.launch_url) {
+									//	const launchBtn = document.createElement('a');
+									//	launchBtn.href = data.vr_ar_data.launch_url;
+									//	launchBtn.textContent = "Launch AR Activity";
+									//	launchBtn.className = 'btn btn-success';
+									//	launchBtn.target = '_blank';
+									//	launchBtn.style.marginTop = '10px';
+									//	contentDiv.appendChild(launchBtn);
+									//}
+								}
+								const iframe = document.createElement('iframe');
+								iframe.style.width = '100%';
+								iframe.style.height = '600px';
+
+								if (!data.experimentLL && data.simulation) {
+									iframe.src = data.simulation.iframe_url;  // Simulation iframe URL
+								} else if (data.experimentLL) {
+									iframe.src = data.experimentLL.iframe_url;  // LTI integration iframe URL
+								}
+
+								iframe.frameBorder = '0';
+								iframe.allowFullscreen = true;
+								contentDiv.appendChild(iframe);
+							}
+							// Store activity ID in DOM if needed
+							document.getElementById('activityContainer').setAttribute('data-activity-id', data.activity_id);
+						})
+						.catch(error => console.error('Error loading the activity:', error));
+				}
+
+                
+					// Initialize tracking variables
+					let preDurationStart = null;
+					let execDurationStart = null;
+					let totalPreDuration = 0;
+					let totalExecDuration = 0;
+					let angle = null;
+					let massType = null;
+					let startTimestamp = null;
+					let endTimestamp = null;
+					let iterationCount = 0;
+
+					// Function to handle phase transitions and timing
+					function handlePhaseTransition(state, timestamp) {
+						// Starting pre-duration from "introduction" phase
+						if (state === "introduction" || state === "pendulum" || state === "parameters") {
+							// Transitioning from exec-duration (end of previous iteration)
+							if (execDurationStart) {
+								totalExecDuration += timestamp - execDurationStart;
+								execDurationStart = null;
+								endTimestamp = new Date(timestamp);
+								logExperimentData();  // Log the completed iteration
+								iterationCount++;     // Move to next iteration
+								resetDurations();     // Reset for new iteration
+								console.log(`Starting new iteration ${iterationCount}`);
+							}
+							// Start tracking pre-duration
+							if (!preDurationStart) {
+								preDurationStart = timestamp;
+								startTimestamp = new Date(timestamp);
+								console.log(`Starting pre-duration for iteration ${iterationCount}`);
+							}
+						}
+						// Starting exec-duration from "observation" phase
+						else if (state === "observation") {
+							// End pre-duration
+							if (preDurationStart) {
+								totalPreDuration += timestamp - preDurationStart;
+								preDurationStart = null;
+							}
+							execDurationStart = timestamp;
+							console.log(`Starting exec-duration for iteration ${iterationCount}`);
+						}
+					}
+
+					// Reset durations and initialize for a new experiment iteration
+					function resetDurations() {
+						totalPreDuration = 0;
+						totalExecDuration = 0;
+						preDurationStart = null;
+						execDurationStart = null;
+						startTimestamp = null;
+						endTimestamp = null;
+						angle = null;
+						massType = null;
+						console.log("Durations and parameters reset for new iteration.");
+					}
+
+					// Listen for messages and handle experiment data
+					window.addEventListener('message', function(event) {
+						const allowedOrigins = ['https://trust-ai-lab.eu', 'https://pendulum-v2.labs.labsland.com', 'https://labsland.com'];
+						if (!allowedOrigins.includes(event.origin)) {
+							console.log("Unrecognized origin:", event.origin);
+							return;
+						}
+
+						const data = event.data;
+						const now = new Date().getTime();
+
+						if (data && data.protocol === "lab-message" && data.version === "1.1" && data.lab === "pendulum") {
+							if (data.action === "state-transition") {
+								handlePhaseTransition(data.data.state, now);
+							} else if (data.action === "start") {
+								console.log("Starting new experiment");
+								angle = data.data.angle;
+								massType = data.data.mass;
+								console.log(`Captured angle: ${angle}, mass type: ${massType}`);
+							} else if (data.action === "configure") {
+								if (data.data && data.data.angle) {
+									angle = data.data.angle;
+									console.log(`Angle set to ${angle} degrees`);
+								}
+								if (data.data && data.data.mass) {
+									massType = data.data.mass;
+									console.log(`Mass type set to ${massType}`);
+								}
+							} else if (data.action === "end") {
+								endTimestamp = new Date(now);
+								logExperimentData();
+							}
+						}
+					});
+
+					// Log all experiment data after each iteration ends
+					function logExperimentData() {
+					
+						if (!endTimestamp) {
+							endTimestamp = new Date();  // Set to the current time
+						}
+						
+						// Calculate any remaining exec duration if it's still running
+						if (execDurationStart) {
+							totalExecDuration += new Date().getTime() - execDurationStart;
+							execDurationStart = null;  // Clear exec start after capturing duration
+						}
+						
+						console.log(`Experiment Data for Iteration ${iterationCount}`);
+						console.log(`- Start Timestamp: ${startTimestamp}`);
+						console.log(`- End Timestamp: ${endTimestamp}`);
+						console.log(`- Angle: ${angle}`);
+						console.log(`- Mass Type: ${massType}`);
+						console.log(`- Total Pre-Duration: ${(totalPreDuration / 1000).toFixed(2)} seconds`);
+						console.log(`- Total Exec-Duration: ${(totalExecDuration / 1000).toFixed(2)} seconds`);
+						
+						/*
+						latestExperimentLog = {
+							iteration: iterationCount,
+							startTimestamp: startTimestamp,
+							endTimestamp: endTimestamp,
+							angle: angle,
+							massType: massType,
+							totalPreDuration: (totalPreDuration / 1000).toFixed(2),
+							totalExecDuration: (totalExecDuration / 1000).toFixed(2),
+						};
+						*/
+						
+						latestExperimentLog = {
+							user_id: '{{ user.id }}',  // Pass Django template variable for user ID
+							activity_id: '{{ activity.id }}',  // Pass Django template variable for activity ID
+							iteration: iterationCount,
+							start_timestamp: startTimestamp ? startTimestamp.toISOString() : null,
+							end_timestamp: endTimestamp ? endTimestamp.toISOString() : null,
+							angle: angle,
+							mass_type: massType,
+							total_pre_duration: (totalPreDuration / 1000).toFixed(2),
+							total_exec_duration: (totalExecDuration / 1000).toFixed(2),
+						};
+						
+						console.log("Experiment Data for Iteration:", latestExperimentLog);
+						
+						// Send data to Django view
+						fetch('/studentview/save_iteration/', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-CSRFToken': '{{ csrf_token }}'  // Pass CSRF token for Django
+							},
+							body: JSON.stringify(latestExperimentLog)
+						})
+						.then(response => {
+							if (!response.ok) {
+								throw new Error("Failed to save iteration data");
+							}
+							return response.json();
+						})
+						.then(data => console.log("Iteration saved successfully:", data))
+						.catch(error => console.error("Error saving iteration data:", error));
+					}
+					
+					
+					// Listen for activityChanged event and log experiment data
+					window.addEventListener("activityChanged", function () {
+						console.log("Activity changed - logging experiment data.");
+						logExperimentData();  // Log current experiment data
+						sendPendulumDataToIframe();
+						resetDurations();     // Reset for the next activity
+					});
+
+            </script>
+        </section>
+    </main>
+{% endblock atcontent %}

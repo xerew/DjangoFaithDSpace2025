@@ -1,0 +1,142 @@
+{% extends "main.html" %}
+{% block atcontent %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const downloadBtn = document.getElementById('downloadCsvBtn');
+    const statusIndicator = document.getElementById('csvDownloadStatus');
+
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', function () {
+        // Show loading status
+        statusIndicator.style.display = 'block';
+        downloadBtn.disabled = true;
+
+        // Create a hidden link to trigger the download
+        const link = document.createElement('a');
+        link.href = "{% url 'export_multilingual_answers_csv' %}";
+        link.download = 'multilingual_answers.csv';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        // Simulate a slight delay for download experience
+        setTimeout(() => {
+          link.click();
+          document.body.removeChild(link);
+
+          // Reset UI after a few seconds
+          setTimeout(() => {
+            statusIndicator.style.display = 'none';
+            downloadBtn.disabled = false;
+          }, 3000);
+        }, 500);
+      });
+    }
+  });
+</script>
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Your Groups</h1>
+    <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item active">User Groups</li>
+        </ol>
+      </nav>
+  </div>
+  
+  <section class="section">
+    <div class="row mb-3">
+        <div class="col-lg-12">
+          <a href="{% url 'create_group' %}" class="btn btn-primary">Create New Group</a>
+		  {% if is_dspace_partner %}
+            <a href="{% url 'list_student_groups' %}" class="btn btn-secondary">Pilot Implementations</a>
+			<button id="downloadCsvBtn" class="btn btn-outline-success">Open Questions CSV</button>
+            <div id="csvDownloadStatus" style="display:none; margin-top: 10px;" class="text-success fw-bold">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Downloading file...
+            </div>
+          {% endif %}
+        </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Group List</h5>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">Group Name</th>
+                  <th scope="col">Number of Users</th>
+                  <th scope="col">Scenarios Assigned</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group in groups %}
+                  <tr>
+                    <!-- Make group name clickable to view group details -->
+                    <td>
+                      <a href="{% url 'view_group' group.id %}">
+                        {{ group.name }}
+                      </a>
+                    </td>
+                    <td>{{ group.number_of_users }}</td>
+                    <td>
+                        {% if group.assigned_scenarios.all %}
+                            {% for scenario in group.assigned_scenarios.all %}
+                                {{ scenario.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            No assigned scenarios for this group.
+                        {% endif %}
+                    </td>
+                    <td>
+                      <!-- View Group Details Button -->
+                      <a href="{% url 'view_group' group.id %}" class="btn btn-primary">View</a>
+
+                      <!-- Download Credentials Button -->
+                      <a href="{% url 'download_credentials' group.id %}" class="btn btn-warning">Download Credentials</a>
+
+                      <!-- Edit Button -->
+                      <a href="{% url 'edit_group' group.id %}" class="btn btn-info">Edit</a>
+
+                      <!-- Delete Button with Confirmation Modal -->
+                      <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ group.id }}">Delete</button>
+
+                      <!-- Delete Confirmation Modal -->
+                      <div class="modal fade" id="deleteModal{{ group.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ group.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="deleteModalLabel{{ group.id }}">Delete Group</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              Are you sure you want to delete the group "{{ group.name }}"? This action cannot be undone.
+                            </div>
+                            <div class="modal-footer">
+                              <form method="post" action="{% url 'delete_group' group.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="4">No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

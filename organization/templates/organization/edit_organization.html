@@ -1,0 +1,91 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<main id="main" class="main">
+
+  <div class="pagetitle">
+    <h1>Edit Organization: {{ organization.name }}</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'organization_detail' organization.id %}">{{ organization.name }}</a></li>
+        <li class="breadcrumb-item active">Edit Organization</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Edit Organization</h5>
+
+            <!-- Edit Organization Form Elements -->
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <div class="row mb-3">
+                <label for="name" class="col-sm-2 col-form-label">Organization Name</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="name" name="name" value="{{ form.name.value }}" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="short_name" class="col-sm-2 col-form-label">Short Name</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="short_name" name="short_name" value="{{ form.short_name.value }}" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="description" class="col-sm-2 col-form-label">Description</label>
+                <div class="col-sm-10">
+                  <textarea class="form-control" id="description" style="height: 100px" name="description" required>{{ form.description.value }}</textarea>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="country" class="col-sm-2 col-form-label">Country</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="country" name="country" value="{{ form.country.value }}" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="language" class="col-sm-2 col-form-label">Language</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="language" name="language" value="{{ form.language.value }}" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <label for="picture" class="col-sm-2 col-form-label">Upload Picture</label>
+                <div class="col-sm-10">
+                  <input class="form-control" type="file" id="picture" name="picture">
+                  {% if organization.picture %}
+                    <div class="mt-2">
+                      <img src="{{ organization.picture.url }}" alt="{{ organization.name }}" width="150" height="auto" class="img-thumbnail">
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="row mb-2">
+                <div class="col-sm-10">
+                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+              </div>
+            </form><!-- End Edit Organization Form Elements -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+
+{% endblock atcontent %}

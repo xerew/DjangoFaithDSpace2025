@@ -1,0 +1,103 @@
+Phase,Activity,Type,Category,Total,Correct,Wrong,% Correct,% Wrong,Avg Time,Next Low,Next Moderate,Next High
+Engagement,Activity 1,Question,High,103,53,50,51.5,48.5,50.9,Explanation 1,Explanation 1,Activity 2
+Engagement,Activity 1,Question,Moderate,480,229,251,47.7,52.3,51.1,Explanation 1,Explanation 1,Activity 2
+Engagement,Activity 1,Question,Low,174,0,174,0.0,100.0,53.1,Explanation 1,Explanation 1,Activity 2
+Engagement,Activity 2,Question,High,103,103,0,100.0,0.0,32.1,Activity 3,Activity 3,Activity 3
+Engagement,Activity 2,Question,Moderate,480,337,143,70.2,29.8,34.8,Activity 3,Activity 3,Activity 3
+Engagement,Activity 2,Question,Low,156,0,156,0.0,100.0,32.1,Activity 3,Activity 3,Activity 3
+Engagement,Activity 3,Question,High,103,103,0,100.0,0.0,31.0,Experiment after Activity 3 ,Explanation of Activity 3,Activity 4
+Engagement,Activity 3,Question,Moderate,478,72,406,15.1,84.9,23.1,Experiment after Activity 3 ,Explanation of Activity 3,Activity 4
+Engagement,Activity 3,Question,Low,156,0,156,0.0,100.0,16.1,Experiment after Activity 3 ,Explanation of Activity 3,Activity 4
+Engagement,Experiment,Experiment,High,48,,,0.0,0.0,182.8,Activity 1a,Activity 1a,Activity 1a
+Engagement,Experiment,Experiment,Moderate,179,,,0.0,0.0,217.2,Activity 1a,Activity 1a,Activity 1a
+Engagement,Experiment,Experiment,Low,101,,,0.0,0.0,174.2,Activity 1a,Activity 1a,Activity 1a
+Engagement,Activity 1a,Question,High,49,35,14,71.4,28.6,29.8,Activity 1b,Activity 1b,Activity 1b
+Engagement,Activity 1a,Question,Moderate,223,146,77,65.5,34.5,27.4,Activity 1b,Activity 1b,Activity 1b
+Engagement,Activity 1a,Question,Low,128,86,42,67.2,32.8,32.1,Activity 1b,Activity 1b,Activity 1b
+Engagement,Activity 1b,Question,High,49,22,27,44.9,55.1,36.8,"Activity 2, Explanation 2","Activity 2, Explanation 2","Activity 2, Explanation 2"
+Engagement,Activity 1b,Question,Moderate,223,92,131,41.3,58.7,38.8,"Activity 2, Explanation 2","Activity 2, Explanation 2","Activity 2, Explanation 2"
+Engagement,Activity 1b,Question,Low,125,41,84,32.8,67.2,49.5,"Activity 2, Explanation 2","Activity 2, Explanation 2","Activity 2, Explanation 2"
+Engagement,Explanation 1,Guidance,High,50,,,0.0,0.0,9.7,Experiment,Experiment,Experiment
+Engagement,Explanation 1,Guidance,Moderate,183,,,0.0,0.0,14.2,Experiment,Experiment,Experiment
+Engagement,Explanation 1,Guidance,Low,110,,,0.0,0.0,11.0,Experiment,Experiment,Experiment
+Engagement,Explanation 2,Explanation,High,26,,,0.0,0.0,14.3,Activity 2,Activity 2,Activity 2
+Engagement,Explanation 2,Explanation,Moderate,106,,,0.0,0.0,16.8,Activity 2,Activity 2,Activity 2
+Engagement,Explanation 2,Explanation,Low,63,,,0.0,0.0,17.8,Activity 2,Activity 2,Activity 2
+Engagement,Experiment after Activity 3 ,Experiment,High,2,,,0.0,0.0,71.0,Activity 4,Activity 4,Activity 4
+Engagement,Experiment after Activity 3 ,Experiment,Moderate,76,,,0.0,0.0,234.4,Activity 4,Activity 4,Activity 4
+Engagement,Experiment after Activity 3 ,Experiment,Low,114,,,0.0,0.0,192.5,Activity 4,Activity 4,Activity 4
+Engagement,Explanation of Activity 3,Explanation,High,7,,,0.0,0.0,12.0,Activity 4,Activity 4,Activity 4
+Engagement,Explanation of Activity 3,Explanation,Moderate,303,,,0.0,0.0,11.1,Activity 4,Activity 4,Activity 4
+Engagement,Explanation of Activity 3,Explanation,Low,3,,,0.0,0.0,30.0,Activity 4,Activity 4,Activity 4
+Hypothesis,Activity 4,Question,High,169,169,0,100.0,0.0,24.2,Activity 5,Activity 5,Activity 5
+Hypothesis,Activity 4,Question,Moderate,282,198,84,70.2,29.8,24.0,Activity 5,Activity 5,Activity 5
+Hypothesis,Activity 4,Question,Low,163,0,163,0.0,100.0,24.4,Activity 5,Activity 5,Activity 5
+Hypothesis,Activity 5,Question,High,169,169,0,100.0,0.0,18.0,Experiment-hypothesis,Explanation of Activity 5,Experiment 1
+Hypothesis,Activity 5,Question,Moderate,281,84,197,29.9,70.1,23.5,Experiment-hypothesis,Explanation of Activity 5,Experiment 1
+Hypothesis,Activity 5,Question,Low,161,0,161,0.0,100.0,17.7,Experiment-hypothesis,Explanation of Activity 5,Experiment 1
+Hypothesis,Experiment-hypothesis,Experiment,High,2,,,0.0,0.0,103.5,Activity 5a,Activity 5a,Activity 5a
+Hypothesis,Experiment-hypothesis,Experiment,Moderate,3,,,0.0,0.0,22.0,Activity 5a,Activity 5a,Activity 5a
+Hypothesis,Experiment-hypothesis,Experiment,Low,125,,,0.0,0.0,119.5,Activity 5a,Activity 5a,Activity 5a
+Hypothesis,Activity 5a,Question,High,2,0,2,0.0,100.0,33.5,"Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a"
+Hypothesis,Activity 5a,Question,Moderate,1,1,0,100.0,0.0,12.0,"Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a"
+Hypothesis,Activity 5a,Question,Low,222,88,134,39.6,60.4,32.6,"Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a","Activity 5b, Explanation of Activity 5a"
+Hypothesis,Activity 5b,Question,High,2,1,1,50.0,50.0,13.0,Explanation of Activity 5b,Explanation of Activity 5b,Experiment 1
+Hypothesis,Activity 5b,Question,Moderate,1,1,0,100.0,0.0,6.0,Explanation of Activity 5b,Explanation of Activity 5b,Experiment 1
+Hypothesis,Activity 5b,Question,Low,220,81,139,36.8,63.2,23.6,Explanation of Activity 5b,Explanation of Activity 5b,Experiment 1
+Hypothesis,Explanation of Activity 5,Explanation,High,2,,,0.0,0.0,40.0,Experiment 1,Experiment 1,Experiment 1
+Hypothesis,Explanation of Activity 5,Explanation,Moderate,225,,,0.0,0.0,24.3,Experiment 1,Experiment 1,Experiment 1
+Hypothesis,Explanation of Activity 5,Explanation,Low,5,,,0.0,0.0,21.8,Experiment 1,Experiment 1,Experiment 1
+Hypothesis,Explanation of Activity 5a,Explanation,High,2,,,0.0,0.0,10.5,Activity 5b,Activity 5b,Activity 5b
+Hypothesis,Explanation of Activity 5a,Explanation,Moderate,0,,,,,,Activity 5b,Activity 5b,Activity 5b
+Hypothesis,Explanation of Activity 5a,Explanation,Low,83,,,0.0,0.0,11.0,Activity 5b,Activity 5b,Activity 5b
+Hypothesis,Explanation of Activity 5b,Explanation,High,2,,,0.0,0.0,9.5,Experiment 1,Experiment 1,Experiment 1
+Hypothesis,Explanation of Activity 5b,Explanation,Moderate,0,,,,,,Experiment 1,Experiment 1,Experiment 1
+Hypothesis,Explanation of Activity 5b,Explanation,Low,108,,,0.0,0.0,8.8,Experiment 1,Experiment 1,Experiment 1
+Experiment,Experiment 1,Experiment,High,191,,,0.0,0.0,173.0,Activity 6,Activity 6,Activity 6
+Experiment,Experiment 1,Experiment,Moderate,251,,,0.0,0.0,135.6,Activity 6,Activity 6,Activity 6
+Experiment,Experiment 1,Experiment,Low,124,,,0.0,0.0,129.0,Activity 6,Activity 6,Activity 6
+Experiment,Activity 6,Question,High,204,94,110,46.1,53.9,39.7,Experiment after Activity 6 - 2,Experiment after Activity 6 - 1,Experiment 2
+Experiment,Activity 6,Question,Moderate,304,117,187,38.5,61.5,33.4,Experiment after Activity 6 - 2,Experiment after Activity 6 - 1,Experiment 2
+Experiment,Activity 6,Question,Low,142,0,142,0.0,100.0,33.1,Experiment after Activity 6 - 2,Experiment after Activity 6 - 1,Experiment 2
+Experiment,Experiment after Activity 6 - 1,Experiment,High,95,,,0.0,0.0,66.7,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment after Activity 6 - 1,Experiment,Moderate,79,,,0.0,0.0,29.5,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment after Activity 6 - 1,Experiment,Low,9,,,0.0,0.0,56.3,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment after Activity 6 - 2,Experiment,High,3,,,0.0,0.0,21.3,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment after Activity 6 - 2,Experiment,Moderate,63,,,0.0,0.0,85.4,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment after Activity 6 - 2,Experiment,Low,92,,,0.0,0.0,42.5,Experiment 2,Experiment 2,Experiment 2
+Experiment,Experiment 2,Experiment,High,191,,,0.0,0.0,71.4,Activity 7,Activity 7,Activity 7
+Experiment,Experiment 2,Experiment,Moderate,240,,,0.0,0.0,56.8,Activity 7,Activity 7,Activity 7
+Experiment,Experiment 2,Experiment,Low,102,,,0.0,0.0,43.5,Activity 7,Activity 7,Activity 7
+Experiment,Activity 7,Question,High,204,204,0,100.0,0.0,25.7,Experiment after Activity 7,Explanation of Activity 7,Activity 8
+Experiment,Activity 7,Question,Moderate,289,71,218,24.6,75.4,22.4,Experiment after Activity 7,Explanation of Activity 7,Activity 8
+Experiment,Activity 7,Question,Low,115,0,115,0.0,100.0,24.2,Experiment after Activity 7,Explanation of Activity 7,Activity 8
+Experiment,Experiment after Activity 7,Experiment,High,4,,,0.0,0.0,75.2,Activity 8,Activity 8,Activity 8
+Experiment,Experiment after Activity 7,Experiment,Moderate,169,,,0.0,0.0,26.1,Activity 8,Activity 8,Activity 8
+Experiment,Experiment after Activity 7,Experiment,Low,94,,,0.0,0.0,27.3,Activity 8,Activity 8,Activity 8
+Experiment,Explanation of Activity 7,Explanation,High,0,,,,,,Activity 8,Activity 8,Activity 8
+Experiment,Explanation of Activity 7,Explanation,Moderate,3,,,0.0,0.0,5.7,Activity 8,Activity 8,Activity 8
+Experiment,Explanation of Activity 7,Explanation,Low,0,,,,,,Activity 8,Activity 8,Activity 8
+Αναστοχασμός,Activity 8,Question,High,194,75,119,38.7,61.3,37.5,Activity 9,Activity 9,Activity 9
+Αναστοχασμός,Activity 8,Question,Moderate,262,74,188,28.2,71.8,30.4,Activity 9,Activity 9,Activity 9
+Αναστοχασμός,Activity 8,Question,Low,80,21,59,26.2,73.8,28.7,Activity 9,Activity 9,Activity 9
+Αναστοχασμός,Activity 9,Experiment,High,194,,,0.0,0.0,97.3,Period dependence on mass,Period dependence on mass,Period dependence on mass
+Αναστοχασμός,Activity 9,Experiment,Moderate,262,,,0.0,0.0,37.0,Period dependence on mass,Period dependence on mass,Period dependence on mass
+Αναστοχασμός,Activity 9,Experiment,Low,68,,,0.0,0.0,50.2,Period dependence on mass,Period dependence on mass,Period dependence on mass
+Αναστοχασμός,Activity 10,Question,High,194,152,42,78.4,21.6,26.5,Explanation of Activity 10,Explanation of Activity 10,Activity 11
+Αναστοχασμός,Activity 10,Question,Moderate,285,158,127,55.4,44.6,22.6,Explanation of Activity 10,Explanation of Activity 10,Activity 11
+Αναστοχασμός,Activity 10,Question,Low,89,17,72,19.1,80.9,19.2,Explanation of Activity 10,Explanation of Activity 10,Activity 11
+Αναστοχασμός,Activity 11,Question,High,194,194,0,100.0,0.0,21.2,Explanation of Activity 11,Explanation of Activity 11,Explanation of Activity 11
+Αναστοχασμός,Activity 11,Question,Moderate,283,138,145,48.8,51.2,19.1,Explanation of Activity 11,Explanation of Activity 11,Explanation of Activity 11
+Αναστοχασμός,Activity 11,Question,Low,83,12,71,14.5,85.5,17.5,Explanation of Activity 11,Explanation of Activity 11,Explanation of Activity 11
+Αναστοχασμός,Explanation of Activity 9,Explanation,High,1,,,0.0,0.0,9.0,Activity 10,Activity 10,Activity 10
+Αναστοχασμός,Explanation of Activity 9,Explanation,Moderate,103,,,0.0,0.0,12.1,Activity 10,Activity 10,Activity 10
+Αναστοχασμός,Explanation of Activity 9,Explanation,Low,36,,,0.0,0.0,16.1,Activity 10,Activity 10,Activity 10
+Αναστοχασμός,Explanation of Activity 10,Explanation,High,45,,,0.0,0.0,9.0,Activity 11,Activity 11,Activity 11
+Αναστοχασμός,Explanation of Activity 10,Explanation,Moderate,110,,,0.0,0.0,10.1,Activity 11,Activity 11,Activity 11
+Αναστοχασμός,Explanation of Activity 10,Explanation,Low,30,,,0.0,0.0,7.6,Activity 11,Activity 11,Activity 11
+Αναστοχασμός,Explanation of Activity 11,Explanation,High,190,,,0.0,0.0,13.7,,,
+Αναστοχασμός,Explanation of Activity 11,Explanation,Moderate,250,,,0.0,0.0,10.8,,,
+Αναστοχασμός,Explanation of Activity 11,Explanation,Low,34,,,0.0,0.0,8.2,,,
+Αναστοχασμός,Period dependence on mass,Question,High,194,194,0,100.0,0.0,21.7,Explanation of Activity 9,Explanation of Activity 9,Activity 10
+Αναστοχασμός,Period dependence on mass,Question,Moderate,255,153,102,60.0,40.0,17.6,Explanation of Activity 9,Explanation of Activity 9,Activity 10
+Αναστοχασμός,Period dependence on mass,Question,Low,51,8,43,15.7,84.3,17.7,Explanation of Activity 9,Explanation of Activity 9,Activity 10

@@ -1,0 +1,16 @@
+Activity,Category,Flag,Reason
+O que causa as estações do ano na Terra,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (41.1s) is > 1 std above mean (31.20 ± 7.74).
+O que causa as estações do ano na Terra,Moderate,"Engagement risk (too fast, question)",Engagement risk: Moderate group's Avg Time (22.2s) is > 1 std below mean (31.20 ± 7.74).
+A inclinação do eixo da Terra,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (41.3s) is > 1 std above mean (31.07 ± 8.10).
+A inclinação do eixo da Terra,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (21.5s) is > 1 std below mean (31.07 ± 8.10).
+Analisar o efeito do ângulo de incidência da luz solar,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (26.6s) is > 1 std above mean (20.60 ± 5.16).
+Analisar o efeito do ângulo de incidência da luz solar,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (14.0s) is > 1 std below mean (20.60 ± 5.16).
+Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (35.6%) or Low (100.0%) group not at extremes, Moderate wrong is high (78.9%)."
+Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (8.9s) is > 1 std below mean (16.13 ± 5.23).
+Um modelo físico para explicar o que causa as estações do ano,Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (71.4%) or Low (70.5%) group not at extremes, Moderate wrong is high (73.8%)."
+Um modelo físico para explicar o que causa as estações do ano,Moderate,Dynamic correctness threshold,Dynamic correctness: Moderate group's %Wrong (73.8%) exceeds mean+std threshold (73.29%).
+A Estrela Polar,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (65.1%) exceeds mean+std threshold (63.18%).
+Para onde aponta o eixo da Terra?,Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (51.8%) or Low (67.2%) group not at extremes, Moderate wrong is high (64.6%)."
+Experiência,Moderate,"Engagement risk (too fast, non-question)",Engagement risk: Moderate group's Avg Time (16.0s) is > 1 std below mean (25.37 ± 8.36).
+Experiência,Low,"Engagement risk (too slow, non-question)",Engagement risk: Low group's Avg Time (36.3s) is > 1 std above mean (25.37 ± 8.36).
+Para finalizar,Low,"Engagement risk (too fast, non-question)",Engagement risk: Low group's Avg Time (26.6s) is > 1 std below mean (40.40 ± 9.86).

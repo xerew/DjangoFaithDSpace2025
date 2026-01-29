@@ -1,0 +1,88 @@
+Phase,Activity,Type,Category,Total,Correct,Wrong,% Correct,% Wrong,Avg Time,Next Low,Next Moderate,Next High
+Envolvimento,O que causa as estações do ano na Terra,Question,High,86,86,0,100.0,0.0,41.1,A rotação da Terra tem a ver com o dia e a noite na Terra...,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,O que causa as estações do ano na Terra,Question,Moderate,55,0,55,0.0,100.0,22.2,A rotação da Terra tem a ver com o dia e a noite na Terra...,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,O que causa as estações do ano na Terra,Question,Low,105,0,105,0.0,100.0,30.3,A rotação da Terra tem a ver com o dia e a noite na Terra...,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,A rotação da Terra tem a ver com o dia e a noite na Terra...,Question,High,0,,,,,,Distância entre a Terra e o Sol ,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,A rotação da Terra tem a ver com o dia e a noite na Terra...,Question,Moderate,0,,,,,,Distância entre a Terra e o Sol ,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,A rotação da Terra tem a ver com o dia e a noite na Terra...,Question,Low,0,,,,,,Distância entre a Terra e o Sol ,Distância entre a Terra e o Sol ,A inclinação do eixo da Terra
+Envolvimento,Distância entre a Terra e o Sol ,Question,High,1,0,1,0.0,100.0,47.0,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Muito bem - o Natal pode ser durante o verão ou durante o inverno!
+Envolvimento,Distância entre a Terra e o Sol ,Question,Moderate,53,23,30,43.4,56.6,21.8,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Muito bem - o Natal pode ser durante o verão ou durante o inverno!
+Envolvimento,Distância entre a Terra e o Sol ,Question,Low,104,53,51,51.0,49.0,30.3,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Muito bem - o Natal pode ser durante o verão ou durante o inverno!
+Envolvimento,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Explanation,High,1,,,0.0,0.0,15.0,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Envolvimento,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Explanation,Moderate,30,,,0.0,0.0,11.4,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Envolvimento,Mais sobre a relação entre a distância Sol-Terra e as estações do ano,Explanation,Low,51,,,0.0,0.0,9.4,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Envolvimento,Muito bem - o Natal pode ser durante o verão ou durante o inverno!,Explanation,High,0,,,,,,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Envolvimento,Muito bem - o Natal pode ser durante o verão ou durante o inverno!,Explanation,Moderate,23,,,0.0,0.0,11.0,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Envolvimento,Muito bem - o Natal pode ser durante o verão ou durante o inverno!,Explanation,Low,53,,,0.0,0.0,18.2,A inclinação do eixo da Terra,A inclinação do eixo da Terra,A inclinação do eixo da Terra
+Hipótese,A inclinação do eixo da Terra,Question,High,97,97,0,100.0,0.0,41.3,Alteração da inclinação do eixo da Terra,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,A nossa hipótese
+Hipótese,A inclinação do eixo da Terra,Question,Moderate,88,88,0,100.0,0.0,30.4,Alteração da inclinação do eixo da Terra,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,A nossa hipótese
+Hipótese,A inclinação do eixo da Terra,Question,Low,54,54,0,100.0,0.0,21.5,Alteração da inclinação do eixo da Terra,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,A nossa hipótese
+Hipótese,Alteração da inclinação do eixo da Terra,Explanation,High,1,,,0.0,0.0,22.0,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,Alteração da inclinação do eixo da Terra,Explanation,Moderate,0,,,,,,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,Alteração da inclinação do eixo da Terra,Explanation,Low,51,,,0.0,0.0,9.3,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,Explanation,High,3,,,0.0,0.0,42.7,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,Explanation,Moderate,83,,,0.0,0.0,12.0,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,A inclinação do eixo da Terra faz com que um hemisfério esteja mais próximo do Sol do que o outro,Explanation,Low,1,,,0.0,0.0,20.0,A nossa hipótese,A nossa hipótese,A nossa hipótese
+Hipótese,A nossa hipótese,Explanation,High,97,,,0.0,0.0,11.6,Conhecer o laboratório,Conhecer o laboratório,Conhecer o laboratório
+Hipótese,A nossa hipótese,Explanation,Moderate,86,,,0.0,0.0,10.1,Conhecer o laboratório,Conhecer o laboratório,Conhecer o laboratório
+Hipótese,A nossa hipótese,Explanation,Low,53,,,0.0,0.0,7.7,Conhecer o laboratório,Conhecer o laboratório,Conhecer o laboratório
+Experiência,Conhecer o laboratório,Guidance,High,17,,,0.0,0.0,19.7,Brincar com as variáveis,Brincar com as variáveis,Brincar com as variáveis
+Experiência,Conhecer o laboratório,Guidance,Moderate,150,,,0.0,0.0,25.3,Brincar com as variáveis,Brincar com as variáveis,Brincar com as variáveis
+Experiência,Conhecer o laboratório,Guidance,Low,61,,,0.0,0.0,28.1,Brincar com as variáveis,Brincar com as variáveis,Brincar com as variáveis
+Experiência,Brincar com as variáveis,Question,High,17,0,17,0.0,100.0,32.9,Variáveis independentes e dependentes,Variáveis independentes e dependentes,"Muito bem, tens as tuas variáveis!"
+Experiência,Brincar com as variáveis,Question,Moderate,150,66,84,44.0,56.0,26.4,Variáveis independentes e dependentes,Variáveis independentes e dependentes,"Muito bem, tens as tuas variáveis!"
+Experiência,Brincar com as variáveis,Question,Low,56,0,56,0.0,100.0,30.9,Variáveis independentes e dependentes,Variáveis independentes e dependentes,"Muito bem, tens as tuas variáveis!"
+Experiência,Variáveis independentes e dependentes,Question,High,17,17,0,100.0,0.0,29.0,As opções de visualização não são variáveis,Esquecimento de variáveis,"Muito bem, tens as tuas variáveis!"
+Experiência,Variáveis independentes e dependentes,Question,Moderate,84,15,69,17.9,82.1,21.4,As opções de visualização não são variáveis,Esquecimento de variáveis,"Muito bem, tens as tuas variáveis!"
+Experiência,Variáveis independentes e dependentes,Question,Low,49,0,49,0.0,100.0,20.7,As opções de visualização não são variáveis,Esquecimento de variáveis,"Muito bem, tens as tuas variáveis!"
+Experiência,Esquecimento de variáveis,Explanation,High,0,,,,,,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,Esquecimento de variáveis,Explanation,Moderate,44,,,0.0,0.0,7.8,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,Esquecimento de variáveis,Explanation,Low,2,,,0.0,0.0,7.0,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,As opções de visualização não são variáveis,Explanation,High,1,,,0.0,0.0,8.0,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,As opções de visualização não são variáveis,Explanation,Moderate,28,,,0.0,0.0,7.2,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,As opções de visualização não são variáveis,Explanation,Low,49,,,0.0,0.0,8.7,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,"Muito bem, tens as tuas variáveis!",Explanation,High,17,,,0.0,0.0,8.0,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,"Muito bem, tens as tuas variáveis!",Explanation,Moderate,81,,,0.0,0.0,8.9,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,"Muito bem, tens as tuas variáveis!",Explanation,Low,7,,,0.0,0.0,7.1,Conceber a experiência,Conceber a experiência,Conceber a experiência
+Experiência,Conceber a experiência,Guidance,High,17,,,0.0,0.0,13.9,Experiência,Experiência,Experiência
+Experiência,Conceber a experiência,Guidance,Moderate,150,,,0.0,0.0,10.2,Experiência,Experiência,Experiência
+Experiência,Conceber a experiência,Guidance,Low,55,,,0.0,0.0,9.8,Experiência,Experiência,Experiência
+Experiência,Experiência,Guidance,High,16,,,0.0,0.0,23.8,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar
+Experiência,Experiência,Guidance,Moderate,145,,,0.0,0.0,16.0,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar
+Experiência,Experiência,Guidance,Low,53,,,0.0,0.0,36.3,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar,Analisar o efeito do ângulo de incidência da luz solar
+Análise de dados,Analisar o efeito do ângulo de incidência da luz solar,Question,High,59,47,12,79.7,20.3,26.6,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol
+Análise de dados,Analisar o efeito do ângulo de incidência da luz solar,Question,Moderate,143,58,85,40.6,59.4,21.2,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol
+Análise de dados,Analisar o efeito do ângulo de incidência da luz solar,Question,Low,10,0,10,0.0,100.0,14.0,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol,Analisar o efeito da dispersão dos raios de sol
+Análise de dados,Analisar o efeito da dispersão dos raios de sol,Question,High,59,48,11,81.4,18.6,22.5,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares
+Análise de dados,Analisar o efeito da dispersão dos raios de sol,Question,Moderate,143,65,78,45.5,54.5,16.7,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares
+Análise de dados,Analisar o efeito da dispersão dos raios de sol,Question,Low,10,0,10,0.0,100.0,11.4,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares
+Análise de dados,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Question,High,59,38,21,64.4,35.6,21.1,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,O que causa as estações
+Análise de dados,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Question,Moderate,142,30,112,21.1,78.9,18.4,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,O que causa as estações
+Análise de dados,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Question,Low,10,0,10,0.0,100.0,8.9,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,O que causa as estações
+Análise de dados,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explanation,High,0,,,,,,O que causa as estações,O que causa as estações,O que causa as estações
+Análise de dados,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explanation,Moderate,0,,,,,,O que causa as estações,O que causa as estações,O que causa as estações
+Análise de dados,Explicação da relação do ângulo de incidência da luz solar com a dispersão dos raios solares,Explanation,Low,0,,,,,,O que causa as estações,O que causa as estações,O que causa as estações
+Reflexão,Um modelo físico para explicar o que causa as estações do ano,Question,High,84,24,60,28.6,71.4,20.6,Mais Terras não vão ajudar...,A Estrela Polar,Para onde aponta o eixo da Terra?
+Reflexão,Um modelo físico para explicar o que causa as estações do ano,Question,Moderate,65,17,48,26.2,73.8,20.6,Mais Terras não vão ajudar...,A Estrela Polar,Para onde aponta o eixo da Terra?
+Reflexão,Um modelo físico para explicar o que causa as estações do ano,Question,Low,61,18,43,29.5,70.5,21.4,Mais Terras não vão ajudar...,A Estrela Polar,Para onde aponta o eixo da Terra?
+Reflexão,Mais Terras não vão ajudar...,Explanation,High,36,,,0.0,0.0,8.6,A Estrela Polar,A Estrela Polar,A Estrela Polar
+Reflexão,Mais Terras não vão ajudar...,Explanation,Moderate,18,,,0.0,0.0,18.8,A Estrela Polar,A Estrela Polar,A Estrela Polar
+Reflexão,Mais Terras não vão ajudar...,Explanation,Low,32,,,0.0,0.0,8.8,A Estrela Polar,A Estrela Polar,A Estrela Polar
+Reflexão,A Estrela Polar,Question,High,59,26,33,44.1,55.9,12.9,Mais sobre a Polar Star,Mais sobre a Polar Star,Mais sobre a Polar Star
+Reflexão,A Estrela Polar,Question,Moderate,49,24,25,49.0,51.0,13.9,Mais sobre a Polar Star,Mais sobre a Polar Star,Mais sobre a Polar Star
+Reflexão,A Estrela Polar,Question,Low,43,15,28,34.9,65.1,11.5,Mais sobre a Polar Star,Mais sobre a Polar Star,Mais sobre a Polar Star
+Reflexão,Mais sobre a Polar Star,Explanation,High,59,,,0.0,0.0,8.8,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?
+Reflexão,Mais sobre a Polar Star,Explanation,Moderate,49,,,0.0,0.0,8.7,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?
+Reflexão,Mais sobre a Polar Star,Explanation,Low,43,,,0.0,0.0,9.9,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?,Para onde aponta o eixo da Terra?
+Reflexão,Para onde aponta o eixo da Terra?,Question,High,83,40,43,48.2,51.8,20.8,A Estrela Polar e o Norte,A Estrela Polar e o Norte,A Estrela Polar e o Norte
+Reflexão,Para onde aponta o eixo da Terra?,Question,Moderate,65,23,42,35.4,64.6,13.7,A Estrela Polar e o Norte,A Estrela Polar e o Norte,A Estrela Polar e o Norte
+Reflexão,Para onde aponta o eixo da Terra?,Question,Low,61,20,41,32.8,67.2,14.1,A Estrela Polar e o Norte,A Estrela Polar e o Norte,A Estrela Polar e o Norte
+Reflexão,A Estrela Polar e o Norte,Explanation,High,82,,,0.0,0.0,10.0,Para finalizar,Para finalizar,Para finalizar
+Reflexão,A Estrela Polar e o Norte,Explanation,Moderate,65,,,0.0,0.0,10.1,Para finalizar,Para finalizar,Para finalizar
+Reflexão,A Estrela Polar e o Norte,Explanation,Low,61,,,0.0,0.0,11.7,Para finalizar,Para finalizar,Para finalizar
+Reflexão,Para finalizar,Guidance,High,70,,,0.0,0.0,49.0,,,
+Reflexão,Para finalizar,Guidance,Moderate,56,,,0.0,0.0,45.6,,,
+Reflexão,Para finalizar,Guidance,Low,55,,,0.0,0.0,26.6,,,
+Reflexão,O que causa as estações,Question,High,84,84,0,100.0,0.0,16.7,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano
+Reflexão,O que causa as estações,Question,Moderate,65,0,65,0.0,100.0,11.3,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano
+Reflexão,O que causa as estações,Question,Low,61,0,61,0.0,100.0,12.1,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano,Um modelo físico para explicar o que causa as estações do ano

@@ -1,0 +1,139 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<main id="main" class="main">
+
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+  <div class="pagetitle">
+    <h1>Scenario Creation</h1>
+    <nav>
+      <ol class="breadcrumb">
+          <li class="breadcrumb-item">Authoring Tool</li>
+          <li class="breadcrumb-item"><a href="{% url 'scenarios'%}">Scenarios</a></li>
+          <li class="breadcrumb-item active">Creating Scenario</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-8">
+
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">New Scenario</h5>
+
+            <!-- General Form Elements -->
+            <form action="createScenarioData/" method="post" id="scenarioForm" enctype="multipart/form-data" novalidate>{% csrf_token %}
+              <div class="row mb-3">
+                <label for="inputName" class="col-sm-2 col-form-label">Name</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="name" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputLG" class="col-sm-2 col-form-label">Learning Goals</label>
+                <div class="col-sm-10">
+                  <textarea class="form-control" style="height: 100px" name="learning_goals" required></textarea>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputDesc" class="col-sm-2 col-form-label">Description</label>
+                <div class="col-sm-10">
+                  <textarea class="form-control" style="height: 100px" name="description" required></textarea>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="age_of_students_start" class="col-sm-2 col-form-label">Min Age</label>
+                <div class="col-sm-4">
+                    <input type="number" class="form-control" id="age_of_students_start" min="0" max="100" name="min_age" value="10" required>
+                </div>
+                <label for="age_of_students_end" class="col-sm-2 col-form-label">Max Age</label>
+                <div class="col-sm-4">
+                    <input type="number" class="form-control" id="age_of_students_end" min="0" max="100" name="max_age" value="12" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputSubject" class="col-sm-2 col-form-label">Subject</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="subject" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputLanguage" class="col-sm-2 col-form-label">Language</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="language" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputSuggestedLearningTime" class="col-sm-2 col-form-label">Suggested Learning Time</label>
+                <div class="col-sm-10">
+                  <input type="number" class="form-control" name="suggested_learning_time" value="45" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
+                <div class="col-sm-10">
+                  <input class="form-control" type="file" id="formFile" name="image_upload" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputVideo" class="col-sm-2 col-form-label">Video URL</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="video_url">
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-sm-10">
+                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                  <button type="submit" class="btn btn-primary" id="submitBtn">Create Scenario</button>
+                </div>
+              </div>
+            </form><!-- End General Form Elements -->
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+
+<script>
+  document.getElementById('submitBtn').addEventListener('click', function(event) {
+    var button = this;
+    var form = document.getElementById('scenarioForm');
+
+    if (form.checkValidity() === false) {
+      event.preventDefault();
+      event.stopPropagation();
+	  form.classList.add('was-validated');
+      return;
+    }
+
+    // Use setTimeout to delay the spinner appearance and button disable
+    setTimeout(function() {
+        button.innerHTML = `
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+            <span>Creating...</span>
+        `;
+        button.disabled = true;
+    }, 100); // Delay in milliseconds
+
+    // The form will submit normally unless we explicitly stop it
+  });
+</script>
+  
+
+{% endblock atcontent %}

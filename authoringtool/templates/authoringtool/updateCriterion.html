@@ -1,0 +1,167 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		var highPerformersSelect = document.getElementById('highPerformersSelect');
+		var lowPerformersSelect = document.getElementById('lowPerformersSelect');
+		var midPerformersSelect = document.getElementById('midPerformersSelect');
+		var submitBtn = document.getElementById('submitBtn');
+
+		function checkSelection() {
+			// Check if any of the selects has a valid (non-default) option selected
+			if (highPerformersSelect.value !== '' || lowPerformersSelect.value !== '' || midPerformersSelect.value !== '') {
+				submitBtn.disabled = false; // Enable the submit button
+			} else {
+				submitBtn.disabled = true; // Keep the submit button disabled
+			}
+		}
+
+		highPerformersSelect.addEventListener('change', checkSelection);
+		lowPerformersSelect.addEventListener('change', checkSelection);
+		midPerformersSelect.addEventListener('change', checkSelection);
+		
+		// Initial check in case there are preselected values when the page loads
+		checkSelection();
+	});
+
+    document.getElementById('formSubmitButton').addEventListener('click', function(event) {
+        var button = this;
+    
+        // Use setTimeout to delay the spinner appearance and button disable
+        setTimeout(function() {
+            button.innerHTML = `
+                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                <span>Updating...</span>
+            `;
+            button.disabled = true;
+        }, 100); // Delay in milliseconds
+    
+        // The form will submit normally unless we explicitly stop it
+      });
+</script>
+
+
+
+<main id="main" class="main">
+
+    <div class="pagetitle">
+      <h1>Editing Evaluation</h1>
+      <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              Authoring Tool
+            </li>
+            <li class="breadcrumb-item">
+              <a href="{% url 'scenarios' %}">Scenarios</a>
+            </li>
+            <li class="breadcrumb-item">
+              <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
+            </li>
+            <li class="breadcrumb-item">
+              <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
+            </li>
+            <li class="breadcrumb-item">
+              <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}"> {{ myActivity.name }} </a>
+            </li>
+            <li class="breadcrumb-item active">Editing Criterion</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+    <section class="section">
+        <div class="row mb-2">
+            <div class="col-sm-10">
+                <a type="button" class="btn btn-secondary" href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">Back To Activity</a>
+            </div>
+          </div>
+        <div class="row">
+            <!-- Column for the card -->
+            <div class="col-lg-6">
+                <form id="performanceForm" method="post" action="{% url 'updateCriterionData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">
+                    {% csrf_token %}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">High Performers</h5>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Next Activity</label>
+                            <div class="col-sm-5">
+                                <select class="form-select" aria-label="Default select example" id="highPerformersSelect" name="highPerformersSelect" onchange="updateDropdowns('high')" required>
+                                    <option value="" selected>Select Activity...</option>
+                                    {% for activity in eligible_activities %}
+                                        <option value="{{ activity.id }}"
+                                            {% if high_activity and activity.id == high_activity.id %}selected{% endif %}
+                                        >{{ activity.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Score Limit</label>
+                            <div class="col-sm-5">
+                                <input type="number" class="form-control" name="high_score_limit" value="{{high_activity.score_limit}}" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Moderate Performers</h5>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Next Activity</label>
+                            <div class="col-sm-5">
+                                <select class="form-select" aria-label="Default select example" id="midPerformersSelect" name="midPerformersSelect" onchange="updateDropdowns('mid')" required>
+                                    <option value="" selected>Select Activity...</option>
+                                    {% for activity in eligible_activities %}
+                                        <option value="{{ activity.id }}"
+                                            {% if mid_activity and activity.id == mid_activity.id %}selected{% endif %}
+                                        >{{ activity.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Score Limit</label>
+                            <div class="col-sm-5">
+                                <input type="number" class="form-control" name="mid_score_limit" value="{{mid_activity.score_limit}}" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Low Performers</h5>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Next Activity</label>
+                            <div class="col-sm-5">
+                                <select class="form-select" aria-label="Default select example" id="lowPerformersSelect" name="lowPerformersSelect" onchange="updateDropdowns('low')" required>
+                                    <option value="" selected>Select Activity...</option>
+                                    {% for activity in eligible_activities %}
+                                        <option value="{{ activity.id }}"
+                                            {% if low_activity and activity.id == low_activity.id %}selected{% endif %}
+                                        >{{ activity.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-2 col-form-label">Score Limit</label>
+                            <div class="col-sm-5">
+                                <input type="number" class="form-control" name="low_score_limit" value="{{low_activity.score_limit}}" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-10">
+                        <button type="submit" class="btn btn-primary" id="formSubmitButton">Update Evaluation</button>
+                    </div>
+                </div>
+            </form>
+            </div>
+        </div>
+    </section>
+    
+
+  </main><!-- End #main -->
+
+{% endblock %}

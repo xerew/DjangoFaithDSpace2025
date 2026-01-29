@@ -1,0 +1,10 @@
+id,activity__name,phase__name,proposal_type,status,created_at,reviewed_at,reviewer__username,flag_ids,categories
+898,Para finalizar,Reflexão,skip,new,2025-11-04 12:51:06.717655+00:00,,,[222],Low
+897,Experiência,Experiência,skip,new,2025-11-04 12:51:06.657961+00:00,,,"[220, 221]","Moderate, Low"
+896,Para onde aponta o eixo da Terra?,Reflexão,skip,new,2025-11-04 12:51:06.600749+00:00,,,[219],Moderate
+895,A Estrela Polar,Reflexão,skip,new,2025-11-04 12:51:06.542494+00:00,,,[218],Low
+894,Um modelo físico para explicar o que causa as estações do ano,Reflexão,skip,new,2025-11-04 12:51:06.478532+00:00,,,"[216, 217]",Moderate
+893,Relação entre o ângulo de incidência da luz solar e dispersão dos raios solares,Análise de dados,skip,new,2025-11-04 12:51:06.410475+00:00,,,"[214, 215]","Moderate, Low"
+892,Analisar o efeito do ângulo de incidência da luz solar,Análise de dados,skip,new,2025-11-04 12:51:06.353422+00:00,,,"[212, 213]","Low, High"
+891,A inclinação do eixo da Terra,Hipótese,skip,new,2025-11-04 12:51:06.301758+00:00,,,"[210, 211]","Low, High"
+890,O que causa as estações do ano na Terra,Envolvimento,skip,new,2025-11-04 12:51:06.244951+00:00,,,"[208, 209]","Moderate, High"

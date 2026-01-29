@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LTI Launch</title>
+</head>
+<body>
+    <h1>Launching LTI Request...</h1>
+
+    <form id="ltiLaunchForm" action="{{ launch_url }}" method="POST">
+        {% for key, value in params.items %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+    </form>
+
+    <script type="text/javascript">
+        // Automatically submit the form when the page loads
+        document.getElementById("ltiLaunchForm").submit();
+    </script>
+</body>
+</html>

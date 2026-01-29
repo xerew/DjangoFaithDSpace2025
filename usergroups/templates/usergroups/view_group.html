@@ -1,0 +1,85 @@
+{% extends "main.html" %}
+
+{% block atcontent %}
+<main id="main" class="main">
+
+  <div class="pagetitle">
+    <h1>Group Details: {{ group.name }}</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+        <li class="breadcrumb-item active">View Group</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <!-- Group Action Buttons -->
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="d-flex justify-content-start mb-4">
+          <!-- Edit Group Button -->
+          <a href="{% url 'edit_group' group.id %}" class="btn btn-outline-info me-2">Edit Group</a>
+          
+          <!-- Download Credentials Button -->
+          <a href="{% url 'download_credentials' group.id %}" class="btn btn-outline-warning me-2">Download Credentials</a>
+          
+          <!-- Delete Group Button with Confirmation Modal -->
+          <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete Group</button>
+          
+          <!-- Delete Confirmation Modal -->
+          <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="deleteModalLabel">Delete Group</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  Are you sure you want to delete the group "{{ group.name }}"? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                  <form method="post" action="{% url 'delete_group' group.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- End Delete Confirmation Modal -->
+        </div>
+
+        <!-- Group Information -->
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Group Information</h5>
+            <ul class="list-group">
+              <li class="list-group-item"><strong>Group Name:</strong> {{ group.name }}</li>
+              <li class="list-group-item"><strong>User Prefix:</strong> {{ group.prefix }}</li>
+              <li class="list-group-item"><strong>Number of Users:</strong> {{ group.number_of_users }}</li>
+              <li class="list-group-item"><strong>Date Created:</strong> {{ group.created_on|date:"Y-m-d H:i:s" }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <h5 class="card-title">Assigned Scenarios</h5>
+            <ul class="list-group">
+              {% for scenario in scenarios %}
+                <li class="list-group-item">{{ scenario.name }}</li>
+              {% empty %}
+                <li class="list-group-item">No scenarios assigned to this group.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+{% endblock %}

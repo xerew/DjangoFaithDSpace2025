@@ -1,0 +1,132 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let answerCount = document.querySelectorAll('.answerFields').length; // Initialize counter based on existing answers
+  
+    function addMoreAnswers() {
+      var answerFieldsList = document.getElementById('answerFieldsList');
+      if (!answerFieldsList) return;
+  
+      var originalAnswerFields = answerFieldsList.querySelector('.answerFields');
+      if (!originalAnswerFields) return;
+  
+      var newAnswerFields = originalAnswerFields.cloneNode(true);
+  
+      // Update the name attributes of the inputs and textareas to include the new answerCount index
+      Array.from(newAnswerFields.querySelectorAll('input, textarea')).forEach(function(input) {
+        const nameAttr = input.getAttribute('name');
+        if (nameAttr) {
+          // Replace the index in square brackets with the current answerCount value
+          const newNameAttr = nameAttr.replace(/\[\d+\]/, `[${answerCount}]`);
+          input.setAttribute('name', newNameAttr);
+        }
+  
+        // Reset the input or textarea value
+        if (input.type === 'checkbox') {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
+      });
+  
+      // Add a "Remove" button if it doesn't exist
+      if (!newAnswerFields.querySelector('.removeAnswer')) {
+        var removeButton = document.createElement('button');
+        removeButton.innerText = 'Remove';
+        removeButton.type = 'button';
+        removeButton.classList.add('removeAnswer', 'btn', 'btn-danger', 'mt-2');
+  
+        removeButton.onclick = function() {
+          // Remove the closest `.answerFields` parent element
+          var container = this.closest('.answerFields');
+          if (container) {
+            container.remove();
+          }
+        };
+  
+        newAnswerFields.appendChild(removeButton);
+      }
+  
+      answerFieldsList.appendChild(newAnswerFields);
+      answerCount++; // Increment the counter after adding new answer fields
+    }
+  
+    var addMoreAnswersBtn = document.getElementById('addMoreAnswers');
+    if (addMoreAnswersBtn) {
+      addMoreAnswersBtn.addEventListener('click', addMoreAnswers);
+    }
+  });
+</script>  
+
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Answer Creation</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="">Home</a></li>
+        <li class="breadcrumb-item"><a href="">Activity Details</a></li>
+        <li class="breadcrumb-item active">Create Answers</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-8">
+
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">New Answer</h5>
+
+            <!-- General Form Elements -->
+            <form action="{% url 'createAnswers' scenario_id=scenario_id phase_id=phase_id activity_id=activity_id %}" method="post" enctype="multipart/form-data">{% csrf_token %}
+              
+              <!-- Answer Fields -->
+              <div id="answerFieldsList">
+                <div class="answerFields" style="margin-bottom: 15px;">
+                  <div class="mb-3">
+                    <label for="answerText" class="form-label">Answer Text</label>
+                    <textarea class="form-control" name="answers[0][text]" required></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-check-label" for="isCorrect">Is Correct?</label>
+                    <input class="form-check-input" type="checkbox" name="answers[0][is_correct]">
+                  </div>
+                  <div class="mb-3">
+                    <label for="answerWeight" class="form-label">Answer Weight</label>
+                    <input type="number" class="form-control" name="answers[0][answer_weight]">
+                  </div>
+                  <div class="mb-3">
+                    <label for="answerImage" class="form-label">Image (optional)</label>
+                    <input type="file" class="form-control" name="answers[0][image]">
+                  </div>
+                  <div class="mb-3">
+                    <label for="vidUrl" class="form-label">Video URL (optional)</label>
+                    <input type="text" class="form-control" name="answers[0][vid_url]">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add More Answers Button -->
+              <div class="mb-3">
+                <button type="button" id="addMoreAnswers" class="btn btn-info">Add More Answers</button>
+              </div>
+
+              <div class="row mb-2">
+                <div class="col-sm-10">
+                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Create Answers</button>
+                </div>
+              </div>
+            </form><!-- End General Form Elements -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+
+{% endblock %}

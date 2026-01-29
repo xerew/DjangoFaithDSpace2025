@@ -1,0 +1,163 @@
+{% extends "main.html" %}
+{% load static %}
+{% block atcontent %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Documentation & Tutorials</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Help & Resources</li>
+      </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Guides & Useful Links</h5>
+            <p>Welcome to the Documentation section. Here you can find helpful guides and resources for using the platform.</p>
+            <!-- Links to trigger modals -->
+            <ul class="list-group">
+                <li class="list-group-item">
+                  <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModalEnglish" class="text-primary">
+                    <i class="bi bi-file-earmark-pdf"></i> View PDF Guide (English)
+                  </a>
+                </li>
+                <li class="list-group-item">
+                  <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModalGreek" class="text-primary">
+                    <i class="bi bi-file-earmark-pdf"></i> Προβολή Οδηγού PDF (Ελληνικά)
+                  </a>
+                </li>
+                <li class="list-group-item">
+                    <a href="https://docs.google.com/document/d/1G5Wbvf_tgNXD0AeTzkEwTHV5zWF-fBjiU2EQxebfxv4/edit?tab=t.0#heading=h.anxocjpv03me" target="_blank" class="text-primary">
+                        <i class="bi bi-calendar-week"></i> Platform Change Log
+                    </a>
+                </li>
+                <li class="list-group-item">
+                    <a href="https://forms.gle/wVamjq2yyJMFJqq8A" target="_blank" class="text-primary">
+                        <i class="bi bi-chat-square"></i> Platform Issue Reporting Form
+                    </a>
+                </li>
+				<li class="list-group-item">
+                  <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" class="text-primary">
+                    <i class="bi bi-image"></i> VR/AR Lab Target Image
+                  </a>
+                </li>
+                {% if is_dspace_partner %}
+                <li class="list-group-item">
+                    <a href="https://docs.google.com/document/d/1jdpXgmWup-Y0jv44-qJ1UhyzLzuYDYsuOibJCGMdIHg/edit?tab=t.0" target="_blank" class="text-primary">
+                        <i class="bi bi-pen"></i> Feature Request
+                    </a>
+                </li>
+				<li class="list-group-item">
+                  <a href="https://docs.google.com/document/d/1Z9QiPyCPa0UZRa-0HYr6j6efFnh6lUSTDWsb6zlkapA/edit?tab=t.0" target="_blank" class="text-primary">
+                      <i class="bi bi-pen"></i> Available Scenarios in the Platform
+                  </a>
+                </li>
+                {% endif %}
+            </ul>
+              
+            <!-- PDF Viewer Modal -->
+            <div class="modal fade" id="pdfModalEnglish" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl"> <!-- modal-xl makes it larger -->
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="pdfModalLabel">PDF Documentation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <iframe src="{% static 'pdfs/documentation_en.pdf' %}" width="100%" height="700px" style="border: none;"></iframe>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="{% static 'pdfs/documentation_en.pdf' %}" class="btn btn-success" download>
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- PDF Viewer Modal (Greek) -->
+            <div class="modal fade" id="pdfModalGreek" tabindex="-1" aria-labelledby="pdfModalGreekLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="pdfModalGreekLabel">PDF Documentation (Ελληνικά)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <iframe src="{% static 'pdfs/documentation_gr.pdf' %}" width="100%" height="700px" style="border: none;"></iframe>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="{% static 'pdfs/documentation_gr.pdf' %}" class="btn btn-success" download>
+                        <i class="bi bi-download"></i> Λήψη PDF (Ελληνικά)
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Κλείσιμο</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+              <!-- End of PDF Viewer Modals -->
+			  <!-- Image Viewer Modal -->
+			  <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">VR/AR Lab Target Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body text-center">
+                    <img src="{% static 'img/vr_ar_target_image.jpg' %}" alt="Target Image" class="img-fluid" style="max-height: 700px;">
+                  </div>
+                  <div class="modal-footer">
+                    <a href="{% static 'img/vr_ar_target_image.jpg' %}" class="btn btn-success" download>
+                      <i class="bi bi-download"></i> Download Image
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Project Links Section -->
+    <div class="row">
+        <div class="col-lg-6">
+          <div class="card">
+            <img src="{% static 'img/Logo-dspace.png' %}" class="project-img card-img-top" alt="Project 1">
+            <div class="card-body text-center">
+              <h5 class="card-title">Discovery Space</h5>
+              <p class="card-text text-justify-doc">
+                Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation - Forward Looking project that aspires to develop a roadmap for the AI-Enhanced Classroom for Deeper Learning in STEM that facilitates the transformation of the traditional classroom to an innovative environment that promotes the scientific exploration and supports the development of key skills for all students.
+              </p>
+              <a href="https://discoveryspace.eu/" class="btn btn-primary" target="_blank">
+                <i class="bi bi-globe"></i> Visit Project's Site
+              </a>
+            </div>
+          </div>
+        </div>
+  
+        <div class="col-lg-6">
+          <div class="card">
+            <img src="{% static 'img/logo_faith.png' %}" class="project-img card-img-top" alt="Project 2">
+            <div class="card-body text-center">
+              <h5 class="card-title">Fostering  Artificial  Intelligence  Trust for  Humans towards the optimization of trustworthiness through large-scale pilots in critical domains</h5>
+              <p class="card-text text-justify-doc">
+                FAITH aims to provide the practitioners and stakeholders of AI systems not only with a comprehensive analysis of the foundations of AI trustworthiness but also with an operational playbook for how to assess, and build trustworthy AI systems and how to continuously measure their trustworthiness.
+              </p>
+              <a href="https://faith-ec-project.eu/" class="btn btn-primary" target="_blank">
+                <i class="bi bi-globe"></i> Visit Project's Site
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End of Project Links Section -->
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "main.html" %}
+{% block atcontent %}
+<main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Scenarios</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            Student View
+          </li>
+          <li class="breadcrumb-item active">Scenarios</li>
+        </ol>
+      </nav>
+    </div>
+</main>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
+            <div class="card shadow-lg" style="width: 100%; max-width: 700px;">
+                <div class="card-header text-center">
+                    <h3>Scenario Feedback Form</h3>
+                    <h5>{{ myScenario.name }}</h5>
+                    {% if display_language != 'English' and display_language in "Ελληνικά Greek Português Portuguese German Deutsch" %}
+                        <p class="text-muted">
+                            <small>Displaying questions in {{ display_language }}</small>
+                        </p>
+                    {% elif display_language != 'English' %}
+                        <p class="text-muted text-warning">
+                            <small>No translation available. Displaying questions in English.</small>
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'submit_answers' scenario_id=myScenario.id %}">
+                        {% csrf_token %}
+                        
+                        {% for question_data in questions %}
+                            <div class="mb-3">
+                                <label for="question_{{ question_data.question.id }}" class="form-label">
+                                    {{ question_data.text }}
+                                    {% if question_data.is_required %}
+                                        <span class="text-danger">*</span>
+                                    {% endif %}
+                                </label>
+                                <textarea class="form-control" 
+                                          id="question_{{ question_data.question.id }}" 
+                                          name="question_{{ question_data.question.id }}" 
+                                          rows="3"
+                                          {% if question_data.is_required %}required{% endif %}
+                                          {% if all_questions_answered %}readonly{% endif %}>{{ question_data.existing_answer }}</textarea>
+                            </div>
+                        {% empty %}
+                            <div class="alert alert-info">
+                                No questions have been set up for this scenario yet.
+                            </div>
+                        {% endfor %}
+        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="button" class="btn btn-primary" {% if all_questions_answered %}disabled{% endif %} data-bs-toggle="modal" data-bs-target="#submitConfirmationModal">Submit Feedback</button>
+                            <a href="{% url 'studentView' scenario_id=myScenario.id %}" class="btn btn-secondary">Go to the Scenario</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="submitConfirmationModal" tabindex="-1" aria-labelledby="submitConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="submitConfirmationModalLabel">Confirm Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to submit your feedback? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSubmit">Yes, Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmSubmitBtn = document.getElementById('confirmSubmit');
+        const form = document.querySelector('form');
+        
+        confirmSubmitBtn.addEventListener('click', function() {
+            form.submit();
+        });
+    });
+</script>
+{% endblock atcontent %}

@@ -1,0 +1,223 @@
+{% extends "main.html" %}
+{% block atcontent %}
+
+<main id="main" class="main">
+
+  {% comment %}
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endcomment %}
+
+  {% comment %} {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %} {% endcomment %}
+
+  <div class="pagetitle">
+    <h1>Scenario Update</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">Authoring Tool</li>
+        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+        <li class="breadcrumb-item active">Updating Scenario</li>
+      </ol>
+    </nav>
+  </div><!-- End Page Title -->
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-8">
+
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Updating Scenario</h5>
+
+            <!-- General Form Elements -->
+            <form action="{% url 'updateScenarioData' id=Scenario.id %}" method="post" id="scenarioForm" enctype="multipart/form-data" novalidate>{% csrf_token %}
+              <div class="row mb-3">
+                <label for="inputName" class="col-sm-2 col-form-label">Name</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="name" value="{{Scenario.name}}" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputLG" class="col-sm-2 col-form-label">Learning Goals</label>
+                <div class="col-sm-10">
+                  <textarea class="form-control" style="height: 100px" name="learning_goals" required>{{Scenario.learning_goals}}</textarea>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputDesc" class="col-sm-2 col-form-label">Description</label>
+                <div class="col-sm-10">
+                  <textarea class="form-control" style="height: 100px" name="description" required>{{Scenario.description}}</textarea>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="age_of_students_start" class="col-sm-2 col-form-label">Min Age</label>
+                <div class="col-sm-4">
+                    <input type="number" class="form-control" id="age_of_students_start" min="0" max="100" name="min_age" value="{{min_age}}" required>
+                </div>
+                <label for="age_of_students_end" class="col-sm-2 col-form-label">Max Age</label>
+                <div class="col-sm-4">
+                    <input type="number" class="form-control" id="age_of_students_end" min="0" max="100" name="max_age" value="{{max_age}}"required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputSubject" class="col-sm-2 col-form-label">Subject</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="subject" value="{{Scenario.subject_domains}}" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputLanguage" class="col-sm-2 col-form-label">Language</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="language" value="{{Scenario.language}}" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputSuggestedLearningTime" class="col-sm-2 col-form-label">Suggested Learning Time</label>
+                <div class="col-sm-10">
+                  <input type="number" class="form-control" name="suggested_learning_time" value="{{Scenario.suggested_learning_time}}" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
+                <div class="col-sm-10">
+                  <input class="form-control" type="file" id="formFile" name="image_upload" onchange="hideCurrentFileInfo()">
+                  <!-- Displaying the current file name -->
+                  {% if Scenario.image %}
+                  <p id="currentFileInfo">Current file: {{ Scenario.image.name }}</p>
+                  {% else %}
+                  <p id="currentFileInfo">No file currently uploaded.</p>
+                  {% endif %}
+                </div>
+                <!-- Checkbox to clear the current image
+                <div class="row mb-3">
+                    <div class="col-sm-10">
+                        <div class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
+                          <label class="form-check-label" for="flexSwitchCheckDefault">Clear Image?</label>
+                        </div>
+                    </div>
+              </div> -->
+              <div class="row mb-3">
+                <label for="inputVideo" class="col-sm-2 col-form-label">Video URL</label>
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" name="video_url" value="{{Scenario.video_url}}">
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label for="visibility" class="col-sm-2 col-form-label">Visibility</label>
+                <div class="col-sm-10">
+                  <select class="form-control" name="visibility" id="visibility" onchange="toggleOrganizations()">
+                    <option value="private" {% if Scenario.visibility_status == 'private' %}selected{% endif %}>Private</option>
+                    <option value="org" {% if Scenario.visibility_status == 'org' %}selected{% endif %}>Organization</option>
+                    {% if not Scenario.is_personal %}
+                    <option value="public" {% if Scenario.visibility_status == 'public' %}selected{% endif %}>Public</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+              <div class="row mb-3" id="org-selection" style="display:none;">
+                <label for="organizations" class="col-sm-2 col-form-label">Select Organizations</label>
+                <div class="col-sm-10">
+                  <!-- List organizations as checkboxes -->
+                  {% for org in user_organizations %}
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="orgCheck{{ org.id }}" name="organizations" value="{{ org.id }}" 
+                             {% if org in Scenario.organizations.all %}checked{% endif %}>
+                      <label class="form-check-label" for="orgCheck{{ org.id }}">{{ org.name }}</label>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="row mb-3" id="org-edit" style="display:none;">
+                <label for="is_editable_by_org" class="col-sm-2 col-form-label">Editable by Org?</label>
+                <div class="col-sm-10">
+                  <input type="checkbox" class="form-check-input" name="is_editable_by_org" id="is_editable_by_org" 
+                         {% if Scenario.is_editable_by_org %}checked{% endif %}>
+                </div>
+              </div>         
+              
+              <div class="row mb-2">
+                <div class="col-sm-10">
+                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                  <button type="submit" class="btn btn-primary" id="submitBtn">Update Scenario</button>
+                </div>
+              </div>
+            </form><!-- End General Form Elements -->
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main><!-- End #main -->
+
+<script>
+  function hideCurrentFileInfo() {
+      // Check if the user has selected a file
+      var fileInput = document.getElementById('formFile');
+      if (fileInput.value) {
+          // Hide the current file info
+          document.getElementById('currentFileInfo').style.display = 'none';
+      }
+  }
+
+  document.getElementById('submitBtn').addEventListener('click', function(event) {
+    var button = this;
+    var form = document.getElementById('scenarioForm');
+
+    if (form.checkValidity() === false) {
+      event.preventDefault();
+      event.stopPropagation();
+	  form.classList.add('was-validated');
+      return;
+    }
+
+    // Use setTimeout to delay the spinner appearance and button disable
+    setTimeout(function() {
+        button.innerHTML = `
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+            <span>Creating...</span>
+        `;
+        button.disabled = true;
+    }, 100); // Delay in milliseconds
+
+    // The form will submit normally unless we explicitly stop it
+  });
+
+  function toggleOrganizations() {
+    const visibility = document.getElementById('visibility').value;
+    const orgSelection = document.getElementById('org-selection');
+    const orgEdit = document.getElementById('org-edit');
+    if (visibility === 'org') {
+      orgSelection.style.display = 'block';
+      orgEdit.style.display = 'block';
+    } else {
+      orgSelection.style.display = 'none';
+      orgEdit.style.display = 'none';
+    }
+  }
+
+  // Run on page load to initialize
+  toggleOrganizations();
+</script>
+
+{% endblock %}
