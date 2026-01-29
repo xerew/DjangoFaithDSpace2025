@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 continue
 
             for f in flags:
-                # Uses your existing EMA update function :contentReference[oaicite:3]{index=3}
+                # Uses your existing update function :contentReference[oaicite:3]{index=3}
                 update_q_value(
                     flag_type=f.flag_type,
                     category=f.category,
