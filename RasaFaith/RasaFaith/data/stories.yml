@@ -1,0 +1,49 @@
+version: "3.1"
+
+stories:
+
+- story: Answering Question Flow
+  steps:
+  - intent: ask_me
+  - action: action_ask_question
+  - intent: provide_answer
+  - action: action_handle_answer
+  - action: action_ask_question
+
+- story: Answering Not a Question Flow
+  steps:
+  - intent: ask_me
+  - action: action_ask_question
+  - intent: confirm_read
+  - action: action_confirm_read
+  - action: action_ask_question
+
+- story: ask hint story
+  steps:
+  #- intent: start_scenario
+  - intent: ask_me
+  - action: action_ask_question
+  - intent: request_hint
+  - action: action_provide_hint
+
+- story: setting the language happy path
+  steps:
+  - intent: greet
+  - action: action_request_user_input
+  - intent: user_response
+  - action: action_detect_language
+  - intent: affirm
+  - action: action_handle_language_confirmation
+
+- story: delete database data happy path
+  steps:
+  - intent: delete_data
+  - action: action_confirm
+  - intent: affirm
+  - action: action_delete_db_data
+
+- story: delete database data happy path
+  steps:
+  - intent: delete_data
+  - action: action_confirm
+  - intent: deny

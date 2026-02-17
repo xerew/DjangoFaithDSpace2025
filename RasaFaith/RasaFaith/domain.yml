@@ -1,0 +1,93 @@
+version: "3.1"
+
+intents:
+  - affirm
+  - deny
+  - greet
+  - user_response
+  - start_scenario
+  - provide_answer
+  - request_hint
+  - delete_data
+  - scenario_selection
+  - ask_me
+  - confirm_read
+entities:
+  - answer_id
+  - question_id
+  - locale_en
+  - scenario_id
+  - user_id
+slots:
+  user_id:
+    type: any
+    mappings:
+      - type: custom
+
+  last_question_id:
+    type: any
+    mappings:
+      - type: custom
+
+  answer_id:
+    type: any
+    mappings:
+      - type: from_entity
+        entity: answer_id
+
+  last_answer_id:
+    type: any
+    mappings:
+      - type: custom
+
+  scenario_id:
+    type: any
+    mappings:
+      - type: from_entity
+        entity: scenario_id #changed for slotset
+
+  next_question_id:
+    type: any
+    mappings:
+      - type: custom
+
+  question_asked_time:
+    type: any
+    mappings:
+      - type: custom
+      
+  question_answered_time:
+    type: any
+    mappings:
+      - type: custom
+  
+  locale:
+    type: any
+    mappings:
+      - type: from_entity
+        entity: locale_en
+  
+  current_question_id:
+    type: any
+    mappings:
+      - type: custom
+
+actions:
+  - action_ask_question
+  - action_handle_answer
+  - action_provide_hint
+  - action_detect_language
+  - action_request_user_input
+  - action_handle_language_confirmation
+  - action_delete_db_data
+  - action_confirm
+  # - handle_scenario_selection
+  # - action_ask_scenario
+  - action_set_user_and_scenario
+  - action_receive_user_id
+  - action_confirm_read
+  - action_end_scenario
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

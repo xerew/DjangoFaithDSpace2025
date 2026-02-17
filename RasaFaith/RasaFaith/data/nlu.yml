@@ -1,0 +1,110 @@
+version: "3.1"
+
+nlu:
+- intent: start_scenario
+  examples: |
+    - I want to start the scenario
+    - Begin the scenario
+    - Let's get started
+    - Start
+- intent: scenario_selection
+  examples: |
+    - [scenario with scenario_id {scenario_id:1}]
+    - [chosen scenario {scenario_id:2}]
+    - ["scenario_id": "{scenario[0]}"]
+- intent: provide_answer
+  examples: |
+    - [answer with answer_id {answer_id:1} and question_id {question_id:2}]
+    - [chosen answer {answer_id:5}]
+    - ["answer_id": "{answer[0]}", "question_id": "{question_id}"]
+- intent: request_hint
+  examples: |
+    - I'm not sure
+    - Can I get a hint?
+    - I need some help
+    - I could use a hint
+    - Help me out with this one
+- intent: user_response
+  examples: |
+    - I'm doing well, thanks
+    - My name is [Name]
+    - I'm feeling a bit under the weather
+    - I go by [Name]
+    - I couldn't be better
+    - Estoy bien, gracias
+    - Me llamo [Name]
+    - Estoy un poco cansado
+    - Mi nombre es [Name]
+    - ¡Estoy excelente
+    - Estou bem, obrigado
+    - Meu nome é [Name]
+    - Estou um pouco cansado
+    - Chamo-me [Name]
+    - Estou ótimo
+    - Είμαι καλά, ευχαριστώ
+    - Το όνομά μου είναι [Name]
+    - Νιώθω λίγο κουρασμένος
+    - Με λένε [Name]
+    - Είμαι σε πολύ καλή κατάσταση
+    - Guten Nachmittag, wie geht es dir
+    - Wie heißt du
+    - Guten Nachmittag, wie fühlst du dich heute
+    - Wie ist dein Name
+    - Guten Nachmittag, wie läuft dein Tag
+    - Mir geht es gut, danke
+    - Mein Name ist [Name]
+    - Mein Tag läuft gut, danke
+- intent: affirm
+  examples: |
+    - yes
+    - that's right
+    - of course
+    - yeah
+    - yep
+- intent: greet
+  examples: |
+    - hey
+    - hi
+    - yo
+    - hello
+- intent: deny
+  examples: |
+    - no
+    - nope
+    - nah
+    - negative
+- intent: delete_data
+  examples: |
+    - i want to delete my data
+    - i want to restart
+    - delete scenario data
+    - restart scenario
+    - restart
+- intent: ask_me
+  examples: |
+    - begin question
+    - ask me
+    - question me
+    - fire up
+    - let's go
+    - i'm ready
+    - είμαι έτοιμος
+    - είμαι έτοιμη
+    - ξεκίνα
+    - πάμε
+    - Έτοιμος
+    - Έτοιμη
+    - Ας αρχίσουμε
+    - Ας ξεκινήσουμε
+    - Ρώτησέ με
+    - Ρώτα με
+    - Ρώτα
+    - Πες μου
+    - Πες
+    - Μίλα
+    - Ξεκίνησε
+- intent: confirm_read
+  examples: |
+    - /confirm_read
+    - confirm_read
+    - /onfirm_read

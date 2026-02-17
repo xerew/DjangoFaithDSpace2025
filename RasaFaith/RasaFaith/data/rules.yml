@@ -1,0 +1,28 @@
+version: "3.1"
+
+rules:
+- rule: Set last_answer_id slot when answer is given
+  steps:
+  - intent: provide_answer
+    entities:
+    - answer_id: any
+  - slot_was_set:
+    - last_answer_id: any
+
+- rule: Set user and scenario slots at conversation start
+  steps:
+  - intent: start
+    entities:
+    - user_id: any
+    - scenario_id : any
+  - slot_was_set:
+    - user_id: any
+    - scenario_id : any 
+  - action: action_set_user_and_scenario
+
+- rule: End of scenario interaction
+  condition:
+    - slot_was_set:
+      - next_question_id: null
+  steps:
+    - action: action_end_scenario
