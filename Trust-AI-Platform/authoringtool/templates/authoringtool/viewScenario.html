@@ -96,12 +96,15 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
                           <div class="modal-body">
-                            <iframe src="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" width="100%" height="700px" style="border: none;"></iframe>
+                            <!-- <iframe src="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" width="100%" height="700px" style="border: none;"></iframe> -->
+                            <iframe src="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}" width="100%" height="700px" style="border:none;"></iframe>
                           </div>
                           <div class="modal-footer">
-                            <a href="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" class="btn btn-success" download>
+                            
+                            <a href="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}" class="btn btn-success" download>
                               <i class="bi bi-download"></i> Download
                             </a>
+                            
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                           </div>
                         </div>

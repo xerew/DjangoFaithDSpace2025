@@ -1381,7 +1381,8 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
 
 @shared_task
 def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, start_date=None, end_date=None):
-    base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
+    # base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
+    base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
     file_path = os.path.join(base_dir, f'scenario_{scenario_id}_combined_activity_metrics.csv')
 
@@ -1530,7 +1531,8 @@ def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, sta
 @shared_task
 def calculate_activities_in_risk(scenario_id):
     # ====== 1. Load the dataset ======
-    base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
+    # base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
+    base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
     file_path = os.path.join(base_dir, f'scenario_{scenario_id}_combined_activity_metrics.csv')
     flags_file_path = os.path.join(base_dir, f'scenario_{scenario_id}_flagged_activities_with_reasons.csv')
@@ -1541,7 +1543,12 @@ def calculate_activities_in_risk(scenario_id):
               "Skipping recalculation and NOT touching ActivityFlag.")
         return {"scenario_id": scenario_id}
     
-
+    if not os.path.exists(file_path):
+        # either build it or fail gracefully
+        compute_category_metrics_per_phase_activity(scenario_id)
+        if not os.path.exists(file_path):
+            return {"error": f"Metrics CSV not found: {file_path}"}
+        
     df = pd.read_csv(file_path)
 
     # Keep only rows where 'Total' >= 10 for reliability
@@ -1899,18 +1906,27 @@ def get_phase_based_prior_summary(activity):
 
     return "\n".join(summary_lines)
 
-BASE_RAG_DIR = os.path.join(os.path.dirname(__file__), '..', 'rag_pdfs')
-BASE_INDEX_DIR = os.path.join(settings.BASE_DIR, "rag_indexes")
+# BASE_RAG_DIR = os.path.join(os.path.dirname(__file__), '..', 'rag_pdfs')
+# BASE_INDEX_DIR = os.path.join(settings.RAG_INDEX_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, "rag_indexes")
+BASE_RAG_DIR = settings.RAG_PDFS_ROOT          # e.g. /data/rag/rag_pdfs
+BASE_INDEX_DIR = settings.RAG_INDEX_ROOT       # e.g. /data/rag/rag_indexes
 CHROMA_SETTINGS = ChromaSettings(
     anonymized_telemetry=False,
     is_persistent=True
 )
 
-def get_pdf_dir(scenario_id):
+def get_pdf_dir(scenario_id: int) -> str:
     return os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
 
-def get_index_dir(scenario_id):
+def get_index_dir(scenario_id: int) -> str:
     return os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
+
+# 2026
+# def get_pdf_dir(scenario_id):
+#     return os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
+
+# def get_index_dir(scenario_id):
+#     return os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
 
 def ensure_rag_index(scenario_id):
     """

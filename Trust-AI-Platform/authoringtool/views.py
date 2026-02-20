@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
 from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, UserProposalReview
 from psycopg2.extras import NumericRange
@@ -36,6 +36,7 @@ import csv, os, json
 import markdown
 from django.utils.safestring import mark_safe
 from django.core.files.storage import FileSystemStorage
+from django.utils._os import safe_join
 
 def group_required(group_name):
     def decorator(view_func):
@@ -400,6 +401,18 @@ def deleteScenario(request, id):
     deleteScenario.delete()
     return HttpResponseRedirect(reverse('scenarios'))
 
+def serve_rag_pdf(request, scenario_id, filename):
+    try:
+        folder = safe_join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}")
+        file_path = safe_join(folder, filename)
+    except Exception:
+        raise Http404("Invalid path")
+
+    if not os.path.exists(file_path):
+        raise Http404("File not found")
+
+    return FileResponse(open(file_path, "rb"), content_type="application/pdf")
+
 def viewScenario(request, id):
     myScenario = Scenario.objects.get(id=id)
     # Check if the user is the creator or if the scenario is editable by the org and the user belongs to the org
@@ -411,8 +424,8 @@ def viewScenario(request, id):
             can_edit = True
 
     # ⬇️ Handle PDF upload for RAG
-    if request.method == "POST" and request.FILES.get('rag_pdf'):
-        rag_folder = os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
+    if request.method == "POST" and request.FILES.get('rag_pdf'): # 2026
+        rag_folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
         os.makedirs(rag_folder, exist_ok=True)
         uploaded_file = request.FILES['rag_pdf']
         fs = FileSystemStorage(location=rag_folder)
@@ -426,8 +439,8 @@ def viewScenario(request, id):
     scenario_min_age = myScenario.age_of_students.lower
     scenario_max_age = myScenario.age_of_students.upper
 
-    # List existing RAG files
-    rag_folder = os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
+    # List existing RAG files # 2026
+    rag_folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
     if os.path.exists(rag_folder):
         rag_files = [f for f in os.listdir(rag_folder) if f.lower().endswith('.pdf')]
     else:
@@ -453,7 +466,7 @@ def delete_rag_pdf(request, scenario_id, filename):
         messages.error(request, "Only the scenario owner can delete RAG PDFs.")
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
-    folder = os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{scenario_id}')
+    folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}") # os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{scenario_id}')
     file_path = os.path.join(folder, filename)
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -2056,7 +2069,8 @@ def category_metrics_status(request, task_id):
         if not scenario_id:
             return JsonResponse({'status': 'error', 'error': 'Missing scenario_id from result'})
 
-        csv_path = os.path.join(settings.BASE_DIR, 'ai_metrics_cache', f'scenario_{scenario_id}_combined_activity_metrics.csv')
+        # csv_path = os.path.join(settings.BASE_DIR, 'ai_metrics_cache', f'scenario_{scenario_id}_combined_activity_metrics.csv')
+        csv_path = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_combined_activity_metrics.csv")
 
         if not os.path.exists(csv_path):
             return JsonResponse({'status': 'error', 'error': 'CSV not found'})
@@ -2084,8 +2098,7 @@ def risk_flags_status(request, task_id):
 
         # Path for the risk flags CSV
         flags_csv_path = os.path.join(
-            settings.BASE_DIR,
-            'ai_metrics_cache',
+            settings.AI_METRICS_CACHE_ROOT,#BASE_DIR, 'ai_metrics_cache',
             f'scenario_{scenario_id}_flagged_activities_with_reasons.csv'
         )
         if not os.path.exists(flags_csv_path):

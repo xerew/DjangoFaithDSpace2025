@@ -1,0 +1,121 @@
+Phase,Activity,Type,Category,Total,Correct,Wrong,% Correct,% Wrong,Avg Time,Next Low,Next Moderate,Next High
+Engagement,Vectors,Question,High,0,,,,,,Calculation of resultant force,Calculation of resultant force,Calculation of resultant force
+Engagement,Vectors,Question,Moderate,0,,,,,,Calculation of resultant force,Calculation of resultant force,Calculation of resultant force
+Engagement,Vectors,Question,Low,0,,,,,,Calculation of resultant force,Calculation of resultant force,Calculation of resultant force
+Engagement,Calculation of resultant force,Question,High,0,,,,,,Explanation of vectors,Full explanation,Body in equilibrium
+Engagement,Calculation of resultant force,Question,Moderate,0,,,,,,Explanation of vectors,Full explanation,Body in equilibrium
+Engagement,Calculation of resultant force,Question,Low,0,,,,,,Explanation of vectors,Full explanation,Body in equilibrium
+Engagement,Explanation of vectors,Explanation,High,0,,,,,,Question about the resultant force,Question about the resultant force,Question about the resultant force
+Engagement,Explanation of vectors,Explanation,Moderate,0,,,,,,Question about the resultant force,Question about the resultant force,Question about the resultant force
+Engagement,Explanation of vectors,Explanation,Low,0,,,,,,Question about the resultant force,Question about the resultant force,Question about the resultant force
+Engagement,Question about the resultant force,Question,High,0,,,,,,Response and explanation regarding the resultant force,Response and explanation regarding the resultant force,Body in equilibrium
+Engagement,Question about the resultant force,Question,Moderate,0,,,,,,Response and explanation regarding the resultant force,Response and explanation regarding the resultant force,Body in equilibrium
+Engagement,Question about the resultant force,Question,Low,0,,,,,,Response and explanation regarding the resultant force,Response and explanation regarding the resultant force,Body in equilibrium
+Engagement,Response and explanation regarding the resultant force,Explanation,High,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Engagement,Response and explanation regarding the resultant force,Explanation,Moderate,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Engagement,Response and explanation regarding the resultant force,Explanation,Low,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Engagement,Full explanation,Explanation,High,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Engagement,Full explanation,Explanation,Moderate,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Engagement,Full explanation,Explanation,Low,0,,,,,,Body in equilibrium,Body in equilibrium,Body in equilibrium
+Hypothesis,Body in equilibrium,Question,High,0,,,,,,Movement at a constant speed,Movement at a constant speed,Movement at a constant speed
+Hypothesis,Body in equilibrium,Question,Moderate,0,,,,,,Movement at a constant speed,Movement at a constant speed,Movement at a constant speed
+Hypothesis,Body in equilibrium,Question,Low,0,,,,,,Movement at a constant speed,Movement at a constant speed,Movement at a constant speed
+Hypothesis,Movement at a constant speed,Question,High,0,,,,,,Explanation and Activity,Quick Orientation,Force - Acceleration
+Hypothesis,Movement at a constant speed,Question,Moderate,0,,,,,,Explanation and Activity,Quick Orientation,Force - Acceleration
+Hypothesis,Movement at a constant speed,Question,Low,0,,,,,,Explanation and Activity,Quick Orientation,Force - Acceleration
+Hypothesis,Explanation and Activity,Explanation,High,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Explanation and Activity,Explanation,Moderate,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Explanation and Activity,Explanation,Low,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Quick Orientation,Guidance,High,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Quick Orientation,Guidance,Moderate,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Quick Orientation,Guidance,Low,0,,,,,,Force - Acceleration,Force - Acceleration,Force - Acceleration
+Hypothesis,Force - Acceleration,Question,High,0,,,,,,Force on an object,Force on an object,Force on an object
+Hypothesis,Force - Acceleration,Question,Moderate,0,,,,,,Force on an object,Force on an object,Force on an object
+Hypothesis,Force - Acceleration,Question,Low,0,,,,,,Force on an object,Force on an object,Force on an object
+Hypothesis,Force on an object,Question,High,0,,,,,,Explanations,Explanations,Experiment - Newton's 1st Law
+Hypothesis,Force on an object,Question,Moderate,0,,,,,,Explanations,Explanations,Experiment - Newton's 1st Law
+Hypothesis,Force on an object,Question,Low,0,,,,,,Explanations,Explanations,Experiment - Newton's 1st Law
+Hypothesis,Explanations,Explanation,High,0,,,,,,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law
+Hypothesis,Explanations,Explanation,Moderate,0,,,,,,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law
+Hypothesis,Explanations,Explanation,Low,0,,,,,,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law,Experiment - Newton's 1st Law
+Experiments,Experiment - Newton's 1st Law,Experiment,High,0,,,,,,Repetition of experiments - 1st law,Repetition of experiments - 1st law,Repetition of experiments - 1st law
+Experiments,Experiment - Newton's 1st Law,Experiment,Moderate,0,,,,,,Repetition of experiments - 1st law,Repetition of experiments - 1st law,Repetition of experiments - 1st law
+Experiments,Experiment - Newton's 1st Law,Experiment,Low,0,,,,,,Repetition of experiments - 1st law,Repetition of experiments - 1st law,Repetition of experiments - 1st law
+Experiments,Question 2 - First law,Question,High,0,,,,,,Question 3 - 1st law,Question 3 - 1st law,Question 3 - 1st law
+Experiments,Question 2 - First law,Question,Moderate,0,,,,,,Question 3 - 1st law,Question 3 - 1st law,Question 3 - 1st law
+Experiments,Question 2 - First law,Question,Low,0,,,,,,Question 3 - 1st law,Question 3 - 1st law,Question 3 - 1st law
+Experiments,Question 1 - First law,Question,High,0,,,,,,Question 2 - First law,Question 2 - First law,Question 2 - First law
+Experiments,Question 1 - First law,Question,Moderate,0,,,,,,Question 2 - First law,Question 2 - First law,Question 2 - First law
+Experiments,Question 1 - First law,Question,Low,0,,,,,,Question 2 - First law,Question 2 - First law,Question 2 - First law
+Experiments,Question 3 - 1st law,Question,High,0,,,,,,Explanation of the 1st law,Orientation - 1st law,Experiment - 2nd law
+Experiments,Question 3 - 1st law,Question,Moderate,0,,,,,,Explanation of the 1st law,Orientation - 1st law,Experiment - 2nd law
+Experiments,Question 3 - 1st law,Question,Low,0,,,,,,Explanation of the 1st law,Orientation - 1st law,Experiment - 2nd law
+Experiments,Repetition of experiments - 1st law,Experiment,High,0,,,,,,Question 1 - First law,Question 1 - First law,Question 1 - First law
+Experiments,Repetition of experiments - 1st law,Experiment,Moderate,0,,,,,,Question 1 - First law,Question 1 - First law,Question 1 - First law
+Experiments,Repetition of experiments - 1st law,Experiment,Low,0,,,,,,Question 1 - First law,Question 1 - First law,Question 1 - First law
+Experiments,Question after explanation - 1st law,Question,High,0,,,,,,Orientation - 1st law,Orientation - 1st law,Orientation - 1st law
+Experiments,Question after explanation - 1st law,Question,Moderate,0,,,,,,Orientation - 1st law,Orientation - 1st law,Orientation - 1st law
+Experiments,Question after explanation - 1st law,Question,Low,0,,,,,,Orientation - 1st law,Orientation - 1st law,Orientation - 1st law
+Experiments,Explanation of the 1st law,Explanation,High,0,,,,,,Question after explanation - 1st law,Question after explanation - 1st law,Question after explanation - 1st law
+Experiments,Explanation of the 1st law,Explanation,Moderate,0,,,,,,Question after explanation - 1st law,Question after explanation - 1st law,Question after explanation - 1st law
+Experiments,Explanation of the 1st law,Explanation,Low,0,,,,,,Question after explanation - 1st law,Question after explanation - 1st law,Question after explanation - 1st law
+Experiments,Orientation - 1st law,Guidance,High,0,,,,,,Experiment - 2nd law,Experiment - 2nd law,Experiment - 2nd law
+Experiments,Orientation - 1st law,Guidance,Moderate,0,,,,,,Experiment - 2nd law,Experiment - 2nd law,Experiment - 2nd law
+Experiments,Orientation - 1st law,Guidance,Low,0,,,,,,Experiment - 2nd law,Experiment - 2nd law,Experiment - 2nd law
+Experiments,Experiment - 2nd law,Experiment,High,0,,,,,,Question 1 - Second law,Question 1 - Second law,Question 1 - Second law
+Experiments,Experiment - 2nd law,Experiment,Moderate,0,,,,,,Question 1 - Second law,Question 1 - Second law,Question 1 - Second law
+Experiments,Experiment - 2nd law,Experiment,Low,0,,,,,,Question 1 - Second law,Question 1 - Second law,Question 1 - Second law
+Experiments,Question 1 - Second law,Question,High,0,,,,,,Question 2 - Second law,Question 2 - Second law,Question 2 - Second law
+Experiments,Question 1 - Second law,Question,Moderate,0,,,,,,Question 2 - Second law,Question 2 - Second law,Question 2 - Second law
+Experiments,Question 1 - Second law,Question,Low,0,,,,,,Question 2 - Second law,Question 2 - Second law,Question 2 - Second law
+Experiments,Question 2 - Second law,Question,High,0,,,,,,Question 3 - Second law,Question 3 - Second law,Question 3 - Second law
+Experiments,Question 2 - Second law,Question,Moderate,0,,,,,,Question 3 - Second law,Question 3 - Second law,Question 3 - Second law
+Experiments,Question 2 - Second law,Question,Low,0,,,,,,Question 3 - Second law,Question 3 - Second law,Question 3 - Second law
+Experiments,Question 3 - Second law,Question,High,0,,,,,,Repetition of experiments - 2nd law,Orientation - Second law,Newton's Laws - 1st and 2nd
+Experiments,Question 3 - Second law,Question,Moderate,0,,,,,,Repetition of experiments - 2nd law,Orientation - Second law,Newton's Laws - 1st and 2nd
+Experiments,Question 3 - Second law,Question,Low,0,,,,,,Repetition of experiments - 2nd law,Orientation - Second law,Newton's Laws - 1st and 2nd
+Experiments,Repetition of experiments - 2nd law,Experiment,High,0,,,,,,Explanation - 2nd law,Explanation - 2nd law,Explanation - 2nd law
+Experiments,Repetition of experiments - 2nd law,Experiment,Moderate,0,,,,,,Explanation - 2nd law,Explanation - 2nd law,Explanation - 2nd law
+Experiments,Repetition of experiments - 2nd law,Experiment,Low,0,,,,,,Explanation - 2nd law,Explanation - 2nd law,Explanation - 2nd law
+Experiments,Explanation - 2nd law,Explanation,High,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Experiments,Explanation - 2nd law,Explanation,Moderate,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Experiments,Explanation - 2nd law,Explanation,Low,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Experiments,Orientation - Second law,Guidance,High,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Experiments,Orientation - Second law,Guidance,Moderate,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Experiments,Orientation - Second law,Guidance,Low,0,,,,,,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd,Newton's Laws - 1st and 2nd
+Analysis,Newton's Laws - 1st and 2nd,Explanation,High,0,,,,,,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws
+Analysis,Newton's Laws - 1st and 2nd,Explanation,Moderate,0,,,,,,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws
+Analysis,Newton's Laws - 1st and 2nd,Explanation,Low,0,,,,,,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws,Question - relationship between the 1st and 2nd laws
+Analysis,Question - relationship between the 1st and 2nd laws,Question,High,0,,,,,,Question - Force-time diagram,Question - Force-time diagram,Question - Force-time diagram
+Analysis,Question - relationship between the 1st and 2nd laws,Question,Moderate,0,,,,,,Question - Force-time diagram,Question - Force-time diagram,Question - Force-time diagram
+Analysis,Question - relationship between the 1st and 2nd laws,Question,Low,0,,,,,,Question - Force-time diagram,Question - Force-time diagram,Question - Force-time diagram
+Analysis,Question - Force-time diagram,Question,High,0,,,,,,Explanation of the relationship between the 1st and 2nd laws,Orientation - relationship between the 1st and 2nd laws,Free Fall
+Analysis,Question - Force-time diagram,Question,Moderate,0,,,,,,Explanation of the relationship between the 1st and 2nd laws,Orientation - relationship between the 1st and 2nd laws,Free Fall
+Analysis,Question - Force-time diagram,Question,Low,0,,,,,,Explanation of the relationship between the 1st and 2nd laws,Orientation - relationship between the 1st and 2nd laws,Free Fall
+Analysis,Explanation of the relationship between the 1st and 2nd laws,Explanation,High,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Explanation of the relationship between the 1st and 2nd laws,Explanation,Moderate,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Explanation of the relationship between the 1st and 2nd laws,Explanation,Low,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Orientation - relationship between the 1st and 2nd laws,Guidance,High,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Orientation - relationship between the 1st and 2nd laws,Guidance,Moderate,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Orientation - relationship between the 1st and 2nd laws,Guidance,Low,0,,,,,,Explanation for the graph,Explanation for the graph,Explanation for the graph
+Analysis,Explanation for the graph,Explanation,High,0,,,,,,Free Fall,Free Fall,Free Fall
+Analysis,Explanation for the graph,Explanation,Moderate,0,,,,,,Free Fall,Free Fall,Free Fall
+Analysis,Explanation for the graph,Explanation,Low,0,,,,,,Free Fall,Free Fall,Free Fall
+Reflection,Free Fall,Experiment,High,0,,,,,,Question 1 - free fall,Question 1 - free fall,Question 1 - free fall
+Reflection,Free Fall,Experiment,Moderate,0,,,,,,Question 1 - free fall,Question 1 - free fall,Question 1 - free fall
+Reflection,Free Fall,Experiment,Low,0,,,,,,Question 1 - free fall,Question 1 - free fall,Question 1 - free fall
+Reflection,Question 1 - free fall,Question,High,0,,,,,,Question 2 - free fall,Question 2 - free fall,Question 2 - free fall
+Reflection,Question 1 - free fall,Question,Moderate,0,,,,,,Question 2 - free fall,Question 2 - free fall,Question 2 - free fall
+Reflection,Question 1 - free fall,Question,Low,0,,,,,,Question 2 - free fall,Question 2 - free fall,Question 2 - free fall
+Reflection,Question 2 - free fall,Question,High,0,,,,,,Question 3 - chute libre,Question 3 - chute libre,Question 3 - chute libre
+Reflection,Question 2 - free fall,Question,Moderate,0,,,,,,Question 3 - chute libre,Question 3 - chute libre,Question 3 - chute libre
+Reflection,Question 2 - free fall,Question,Low,0,,,,,,Question 3 - chute libre,Question 3 - chute libre,Question 3 - chute libre
+Reflection,Question 3 - chute libre,Question,High,0,,,,,,Explanations about free fall,Explanations about free fall,Freefall video
+Reflection,Question 3 - chute libre,Question,Moderate,0,,,,,,Explanations about free fall,Explanations about free fall,Freefall video
+Reflection,Question 3 - chute libre,Question,Low,0,,,,,,Explanations about free fall,Explanations about free fall,Freefall video
+Reflection,Explanations about free fall,Explanation,High,0,,,,,,Freefall video,Freefall video,Freefall video
+Reflection,Explanations about free fall,Explanation,Moderate,0,,,,,,Freefall video,Freefall video,Freefall video
+Reflection,Explanations about free fall,Explanation,Low,0,,,,,,Freefall video,Freefall video,Freefall video
+Reflection,Freefall video,Explanation,High,0,,,,,,,,
+Reflection,Freefall video,Explanation,Moderate,0,,,,,,,,
+Reflection,Freefall video,Explanation,Low,0,,,,,,,,

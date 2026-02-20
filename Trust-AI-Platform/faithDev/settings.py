@@ -98,14 +98,25 @@ WSGI_APPLICATION = 'faithDev.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'djangoNov25', #'djangofaith',
+#         'USER': 'postgres',
+#         'PASSWORD': 'root',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# } 2026
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'djangoNov25', #'djangofaith',
-        'USER': 'postgres',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST", "db"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
 
@@ -133,7 +144,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'EET'
+#TIME_ZONE = 'EET' 2026
+TIME_ZONE = "Europe/Athens"
 
 USE_I18N = True
 
@@ -145,8 +157,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATIC_ROOT = "/usr/share/nginx/html/trust-ai-lab.eu/static/"
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# STATIC_ROOT = "/usr/share/nginx/html/trust-ai-lab.eu/static/" 2026
 
 
 # Default primary key field type
@@ -159,14 +171,23 @@ STATICFILES_DIRS = [
 # STATICFILES_DIRS = []
 
 MEDIA_URL = '/media/' #'/usr/share/nginx/html/trust-ai-lab.eu/media/'
-# MEDIA_ROOT = BASE_DIR / 'media/'
-MEDIA_ROOT = '/usr/share/nginx/html/trust-ai-lab.eu/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA_ROOT = '/usr/share/nginx/html/trust-ai-lab.eu/media/' 2026
+
+# 2026
+# RAG_PDFS_ROOT = os.getenv("RAG_PDFS_ROOT", os.path.join(BASE_DIR, "data", "rag", "rag_pdfs"))
+# RAG_PDFS_URL  = "/rag_pdfs/"
 
 # Define the URL to redirect to after a successful login (e.g., the homepage)
 LOGIN_REDIRECT_URL = '/authoringtool/scenarios/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-RAG_PDFS_ROOT = os.path.join(BASE_DIR, "rag_pdfs")
+RAG_PDFS_ROOT = os.getenv("RAG_PDFS_DIR", str(BASE_DIR / "rag_pdfs"))
+RAG_INDEX_ROOT = os.getenv("RAG_INDEXES_DIR", str(BASE_DIR / "rag_indexes"))
+RAG_PDFS_URL = os.getenv("RAG_PDFS_URL", "/rag_pdfs/")
+
+AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
+AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")
 
 # Configuring Django Caching
 CACHES = {
@@ -187,7 +208,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'trust.ai.lab.eu@gmail.com'
 EMAIL_HOST_PASSWORD = 'petu elkw swkm vcsl'
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # URL for Redis
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # URL for Redis
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'django-db'  # Save results in the database

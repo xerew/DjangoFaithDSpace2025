@@ -75,4 +75,5 @@ urlpatterns = [
     path('scenario/<int:scenario_id>/delete_rag_pdf/<str:filename>/', views.delete_rag_pdf, name='delete_rag_pdf'),
     # Edit on Proposals
     path("proposals/<int:scenario_id>/<int:pk>/edit/", views.edit_proposal_json, name="edit_proposal_json"),
+    path("rag_pdfs/scenario_<int:scenario_id>/<str:filename>", views.serve_rag_pdf, name="serve_rag_pdf"),
 ]
