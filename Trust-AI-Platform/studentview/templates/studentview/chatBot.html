@@ -74,9 +74,13 @@
       <script type="text/javascript">
         window.addEventListener('message', function(event) {
             // Always verify the origin of the message!
-            if (event.origin !== "https://trust-ai-lab.eu") {
-                console.error('Received message from unauthorized domain:', event.origin);
-                return;
+            //if (event.origin !== "https://trust-ai-lab.eu") {
+            //    console.error('Received message from unauthorized domain:', event.origin);
+            //    return;
+            //}
+            if (event.origin !== window.location.origin) {
+              console.error('Unauthorized origin:', event.origin);
+              return;
             }
 			
 			if (event.data.type === 'pendulumData') {
@@ -127,7 +131,7 @@
           };
           console.log("Sending to Rasa:", payload);
       
-          fetch('https://trust-ai-lab.eu/rasa/webhooks/rest/webhook', {
+          fetch('/rasa/webhooks/rest/webhook', { //https://trust-ai-lab.eu
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify(payload)
@@ -143,7 +147,7 @@
           parent.postMessage({
             type: 'activityIdReceived',
             activityId: event.detail.activityId
-          }, '*');  // Adjust the target origin as per your security requirements
+          }, window.location.origin);  // Adjust the target origin as per your security requirements - "*"
         });
       
       </script>   

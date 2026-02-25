@@ -42,7 +42,7 @@
         function sendPendulumDataToIframe() {
             const iframe = document.querySelector('.chatbot-container iframe');
             if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.postMessage({ type: 'pendulumData', pendulumData: latestPendulumData}, 'https://trust-ai-lab.eu'); //, experimentData: latestExperimentLog 
+                iframe.contentWindow.postMessage({ type: 'pendulumData', pendulumData: latestPendulumData}, window.location.origin); //, experimentData: latestExperimentLog | 'https://trust-ai-lab.eu'
                 //console.log('Posted PENDULUM to iframe:', latestPendulumData); //, latestExperimentLog
             }
         }
@@ -68,7 +68,7 @@
 
             console.log("Sending to Rasa:", payload);
 
-            fetch('https://trust-ai-lab.eu/rasa/webhooks/rest/webhook', {
+            fetch('/rasa/webhooks/rest/webhook', { //https://trust-ai-lab.eu/
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -86,13 +86,13 @@
             iframe.onload = function() {
                 console.log('Iframe loaded successfully');
                 // Then send the message
-                iframe.contentWindow.postMessage({ type: 'initData', userId: '{{ user.id }}', scenarioId: '{{ myScenario.id }}', scenarioLang: '{{ myScenario.language }}' }, '*'); // Ensure correct domain in production
+                iframe.contentWindow.postMessage({ type: 'initData', userId: '{{ user.id }}', scenarioId: '{{ myScenario.id }}', scenarioLang: '{{ myScenario.language }}' }, window.location.origin); // Ensure correct domain in production ,"*"
             };
         });
 
         window.addEventListener('message', function(event) {
             // Always check the origin here for security reasons
-            if (event.origin !== "https://trust-ai-lab.eu") {
+            if (event.origin !== window.location.origin) { //"https://trust-ai-lab.eu"
               return;  // Security check failed
             }
 			if (event.data.type === 'pendulumLog') {
@@ -120,7 +120,7 @@
 			const iframe = document.querySelector('.chatbot-container iframe');
 			if (iframe && iframe.contentWindow) {
 				// Send a "ready" message to the chatbot iframe
-				iframe.contentWindow.postMessage({ type: 'sendReadyMessage', message: "ready" }, '*');
+				iframe.contentWindow.postMessage({ type: 'sendReadyMessage', message: "ready" }, window.location.origin); // "*"
 			}
 		}
 		
@@ -130,11 +130,11 @@
 			readyButton.style.display = 'block';
 			if (iframe && iframe.contentWindow) {
 				// First, send the "restart" message
-				iframe.contentWindow.postMessage({ type: 'sendMessage', message: "restart" }, '*');
+				iframe.contentWindow.postMessage({ type: 'sendMessage', message: "restart" }, window.location.origin); // "*"
 
 				// Then, send the "yes" message after a short delay
 				setTimeout(() => {
-					iframe.contentWindow.postMessage({ type: 'sendMessage', message: "yes" }, '*');
+					iframe.contentWindow.postMessage({ type: 'sendMessage', message: "yes" }, window.location.origin); // "*"
 				}, 500);  // Delay of 500ms (adjust if needed)
 			}
 		}
@@ -172,7 +172,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="chatbot-container">
-                            <iframe src="https://trust-ai-lab.eu/studentview/chat/" style="width:100%; height:50vh;"></iframe>
+                            <iframe src="/studentview/chat/" style="width:100%; height:50vh;"></iframe> <!-- https://trust-ai-lab.eu -->
                         </div>
                     </div>
                 </div>
@@ -348,12 +348,22 @@
 					}
 
 					// Listen for messages and handle experiment data
-					window.addEventListener('message', function(event) {
-						const allowedOrigins = ['https://trust-ai-lab.eu', 'https://pendulum-v2.labs.labsland.com', 'https://labsland.com'];
+					{% comment %} const allowedOrigins = ['https://trust-ai-lab.eu', 'https://pendulum-v2.labs.labsland.com', 'https://labsland.com'];
 						if (!allowedOrigins.includes(event.origin)) {
 							console.log("Unrecognized origin:", event.origin);
 							return;
-						}
+						} {% endcomment %}
+					window.addEventListener('message', function(event) {
+						const allowedOrigins = [
+							window.location.origin,                  // ✅ local (127.0.0.1 / localhost / your domain)
+							'https://pendulum-v2.labs.labsland.com',  // ✅ LabsLand
+							'https://labsland.com'
+							];
+
+							if (!allowedOrigins.includes(event.origin)) {
+							console.log("Unrecognized origin:", event.origin);
+							return;
+							}
 
 						const data = event.data;
 						const now = new Date().getTime();
