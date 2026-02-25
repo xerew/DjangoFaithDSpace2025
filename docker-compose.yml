@@ -36,6 +36,8 @@ services:
     expose:
       - "8000"
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   celery:
     build:
@@ -52,6 +54,8 @@ services:
       - db
       - redis
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   celerybeat:
     build:

@@ -1675,7 +1675,14 @@ def calculate_activities_in_risk(scenario_id):
     ActivityFlag.objects.filter(activity__phase__scenario_id=scenario_id).delete()
     for flag in flags:
         try:
-            activity_obj = Activity.objects.get(name=flag["Activity"], phase__scenario_id=scenario_id)
+            # activity_obj = Activity.objects.get(name=flag["Activity"], phase__scenario_id=scenario_id)
+            activity_obj = Activity.objects.filter(
+                name=flag["Activity"],
+                phase__scenario_id=scenario_id
+            ).order_by("id").first()
+
+            if not activity_obj:
+                continue
         except Activity.DoesNotExist:
             print(f"Activity not found in DB: {flag['Activity']}")
             continue
@@ -2036,6 +2043,9 @@ def get_best_q_action(flag_list):
                 scores[action] += qv.q_value
     return max(scores, key=scores.get)
 
+# OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
+
 @shared_task
 def generate_llm_context_for_scenario(scenario_id):
     scenario = Scenario.objects.get(id=scenario_id)
@@ -2073,7 +2083,7 @@ def generate_llm_context_for_scenario(scenario_id):
                     "images": [m.group(1)],
                     "stream": False
                 }
-                resp = requests.post("http://localhost:11434/api/generate", json=payload)
+                resp = requests.post(f"{OLLAMA_URL}/api/generate", json=payload) # localhost
                 image_llm = resp.json().get("response","").strip()
             except Exception as e:
                 image_llm = f"[Gemma error: {e}]"
@@ -2089,7 +2099,7 @@ def generate_llm_context_for_scenario(scenario_id):
             "Please give:\n"
             "1) A one-sentence summary of the activity’s goal.\n"
         )
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
             "model":  "qwen2.5:32b",
             "prompt": prompt,
             "stream": False
@@ -2102,7 +2112,7 @@ def generate_llm_context_for_scenario(scenario_id):
             "Summarize this activity in ONE short sentence for a busy teacher:\n\n"
             f"{activity.llm_context}"
         )
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
             "model":  "qwen2.5:32b",
             "prompt": sum_prompt,
             "stream": False
@@ -2125,7 +2135,7 @@ def generate_llm_context_for_scenario(scenario_id):
             "Structure:\n" + "\n".join(lines) + "\n\n"
             "Please give a 2-sentence summary of what this scenario teaches and how it progresses."
         )
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
             "model":  "qwen2.5:32b",
             "prompt": big_prompt,
             "stream": False
@@ -2147,7 +2157,7 @@ def generate_llm_context_for_scenario(scenario_id):
             "1) A one-sentence summary of this phase’s learning goal.\n"
             "2) A one-sentence note on the sequence’s coherence."
         )
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
             "model":  "qwen2.5:32b",
             "prompt": prompt,
             "stream": False
@@ -2172,7 +2182,7 @@ def generate_llm_context_for_scenario(scenario_id):
                 f"Previous: {prev}\nNext: {nxt}\n\n"
                 "Summarize what students learn in this path."
             )
-            resp = requests.post("http://localhost:11434/api/generate", json={
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
                 "model":  "qwen2.5:32b",
                 "prompt": prompt,
                 "stream": False
@@ -2300,7 +2310,7 @@ def generate_llm_context_for_scenario(scenario_id):
             "(Two sentences: why this action addresses the struggle, in English.)"
         )
         # print(f"PROMPT: \n\n {prompt}\n\n\n")
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
             "model":  "qwen2.5:32b",
             "prompt": prompt,
             "stream": False
@@ -2471,7 +2481,7 @@ def translate_text(text, target_language):
         f"English: {text}\n{target_language}:"
     )
     try:
-        translation_response = requests.post("http://localhost:11434/api/generate", json={
+        translation_response = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
                 "model": "aya-expanse:32b",
                 "prompt": prompt,
                 "stream": False

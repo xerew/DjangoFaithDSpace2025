@@ -1,0 +1,41 @@
+Activity,Category,Flag,Reason
+What defines a region of interest in a Mars exploration zone?,Moderate,"Engagement risk (too fast, question)",Engagement risk: Moderate group's Avg Time (58.0s) is > 1 std below mean (68.73 ± 8.33).
+What defines a region of interest in a Mars exploration zone?,Low,"Engagement risk (too slow, question)",Engagement risk: Low group's Avg Time (78.3s) is > 1 std above mean (68.73 ± 8.33).
+"How do we maintain a permanent base camp on Mars and what do we need to learn about the planet, besides astrobiology?",High,"Engagement risk (too fast, question)",Engagement risk: High group's Avg Time (51.0s) is > 1 std below mean (59.40 ± 6.06).
+Observe the value of - Depth 1 to 5 m - around Tempe Terra. What can you conclude?,High,Dynamic correctness threshold,Dynamic correctness: High group's %Wrong (66.7%) exceeds mean+std threshold (63.74%).
+Observe the value of - Depth 1 to 5 m - around Tempe Terra. What can you conclude?,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (292.4s) is > 1 std above mean (155.47 ± 98.30).
+"At Protonilus Mensae, what is the probability of having ice at a depth of 1 to 5 meters below the surface?",Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (54.5%) or Low (73.7%) group not at extremes, Moderate wrong is high (66.7%)."
+"At Protonilus Mensae, what is the probability of having ice at a depth of 1 to 5 meters below the surface?",Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (73.7%) exceeds mean+std threshold (72.90%).
+"At Protonilus Mensae, what is the probability of having ice at a depth of 1 to 5 meters below the surface?",High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (244.6s) is > 1 std above mean (129.97 ± 81.15).
+"According to the latitude criteria, which of the following is a good choice?",High,Dynamic correctness threshold,Dynamic correctness: High group's %Wrong (61.5%) exceeds mean+std threshold (61.29%).
+"According to the latitude criteria, which of the following is a good choice?",High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (124.1s) is > 1 std above mean (72.00 ± 38.94).
+"According to the latitude criteria, which of the following is a good choice?",Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (30.5s) is > 1 std below mean (72.00 ± 38.94).
+What latitude range provides more moderate temperatures and good solar power availability for landers and rovers?,Moderate,"Engagement risk (too slow, question)",Engagement risk: Moderate group's Avg Time (80.3s) is > 1 std above mean (47.00 ± 24.96).
+What latitude range provides more moderate temperatures and good solar power availability for landers and rovers?,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (20.2s) is > 1 std below mean (47.00 ± 24.96).
+"According to the elevation criteria, which of the following is a good choice?",Moderate,Extreme correctness pattern,"Extreme correctness pattern: High (70.5%) or Low (77.1%) group not at extremes, Moderate wrong is high (63.5%)."
+"According to the elevation criteria, which of the following is a good choice?",Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (77.1%) exceeds mean+std threshold (75.92%).
+"According to the elevation criteria, which of the following is a good choice?",High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (122.0s) is > 1 std above mean (66.33 ± 39.56).
+How do you characterize the atmospheric pressure in relation to altitude?,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (50.0%) exceeds mean+std threshold (45.96%).
+How do you characterize the atmospheric pressure in relation to altitude?,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (19.3s) is > 1 std below mean (36.27 ± 12.18).
+"According to the area and slope criteria, which of the following is a good choice?",High,Dynamic correctness threshold,Dynamic correctness: High group's %Wrong (61.5%) exceeds mean+std threshold (60.95%).
+"According to the area and slope criteria, which of the following is a good choice?",High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (94.8s) is > 1 std above mean (51.40 ± 30.69).
+Which of the following phrases is correct,Low,Dynamic correctness threshold,Dynamic correctness: Low group's %Wrong (64.0%) exceeds mean+std threshold (58.68%).
+Which of the following phrases is correct,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (26.3s) is > 1 std below mean (34.73 ± 6.01).
+What are the main criteria to select a landing site on Mars?,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (48.2s) is > 1 std above mean (35.90 ± 10.66).
+What are the main criteria to select a landing site on Mars?,Low,"Engagement risk (too fast, question)",Engagement risk: Low group's Avg Time (22.2s) is > 1 std below mean (35.90 ± 10.66).
+Analyze the following areas according to all criteria and select which options offer adequate landing sites,Low,Timing discrepancy under extreme correctness,"Timing discrepancy: Low group spent 159.8s which is >=1.5x the other groups (65.9s, 42.8s) with Low group having 100.0% wrong."
+Analyze the following areas according to all criteria and select which options offer adequate landing sites,Low,"Engagement risk (too slow, question)",Engagement risk: Low group's Avg Time (159.8s) is > 1 std above mean (89.50 ± 50.60).
+After all that you have learned in this activity what do you think are some of the potential challenges and benefits of colonizing Mars?,High,Timing discrepancy under extreme correctness,"Timing discrepancy: High group spent 51.4s which is >=1.5x the other groups (33.2s, 27.1s) with High group having 0.0% wrong."
+After all that you have learned in this activity what do you think are some of the potential challenges and benefits of colonizing Mars?,High,"Engagement risk (too slow, question)",Engagement risk: High group's Avg Time (51.4s) is > 1 std above mean (37.23 ± 10.32).
+Exploration Zone (EZ) and Regions of Interest (ROIs),High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (305.3s) is > 1 std above mean (236.23 ± 58.80).
+Exploration Zone (EZ) and Regions of Interest (ROIs),Low,"Engagement risk (too fast, non-question)",Engagement risk: Low group's Avg Time (161.6s) is > 1 std below mean (236.23 ± 58.80).
+Human Exploration of Mars,High,"Engagement risk (too fast, non-question)",Engagement risk: High group's Avg Time (89.3s) is > 1 std below mean (108.80 ± 14.94).
+Human Exploration of Mars,Moderate,"Engagement risk (too slow, non-question)",Engagement risk: Moderate group's Avg Time (125.6s) is > 1 std above mean (108.80 ± 14.94).
+Guidance on Mars exploration,Low,"Engagement risk (too fast, non-question)",Engagement risk: Low group's Avg Time (20.7s) is > 1 std below mean (32.33 ± 8.23).
+Guidance on the viability of Mars exploration,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (81.3s) is > 1 std above mean (73.10 ± 5.91).
+Guidance on selecting landing site,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (394.3s) is > 1 std above mean (165.60 ± 161.74).
+Subsurface Water Ice Mapping (SWIM) - 2,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (87.4s) is > 1 std above mean (70.63 ± 12.45).
+Subsurface Water Ice Mapping (SWIM) - 2,Moderate,"Engagement risk (too fast, non-question)",Engagement risk: Moderate group's Avg Time (57.6s) is > 1 std below mean (70.63 ± 12.45).
+Guidance on geographic criteria for landing sites,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (136.5s) is > 1 std above mean (84.67 ± 36.76).
+Guidance on geographic criteria for landing sites - 2,High,"Engagement risk (too slow, non-question)",Engagement risk: High group's Avg Time (169.1s) is > 1 std above mean (104.83 ± 45.52).
+Explore by your self!,Low,"Engagement risk (too fast, non-question)",Engagement risk: Low group's Avg Time (17.8s) is > 1 std below mean (27.83 ± 7.12).
