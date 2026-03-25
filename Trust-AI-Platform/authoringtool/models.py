@@ -305,6 +305,11 @@ class UserAnswer(models.Model):
         verbose_name = "User's Answer"
         verbose_name_plural = "User's Answers"
         ordering = ["user"]
+        indexes = [
+            # Speeds up get_last_answers() GROUP BY (user_id, activity_id)
+            # and per-user per-activity filter lookups in analytics tasks
+            models.Index(fields=['user', 'activity'], name='useranswer_user_activity_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.activity.name}"

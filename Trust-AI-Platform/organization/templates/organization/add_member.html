@@ -56,6 +56,7 @@
             <!-- Results (if any) -->
             {% if users %}
               <h5 class="mt-4">Matching Users:</h5>
+              <div class="table-responsive">
               <table class="table table-hover">
                 <thead>
                   <tr>
@@ -92,6 +93,7 @@
                   {% endfor %}
                 </tbody>
               </table>
+              </div><!-- /.table-responsive -->
             {% elif search_performed %}
               <p>No users found matching your query.</p>
             {% endif %}

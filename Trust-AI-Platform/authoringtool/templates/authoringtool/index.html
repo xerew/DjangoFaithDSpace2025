@@ -22,8 +22,8 @@
               <h5 class="card-title">Filters</h5>
 			  <form id="filter-form">
 				  <div class="row mb-2">
-					<label class="col-sm-2 col-form-label">Scenario Selection</label>
-					<div class="col-sm-10">
+					<label class="col-12 col-sm-2 col-form-label">Scenario Selection</label>
+					<div class="col-12 col-sm-10">
             <select id="scenarioSelect" class="form-select">
               <option value="">Select Scenario</option>
               {% for scenario in scenarios %}
@@ -35,8 +35,8 @@
           </div>
 				  </div>
 				  <div class="row mb-2">
-					<label class="col-sm-2 col-form-label">Student Groups (Optional)</label>
-					<div class="col-sm-10">
+					<label class="col-12 col-sm-2 col-form-label">Student Groups (Optional)</label>
+					<div class="col-12 col-sm-10">
 					  <select id="groupSelect" class="form-select" name="group_ids" multiple>
 						<!-- Groups will be loaded dynamically -->
 					  </select>
@@ -75,14 +75,14 @@
 					});
 				  </script>
 				<div class="row mb-2">
-                  <label class="col-sm-2 col-form-label">Start Date</label>
-                  <div class="col-sm-10">
+                  <label class="col-12 col-sm-2 col-form-label">Start Date</label>
+                  <div class="col-12 col-sm-10">
                     <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
                   </div>
                 </div>
                 <div class="row mb-2">
-                  <label class="col-sm-2 col-form-label">End Date</label>
-                  <div class="col-sm-10">
+                  <label class="col-12 col-sm-2 col-form-label">End Date</label>
+                  <div class="col-12 col-sm-10">
                     <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
                   </div>
                 </div>
@@ -180,10 +180,10 @@
           <div class="card">
             <div class="card-body pb-0">
               <h5 class="card-title">Student Performance</h5>
-              <div id="sankeyLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="sankeyLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Student Performance Chart... Please wait.</p>
               </div>
-              <div id="sankeyChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="sankeyChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
                   const scenarioSelect = document.getElementById("scenarioSelect");
@@ -327,10 +327,10 @@
         <div class="card">
           <div class="card-body pb-0">
               <h5 class="card-title">Final Student Performance</h5>
-              <div id="waterfallLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="waterfallLoading" style="min-height: 300px; text-align: center; display: none;">
                   <p style="font-size: 18px; color: gray;">⏳ Generating Final Student Performance Chart... Please wait.</p>
               </div>
-              <div id="waterfallChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="waterfallChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                   document.addEventListener("DOMContentLoaded", () => {
                       const scenarioSelect = document.getElementById("scenarioSelect");
@@ -501,10 +501,10 @@
                       <input type="radio" name="toggle" value="phases"> Phases
                     </label>
                   </div>
-                  <div id="activityLoading" style="min-height: 400px; text-align: center; display: none;">
+                  <div id="activityLoading" style="min-height: 300px; text-align: center; display: none;">
                     <p style="font-size: 18px; color: gray;">⏳ Generating Activity Answers Report... Please wait.</p>
                   </div>
-                  <div id="activityChart" style="min-height: 400px; display: none;" class="echart"></div>
+                  <div id="activityChart" style="min-height: 300px; display: none;" class="echart"></div>
                   <script>
                     document.addEventListener("DOMContentLoaded", () => {
                       const scenarioSelect = document.getElementById("scenarioSelect");
@@ -676,10 +676,10 @@
               <div class="card">
                 <div class="card-body pb-0">
                   <h5 class="card-title">Performance Overview</h5>
-                  <div id="performanceLoading" style="min-height: 400px; text-align: center; display: none;">
+                  <div id="performanceLoading" style="min-height: 300px; text-align: center; display: none;">
                     <p style="font-size: 18px; color: gray;">⏳ Generating Performance Overview Chart... Please wait.</p>
                   </div>
-                  <div id="performanceChart" style="min-height: 400px; display: none;" class="echart"></div>
+                  <div id="performanceChart" style="min-height: 300px; display: none;" class="echart"></div>
                   <script>
                     document.addEventListener("DOMContentLoaded", () => {
                       const scenarioSelect = document.getElementById("scenarioSelect");
@@ -871,10 +871,10 @@
                   <input type="radio" name="timeToggle" value="phases_timing"> Phases
                 </label>
               </div>
-              <div id="timeSpentLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="timeSpentLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Time Spent per Activity/Phase Chart... Please wait.</p>
               </div>
-              <div id="timeSpentChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="timeSpentChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
                   const scenarioSelect = document.getElementById("scenarioSelect");
@@ -1056,10 +1056,10 @@
           <div class="card">
             <div class="card-body pb-0">
               <h5 class="card-title">Detailed Phase Scores Overview</h5>
-              <div id="detailedPhaseScoresLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="detailedPhaseScoresLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Detailed Phase Scores Overview... Please wait.</p>
               </div>
-              <div id="detailedPhaseScoresChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="detailedPhaseScoresChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
                   const scenarioSelect = document.getElementById("scenarioSelect");
@@ -1252,10 +1252,10 @@
           <div class="card">
             <div class="card-body pb-0">
               <h5 class="card-title">Number of Performers per Phase</h5>
-              <div id="performersLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="performersLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Performance by Performer Type Chart... Please wait.</p>
               </div>
-              <div id="performersChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="performersChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
                   const scenarioSelect = document.getElementById("scenarioSelect");
@@ -1441,10 +1441,10 @@
               <h5 class="card-title">
                 Time Spent in Each Phase by Performer Type
               </h5>
-              <div id="phaseTimeLoading" style="min-height: 400px; text-align: center; display: none;">
+              <div id="phaseTimeLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Time Spent Chart... Please wait.</p>
               </div>
-              <div id="phaseTimeChart" style="min-height: 400px; display: none;" class="echart"></div>
+              <div id="phaseTimeChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
                   const scenarioSelect = document.getElementById("scenarioSelect");
@@ -1657,7 +1657,7 @@
             <h5 class="card-title">Most Common Paths Taken by Students</h5>
     
             <!-- Loading Indicator -->
-            <div id="pathsLoading" style="min-height: 400px; text-align: center; display: none;">
+            <div id="pathsLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Paths Report... Please wait.</p>
             </div>
 

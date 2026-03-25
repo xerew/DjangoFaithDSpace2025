@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'organization',
     'usergroups',
     'django_celery_results',
+    'django_redis',
 ]
 
 MIDDLEWARE = [
@@ -189,11 +190,15 @@ RAG_PDFS_URL = os.getenv("RAG_PDFS_URL", "/rag_pdfs/")
 AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
 AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")
 
-# Configuring Django Caching
+# Configuring Django Caching — Redis-backed, shared across all workers
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://redis:6379/2',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'TIMEOUT': 3600,  # 1 hour default TTL
     }
 }
 
@@ -208,7 +213,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'trust.ai.lab.eu@gmail.com'
 EMAIL_HOST_PASSWORD = 'petu elkw swkm vcsl'
 
-CELERY_BROKER_URL = 'redis://redis:6379/0'  # URL for Redis
+CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'django-db'  # Save results in the database
+CELERY_RESULT_BACKEND = 'redis://redis:6379/1'  # Redis — faster than django-db
+CELERY_RESULT_EXPIRES = 3600  # Task results expire after 1 hour
