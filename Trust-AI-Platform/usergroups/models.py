@@ -23,7 +23,7 @@ class UserGroup(models.Model):
             password = self.generate_password()
             # Create the user and assign them to the group
             user = User.objects.create_user(username=username, password=password)
-            UserGroupMembership.objects.create(group=self, user=user, password=password)  # Store password for Excel
+            UserGroupMembership.objects.create(group=self, user=user, initial_password=password)  # Store initial password for Excel
 
     def generate_password(self):
         return get_random_string(8)  # Generates a random password of length 8
@@ -35,10 +35,7 @@ class UserGroup(models.Model):
 class UserGroupMembership(models.Model):
     group = models.ForeignKey(UserGroup, on_delete=models.CASCADE)
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Ensures a user can belong to one group only once
-    password = models.CharField(max_length=128)  # Store password for Excel export
+    initial_password = models.CharField(max_length=128, blank=True, help_text="Initial assigned password for teacher export. Not updated when student changes password.")
 
     def __str__(self):
         return f"{self.user.username} in {self.group.name}"
-
-    class Meta:
-        unique_together = ('group', 'user')  # Ensures no duplicate memberships

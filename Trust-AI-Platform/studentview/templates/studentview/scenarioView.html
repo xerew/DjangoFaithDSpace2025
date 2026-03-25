@@ -90,37 +90,48 @@
             };
         });
 
+        // Unified message listener — handles iframe + LabsLand pendulum messages
+        var _allowedOrigins = [
+            window.location.origin,
+            'https://pendulum-v2.labs.labsland.com',
+            'https://labsland.com',
+        ];
         window.addEventListener('message', function(event) {
-            // Always check the origin here for security reasons
-            if (event.origin !== window.location.origin) { //"https://trust-ai-lab.eu"
-              return;  // Security check failed
+            if (!_allowedOrigins.includes(event.origin)) return;
+            const data = event.data;
+            const now  = new Date().getTime();
+            // Messages from the chatbot iframe
+            if (data.type === 'pendulumLog') {
+                updatePendulumData(data.pendulumData);
             }
-			if (event.data.type === 'pendulumLog') {
-                console.log('Pendulum data received from Parent:', event.data.pendulumData);
-                updatePendulumData(event.data.pendulumData);
-            }
-            if (event.data.type === 'activityIdReceived') {
-                console.log('Activity ID received in parent.html:', event.data.activityId);
-				const readyButton = document.getElementById('readyButton');
-				readyButton.style.display = 'none';
-
-                latestPendulumData = {
-                    "Pendulum 1": null,
-                    "Pendulum 2": null
-                };
-
+            if (data.type === 'activityIdReceived') {
+                const readyButton = document.getElementById('readyButton');
+                if (readyButton) readyButton.style.display = 'none';
+                latestPendulumData = { "Pendulum 1": null, "Pendulum 2": null };
                 sendPendulumDataToIframe();
-
-                // Call fetchNextActivity automatically with the new activity ID
-                fetchAndDisplayActivity(event.data.activityId);
+                fetchAndDisplayActivity(data.activityId);
+            }
+            // LabsLand pendulum protocol
+            if (data && data.protocol === "lab-message" && data.version === "1.1" && data.lab === "pendulum") {
+                if      (data.action === 'state-transition') handlePhaseTransition(data.data.state, now);
+                else if (data.action === 'start')     { angle = data.data.angle; massType = data.data.mass; }
+                else if (data.action === 'configure') {
+                    if (data.data && data.data.angle) angle    = data.data.angle;
+                    if (data.data && data.data.mass)  massType = data.data.mass;
+                }
+                else if (data.action === 'end')       { endTimestamp = new Date(now); logExperimentData(); }
             }
           });
 		  
 		function sendReadyMessage() {
 			const iframe = document.querySelector('.chatbot-container iframe');
 			if (iframe && iframe.contentWindow) {
-				// Send a "ready" message to the chatbot iframe
-				iframe.contentWindow.postMessage({ type: 'sendReadyMessage', message: "ready" }, window.location.origin); // "*"
+				// displayText is shown in the chat bubble; rasaMessage bypasses NLU via direct intent
+				iframe.contentWindow.postMessage({
+					type:        'sendReadyMessage',
+					displayText: "Let's start! 🚀",
+					rasaMessage: "/greet"
+				}, window.location.origin);
 			}
 		}
 		
@@ -172,7 +183,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="chatbot-container">
-                            <iframe src="/studentview/chat/" style="width:100%; height:50vh;"></iframe> <!-- https://trust-ai-lab.eu -->
+                            <iframe src="{% url 'chat_interface' %}" style="width:100%; height:50vh;"></iframe>
                         </div>
                     </div>
                 </div>
@@ -353,44 +364,6 @@
 							console.log("Unrecognized origin:", event.origin);
 							return;
 						} {% endcomment %}
-					window.addEventListener('message', function(event) {
-						const allowedOrigins = [
-							window.location.origin,                  // ✅ local (127.0.0.1 / localhost / your domain)
-							'https://pendulum-v2.labs.labsland.com',  // ✅ LabsLand
-							'https://labsland.com'
-							];
-
-							if (!allowedOrigins.includes(event.origin)) {
-							console.log("Unrecognized origin:", event.origin);
-							return;
-							}
-
-						const data = event.data;
-						const now = new Date().getTime();
-
-						if (data && data.protocol === "lab-message" && data.version === "1.1" && data.lab === "pendulum") {
-							if (data.action === "state-transition") {
-								handlePhaseTransition(data.data.state, now);
-							} else if (data.action === "start") {
-								console.log("Starting new experiment");
-								angle = data.data.angle;
-								massType = data.data.mass;
-								console.log(`Captured angle: ${angle}, mass type: ${massType}`);
-							} else if (data.action === "configure") {
-								if (data.data && data.data.angle) {
-									angle = data.data.angle;
-									console.log(`Angle set to ${angle} degrees`);
-								}
-								if (data.data && data.data.mass) {
-									massType = data.data.mass;
-									console.log(`Mass type set to ${massType}`);
-								}
-							} else if (data.action === "end") {
-								endTimestamp = new Date(now);
-								logExperimentData();
-							}
-						}
-					});
 
 					// Log all experiment data after each iteration ends
 					function logExperimentData() {

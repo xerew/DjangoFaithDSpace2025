@@ -1,17 +1,22 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from authoringtool.models import Scenario, Activity, NextQuestionLogic, Answer, Simulation, ExperimentLL, RemoteLabSession, Phase, Scenario, VRARExperiment, MultilingualAnswer, MultilingualQuestion
 from usergroups.models import UserGroupMembership
 import json
+import logging
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.contrib import messages
 
+logger = logging.getLogger(__name__)
+
+@login_required
 def scenario_viewer(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
     first_activity = scenario.phases.first().activities.first() if scenario.phases.exists() else None
@@ -167,6 +172,7 @@ def get_activity(request, activity_id):
             'content': activity.text
         }, status=404)
 
+@login_required
 def chatbot_interaction(request):
     # Assuming POST request with JSON body
     data = json.loads(request.body)
@@ -204,25 +210,29 @@ def scenarios_view(request):
             assigned_groups__id__in=group_ids  # Scenarios assigned to the groups the user is part of
         ).distinct()
 
-    # Get all questions
-    all_questions = MultilingualQuestion.objects.all()
-    # Get all answers for this user
-    user_answers = MultilingualAnswer.objects.filter(user=user)
-    
-    for scenario in myScenarios:
-    # Get answers for this specific scenario
-        scenario_answers = user_answers.filter(scenario=scenario)
-    
-        all_answered = True
-        for question in all_questions:
-            try:
-                scenario_answers.get(question=question)  # Just existence is enough
-            except MultilingualAnswer.DoesNotExist:
-                all_answered = False
-                break
+    # Get all questions (IDs only — we only need the count / set membership)
+    all_question_ids = set(MultilingualQuestion.objects.values_list('id', flat=True))
+    total_questions = len(all_question_ids)
 
-        # Add custom attribute to scenario
-        scenario.has_answered_all_questions = all_answered
+    # PERF-9: one bulk query for all user answers across all visible scenarios,
+    # then resolve per-scenario completion entirely in Python (no per-scenario DB hits).
+    answered_pairs = set(
+        MultilingualAnswer.objects.filter(
+            user=user,
+            scenario__in=myScenarios
+        ).values_list('scenario_id', 'question_id')
+    )
+
+    # Build scenario_id -> set-of-answered-question-ids
+    answered_map = {}  # scenario_id -> set of question_ids
+    for scenario_id, question_id in answered_pairs:
+        answered_map.setdefault(scenario_id, set()).add(question_id)
+
+    for scenario in myScenarios:
+        answered_for_scenario = answered_map.get(scenario.id, set())
+        scenario.has_answered_all_questions = (
+            total_questions > 0 and answered_for_scenario >= all_question_ids
+        )
 
     template = loader.get_template('studentview/scenarioSelection.html')
     context = {
@@ -237,11 +247,22 @@ def pendulum_lab_view(request):
 @csrf_exempt
 def save_iteration_remlab(request):
     if request.method == 'POST':
+        # Authentication check: require a valid session user.
+        # @csrf_exempt is intentional — LabsLand posts from an external origin
+        # where CSRF tokens are impossible. However we still enforce auth.
+        if not request.user.is_authenticated:
+            logger.warning(
+                "save_iteration_remlab: unauthenticated request from %s",
+                request.META.get('REMOTE_ADDR', 'unknown')
+            )
+            return JsonResponse({'error': 'unauthorized'}, status=401)
+
         try:
             data = json.loads(request.body)
 
-            # Extract and validate data
-            user_id = data.get("user_id")
+            # Extract and validate data — user_id from the POST body is ignored;
+            # we always use the authenticated session user to prevent spoofing.
+            user_id = request.user.id
             activity_id = data.get("activity_id")
             iteration = data.get("iteration")
             start_timestamp_str = data.get('start_timestamp')

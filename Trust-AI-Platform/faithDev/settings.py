@@ -15,7 +15,7 @@ import os
 from django.contrib.messages import constants as messages
 from django.contrib.auth.hashers import make_password
 
-TEACHER_ACCESS_CODE_HASHED = make_password(r"}{80s%3B\x/+")  
+TEACHER_ACCESS_CODE_HASHED = os.environ.get('TEACHER_ACCESS_CODE_HASHED', make_password(r"}{80s%3B\x/+"))
 
 MESSAGE_TAGS = {
     messages.DEBUG: 'secondary',
@@ -33,10 +33,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-jg#w2d@#dd9#(cdt@@lm27&g612)iw5othvy+pdlyf(&m7-e_(r'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-jg#w2d@#dd9#(cdt@@lm27&g612)iw5othvy+pdlyf(&m7-e_(r')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['13.51.155.65', 'trust-ai-lab.eu', '127.0.0.1']
 
@@ -204,14 +204,14 @@ CACHES = {
 
 # Ensure your sessions are configured correctly
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
-SESSION_SAVE_EVERY_REQUEST = True
+# SESSION_SAVE_EVERY_REQUEST = True  # Disabled to reduce Redis write load on every request
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'trust.ai.lab.eu@gmail.com'
-EMAIL_HOST_PASSWORD = 'petu elkw swkm vcsl'
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']

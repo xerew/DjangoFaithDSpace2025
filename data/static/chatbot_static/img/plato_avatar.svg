@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background -->
+  <circle cx="32" cy="32" r="32" fill="#3B5BDB"/>
+  <!-- Head -->
+  <rect x="16" y="11" width="32" height="24" rx="7" fill="#E8EDFB"/>
+  <!-- Eye left -->
+  <rect x="20" y="18" width="9" height="6" rx="2" fill="#3B5BDB"/>
+  <rect x="22" y="19" width="5" height="3" rx="1" fill="#7BA7F5"/>
+  <!-- Eye right -->
+  <rect x="35" y="18" width="9" height="6" rx="2" fill="#3B5BDB"/>
+  <rect x="37" y="19" width="5" height="3" rx="1" fill="#7BA7F5"/>
+  <!-- Mouth grid -->
+  <rect x="21" y="28" width="4" height="3" rx="1" fill="#3B5BDB"/>
+  <rect x="27" y="28" width="4" height="3" rx="1" fill="#3B5BDB"/>
+  <rect x="39" y="28" width="4" height="3" rx="1" fill="#3B5BDB"/>
+  <rect x="33" y="28" width="4" height="3" rx="1" fill="#3B5BDB"/>
+  <!-- Antenna -->
+  <rect x="30" y="3"  width="4" height="9"  fill="#E8EDFB"/>
+  <circle cx="32" cy="3" r="3" fill="#FFD43B"/>
+  <!-- Body -->
+  <rect x="20" y="36" width="24" height="18" rx="5" fill="#E8EDFB"/>
+  <!-- Chest indicator -->
+  <circle cx="32" cy="45" r="3" fill="#3B5BDB" opacity="0.4"/>
+  <!-- Arms -->
+  <rect x="8"  cy="38" x="8"  y="38" width="11" height="7" rx="3.5" fill="#E8EDFB"/>
+  <rect x="45" y="38" width="11" height="7" rx="3.5" fill="#E8EDFB"/>
+</svg>

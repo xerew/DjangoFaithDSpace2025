@@ -81,9 +81,9 @@ def create_user_group(request):
                 username = f"{prefix}{i}"
                 password = group.generate_password()
                 user = User.objects.create_user(username=username, password=password)
-                UserGroupMembership.objects.create(group=group, user=user, password=password)
-            
-            form.save # _m2m()  # Save the ManyToMany field for scenarios
+                UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
+
+            form.save_m2m()  # Save the ManyToMany field for scenarios
             messages.success(request, f"Group '{group.name}' created successfully with {group.number_of_users} users.")
             return redirect('list_groups')
     else:
@@ -131,7 +131,7 @@ def download_credentials(request, group_id):
 
     # Add member data
     for membership in memberships:
-        ws.append([membership.user.username, membership.password])
+        ws.append([membership.user.username, membership.initial_password])
 
     # Prepare the Excel response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -186,7 +186,7 @@ def edit_group(request, group_id):
                     username = f"{prefix}{i}"
                     password = group.generate_password()
                     user = User.objects.create_user(username=username, password=password)
-                    UserGroupMembership.objects.create(group=group, user=user, password=password)
+                    UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
                 # messages.success(request, f"Added {diff} new users to the group.")
 
             elif new_number_of_users < current_number_of_users:
@@ -260,36 +260,45 @@ def list_student_groups(request):
     group_data = []
     total_scenario_implementations = defaultdict(int)
 
+    # PERF-11: Single bulk query for implementation counts keyed by (group_id, scenario_id).
+    # UserGroupMembership links users to groups; activity__scenario links answers to scenarios.
+    bulk_impl_qs = (
+        UserAnswer.objects
+        .filter(user__usergroupmembership__isnull=False)
+        .values('user__usergroupmembership__group_id', 'activity__scenario_id', 'activity__scenario__name')
+        .annotate(distinct_users=Count('user', distinct=True))
+    )
+    # Build lookup: {(group_id, scenario_id): (scenario_name, distinct_user_count)}
+    bulk_impl_map = {}
+    for row in bulk_impl_qs:
+        gid = row['user__usergroupmembership__group_id']
+        sid = row['activity__scenario_id']
+        bulk_impl_map[(gid, sid)] = (row['activity__scenario__name'], row['distinct_users'])
+
     for group in user_groups:
         assigned_scenarios = group.assigned_scenarios.all()
         teacher = group.created_by
         num_students = group.members.count()
-
-        # # Calculate implementations (users who answered at least one activity)
-        # implementations_count = UserAnswer.objects.filter(
-        #     user__in=group.members.all()
-        # ).values('user').distinct().count()
 
         # Get first and last implementation dates
         user_answers = UserAnswer.objects.filter(
             user__in=group.members.all()
         )
 
-        # Count implementations per scenario
+        # Count implementations per scenario using the pre-fetched bulk map
         scenario_implementations = defaultdict(int)
         for scenario in assigned_scenarios:
-            count = UserAnswer.objects.filter(
-                user__in=group.members.all(),
-                activity__scenario=scenario
-            ).values('user').distinct().count()
+            entry = bulk_impl_map.get((group.id, scenario.id))
+            count = entry[1] if entry else 0
             scenario_implementations[scenario.name] = count
-            total_scenario_implementations[scenario.name] += count # Added for scenario's implementation count
-        
+            total_scenario_implementations[scenario.name] += count  # Added for scenario's implementation count
+
         total_implementations = sum(scenario_implementations.values())
 
         # implementations_count = user_answers.values('user').distinct().count()
-        first_implementation = user_answers.aggregate(first=Min('created_on'))['first']
-        last_implementation = user_answers.aggregate(last=Max('created_on'))['last']
+        agg = user_answers.aggregate(first=Min('created_on'), last=Max('created_on'))
+        first_implementation = agg['first']
+        last_implementation = agg['last']
 
         group_data.append({
             'group': group,
@@ -374,6 +383,7 @@ def list_student_groups(request):
                                                              'totals_rows': totals_rows,  # <-- use adjusted rows
                                                             'grand_total_implementations': grand_total_implementations,})
 
+@group_required('teachers')
 def export_multilingual_answers_csv(request):
     # Set up the HTTP response with CSV headers
     response = HttpResponse(content_type='text/csv')

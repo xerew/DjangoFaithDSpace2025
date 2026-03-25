@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseForbidden
+from django.views.decorators.http import require_POST
 from functools import wraps
 from .models import Organization
 from django.contrib.auth.models import User
@@ -39,7 +41,9 @@ def create_organization(request):
 
 @login_required
 def organization_detail(request, org_id):
-    organization = Organization.objects.get(id=org_id)
+    organization = get_object_or_404(Organization, id=org_id)
+    if not organization.members.filter(id=request.user.id).exists() and not request.user.is_staff:
+        return HttpResponseForbidden("You are not a member of this organization.")
     return render(request, 'organization/organization_detail.html', {'organization': organization})
 
 @login_required
@@ -75,6 +79,7 @@ def add_member_to_org(request, org_id):
         'search_performed': search_performed
     })
 
+@require_POST
 @login_required
 def add_member_to_org_confirm(request, org_id, user_id):
     organization = get_object_or_404(Organization, id=org_id)
@@ -87,6 +92,7 @@ def add_member_to_org_confirm(request, org_id, user_id):
     return redirect('organization_detail', org_id=org_id)
 
 
+@require_POST
 @login_required
 def make_admin(request, org_id, user_id):
     organization = get_object_or_404(Organization, id=org_id)
@@ -99,6 +105,7 @@ def make_admin(request, org_id, user_id):
     return redirect('organization_list')
 
 
+@require_POST
 @login_required
 def delete_organization(request, org_id):
     organization = get_object_or_404(Organization, id=org_id)
@@ -109,6 +116,7 @@ def delete_organization(request, org_id):
 
     return redirect('organization_detail', org_id=org_id)
 
+@require_POST
 @login_required
 def promote_admin(request, org_id, user_id):
     organization = get_object_or_404(Organization, id=org_id)
@@ -121,6 +129,7 @@ def promote_admin(request, org_id, user_id):
 
     return redirect('organization_detail', org_id=org_id)
 
+@require_POST
 @login_required
 def demote_admin(request, org_id, user_id):
     organization = get_object_or_404(Organization, id=org_id)
@@ -132,6 +141,7 @@ def demote_admin(request, org_id, user_id):
 
     return redirect('organization_detail', org_id=org_id)
 
+@require_POST
 @login_required
 def remove_member(request, org_id, user_id):
     organization = get_object_or_404(Organization, id=org_id)

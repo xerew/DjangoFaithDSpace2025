@@ -33,6 +33,8 @@ from .utils import get_last_answers
 from celery.result import AsyncResult
 from django.conf import settings
 import csv, os, json
+from pathlib import Path
+from django.views.decorators.http import require_POST
 import markdown
 from django.utils.safestring import mark_safe
 from django.core.files.storage import FileSystemStorage
@@ -95,7 +97,7 @@ def generate_flowchart(scenario_id):
 
             graph_definition += "end\n"
         
-        for activity in Activity.objects.filter(scenario_id=scenario_id):
+        for activity in Activity.objects.filter(scenario_id=scenario_id).prefetch_related('answers'):
             branching = branching_logic.filter(activity=activity).first()
 
             if branching:
@@ -252,6 +254,7 @@ def scenarios(request):
         ).filter(filters).distinct().order_by('-created_on')
 
     # Process each scenario to check if the current user can edit it
+    user_org_ids = set(request.user.member_of_organizations.values_list('id', flat=True))
     scenario_list = []
     for scenario in visible_scenarios:
         # Default can_edit to False
@@ -266,7 +269,8 @@ def scenarios(request):
 
         # Rule: If the scenario is org-only, check if the user is in the organization(s)
         elif scenario.visibility_status == 'org':
-            if request.user.member_of_organizations.filter(id__in=scenario.organizations.values_list('id', flat=True)).exists():
+            scenario_org_ids = set(scenario.organizations.values_list('id', flat=True))
+            if user_org_ids & scenario_org_ids:
                 if scenario.is_editable_by_org:  # Check if it's marked as editable by the org
                     scenario.can_edit = True
 
@@ -293,10 +297,12 @@ def scenarios(request):
     }
     return HttpResponse(template.render(context, request))
 
+@group_required('teachers')
 def createScenario(request):
     template = loader.get_template('authoringtool/createScenario.html')
     return HttpResponse(template.render({}, request))
 
+@group_required('teachers')
 def createScenarioData(request):
     name = request.POST.get('name')
     # Check if a scenario with the same name already exists
@@ -328,8 +334,11 @@ def createScenarioData(request):
         newScenario.organizations.set(selected_organizations)  # Assign the organizations
     return HttpResponseRedirect(reverse('scenarios'))
 
+@group_required('teachers')
 def updateScenario(request, id):
-    updateScenario = Scenario.objects.get(id=id)
+    updateScenario = get_object_or_404(Scenario, id=id)
+    if updateScenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     scenario_min_age = updateScenario.age_of_students.lower
     scenario_max_age = updateScenario.age_of_students.upper
     # Get the organizations the user is a member of
@@ -343,8 +352,11 @@ def updateScenario(request, id):
     }
     return HttpResponse(template.render(context, request))
 
+@group_required('teachers')
 def updateScenarioData(request, id):
-    updateScenario = Scenario.objects.get(id=id)
+    updateScenario = get_object_or_404(Scenario, id=id)
+    if updateScenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     visibility = request.POST.get('visibility')
     
     # Check if the visibility is 'org' and no organizations are selected
@@ -396,8 +408,11 @@ def updateScenarioData(request, id):
         updateScenario.organizations.clear()  # Clear organizations if the visibility is not "org"
     return HttpResponseRedirect(reverse('scenarios'))
 
+@group_required('teachers')
 def deleteScenario(request, id):
-    deleteScenario = Scenario.objects.get(id=id)
+    deleteScenario = get_object_or_404(Scenario, id=id)
+    if deleteScenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     deleteScenario.delete()
     return HttpResponseRedirect(reverse('scenarios'))
 
@@ -413,6 +428,7 @@ def serve_rag_pdf(request, scenario_id, filename):
 
     return FileResponse(open(file_path, "rb"), content_type="application/pdf")
 
+@group_required('teachers')
 def viewScenario(request, id):
     myScenario = Scenario.objects.get(id=id)
     # Check if the user is the creator or if the scenario is editable by the org and the user belongs to the org
@@ -467,7 +483,10 @@ def delete_rag_pdf(request, scenario_id, filename):
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
     folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}") # os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{scenario_id}')
-    file_path = os.path.join(folder, filename)
+    safe_path = (Path(folder) / filename).resolve()
+    if not str(safe_path).startswith(str(Path(folder).resolve())):
+        return HttpResponseForbidden("Invalid path")
+    file_path = safe_path
     if os.path.exists(file_path):
         os.remove(file_path)
         messages.success(request, f"Deleted {filename}")
@@ -476,11 +495,13 @@ def delete_rag_pdf(request, scenario_id, filename):
 
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
+@group_required('teachers')
 def createPhase(request, id):
     context = {'scenario_id': id}
     # template = loader.get_template('authoringtool/createPhase.html')
     return render(request, 'authoringtool/createPhase.html', context)
 
+@group_required('teachers')
 def createPhaseData(request, id):
     name = request.POST.get('name')
     description = request.POST.get('description')
@@ -495,8 +516,12 @@ def createPhaseData(request, id):
     newPhase.save()
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario]))
 
+@group_required('teachers')
 def updatePhase(request, scenario_id, phase_id):
-    updatePhase = Phase.objects.get(id=phase_id)
+    updatePhase = get_object_or_404(Phase, id=phase_id)
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     template = loader.get_template('authoringtool/updatePhase.html')
     context = {
         'Phase': updatePhase,
@@ -504,7 +529,11 @@ def updatePhase(request, scenario_id, phase_id):
     }
     return render(request, 'authoringtool/updatePhase.html', context)
 
+@group_required('teachers')
 def updatePhaseData(request, scenario_id, phase_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     name = request.POST.get('name')
     description = request.POST.get('description')
     image = request.FILES.get('image_upload')
@@ -518,8 +547,12 @@ def updatePhaseData(request, scenario_id, phase_id):
     updatePhase.save()
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
+@group_required('teachers')
 def deletePhase(request, scenario_id, phase_id):
-    deletePhase = Phase.objects.get(id=phase_id)
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
+    deletePhase = get_object_or_404(Phase, id=phase_id)
     deletePhase.delete()
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
@@ -545,6 +578,7 @@ def viewPhase(request, scenario_id, phase_id):
     }
     return HttpResponse(template.render(context, request))
 
+@group_required('teachers')
 def createActivity(request, scenario_id, phase_id):
     activityTypes = ActivityType.objects.all()
     scenario = Scenario.objects.get(id=scenario_id)
@@ -568,13 +602,14 @@ def createActivity(request, scenario_id, phase_id):
     # template = loader.get_template('authoringtool/createPhase.html')
     return render(request, 'authoringtool/createActivity.html', context)
 
+@group_required('teachers')
 def createActivityData(request, scenario_id, phase_id):
     activity_name = request.POST.get('activity_name')
     activity_text = request.POST.get('activity_text')
     plain_text_content = strip_html_tags(activity_text)
     is_evaluatable = request.POST.get('is_evaluatable') == 'on'
     is_primary_ev = request.POST.get('is_primary_ev') == 'on'
-    must_wait = request.FILES.get('must_wait') == 'on'
+    must_wait = request.POST.get('must_wait') == 'on'
     activity_type = request.POST.get('activity_type')
     helping_quote = request.POST.get('helping_quote')
     next_activity_id = request.POST.get('next_activity_id')
@@ -660,7 +695,11 @@ def createActivityData(request, scenario_id, phase_id):
         print('I GOT HERE 3')
         return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
+@group_required('teachers')
 def updateActivity(request, scenario_id, phase_id, activity_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     updateActivity = Activity.objects.get(id=activity_id)
     scenario = Scenario.objects.get(id=scenario_id)
     phase = Phase.objects.get(id=phase_id)
@@ -722,7 +761,11 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
     }
     return render(request, 'authoringtool/updateActivity.html', context)
 
+@group_required('teachers')
 def updateActivityData(request, scenario_id, phase_id, activity_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     formerActivity = Activity.objects.get(id = activity_id)
     activity_name = request.POST.get('activity_name')
     activity_text = request.POST.get('activity_text')
@@ -856,8 +899,12 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
     else:
         return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
+@group_required('teachers')
 def deleteActivity(request, scenario_id, phase_id, activity_id):
-    deleteActivity = Activity.objects.get(id=activity_id)
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
+    deleteActivity = get_object_or_404(Activity, id=activity_id)
     deleteActivity.delete()
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
@@ -935,6 +982,7 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
     }
     return HttpResponse(template.render(context, request))
 
+@group_required('teachers')
 def createAnswers(request, scenario_id, phase_id, activity_id):
     if request.method == 'POST':
         activity = Activity.objects.get(id=activity_id)
@@ -996,11 +1044,13 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
 
     return render(request, 'authoringtool/createAnswer.html', {'activity_id': activity_id, 'scenario_id': scenario_id, 'phase_id': phase_id})
 
+@group_required('teachers')
 def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     deleteAnswer = Answer.objects.get(id=answer_id)
     deleteAnswer.delete()
     return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
+@group_required('teachers')
 def updateAnswers(request, scenario_id, phase_id, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
     all_activities_in_scenario = Activity.objects.filter(scenario=scenario_id) # ME
@@ -1101,6 +1151,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         'eligible_activities': all_activities_in_scenario,
     })
 
+@group_required('teachers')
 def createCriterion(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.filter(id=activity_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activity_id).first()
@@ -1118,6 +1169,7 @@ def createCriterion(request, scenario_id, phase_id, activity_id):
     # template = loader.get_template('authoringtool/createPhase.html')
     return render(request, 'authoringtool/createCriterion.html', context)
 
+@group_required('teachers')
 def createCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     if request.POST:
@@ -1156,18 +1208,22 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
         )
         newEvQuestionBranching.save()
 
-        high_performers_activity = get_object_or_404(Activity, id=high_performers_activity_id)
-        high_performers_activity.score_limit = high_performers_score_limit
-        high_performers_activity.save()
-        mid_performers_activity = get_object_or_404(Activity, id=mid_performers_activity_id)
-        mid_performers_activity.score_limit = mid_performers_score_limit
-        mid_performers_activity.save()
-        low_performers_activity = get_object_or_404(Activity, id=low_performers_activity_id)
-        low_performers_activity.score_limit = low_performers_score_limit
-        low_performers_activity.save()
+        if high_performers_activity_id:
+            high_performers_activity = get_object_or_404(Activity, id=high_performers_activity_id)
+            high_performers_activity.score_limit = high_performers_score_limit
+            high_performers_activity.save()
+        if mid_performers_activity_id:
+            mid_performers_activity = get_object_or_404(Activity, id=mid_performers_activity_id)
+            mid_performers_activity.score_limit = mid_performers_score_limit
+            mid_performers_activity.save()
+        if low_performers_activity_id:
+            low_performers_activity = get_object_or_404(Activity, id=low_performers_activity_id)
+            low_performers_activity.score_limit = low_performers_score_limit
+            low_performers_activity.save()
 
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
-    
+
+@group_required('teachers')
 def updateCriterion(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     myScenario = Scenario.objects.get(id=scenario_id)
@@ -1184,9 +1240,12 @@ def updateCriterion(request, scenario_id, phase_id, activity_id):
         return render(request, 'authoringtool/createCriterion.html', context_creation)
     activityEvQuestionBranching = EvQuestionBranching.objects.get(activity=activityPrimary.id)
 
-    high_performers_activity = get_object_or_404(Activity, id=activityEvQuestionBranching.next_question_on_high.id)
-    mid_performers_activity = get_object_or_404(Activity, id=activityEvQuestionBranching.next_question_on_mid.id)
-    low_performers_activity = get_object_or_404(Activity, id=activityEvQuestionBranching.next_question_on_low.id)
+    high_id = activityEvQuestionBranching.next_question_on_high
+    high_performers_activity = get_object_or_404(Activity, id=high_id.id) if high_id else None
+    mid_id = activityEvQuestionBranching.next_question_on_mid
+    mid_performers_activity = get_object_or_404(Activity, id=mid_id.id) if mid_id else None
+    low_id = activityEvQuestionBranching.next_question_on_low
+    low_performers_activity = get_object_or_404(Activity, id=low_id.id) if low_id else None
     
     context = {
         'myScenario': myScenario,
@@ -1200,6 +1259,7 @@ def updateCriterion(request, scenario_id, phase_id, activity_id):
     # template = loader.get_template('authoringtool/createPhase.html')
     return render(request, 'authoringtool/updateCriterion.html', context)
 
+@group_required('teachers')
 def updateCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     if request.POST:
@@ -1247,15 +1307,6 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
 
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
-def get_last_answers(scenario_id):
-    # Fetch the last answers for each user and activity based on the created_on timestamp
-    last_answers = UserAnswer.objects.filter(activity__phase__scenario_id=scenario_id) \
-        .values('user_id', 'activity_id') \
-        .annotate(last_answer_id=Max('id'))  # Get the last answer ID for each user and activity
-
-    # Use the last answer IDs to retrieve the corresponding UserAnswer objects
-    return UserAnswer.objects.filter(id__in=[entry['last_answer_id'] for entry in last_answers])
-   
 def sankey_data(request, scenario_id):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -1508,6 +1559,8 @@ def get_time_spent_task_status(request, task_id):
     elif result.state == 'FAILURE':
         return JsonResponse({'status': 'failed', 'error': str(result.info)})
 
+# TODO: Move performance_by_department computation to a Celery task to avoid blocking the web worker.
+@group_required('teachers')
 def performance_by_department(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     start_date = request.GET.get('start_date')
@@ -1633,6 +1686,7 @@ def performance_by_department(request, scenario_id):
 
     return JsonResponse(data)
 
+@group_required('teachers')
 def duplicate_scenario(request, scenario_id):
     try:
         original_scenario = get_object_or_404(Scenario, pk=scenario_id)
@@ -1757,8 +1811,8 @@ def duplicate_scenario(request, scenario_id):
         return redirect('scenarios')  # Redirect to an appropriate error view or page
     
 # LTI Operations
-LTI_CONSUMER_KEY = 'dspace'
-LTI_SHARED_SECRET = 'FUQYeguEf7WoIJ-f-_U_Eg'
+LTI_CONSUMER_KEY = os.environ.get('LTI_CONSUMER_KEY', 'dspace')
+LTI_SHARED_SECRET = os.environ.get('LTI_SHARED_SECRET', 'FUQYeguEf7WoIJ-f-_U_Eg')
 
 def double_encode(value):
     """Encodes a value twice for OAuth."""
@@ -1897,6 +1951,7 @@ def lab_sessions_data(request, scenario_id):
         lab_sessions = lab_sessions.filter(start__date__lte=end_date + timedelta(days=1))
     
     print("LAB: ", lab_sessions)
+    lab_sessions = list(lab_sessions)
 
     # Initialize data structure for response
     data = {
@@ -2193,26 +2248,30 @@ def proposal_list_view(request, scenario_id):
 #     proposal.reject(request.user)
 #     return redirect('proposal_list', scenario_id=scenario_id)
 
-@login_required
+@require_POST
+@group_required('teachers')
 def accept_proposal(request, pk, scenario_id):
     proposal = get_object_or_404(ActivityProposal, pk=pk)
+    if proposal.scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     review, _ = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
-    review.status = 'accepted'
-    review.save()
+    review.accept()
     return redirect('proposal_list', scenario_id=scenario_id)
 
-@login_required
+@require_POST
+@group_required('teachers')
 def reject_proposal(request, pk, scenario_id):
     proposal = get_object_or_404(ActivityProposal, pk=pk)
+    if proposal.scenario.created_by != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("You don't own this scenario.")
     review, _ = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
-    review.status = 'rejected'
-    review.save()
+    review.reject()
     return redirect('proposal_list', scenario_id=scenario_id)
 
 @login_required
@@ -2222,7 +2281,7 @@ def create_personal_scenario(request, scenario_id):
     # messages.success(request, "✅ Your personalized scenario is being created. It will appear shortly.")
     return redirect('proposal_list', scenario_id=scenario_id)
 
-@login_required
+@group_required('teachers')
 def edit_proposal_json(request, scenario_id, pk):
     proposal = get_object_or_404(ActivityProposal, pk=pk)
     user = request.user
@@ -2248,8 +2307,7 @@ def edit_proposal_json(request, scenario_id, pk):
         if val:
             data["answers"].append({"text": val.strip()})
 
-    # review.teacher_edited_json = data
-    review.teacher_edited_json = json.dumps(data, ensure_ascii=False)
+    review.teacher_edited_json = data
 
     print("✅ Type of final data:", type(data))  # should be <class 'dict'>
     print("✅ Dumped JSON string:", json.dumps(data, ensure_ascii=False))

@@ -18,6 +18,7 @@ urlpatterns = [
     #path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-urlpatterns += static('/rag_pdfs/', document_root=settings.RAG_PDFS_ROOT)
+# RAG PDFs are NOT served as unauthenticated static files.
+# They are served through the authenticated `serve_rag_pdf` view registered in authoringtool/urls.py.
 
 handler404 = 'accounts.views.view404'

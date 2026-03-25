@@ -30,18 +30,15 @@ def get_last_answers(scenario_id):
 #         .annotate(first_answer_id=Min('id'))  # Get the first answer ID for each user and activity
 #     )
 def get_first_answers(scenario_id):
-    # Fetch the earliest answer for each user and activity
-    first_answers = (
+    # Correlated subquery: for each (user, activity) row, pick the one with the lowest id.
+    # This avoids pulling all IDs into Python memory and lets the database resolve it in one query.
+    first_subquery = (
         UserAnswer.objects
-        .filter(activity__phase__scenario_id=scenario_id)
-        .values('user_id', 'activity_id')
-        .annotate(first_answer_id=Min('id'))  # use ID as a proxy for created_on
+        .filter(activity=OuterRef('activity'), user=OuterRef('user'))
+        .order_by('id')
+        .values('id')[:1]
     )
-
-    # Retrieve those UserAnswer objects
     return UserAnswer.objects.filter(
-        id__in=[entry['first_answer_id'] for entry in first_answers]
+        activity__phase__scenario_id=scenario_id,
+        id=Subquery(first_subquery)
     )
-
-    # Use the first answer IDs to retrieve the corresponding UserAnswer objects
-    # return UserAnswer.objects.filter(id__in=[entry['first_answer_id'] for entry in first_answers])

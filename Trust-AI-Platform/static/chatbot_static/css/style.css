@@ -10,7 +10,7 @@ body {
   display: block;
   width: 100%;
   right: 0px;
-  height: 500px;
+  height: 100vh;
   bottom: 0px;
   top: 0px;
   position: fixed;
@@ -23,20 +23,30 @@ body {
   height: 60px;
   background: #060dcfc7;
   border-radius: 10px 10px 0px 0px;
-  padding: 5px;
+  padding: 5px 10px;
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .chat_header_title {
   color: white;
-  float: left;
-  margin-top: 3%;
-  margin-left: 35%;
+}
+
+.chat_header .dropdown-trigger {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  cursor: pointer;
 }
 
 .chats {
   /* display: none; */
-  height: 385px;
+  height: 80vh; /* 350px; */
   padding: 2px;
   border-radius: 1px;
   overflow-y: scroll;
@@ -164,7 +174,7 @@ blockquote {
 }
 
 .keypad {
-  /* display: none;  */
+  display: none;
   background: white;
   height: 50px;
   position: absolute;
@@ -214,6 +224,7 @@ blockquote {
 }
 
 .dropdown-trigger {
+  display: none;
   cursor: pointer;
   color: white;
   margin-right: 5px;

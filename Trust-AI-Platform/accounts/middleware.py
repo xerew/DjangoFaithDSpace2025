@@ -7,7 +7,7 @@ class LoginRequiredMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        excluded_paths = ['/accounts/', '/static/', '/media/']
+        excluded_paths = ['/accounts/', '/static/', '/media/', '/admin/']
         
         if not request.user.is_authenticated and not any(request.path.startswith(path) for path in excluded_paths):
             # Redirect to the login page if the user is not authenticated

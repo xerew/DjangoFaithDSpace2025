@@ -234,8 +234,8 @@ class AnswerFeedback(models.Model):
         ordering = ['created_on']
 
     def __str__(self):
-        return self.feedback_text
-    
+        return self.text
+
 class NextQuestionLogic(models.Model):
     activity = models.ForeignKey(Activity, related_name='next_logic', on_delete=models.CASCADE)
     answer = models.ForeignKey(Answer, related_name='next_logic', on_delete=models.CASCADE, null=True, blank=True)
@@ -290,9 +290,13 @@ class UserScenarioScore(models.Model):
         verbose_name = "User & Scenario Score"
         verbose_name_plural = "User & Scenario Scores"
         ordering = ["user"]
+        indexes = [
+            models.Index(fields=['user', 'scenario'], name='uss_user_scenario_idx'),
+        ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.scenario.name} Score: {self.user_score} Last Activity Answered: {self.last_activity.name}"
+        last = self.last_activity.name if self.last_activity else "None"
+        return f"{self.user.username} - {self.scenario.name} Score: {self.user_score} Last Activity Answered: {last}"
 
 class UserAnswer(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
@@ -440,6 +444,7 @@ class ActivityFlag(models.Model):
         verbose_name_plural = "Activity Flags"
         indexes = [
             models.Index(fields=["activity", "category"]),
+            models.Index(fields=['activity'], name='actflag_activity_idx'),
         ]
 
     def __str__(self):
@@ -479,10 +484,10 @@ class ActivityProposal(models.Model):
         ('skip', 'Skip Activity'),
     ]
     
-    scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposals')
+    scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposals', db_index=True)
     phase = models.ForeignKey('Phase', on_delete=models.CASCADE, related_name='proposals')
     activity = models.ForeignKey('Activity', on_delete=models.CASCADE, related_name='proposals')
-    flag = models.ManyToManyField('ActivityFlag', null=True, blank=True, related_name='proposals')
+    flag = models.ManyToManyField('ActivityFlag', blank=True, related_name='proposals')
     categories_in_risk = models.ManyToManyField("CategoryTag", related_name='proposals')
     proposal_type = models.CharField(max_length=32, choices=PROPOSAL_TYPE_CHOICES)
     suggested_action = models.TextField()

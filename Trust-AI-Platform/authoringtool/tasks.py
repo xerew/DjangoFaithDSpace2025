@@ -99,8 +99,8 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity_id:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
-    
+        return {"error": "No activities found for this scenario", "status": 400}
+
     valid_users = []  # List of users who started with the minimum activity
 
     for user in users:
@@ -109,41 +109,68 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
             valid_users.append(user)
 
     user_performance = {user.id: [] for user in valid_users}
-    
+
+    # ── Bulk prefetch to avoid O(users × phases × activities) queries ────────
+    all_scenario_activities = list(Activity.objects.filter(scenario=scenario))
+    scenario_activity_ids = [a.id for a in all_scenario_activities]
+
+    # 1. QuestionBunch dict keyed by activity_primary_id
+    bunch_map = {
+        qb.activity_primary_id: qb.activity_ids
+        for qb in QuestionBunch.objects.filter(activity_primary_id__in=scenario_activity_ids)
+    }
+
+    # 2. UserAnswer dict keyed by (user_id, activity_id) — last answer per pair
+    ua_qs = last_answers.filter(user_id__in=[u.id for u in valid_users])
+    last_answer_map = {}
+    for ua in ua_qs.select_related('answer'):
+        key = (ua.user_id, ua.activity_id)
+        if key not in last_answer_map or ua.id > last_answer_map[key].id:
+            last_answer_map[key] = ua
+
+    # 3. Max answer weight dict keyed by activity_id
+    max_weight_map = {
+        row['activity_id']: row['max_weight']
+        for row in Answer.objects.filter(activity_id__in=scenario_activity_ids)
+        .values('activity_id')
+        .annotate(max_weight=Max('answer_weight'))
+    }
+
+    # Activities grouped by phase for quick lookup
+    activities_by_phase = defaultdict(list)
+    for act in all_scenario_activities:
+        activities_by_phase[act.phase_id].append(act)
+
     for user in valid_users:
         for phase in phases:
-            activities = Activity.objects.filter(phase=phase)
+            activities = activities_by_phase.get(phase.id, [])
             total_primary_score = 0
             total_primary_max_score = 0
             processed_activities = set()  # To avoid duplicates
 
             # Handle primary evaluatable activities (only)
-            primary_evaluatable_activities = activities.filter(is_evaluatable=True, is_primary_ev=True)
-            primary_count = primary_evaluatable_activities.count()
+            primary_evaluatable_activities = [a for a in activities if a.is_evaluatable and a.is_primary_ev]
+            primary_count = len(primary_evaluatable_activities)
 
             if primary_count > 0:
                 primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
 
                 for primary_activity in primary_evaluatable_activities:
-                    try:
-                        question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                        bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                    except QuestionBunch.DoesNotExist:
-                        bunch_activities = [primary_activity]  # Fallback to the primary activity alone
+                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
 
-                    for bunch_activity in bunch_activities:
-                        if bunch_activity.id not in processed_activities:
-                            user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
+                    for act_id in bunch_act_ids:
+                        if act_id not in processed_activities:
+                            user_last_answer = last_answer_map.get((user.id, act_id))
                             if user_last_answer and user_last_answer.answer:
                                 total_primary_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
 
                             # Calculate max score for each bunch activity
-                            highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                            if highest_answer_weight:
-                                total_primary_max_score += (highest_answer_weight.answer_weight * primary_weight_share) / 100
+                            max_weight = max_weight_map.get(act_id)
+                            if max_weight:
+                                total_primary_max_score += (max_weight * primary_weight_share) / 100
 
                             # Mark bunch activity as processed
-                            processed_activities.add(bunch_activity.id)
+                            processed_activities.add(act_id)
 
             if total_primary_max_score > 0:
                 percentage_score = (total_primary_score / total_primary_max_score) * 100
@@ -265,14 +292,45 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity_id:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
-    
+        return {"error": "No activities found for this scenario", "status": 400}
+
     valid_users = []  # List of users who started with the minimum activity
 
     for user in users:
         # Check if user has answered the minimum activity
         if last_answers.filter(user=user, activity=min_activity_id).exists():
             valid_users.append(user)
+
+    # ── Bulk prefetch to avoid O(users × phases × activities) queries ────────
+    all_scenario_activities = list(Activity.objects.filter(scenario=scenario))
+    scenario_activity_ids = [a.id for a in all_scenario_activities]
+
+    # 1. QuestionBunch dict keyed by activity_primary_id
+    bunch_map = {
+        qb.activity_primary_id: qb.activity_ids
+        for qb in QuestionBunch.objects.filter(activity_primary_id__in=scenario_activity_ids)
+    }
+
+    # 2. UserAnswer dict keyed by (user_id, activity_id) — last answer per pair
+    ua_qs = last_answers.filter(user_id__in=[u.id for u in valid_users])
+    last_answer_map = {}
+    for ua in ua_qs.select_related('answer'):
+        key = (ua.user_id, ua.activity_id)
+        if key not in last_answer_map or ua.id > last_answer_map[key].id:
+            last_answer_map[key] = ua
+
+    # 3. Max answer weight dict keyed by activity_id
+    max_weight_map = {
+        row['activity_id']: row['max_weight']
+        for row in Answer.objects.filter(activity_id__in=scenario_activity_ids)
+        .values('activity_id')
+        .annotate(max_weight=Max('answer_weight'))
+    }
+
+    # Activities grouped by phase for quick lookup
+    activities_by_phase = defaultdict(list)
+    for act in all_scenario_activities:
+        activities_by_phase[act.phase_id].append(act)
 
     for user in valid_users:
         for index, phase in enumerate(phases):
@@ -281,32 +339,28 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
             processed_activities = set()
 
             # Handle primary evaluatable activities
-            primary_evaluatable_activities = Activity.objects.filter(phase=phase, is_evaluatable=True, is_primary_ev=True)
-            primary_count = primary_evaluatable_activities.count()
+            primary_evaluatable_activities = [a for a in activities_by_phase.get(phase.id, []) if a.is_evaluatable and a.is_primary_ev]
+            primary_count = len(primary_evaluatable_activities)
 
             if primary_count > 0:
                 primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
 
                 for primary_activity in primary_evaluatable_activities:
-                    try:
-                        question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                        bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                    except QuestionBunch.DoesNotExist:
-                        bunch_activities = [primary_activity]  # Fallback to the primary activity alone
+                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
 
-                    for bunch_activity in bunch_activities:
-                        if bunch_activity.id not in processed_activities:
-                            user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
+                    for act_id in bunch_act_ids:
+                        if act_id not in processed_activities:
+                            user_last_answer = last_answer_map.get((user.id, act_id))
                             if user_last_answer and user_last_answer.answer:
                                 primary_total_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
 
                             # Calculate max score for each bunch activity
-                            highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                            if highest_answer_weight:
-                                primary_max_score += (highest_answer_weight.answer_weight * primary_weight_share) / 100
+                            max_weight = max_weight_map.get(act_id)
+                            if max_weight:
+                                primary_max_score += (max_weight * primary_weight_share) / 100
 
                             # Mark the bunch activity as processed
-                            processed_activities.add(bunch_activity.id)
+                            processed_activities.add(act_id)
 
             # Calculate weighted scores using the corresponding phase weight
             if primary_max_score > 0:
@@ -385,7 +439,7 @@ def compute_activity_answers_data(scenario_id, group_ids, start_date, end_date, 
     min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
+        return {"error": "No activities found for this scenario", "status": 400}
 
     # List of valid user IDs who started with the minimum activity
     valid_user_ids = []
@@ -497,18 +551,18 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity_id:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
-    
+        return {"error": "No activities found for this scenario", "status": 400}
+
     if group_ids:
         users = User.objects.filter(
             id__in=UserGroupMembership.objects.filter(group_id__in=group_ids).values_list('user_id', flat=True)
         ).distinct()# .exclude(groups__name='teachers')
     else:
         users = User.objects.filter(
-            Q(userscenarioscore__scenario=scenario) & 
+            Q(userscenarioscore__scenario=scenario) &
             (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
             ).distinct()
-    
+
     users = users.exclude(groups__name='teachers')
 
     valid_users = []  # List of users who started with the minimum activity
@@ -518,40 +572,67 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
         if last_answers.filter(user=user, activity=min_activity_id).exists():
             valid_users.append(user)
 
+    # ── Bulk prefetch to avoid O(users × phases × activities) queries ────────
+    all_scenario_activities = list(Activity.objects.filter(scenario=scenario))
+    scenario_activity_ids = [a.id for a in all_scenario_activities]
+
+    # 1. QuestionBunch dict keyed by activity_primary_id
+    bunch_map = {
+        qb.activity_primary_id: qb.activity_ids
+        for qb in QuestionBunch.objects.filter(activity_primary_id__in=scenario_activity_ids)
+    }
+
+    # 2. UserAnswer dict keyed by (user_id, activity_id) — last answer per pair
+    ua_qs = last_answers.filter(user_id__in=[u.id for u in valid_users])
+    last_answer_map = {}
+    for ua in ua_qs.select_related('answer'):
+        key = (ua.user_id, ua.activity_id)
+        if key not in last_answer_map or ua.id > last_answer_map[key].id:
+            last_answer_map[key] = ua
+
+    # 3. Max answer weight dict keyed by activity_id
+    max_weight_map = {
+        row['activity_id']: row['max_weight']
+        for row in Answer.objects.filter(activity_id__in=scenario_activity_ids)
+        .values('activity_id')
+        .annotate(max_weight=Max('answer_weight'))
+    }
+
+    # Activities grouped by phase for quick lookup
+    activities_by_phase = defaultdict(list)
+    for act in all_scenario_activities:
+        activities_by_phase[act.phase_id].append(act)
+
     for user in valid_users:
         for phase in phases:
-            activities = Activity.objects.filter(phase=phase)
+            activities = activities_by_phase.get(phase.id, [])
             total_primary_score = 0
             total_primary_max_score = 0
             processed_activities = set()  # To avoid duplicates
 
             # Handle only primary evaluatable activities (and their bunches)
-            primary_evaluatable_activities = activities.filter(is_evaluatable=True, is_primary_ev=True)
-            primary_count = primary_evaluatable_activities.count()
+            primary_evaluatable_activities = [a for a in activities if a.is_evaluatable and a.is_primary_ev]
+            primary_count = len(primary_evaluatable_activities)
 
             if primary_count > 0:
                 primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
 
                 for primary_activity in primary_evaluatable_activities:
-                    try:
-                        question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                        bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                    except QuestionBunch.DoesNotExist:
-                        bunch_activities = [primary_activity]  # Fallback to the primary activity alone
+                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
 
-                    for bunch_activity in bunch_activities:
-                        if bunch_activity.id not in processed_activities:
-                            user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
+                    for act_id in bunch_act_ids:
+                        if act_id not in processed_activities:
+                            user_last_answer = last_answer_map.get((user.id, act_id))
                             if user_last_answer and user_last_answer.answer:
                                 total_primary_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
 
                             # Calculate max score for each bunch activity
-                            highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                            if highest_answer_weight:
-                                total_primary_max_score += (highest_answer_weight.answer_weight * primary_weight_share) / 100
+                            max_weight = max_weight_map.get(act_id)
+                            if max_weight:
+                                total_primary_max_score += (max_weight * primary_weight_share) / 100
 
                             # Mark bunch activity as processed
-                            processed_activities.add(bunch_activity.id)
+                            processed_activities.add(act_id)
 
             # Calculate performance based on total primary score
             if total_primary_max_score > 0:
@@ -690,7 +771,7 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity_id:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
+        return {"error": "No activities found for this scenario", "status": 400}
 
     if group_ids:
         users = User.objects.filter(
@@ -698,10 +779,10 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
         ).distinct()# .exclude(groups__name='teachers')
     else:
         users = User.objects.filter(
-            Q(userscenarioscore__scenario=scenario) & 
+            Q(userscenarioscore__scenario=scenario) &
             (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
             ).distinct()
-    
+
     users = users.exclude(groups__name='teachers')
 
     valid_users = []  # List of users who started with the minimum activity
@@ -710,10 +791,41 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
         # Check if user has answered the minimum activity
         if last_answers.filter(user=user, activity=min_activity_id).exists():
             valid_users.append(user)
-    
+
     phases = Phase.objects.filter(scenario=scenario)
 
     phase_scores = {phase.name: {'low': 0, 'mid': 0, 'high': 0, 'low_score': 0, 'mid_score': 0, 'high_score': 0, 'total_users': 0} for phase in phases}
+
+    # ── Bulk prefetch to avoid O(users × phases × activities) queries ────────
+    all_scenario_activities = list(Activity.objects.filter(scenario=scenario))
+    scenario_activity_ids = [a.id for a in all_scenario_activities]
+
+    # 1. QuestionBunch dict keyed by activity_primary_id
+    bunch_map = {
+        qb.activity_primary_id: qb.activity_ids
+        for qb in QuestionBunch.objects.filter(activity_primary_id__in=scenario_activity_ids)
+    }
+
+    # 2. UserAnswer dict keyed by (user_id, activity_id) — last answer per pair
+    ua_qs = last_answers.filter(user_id__in=[u.id for u in valid_users])
+    last_answer_map = {}
+    for ua in ua_qs.select_related('answer'):
+        key = (ua.user_id, ua.activity_id)
+        if key not in last_answer_map or ua.id > last_answer_map[key].id:
+            last_answer_map[key] = ua
+
+    # 3. Max answer weight dict keyed by activity_id
+    max_weight_map = {
+        row['activity_id']: row['max_weight']
+        for row in Answer.objects.filter(activity_id__in=scenario_activity_ids)
+        .values('activity_id')
+        .annotate(max_weight=Max('answer_weight'))
+    }
+
+    # Activities grouped by phase for quick lookup
+    activities_by_phase = defaultdict(list)
+    for act in all_scenario_activities:
+        activities_by_phase[act.phase_id].append(act)
 
     for user in valid_users:
         for phase in phases:
@@ -721,35 +833,31 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
             total_primary_max_score = 0
             processed_activities = set()
 
-            activities_in_phase = Activity.objects.filter(phase=phase)
+            activities_in_phase = activities_by_phase.get(phase.id, [])
 
             # Process primary evaluatable activities (and their bunches)
-            primary_evaluatable_activities = activities_in_phase.filter(is_evaluatable=True, is_primary_ev=True)
-            primary_count = primary_evaluatable_activities.count()
+            primary_evaluatable_activities = [a for a in activities_in_phase if a.is_evaluatable and a.is_primary_ev]
+            primary_count = len(primary_evaluatable_activities)
 
             if primary_count > 0:
                 primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
 
                 for primary_activity in primary_evaluatable_activities:
-                    try:
-                        question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                        bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                    except QuestionBunch.DoesNotExist:
-                        bunch_activities = [primary_activity]  # Fallback to primary activity alone
+                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
 
-                    for bunch_activity in bunch_activities:
-                        if bunch_activity.id not in processed_activities:
-                            user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
+                    for act_id in bunch_act_ids:
+                        if act_id not in processed_activities:
+                            user_last_answer = last_answer_map.get((user.id, act_id))
                             if user_last_answer and user_last_answer.answer:
                                 total_primary_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
 
                             # Calculate max score for each bunch activity
-                            highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                            if highest_answer_weight:
-                                total_primary_max_score += (highest_answer_weight.answer_weight * primary_weight_share) / 100
+                            max_weight = max_weight_map.get(act_id)
+                            if max_weight:
+                                total_primary_max_score += (max_weight * primary_weight_share) / 100
 
                             # Mark bunch activity as processed
-                            processed_activities.add(bunch_activity.id)
+                            processed_activities.add(act_id)
 
             # Calculate performance based on primary evaluatable activities only
             if total_primary_max_score > 0:
@@ -820,30 +928,61 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity_id:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
-    
+        return {"error": "No activities found for this scenario", "status": 400}
+
     if group_ids:
         users = User.objects.filter(
             id__in=UserGroupMembership.objects.filter(group_id__in=group_ids).values_list('user_id', flat=True)
         ).distinct()# .exclude(groups__name='teachers')
     else:
         users = User.objects.filter(
-            Q(userscenarioscore__scenario=scenario) & 
+            Q(userscenarioscore__scenario=scenario) &
             (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
             ).distinct()
-    
+
     users = users.exclude(groups__name='teachers')
-    
+
     valid_users = []  # List of users who started with the minimum activity
 
     for user in users:
         # Check if user has answered the minimum activity
         if last_answers.filter(user=user, activity=min_activity_id).exists():
             valid_users.append(user)
-    
+
+    # ── Bulk prefetch to avoid O(users × phases × activities) queries ────────
+    all_scenario_activities = list(Activity.objects.filter(scenario=scenario))
+    scenario_activity_ids = [a.id for a in all_scenario_activities]
+
+    # 1. QuestionBunch dict keyed by activity_primary_id
+    bunch_map = {
+        qb.activity_primary_id: qb.activity_ids
+        for qb in QuestionBunch.objects.filter(activity_primary_id__in=scenario_activity_ids)
+    }
+
+    # 2. UserAnswer dict keyed by (user_id, activity_id) — last answer per pair
+    ua_qs = last_answers.filter(user_id__in=[u.id for u in valid_users])
+    last_answer_map = {}
+    for ua in ua_qs.select_related('answer'):
+        key = (ua.user_id, ua.activity_id)
+        if key not in last_answer_map or ua.id > last_answer_map[key].id:
+            last_answer_map[key] = ua
+
+    # 3. Max answer weight dict keyed by activity_id
+    max_weight_map = {
+        row['activity_id']: row['max_weight']
+        for row in Answer.objects.filter(activity_id__in=scenario_activity_ids)
+        .values('activity_id')
+        .annotate(max_weight=Max('answer_weight'))
+    }
+
+    # Activities grouped by phase for quick lookup
+    activities_by_phase = defaultdict(list)
+    for act in all_scenario_activities:
+        activities_by_phase[act.phase_id].append(act)
+
     for user in valid_users:
         for phase in phases:
-            activities_in_phase = Activity.objects.filter(phase=phase)
+            activities_in_phase = activities_by_phase.get(phase.id, [])
             total_primary_score = 0
             total_primary_max_score = 0
 
@@ -851,32 +990,28 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
             processed_activities = set()
 
             # Process primary evaluatable activities (and their bunches)
-            primary_evaluatable_activities = activities_in_phase.filter(is_evaluatable=True, is_primary_ev=True)
-            primary_count = primary_evaluatable_activities.count()
+            primary_evaluatable_activities = [a for a in activities_in_phase if a.is_evaluatable and a.is_primary_ev]
+            primary_count = len(primary_evaluatable_activities)
 
             if primary_count > 0:
                 primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
 
                 for primary_activity in primary_evaluatable_activities:
-                    try:
-                        question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                        bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                    except QuestionBunch.DoesNotExist:
-                        bunch_activities = [primary_activity]  # Fallback to primary activity alone
+                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
 
-                    for bunch_activity in bunch_activities:
-                        if bunch_activity.id not in processed_activities:
-                            user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
+                    for act_id in bunch_act_ids:
+                        if act_id not in processed_activities:
+                            user_last_answer = last_answer_map.get((user.id, act_id))
                             if user_last_answer and user_last_answer.answer:
                                 total_primary_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
 
                             # Calculate max score for each bunch activity
-                            highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                            if highest_answer_weight:
-                                total_primary_max_score += (highest_answer_weight.answer_weight * primary_weight_share) / 100
+                            max_weight = max_weight_map.get(act_id)
+                            if max_weight:
+                                total_primary_max_score += (max_weight * primary_weight_share) / 100
 
                             # Mark bunch activity as processed
-                            processed_activities.add(bunch_activity.id)
+                            processed_activities.add(act_id)
 
             # Calculate performance based on primary evaluatable activities
             if total_primary_max_score > 0:
@@ -1097,8 +1232,8 @@ def compute_scenario_paths(scenario_id, group_ids, start_date, end_date):
     min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
-    
+        return {"error": "No activities found for this scenario", "status": 400}
+
     # users = User.objects.filter(
     #     Q(userscenarioscore__scenario=scenario) & 
     #     (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
@@ -1277,7 +1412,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
 
     if not min_activity:
-        return JsonResponse({"error": "No activities found for this scenario"}, status=400)
+        return {"error": "No activities found for this scenario", "status": 400}
 
     valid_users = []  # List of users who started with the minimum activity
 
@@ -1285,7 +1420,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
         # Check if user has answered the minimum activity
         if last_answers.filter(user=user, activity=min_activity).exists():
             valid_users.append(user)
-    
+
     # Apply start_date and end_date filters
     if start_date:
         start_date = parse_date(start_date)
@@ -1585,12 +1720,6 @@ def calculate_activities_in_risk(scenario_id):
     file_path = os.path.join(base_dir, f'scenario_{scenario_id}_combined_activity_metrics.csv')
     flags_file_path = os.path.join(base_dir, f'scenario_{scenario_id}_flagged_activities_with_reasons.csv')
 
-    # NEW: if the risk CSV already exists, do NOTHING
-    if os.path.exists(flags_file_path):
-        print(f"[Risk] Flags CSV for scenario {scenario_id} already exists. "
-              "Skipping recalculation and NOT touching ActivityFlag.")
-        return {"scenario_id": scenario_id}
-    
     if not os.path.exists(file_path):
         # either build it or fail gracefully
         compute_category_metrics_per_phase_activity(scenario_id)
@@ -2024,42 +2153,26 @@ def chunk_and_index_pdfs(scenario_id):
         return rag_store
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    docs = []
+    all_docs = []
     seen_texts = set()
 
-    # for pdf_path in pdf_files:
-    #     loader = PyPDFLoader(pdf_path)
-    #     docs.extend(loader.load_and_split(text_splitter=splitter))
-
-    # if docs:
-    #     rag_store.add_documents(docs)
-    #     rag_store.persist()
-
-    # return rag_store
     for path in pdf_files:
         loader = PyPDFLoader(path)
-        docs = loader.load_and_split(text_splitter=splitter)
-        for d in docs:
+        raw_docs = loader.load_and_split(text_splitter=splitter)
+        for d in raw_docs:
             text = d.page_content.strip()
-            # 5) Filter out truly duplicated chunks
             if text in seen_texts:
                 continue
             seen_texts.add(text)
-            # 6) Attach source metadata
             d.metadata["source_file"] = os.path.basename(path)
-            docs.append(d)
+            all_docs.append(d)
 
-    if docs:
-        rag_store.add_documents(docs)
+    if all_docs:
+        rag_store.add_documents(all_docs)
         rag_store.persist()
-        print(f"[RAG] indexed {len(docs)} new chunks for scenario {scenario_id}.")
+        print(f"[RAG] indexed {len(all_docs)} new chunks for scenario {scenario_id}.")
     else:
         print(f"[RAG] no new chunks to index for scenario {scenario_id}.")
-
-    # 7) Add and persist
-    # rag_store.add_documents(docs)
-    # rag_store.persist()
-    print(f"[RAG] indexed {len(docs)} chunks for scenario {scenario_id}.")
     return rag_store
 
 ACTIONS = ["create", "revise", "skip"]
@@ -2095,17 +2208,15 @@ def get_best_q_action(flag_list):
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
 
 @shared_task
-def generate_llm_context_for_scenario(scenario_id):
+def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
     scenario = Scenario.objects.get(id=scenario_id)
     print(f"\n▶️ Starting LLM context generation for SCENARIO: '{scenario.name}' (ID: {scenario_id})")
 
     # 0️⃣ Build or refresh RAG index from scenario PDFs
-    # chunk_and_index_pdfs(scenario_id)
-    index_dir = Path(settings.BASE_DIR) / "rag_indexes" / f"scenario_{scenario_id}"
-    if index_dir.exists():
+    index_dir = Path(get_index_dir(scenario_id))
+    if force_rebuild and index_dir.exists():
         print(f"🗑  Removing old RAG index at {index_dir}")
         shutil.rmtree(index_dir, onerror=_on_rm_error)
-    # rag_store = ensure_rag_index(scenario_id)
     rag_store = chunk_and_index_pdfs(scenario_id)
     retriever = rag_store.as_retriever(search_kwargs={"k": 5})
 
@@ -2142,17 +2253,21 @@ def generate_llm_context_for_scenario(scenario_id):
         prompt = (
             "You are a pedagogical reviewer. Assess clarity, educational value, and engagement.\n\n"
             f"Activity: {activity.name}\n"
-            f"Content: {activity.plain_text or '—'}\n"
-            f"Image Description: {image_llm or '—'}\n\n"
+            f"Content: {activity.plain_text or ‘—‘}\n"
+            f"Image Description: {image_llm or ‘—‘}\n\n"
             "Please give:\n"
             "1) A one-sentence summary of the activity’s goal.\n"
         )
-        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-            "model":  "qwen2.5:32b",
-            "prompt": prompt,
-            "stream": False
-        })
-        activity.llm_context = resp.json().get("response","").strip()
+        try:
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model":  "qwen2.5:32b",
+                "prompt": prompt,
+                "stream": False
+            })
+            activity.llm_context = resp.json().get("response", "").strip()
+        except Exception as e:
+            activity.llm_context = f"[LLM error: {e}]"
+            print(f"  ⚠️ Ollama error (activity context): {e}")
         activity.save()
 
         # — Short summary for indexing & RAG queries —
@@ -2160,12 +2275,16 @@ def generate_llm_context_for_scenario(scenario_id):
             "Summarize this activity in ONE short sentence for a busy teacher:\n\n"
             f"{activity.llm_context}"
         )
-        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-            "model":  "qwen2.5:32b",
-            "prompt": sum_prompt,
-            "stream": False
-        })
-        activity.short_llm_summary = resp.json().get("response","").strip()
+        try:
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model":  "qwen2.5:32b",
+                "prompt": sum_prompt,
+                "stream": False
+            })
+            activity.short_llm_summary = resp.json().get("response", "").strip()
+        except Exception as e:
+            activity.short_llm_summary = activity.name
+            print(f"  ⚠️ Ollama error (activity summary): {e}")
         activity.save()
         print("  ✅ Activity context + summary saved.")
 
@@ -2183,12 +2302,16 @@ def generate_llm_context_for_scenario(scenario_id):
             "Structure:\n" + "\n".join(lines) + "\n\n"
             "Please give a 2-sentence summary of what this scenario teaches and how it progresses."
         )
-        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-            "model":  "qwen2.5:32b",
-            "prompt": big_prompt,
-            "stream": False
-        })
-        scenario.llm_context = resp.json().get("response","").strip()
+        try:
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model":  "qwen2.5:32b",
+                "prompt": big_prompt,
+                "stream": False
+            })
+            scenario.llm_context = resp.json().get("response", "").strip()
+        except Exception as e:
+            scenario.llm_context = f"[LLM error: {e}]"
+            print(f"  ⚠️ Ollama error (scenario context): {e}")
         scenario.save()
         print("  ✅ Scenario context saved.")
 
@@ -2205,12 +2328,16 @@ def generate_llm_context_for_scenario(scenario_id):
             "1) A one-sentence summary of this phase’s learning goal.\n"
             "2) A one-sentence note on the sequence’s coherence."
         )
-        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-            "model":  "qwen2.5:32b",
-            "prompt": prompt,
-            "stream": False
-        })
-        phase.llm_context = resp.json().get("response","").strip()
+        try:
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model":  "qwen2.5:32b",
+                "prompt": prompt,
+                "stream": False
+            })
+            phase.llm_context = resp.json().get("response", "").strip()
+        except Exception as e:
+            phase.llm_context = f"[LLM error: {e}]"
+            print(f"  ⚠️ Ollama error (phase context): {e}")
         phase.save()
         print(f"  ✅ Phase '{phase.name}' context saved.")
 
@@ -2230,12 +2357,16 @@ def generate_llm_context_for_scenario(scenario_id):
                 f"Previous: {prev}\nNext: {nxt}\n\n"
                 "Summarize what students learn in this path."
             )
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-                "model":  "qwen2.5:32b",
-                "prompt": prompt,
-                "stream": False
-            })
-            flow[cat] = resp.json().get("response","").strip()
+            try:
+                resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                    "model":  "qwen2.5:32b",
+                    "prompt": prompt,
+                    "stream": False
+                })
+                flow[cat] = resp.json().get("response", "").strip()
+            except Exception as e:
+                flow[cat] = f"[LLM error: {e}]"
+                print(f"  ⚠️ Ollama error (flow {cat}): {e}")
         activity.related_act_llm_context = flow
         activity.save()
 
@@ -2271,7 +2402,7 @@ def generate_llm_context_for_scenario(scenario_id):
 
         # — pull RAG snippets, de-duped —
         query = activity.short_llm_summary or activity.plain_text or activity.name
-        docs = retriever.get_relevant_documents(query)
+        docs = retriever.invoke(query)
         seen, chunks = set(), []
         for d in docs:
             txt = d.page_content.strip()
@@ -2299,81 +2430,81 @@ def generate_llm_context_for_scenario(scenario_id):
             answers = "Answers:\n" + "\n".join(lines)
 
         bias_action = get_best_q_action(flag_list)
-        # tweak wording (only 1–2 words) to clarify an existing question, without adding new examples or steps.
-        # leave as-is if the activity is already clear and non-redundant.
-        # create — write a brand-new *multiple-choice question* (2–4 options) that targets the core misunderstanding without giving away the full solution.
-        # **CREATE** only as a *multiple-choice question* with exactly 2–4 answer choices:\n"
-        #     "     - Label each choice A., B., C., etc.\n"
-        #     "     - Assign weights: Correct=3, Moderate=2, Low=1.\n"
-        #     "     - Do NOT reveal full solution steps or formulas.\n"
+
         # — final proposal prompt —
         prompt = (
-            "You are an expert instructional designer. Choose exactly ONE action:\n\n"
-            "  • create — write a brand-new activity (either a multiple-choice question, an explanation, or a hands-on experiment) that helps resolve the flagged misconception.\n"
-            "  • revise — Rewrite or adjust the existing activity to improve clarity or correctness.\n"
-            "  • skip   — Omit this activity if it is redundant or already clear, or for certain categories you see that is of no use or QUICK time to answer (especially for high category)\n\n"
+            “You are an expert instructional designer. Choose exactly ONE action:\n\n”
+            “  • create — write a brand-new activity (either a multiple-choice question, an explanation, or a hands-on experiment) that helps resolve the flagged misconception.\n”
+            “  • revise — Rewrite or adjust the existing activity to improve clarity or correctness.\n”
+            “  • skip   — Leave this activity unchanged. Use skip when: the activity is already clear; High performers answered it quickly with no sign of confusion; the flag is only about speed/disengagement, not about misunderstanding; or adding/changing it would not help struggling students.\n\n”
 
-            "=== CONTEXT ===\n"
-            f"Scenario Insight:\n{scenario.llm_context}\n\n"
-            f"Phase Insight:\n{phase.llm_context}\n\n"
-            "Flagged Activity:\n"
-            f"- Name: {activity.name}\n"
-            f"- Type: {activity.activity_type.name}\n"
-            f"- Content: {content}\n\n"
-            "Why students struggled:\n"
-            f"{combined_insight}\n\n"
-            "Existing proposals:\n"
-            f"{combined_resolution or 'None'}\n\n"
-            "Prior activities summary:\n"
-            f"{prior_summary}\n\n"
-            "PDF snippets (in English, for inspiration only):\n"
-            f"{pdf_context or 'None'}\n\n"
+            “=== LEARNING SYSTEM RECOMMENDATION ===\n”
+            f”Based on historical outcomes for similar flags, the recommended action is: {bias_action.upper()}\n”
+            “You may follow or override this recommendation if the context clearly justifies a different choice.\n\n”
 
-            "=== GUIDELINES ===\n"
-            "1. **CREATE** can be:\n"
-                 "- A multiple-choice question (2–3 options, with weights)\n"
-                 "- A short explanation (clear and concise, no bullet points)\n"
-                 "- A hands-on experiment using the existing simulation or lab (never invented by the student)\n"
-                "For MCQs, label choices A., B., C., etc. and assign weights (3=Correct, 2=Moderate, 1=Low) and Do NOT reveal full solution steps or formulas.\n"
-                "For explanations or experiments, keep student-facing text clear and age-appropriate\n"
-            "2. **REVISE** to improve clarity or correctness. Small rewordings or factual fixes are welcome.\n"
-            "3. **SKIP** if the activity is already clear, or the student disengagement (especially in High category) shows that it adds little value or is too trivial.\n\n"
-            "- Do NOT include open-ended or discussion prompts; only MCQs.\n"
-            "- Students perform experiments—they do not invent them here.\n"
-            "- Respond entirely in English.\n"
-            "- Never use any percentage-based thresholds or “if more than X%” language.\n\n"
+            “=== CONTEXT ===\n”
+            f”Scenario Insight:\n{scenario.llm_context}\n\n”
+            f”Phase Insight:\n{phase.llm_context}\n\n”
+            “Flagged Activity:\n”
+            f”- Name: {activity.name}\n”
+            f”- Type: {activity.activity_type.name}\n”
+            f”- Content: {content}\n\n”
+            “Why students were flagged:\n”
+            f”{combined_insight}\n\n”
+            “Existing proposals:\n”
+            f”{combined_resolution or 'None'}\n\n”
+            “Prior activities summary:\n”
+            f”{prior_summary}\n\n”
+            “PDF snippets (in English, for inspiration only):\n”
+            f”{pdf_context or 'None'}\n\n”
 
-            "=== OUTPUT FORMAT ===\n"
-            "Action: <create|revise|skip>\n\n"
-            "New Activity (only for create or revise):\n"
-            "- Activity Name: (short, descriptive)\n"
-            "- Activity Type: Question\n"
-            "- Content: (student-facing MCQ stem)\n"
-            "- Answers:\n"
-            "    A. … (weight 3)\n"
-            "    B. … (weight 2)\n"
-            "    C. … (weight 1)  # adjust count of choices to 2–4\n"
-            "- Insert Location: <before|after flagged activity>  # **always include this line**\n\n"
-            "Explanation (teacher-only):\n"
-            "(Two sentences: why this action addresses the struggle, in English.)"
+            “=== GUIDELINES ===\n”
+            “1. **CREATE** can be:\n”
+            “- A multiple-choice question (2–3 options, with weights)\n”
+            “- A short explanation (clear and concise, no bullet points)\n”
+            “- A hands-on experiment using the existing simulation or lab (never invented by the student)\n”
+            “For MCQs, label choices A., B., C., etc. and assign weights (3=Correct, 2=Moderate, 1=Low). Do NOT reveal full solution steps or formulas.\n”
+            “For explanations or experiments, keep student-facing text clear and age-appropriate.\n”
+            “2. **REVISE** to improve clarity or correctness. Small rewordings or factual fixes are welcome.\n”
+            “3. **SKIP** — strongly prefer skip when High performers finished quickly and Low/Moderate performers are not confused about the concept (the flag is about engagement speed, not a knowledge gap). Also skip if the activity is redundant with another already in this phase.\n\n”
+            “- Do NOT include open-ended or discussion prompts; only MCQs for Question type.\n”
+            “- Students perform experiments—they do not invent them here.\n”
+            “- Respond entirely in English.\n”
+            “- Never use any percentage-based thresholds or \”if more than X%\” language.\n\n”
+
+            “=== OUTPUT FORMAT ===\n”
+            “Action: <create|revise|skip>\n\n”
+            “New Activity (only for create or revise):\n”
+            “- Activity Name: (short, descriptive)\n”
+            “- Activity Type: <Question|Explanation|Experiment>\n”
+            “- Content: (student-facing text or MCQ stem)\n”
+            “- Answers:\n”
+            “    A. … (weight 3)\n”
+            “    B. … (weight 2)\n”
+            “    C. … (weight 1)  # adjust count of choices to 2–4; omit for Explanation/Experiment\n”
+            “- Insert Location: <before|after flagged activity>  # **always include this line**\n\n”
+            “Explanation (teacher-only):\n”
+            “(Two sentences: why this action addresses the struggle, in English.)”
         )
-        # print(f"PROMPT: \n\n {prompt}\n\n\n")
-        resp = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-            "model":  "qwen2.5:32b",
-            "prompt": prompt,
-            "stream": False
-        })
-        raw = resp.json().get("response","")
+        try:
+            resp = requests.post(f”{OLLAMA_URL}/api/generate”, json={
+                “model”:  “qwen2.5:32b”,
+                “prompt”: prompt,
+                “stream”: False
+            })
+            raw = resp.json().get(“response”, “”)
+        except Exception as e:
+            raw = f”Action: skip\n\nExplanation: [LLM error: {e}]”
+            print(f”  ⚠️ Ollama error (proposal): {e}”)
 
         # — parse into structured JSON via your existing parser —
         structured = parse_llm_proposal(raw)
         translated_structured = parse_llm_proposal_translated(raw, scenario.language)
 
-        # — classify action type if needed —
-        lower = raw.lower()
-        if   "create" in lower: proposal_type = "create"
-        elif "revise" in lower: proposal_type = "revise"
-        else:                   proposal_type = "skip"
+        # — classify action type from the parsed “Action:” line, not by scanning full text —
+        proposal_type = (structured.get(“action”) or “”).strip().lower()
+        if proposal_type not in (“create”, “revise”, “skip”):
+            proposal_type = “skip”
 
         # — save the proposal —
         prop = ActivityProposal.objects.create(
@@ -2395,13 +2526,12 @@ def generate_llm_context_for_scenario(scenario_id):
     # 6️⃣ Write out a CSV snapshot of all proposals
     base = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
     fp   = os.path.join(base, f'scenario_{scenario_id}_activity_proposals.csv')
-    qs   = ActivityProposal.objects.filter(scenario=scenario)
-    df   = pd.DataFrame(qs.values(
-        'id', 'activity__name','phase__name',
-        'proposal_type','status','created_at','reviewed_at','reviewer__username'
-    ))
-    df['flag_ids'] = df['id'].map(lambda i: list(ActivityProposal.objects.get(id=i).flag.values_list('id',flat=True)))
-    df['categories'] = df['id'].map(lambda i: ", ".join(ActivityProposal.objects.get(id=i).categories_in_risk.values_list('name',flat=True)))
+    qs   = ActivityProposal.objects.filter(scenario=scenario).prefetch_related('flag', 'categories_in_risk')
+    rows = qs.values('id', 'activity__name', 'phase__name', 'proposal_type', 'status', 'created_at', 'reviewed_at', 'reviewer__username')
+    df   = pd.DataFrame(rows)
+    prop_map = {p.id: p for p in qs}
+    df['flag_ids']   = df['id'].map(lambda i: list(prop_map[i].flag.values_list('id', flat=True)))
+    df['categories'] = df['id'].map(lambda i: ", ".join(prop_map[i].categories_in_risk.values_list('name', flat=True)))
     df.to_csv(fp, index=False)
 
     return f"Completed LLM analysis + proposal generation for scenario {scenario_id}"

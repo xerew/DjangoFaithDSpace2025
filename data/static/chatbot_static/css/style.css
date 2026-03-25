@@ -23,15 +23,25 @@ body {
   height: 60px;
   background: #060dcfc7;
   border-radius: 10px 10px 0px 0px;
-  padding: 5px;
+  padding: 5px 10px;
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .chat_header_title {
   color: white;
-  float: left;
-  margin-top: 3%;
-  margin-left: 35%;
+}
+
+.chat_header .dropdown-trigger {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  cursor: pointer;
 }
 
 .chats {

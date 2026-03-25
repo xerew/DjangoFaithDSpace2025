@@ -59,6 +59,7 @@ def login_view(request):
     return render(request, 'accounts/login.html')  # Render the login page for GET requests
 
 
+@login_required
 def userData(request):
     # Access the logged-in user from the request object
     user = request.user
@@ -128,14 +129,17 @@ def registerAccount(request):
             user = User.objects.create(username=username, first_name=first_name, last_name=last_name, email=email, password=hashed_password)
 
             # Add user to "Teacher" group
-            teacher_group = Group.objects.get(name="teachers")
+            teacher_group = Group.objects.get_or_create(name="teachers")[0]
             user.groups.add(teacher_group)
 
             messages.success(request, 'Account created successfully. Please log in.')
 
             return JsonResponse({'success': True})
 
-    # For non-AJAX POST requests or GET requests, render the registration form
+        else:
+            return JsonResponse({'success': False, 'error': 'AJAX required'}, status=400)
+
+    # For GET requests, render the registration form
     return render(request, 'accounts/register.html')
 
 def view404(request, exception):
@@ -145,9 +149,6 @@ def view404(request, exception):
 def documentation_view(request):
     is_dspace_partner = request.user.groups.filter(name="dspace_partners").exists()
     return render(request, 'accounts/documentation.html', {'is_dspace_partner': is_dspace_partner})
-
-def tos_view(request):
-    return render(request, 'accounts/tos.html')
 
 def tos_view(request):
     if request.user.is_authenticated:
