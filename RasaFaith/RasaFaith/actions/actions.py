@@ -167,22 +167,23 @@ class AskQuestionAction(Action):
                 question_text = question_text[:300] + '…'
 
             # Non-question activities (Explanation / Experiment)
+            # Only fire the activity_id so the main screen renders the content.
+            # The bot shows a brief prompt instead of repeating the full text.
             if question_type_id != 4:
                 dispatcher.utter_message(
-                    text=question_text,
                     json_message={'activity_id': question_id}
                 )
                 if _is_greek(user_locale):
                     buttons = [{"title": "Ναι, συνέχισε!", "payload": "/confirm_read"}]
-                    dispatcher.utter_message(text="Να συνεχίσω με την επόμενη δραστηριότητα;", buttons=buttons)
+                    dispatcher.utter_message(text="📖 Διάβασε τη δραστηριότητα και πάτα συνέχεια όταν είσαι έτοιμος/η.", buttons=buttons)
                 else:
                     buttons = [{"title": "Yes, continue!", "payload": "/confirm_read"}]
-                    dispatcher.utter_message(text="Should I continue with the next activity?", buttons=buttons)
+                    dispatcher.utter_message(text="📖 Read the activity and continue when you're ready.", buttons=buttons)
                 return [
                     SlotSet("current_question_id", question_id),
                     SlotSet("question_asked_time", current_time),
                     SlotSet("scenario_id", scenario_id),
-                    SlotSet("user_locale", user_locale),
+                    SlotSet("locale", user_locale),
                 ]
 
             # Question activity — fetch answers
@@ -290,7 +291,7 @@ class HandleAnswerAction(Action):
                     (question_id,)
                 )
 
-            # Update or insert user scenario score
+            # Update or insert user scenario score (last_activity_id set to next below)
             cursor.execute(
                 "SELECT user_score FROM authoringtool_userscenarioscore "
                 "WHERE user_id = %s AND scenario_id = %s",
@@ -301,9 +302,9 @@ class HandleAnswerAction(Action):
                 new_score = score_row[0] + score_for_current_answer
                 cursor.execute(
                     "UPDATE authoringtool_userscenarioscore "
-                    "SET user_score = %s, last_activity_id = %s "
+                    "SET user_score = %s "
                     "WHERE user_id = %s AND scenario_id = %s",
-                    (new_score, question_id, user_id, scenario_id)
+                    (new_score, user_id, scenario_id)
                 )
             else:
                 cursor.execute(
@@ -372,6 +373,13 @@ class HandleAnswerAction(Action):
                     next_question_id = low_dest
 
                 if next_question_id:
+                    # Persist next activity so reconnect resumes here, not at current
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
+                        "WHERE user_id = %s AND scenario_id = %s",
+                        (next_question_id, user_id, scenario_id)
+                    )
+                    conn.commit()
                     return [SlotSet("next_question_id", next_question_id)]
                 else:
                     _end_message(dispatcher, user_locale)
@@ -388,6 +396,13 @@ class HandleAnswerAction(Action):
                     _end_message(dispatcher, user_locale)
                     return [AllSlotsReset(), FollowupAction("action_end_scenario")]
 
+                # Persist next activity so reconnect resumes here, not at current
+                cursor.execute(
+                    "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
+                    "WHERE user_id = %s AND scenario_id = %s",
+                    (next_row[0], user_id, scenario_id)
+                )
+                conn.commit()
                 return [SlotSet("next_question_id", next_row[0])]
 
         finally:
@@ -508,7 +523,7 @@ class ActionConfirmRead(Action):
                       tracker.latest_message.get('metadata', {}).get('scenario_id', '')
         user_id     = tracker.get_slot("user_id") or \
                       tracker.latest_message.get('metadata', {}).get('user_id', '')
-        user_locale = tracker.get_slot("user_locale") or \
+        user_locale = tracker.get_slot("locale") or \
                       tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
 
         # Timing — guard against missing slot
@@ -543,6 +558,26 @@ class ActionConfirmRead(Action):
 
             next_question_id = result[0]
 
+            # Persist next activity so reconnect resumes here, not at this explanation
+            cursor.execute(
+                "SELECT id FROM authoringtool_userscenarioscore "
+                "WHERE user_id = %s AND scenario_id = %s",
+                (user_id, scenario_id)
+            )
+            if cursor.fetchone():
+                cursor.execute(
+                    "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
+                    "WHERE user_id = %s AND scenario_id = %s",
+                    (next_question_id, user_id, scenario_id)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO authoringtool_userscenarioscore "
+                    "(user_id, scenario_id, last_activity_id, user_score) VALUES (%s, %s, %s, 0)",
+                    (user_id, scenario_id, next_question_id)
+                )
+            conn.commit()
+
             # Check for Pendulum Lab
             cursor.execute(
                 """
@@ -571,13 +606,91 @@ class ActionEndScenario(Action):
         return "action_end_scenario"
 
     def run(self, dispatcher, tracker, domain):
-        user_locale = tracker.get_slot("user_locale") or \
+        user_locale = tracker.get_slot("locale") or \
                       tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
         if _is_greek(user_locale):
             dispatcher.utter_message(text="Ευχαριστούμε για την συμμετοχή σου!")
         else:
             dispatcher.utter_message(text="Thank you for participating!")
         return [AllSlotsReset()]
+
+
+class ActionRequestUserInput(Action):
+    def name(self):
+        return "action_request_user_input"
+
+    def run(self, dispatcher, tracker, domain):
+        metadata = tracker.latest_message.get('metadata', {})
+        locale = (
+            tracker.get_slot("locale")
+            or metadata.get("scenario_lang", "")
+        )
+        if _is_greek(locale):
+            dispatcher.utter_message(
+                text="Γεια σου! Πες μου κάτι για να συνεχίσουμε — για παράδειγμα πώς σε λένε;"
+            )
+        else:
+            dispatcher.utter_message(
+                text="Hello! Tell me something to continue — for example, what's your name?"
+            )
+        return [SlotSet("locale", locale)]
+
+
+class ActionDetectLanguage(Action):
+    def name(self):
+        return "action_detect_language"
+
+    def run(self, dispatcher, tracker, domain):
+        metadata = tracker.latest_message.get('metadata', {})
+        # Prefer metadata locale (set by the parent page); fall back to langdetect
+        locale = (
+            tracker.get_slot("locale")
+            or metadata.get("scenario_lang", "")
+        )
+        if not locale:
+            try:
+                user_text = tracker.latest_message.get("text", "")
+                detected = detect(user_text) if user_text else "en"
+                locale = "el" if detected == "el" else "en"
+            except Exception:
+                locale = "en"
+
+        if _is_greek(locale):
+            dispatcher.utter_message(
+                text=f"Εντόπισα ότι μιλάς Ελληνικά. Είναι σωστό;",
+                buttons=[
+                    {"title": "Ναι", "payload": "/affirm"},
+                    {"title": "Όχι", "payload": "/deny"},
+                ]
+            )
+        else:
+            dispatcher.utter_message(
+                text=f"I detected English as your language. Is that correct?",
+                buttons=[
+                    {"title": "Yes", "payload": "/affirm"},
+                    {"title": "No",  "payload": "/deny"},
+                ]
+            )
+        return [SlotSet("locale", locale)]
+
+
+class ActionHandleLanguageConfirmation(Action):
+    def name(self):
+        return "action_handle_language_confirmation"
+
+    def run(self, dispatcher, tracker, domain):
+        locale = tracker.get_slot("locale") or ""
+        if _is_greek(locale):
+            dispatcher.utter_message(
+                text="Τέλεια! Όταν είσαι έτοιμος, πες μου «Ξεκίνα».",
+                buttons=[{"title": "Ξεκίνα!", "payload": "/ask_me"}]
+            )
+        else:
+            dispatcher.utter_message(
+                text="Great! Whenever you're ready, say \"Let's go\".",
+                buttons=[{"title": "Let's go!", "payload": "/ask_me"}]
+            )
+        return [SlotSet("locale", locale)]
 
 
 def getPhetPendulumData(tracker):

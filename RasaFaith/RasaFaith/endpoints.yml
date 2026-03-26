@@ -29,12 +29,12 @@ action_endpoint:
 tracker_store:
   type: SQL
   dialect: "postgresql"  # the dialect used to interact with the database
-  url: "localhost"  # e.g. "localhost"
-  port: 5432  # e.g. 5432
-  username: "postgres"  # e.g. "postgres"
-  password: "root"
-  db: "djangofaith"
-  login_db: "djangofaith"  # optional: the database to connect to when connecting to the db
+  url: "db"  # Docker service name for postgres
+  port: 5432
+  username: "faithuser"
+  password: "faithpass"
+  db: "faithdb"
+  login_db: "faithdb"
 
 #tracker_store:
 #    type: mongod

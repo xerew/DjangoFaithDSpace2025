@@ -56,7 +56,14 @@
         {% if can_edit or request.user.is_superuser %}
         <div class="row">
             <div class="col-lg-12">
-                <button id="btn-generate-context" class="btn btn-primary" data-scenario-id="{{ myScenario.id }}">Generate LLM Context</button>
+                <button id="btn-generate-context" class="btn btn-primary" data-scenario-id="{{ myScenario.id }}" data-force="false">Generate LLM Context</button>
+                <span data-bs-toggle="tooltip" data-bs-placement="top"
+                      title="Runs LLM evaluation on activities that have not yet been processed. Reuses the existing PDF index and skips activities that already have cached context. Use this for regular runs after new student data is collected."
+                      style="cursor:help; color:#0d6efd; font-size:0.85rem; vertical-align:middle;">&#9432;</span>
+                <button id="btn-generate-context-force" class="btn btn-warning ms-2" data-scenario-id="{{ myScenario.id }}" data-force="true">Force Rebuild</button>
+                <span data-bs-toggle="tooltip" data-bs-placement="top"
+                      title="Deletes the Chroma PDF index and all cached activity/phase/scenario context from the database, then regenerates everything from scratch. Use this after uploading new PDFs or if a previous generation produced incorrect results."
+                      style="cursor:help; color:#ffc107; font-size:0.85rem; vertical-align:middle;">&#9432;</span>
                 <form style="display:none;">{% csrf_token %}</form>
                 <div id="context-status" style="margin-top: 10px;"></div>
             </div>
@@ -216,17 +223,21 @@
         }
 
     ///////////////// LLM /////////////////
-    document.getElementById("btn-generate-context").addEventListener("click", () => {
-        const button = document.getElementById("btn-generate-context");
+    function startLlmGeneration(button, force) {
         const scenarioId = button.dataset.scenarioId;
         const statusDiv = document.getElementById("context-status");
+        const forceBtn = document.getElementById("btn-generate-context-force");
+        const normalBtn = document.getElementById("btn-generate-context");
+        const originalText = button.innerText;
 
-        // Disable button and show status
-        button.disabled = true;
+        normalBtn.disabled = true;
+        forceBtn.disabled = true;
         button.innerText = "Calculating... ⏳";
-        statusDiv.innerHTML = "⏳ LLM context generation started. This may take a few minutes...";
+        statusDiv.innerHTML = force
+            ? "⏳ Force rebuild started — all cached context will be regenerated..."
+            : "⏳ LLM context generation started. This may take a few minutes...";
 
-        fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/`, {
+        fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/?force=${force}`, {
             method: "POST",
             headers: {
                 "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -243,13 +254,15 @@
                         .then(status => {
                             if (status.state === "SUCCESS") {
                                 clearInterval(interval);
-                                button.disabled = false;
-                                button.innerText = "Generate LLM Context";
+                                normalBtn.disabled = false;
+                                forceBtn.disabled = false;
+                                button.innerText = originalText;
                                 statusDiv.innerHTML = "✅ Context generation completed!";
                             } else if (status.state === "FAILURE") {
                                 clearInterval(interval);
-                                button.disabled = false;
-                                button.innerText = "Generate LLM Context";
+                                normalBtn.disabled = false;
+                                forceBtn.disabled = false;
+                                button.innerText = originalText;
                                 statusDiv.innerHTML = "❌ An error occurred during generation.";
                             } else {
                                 statusDiv.innerHTML = `⏳ Still generating... [${status.state}]`;
@@ -257,17 +270,33 @@
                         });
                 }, 5000);
             } else {
-                button.disabled = false;
-                button.innerText = "Generate LLM Context";
+                normalBtn.disabled = false;
+                forceBtn.disabled = false;
+                button.innerText = originalText;
                 statusDiv.innerHTML = "❌ Error starting the task.";
             }
         })
         .catch(err => {
             console.error(err);
-            button.disabled = false;
-            button.innerText = "Generate LLM Context";
+            normalBtn.disabled = false;
+            forceBtn.disabled = false;
+            button.innerText = originalText;
             statusDiv.innerHTML = "❌ Request failed.";
         });
+    }
+
+    document.getElementById("btn-generate-context").addEventListener("click", function() {
+        startLlmGeneration(this, false);
+    });
+    document.getElementById("btn-generate-context-force").addEventListener("click", function() {
+        if (confirm("Force rebuild will regenerate all activity/phase/scenario context from scratch and delete existing Chroma indexes. Continue?")) {
+            startLlmGeneration(this, true);
+        }
+    });
+
+    // Initialise Bootstrap tooltips on this page
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+        new bootstrap.Tooltip(el);
     });
   </script>
 {% endblock atcontent %}

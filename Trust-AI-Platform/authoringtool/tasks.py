@@ -23,19 +23,25 @@ import time
 import requests
 import re
 from collections import deque
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain.chains import RetrievalQA
-from chromadb.config import Settings as ChromaSettings
+import chromadb
 import glob
 import random
 from django.db import transaction
 import shutil, errno, stat
 from pathlib import Path
 import traceback
+
+
+def _date_to_aware(d):
+    """Convert a date object to a timezone-aware datetime at midnight."""
+    return make_aware(datetime.combine(d, datetime.min.time()))
+
 
 def _on_rm_error(func, path, exc_info):
     """
@@ -88,12 +94,12 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
@@ -278,12 +284,12 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     performance_counts = {'High': 0, 'Moderate': 0, 'Low': 0}
     user_performance = {user.id: {'weighted_score': 0, 'max_weighted_score': 0, 'phases_completed': 0} for user in users}
@@ -457,9 +463,9 @@ def compute_activity_answers_data(scenario_id, group_ids, start_date, end_date, 
 
     # Apply start_date and end_date filters to last answers
     if start_date:
-        last_answers = last_answers.filter(created_on__gte=start_date)
+        last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     if end_date:
-        last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+        last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     if data_type == 'activities':
         # Handle activities as in the previous logic
@@ -540,12 +546,12 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
@@ -668,8 +674,10 @@ def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activi
     scenario = get_object_or_404(Scenario, id=scenario_id)
     data_type = activity_type
 
-    start_dt = parse_date(start_date) if isinstance(start_date, str) and start_date else None
-    end_dt = parse_date(end_date) if isinstance(end_date, str) and end_date else None
+    _sd = parse_date(start_date) if isinstance(start_date, str) and start_date else None
+    _ed = parse_date(end_date) if isinstance(end_date, str) and end_date else None
+    start_dt = _date_to_aware(_sd) if _sd else None
+    end_dt = _date_to_aware(_ed) if _ed else None
 
     activity_type_q = get_object_or_404(ActivityType, name='Question')
 
@@ -761,11 +769,11 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
     # Apply start_date and end_date filters
     if start_date:
         start_date = parse_date(start_date)
-        last_answers = last_answers.filter(created_on__gte=start_date)
+        last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
-        last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+        last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
     
     # Get the minimum activity ID in the scenario
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
@@ -917,12 +925,12 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
     min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
@@ -1058,8 +1066,10 @@ def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end
 
     scenario = get_object_or_404(Scenario, id=scenario_id)
 
-    start_dt = parse_date(start_date) if start_date else None
-    end_dt = parse_date(end_date) if end_date else None
+    _sd = parse_date(start_date) if start_date else None
+    _ed = parse_date(end_date) if end_date else None
+    start_dt = _date_to_aware(_sd) if _sd else None
+    end_dt = _date_to_aware(_ed) if _ed else None
 
     phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
 
@@ -1221,12 +1231,12 @@ def compute_scenario_paths(scenario_id, group_ids, start_date, end_date):
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
     min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
@@ -1425,14 +1435,14 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     if start_date:
         start_date = parse_date(start_date)
         if start_date:
-            last_answers = last_answers.filter(created_on__gte=start_date)
-            # first_answers = first_answers.filter(created_on__gte=start_date)
+            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
+            # first_answers = first_answers.filter(created_on__gte=_date_to_aware(start_date))
     
     if end_date:
         end_date = parse_date(end_date)
         if end_date:
-            last_answers = last_answers.filter(created_on__lte=end_date + timedelta(days=1))
-            # first_answers = first_answers.filter(created_on__lte=end_date + timedelta(days=1))
+            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
+            # first_answers = first_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     csv_data = []
     for user in valid_users:
@@ -1881,7 +1891,7 @@ def calculate_activities_in_risk(scenario_id):
 def get_data_insight(flag):
     """
     Returns a combined insight + resolution suggestion string
-    based on the flag’s type, reason, and category.
+    based on the flag's type, reason, and category.
     """
     flag_type = flag.flag_type
     reason = flag.flag_reason
@@ -2070,7 +2080,7 @@ def get_phase_based_prior_summary(activity):
     summary_lines = []
 
     for phase in phases:
-        # If we haven’t reached this activity’s phase yet, dump whole phase
+        # If we haven't reached this activity's phase yet, dump whole phase
         if phase.id < activity.phase.id:
             acts = Activity.objects.filter(phase=phase).order_by('created_on', 'id')
         # If this is the same phase, only include those before the activity
@@ -2094,11 +2104,6 @@ def get_phase_based_prior_summary(activity):
 # BASE_INDEX_DIR = os.path.join(settings.RAG_INDEX_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, "rag_indexes")
 BASE_RAG_DIR = settings.RAG_PDFS_ROOT          # e.g. /data/rag/rag_pdfs
 BASE_INDEX_DIR = settings.RAG_INDEX_ROOT       # e.g. /data/rag/rag_indexes
-CHROMA_SETTINGS = ChromaSettings(
-    anonymized_telemetry=False,
-    is_persistent=True
-)
-
 def get_pdf_dir(scenario_id: int) -> str:
     return os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
 
@@ -2119,11 +2124,11 @@ def ensure_rag_index(scenario_id):
     index_dir = os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
     os.makedirs(index_dir, exist_ok=True)
     collection_name = f"scenario_{scenario_id}"
+    client = chromadb.PersistentClient(path=index_dir)
     return Chroma(
+        client=client,
         collection_name=collection_name,
-        embedding_function=HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2"),# embedding_function=embeddings,
-        persist_directory=index_dir,
-        client_settings=CHROMA_SETTINGS
+        embedding_function=HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2"),
     )
 
 def chunk_and_index_pdfs(scenario_id):
@@ -2169,7 +2174,6 @@ def chunk_and_index_pdfs(scenario_id):
 
     if all_docs:
         rag_store.add_documents(all_docs)
-        rag_store.persist()
         print(f"[RAG] indexed {len(all_docs)} new chunks for scenario {scenario_id}.")
     else:
         print(f"[RAG] no new chunks to index for scenario {scenario_id}.")
@@ -2197,11 +2201,15 @@ def select_action(flag_type, category, epsilon=0.1):
 
 def get_best_q_action(flag_list):
     scores = {'create': 0.0, 'revise': 0.0, 'skip': 0.0}
+    has_data = False
     for flag in flag_list:
         for action in scores:
             qv = QValue.objects.filter(flag_type=flag.flag_type, category=flag.category, action=action).first()
             if qv:
                 scores[action] += qv.q_value
+                has_data = True
+    if not has_data:
+        return random.choice(ACTIONS)
     return max(scores, key=scores.get)
 
 # OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
@@ -2217,6 +2225,16 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
     if force_rebuild and index_dir.exists():
         print(f"🗑  Removing old RAG index at {index_dir}")
         shutil.rmtree(index_dir, onerror=_on_rm_error)
+
+    if force_rebuild:
+        print(f'Clearing cached LLM context from DB for scenario {scenario_id}')
+        Activity.objects.filter(phase__scenario=scenario).update(
+            llm_context='', short_llm_summary='', related_act_llm_context=''
+        )
+        Phase.objects.filter(scenario=scenario).update(llm_context='')
+        scenario.llm_context = ''
+        scenario.save(update_fields=['llm_context'])
+
     rag_store = chunk_and_index_pdfs(scenario_id)
     retriever = rag_store.as_retriever(search_kwargs={"k": 5})
 
@@ -2225,7 +2243,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
     activities = Activity.objects.filter(phase__scenario=scenario).select_related('phase').prefetch_related('answers')
 
     for activity in activities:
-        # Skip ones we’ve already done
+        # Skip ones we've already done
         if activity.llm_context and activity.short_llm_summary:
             continue
 
@@ -2253,10 +2271,10 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         prompt = (
             "You are a pedagogical reviewer. Assess clarity, educational value, and engagement.\n\n"
             f"Activity: {activity.name}\n"
-            f"Content: {activity.plain_text or ‘—‘}\n"
-            f"Image Description: {image_llm or ‘—‘}\n\n"
+            f"Content: {activity.plain_text or '—'}\n"
+            f"Image Description: {image_llm or '—'}\n\n"
             "Please give:\n"
-            "1) A one-sentence summary of the activity’s goal.\n"
+            "1) A one-sentence summary of the activity's goal.\n"
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
@@ -2325,8 +2343,8 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
             f"Phase: {phase.name}\nDesc: {phase.description or '—'}\n\n"
             "Activities:\n" + "\n".join(act_contexts) + "\n\n"
             "Please give:\n"
-            "1) A one-sentence summary of this phase’s learning goal.\n"
-            "2) A one-sentence note on the sequence’s coherence."
+            "1) A one-sentence summary of this phase's learning goal.\n"
+            "2) A one-sentence note on the sequence's coherence."
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
@@ -2413,7 +2431,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
 
         print(f"PDF CONTENT:\n\n {pdf_context} \n\n\n\n")
 
-        # — build “Activity Content” & “Answers” blocks —
+        # — build "Activity Content" & "Answers" blocks —
         content = f"Content:\n{activity.plain_text or '—'}"
         if activity.activity_type.name == "Experiment":
             if activity.simulation:
@@ -2433,78 +2451,89 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
 
         # — final proposal prompt —
         prompt = (
-            “You are an expert instructional designer. Choose exactly ONE action:\n\n”
-            “  • create — write a brand-new activity (either a multiple-choice question, an explanation, or a hands-on experiment) that helps resolve the flagged misconception.\n”
-            “  • revise — Rewrite or adjust the existing activity to improve clarity or correctness.\n”
-            “  • skip   — Leave this activity unchanged. Use skip when: the activity is already clear; High performers answered it quickly with no sign of confusion; the flag is only about speed/disengagement, not about misunderstanding; or adding/changing it would not help struggling students.\n\n”
+            "You are an expert instructional designer. Choose exactly ONE action:\n\n"
+            "  • create — write a brand-new activity (either a multiple-choice question, an explanation, or a hands-on experiment) that helps resolve the flagged misconception.\n"
+            "  • revise — Rewrite or adjust the existing activity to improve clarity or correctness.\n"
+            "  • skip   — Leave this activity unchanged. Use skip when: the activity is already clear; High performers answered it quickly with no sign of confusion; the flag is only about speed/disengagement, not about misunderstanding; or adding/changing it would not help struggling students.\n\n"
 
-            “=== LEARNING SYSTEM RECOMMENDATION ===\n”
-            f”Based on historical outcomes for similar flags, the recommended action is: {bias_action.upper()}\n”
-            “You may follow or override this recommendation if the context clearly justifies a different choice.\n\n”
+            "=== LEARNING SYSTEM RECOMMENDATION ===\n"
+            f"Based on historical outcomes for similar flags, the recommended action is: {bias_action.upper()}\n"
+            "You may follow or override this recommendation if the context clearly justifies a different choice.\n\n"
 
-            “=== CONTEXT ===\n”
-            f”Scenario Insight:\n{scenario.llm_context}\n\n”
-            f”Phase Insight:\n{phase.llm_context}\n\n”
-            “Flagged Activity:\n”
-            f”- Name: {activity.name}\n”
-            f”- Type: {activity.activity_type.name}\n”
-            f”- Content: {content}\n\n”
-            “Why students were flagged:\n”
-            f”{combined_insight}\n\n”
-            “Existing proposals:\n”
-            f”{combined_resolution or 'None'}\n\n”
-            “Prior activities summary:\n”
-            f”{prior_summary}\n\n”
-            “PDF snippets (in English, for inspiration only):\n”
-            f”{pdf_context or 'None'}\n\n”
+            "=== CONTEXT ===\n"
+            f"Scenario Insight:\n{scenario.llm_context}\n\n"
+            f"Phase Insight:\n{phase.llm_context}\n\n"
+            "Flagged Activity:\n"
+            f"- Name: {activity.name}\n"
+            f"- Type: {activity.activity_type.name}\n"
+            f"- Content: {content}\n"
+            + (f"- {answers}\n" if answers else "")
+            + "\nWhy students were flagged:\n"
+            f"{combined_insight}\n\n"
+            "Existing proposals:\n"
+            f"{combined_resolution or 'None'}\n\n"
+            "Prior activities summary:\n"
+            f"{prior_summary}\n\n"
+            "PDF snippets (in English, for inspiration only):\n"
+            f"{pdf_context or 'None'}\n\n"
 
-            “=== GUIDELINES ===\n”
-            “1. **CREATE** can be:\n”
-            “- A multiple-choice question (2–3 options, with weights)\n”
-            “- A short explanation (clear and concise, no bullet points)\n”
-            “- A hands-on experiment using the existing simulation or lab (never invented by the student)\n”
-            “For MCQs, label choices A., B., C., etc. and assign weights (3=Correct, 2=Moderate, 1=Low). Do NOT reveal full solution steps or formulas.\n”
-            “For explanations or experiments, keep student-facing text clear and age-appropriate.\n”
-            “2. **REVISE** to improve clarity or correctness. Small rewordings or factual fixes are welcome.\n”
-            “3. **SKIP** — strongly prefer skip when High performers finished quickly and Low/Moderate performers are not confused about the concept (the flag is about engagement speed, not a knowledge gap). Also skip if the activity is redundant with another already in this phase.\n\n”
-            “- Do NOT include open-ended or discussion prompts; only MCQs for Question type.\n”
-            “- Students perform experiments—they do not invent them here.\n”
-            “- Respond entirely in English.\n”
-            “- Never use any percentage-based thresholds or \”if more than X%\” language.\n\n”
+            "=== GUIDELINES ===\n"
+            "1. **CREATE** can be:\n"
+            "- A multiple-choice question (2–3 options, with weights)\n"
+            "- A short explanation (clear and concise, no bullet points)\n"
+            "- A hands-on experiment using the existing simulation or lab (never invented by the student)\n"
+            "For MCQs, label choices A., B., C., etc. and assign weights (3=Correct, 2=Moderate, 1=Low). Do NOT reveal full solution steps or formulas.\n"
+            "For explanations or experiments, keep student-facing text clear and age-appropriate.\n"
+            "2. **REVISE** to improve clarity or correctness. Small rewordings or factual fixes are welcome.\n"
+            "3. **SKIP** — strongly prefer skip when High performers finished quickly and Low/Moderate performers are not confused about the concept (the flag is about engagement speed, not a knowledge gap). Also skip if the activity is redundant with another already in this phase.\n\n"
+            "- Do NOT include open-ended or discussion prompts; only MCQs for Question type.\n"
+            "- Students perform experiments—they do not invent them here.\n"
+            "- Respond entirely in English.\n"
+            "- Never use any percentage-based thresholds or \"if more than X%\" language.\n\n"
 
-            “=== OUTPUT FORMAT ===\n”
-            “Action: <create|revise|skip>\n\n”
-            “New Activity (only for create or revise):\n”
-            “- Activity Name: (short, descriptive)\n”
-            “- Activity Type: <Question|Explanation|Experiment>\n”
-            “- Content: (student-facing text or MCQ stem)\n”
-            “- Answers:\n”
-            “    A. … (weight 3)\n”
-            “    B. … (weight 2)\n”
-            “    C. … (weight 1)  # adjust count of choices to 2–4; omit for Explanation/Experiment\n”
-            “- Insert Location: <before|after flagged activity>  # **always include this line**\n\n”
-            “Explanation (teacher-only):\n”
-            “(Two sentences: why this action addresses the struggle, in English.)”
+            "=== OUTPUT FORMAT ===\n"
+            "Action: <create|revise|skip>\n\n"
+            "New Activity (only for create or revise):\n"
+            "- Activity Name: (short, descriptive)\n"
+            "- Activity Type: <Question|Explanation|Experiment>\n"
+            "- Content: (student-facing text or MCQ stem)\n"
+            "- Answers:\n"
+            "    A. … (weight 3)\n"
+            "    B. … (weight 2)\n"
+            "    C. … (weight 1)  # adjust count of choices to 2–4; omit for Explanation/Experiment\n"
+            "- Insert Location: <before|after flagged activity>  # **always include this line**\n\n"
+            "Explanation (teacher-only):\n"
+            "(Two sentences: why this action addresses the struggle, in English.)"
         )
         try:
-            resp = requests.post(f”{OLLAMA_URL}/api/generate”, json={
-                “model”:  “qwen2.5:32b”,
-                “prompt”: prompt,
-                “stream”: False
+            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model":  "qwen2.5:32b",
+                "prompt": prompt,
+                "stream": False
             })
-            raw = resp.json().get(“response”, “”)
+            raw = resp.json().get("response", "")
         except Exception as e:
-            raw = f”Action: skip\n\nExplanation: [LLM error: {e}]”
-            print(f”  ⚠️ Ollama error (proposal): {e}”)
+            raw = f"Action: skip\n\nExplanation: [LLM error: {e}]"
+            print(f"  ⚠️ Ollama error (proposal): {e}")
 
         # — parse into structured JSON via your existing parser —
         structured = parse_llm_proposal(raw)
-        translated_structured = parse_llm_proposal_translated(raw, scenario.language)
+        try:
+            translated_structured = parse_llm_proposal_translated(raw, scenario.language)
+            translated_raw = translate_text(raw, scenario.language) or raw
+        except Exception as _te:
+            print(f'  ⚠️ Translation error: {_te}')
+            translated_structured = None
+            translated_raw = raw
+        translated_structured_json = json.dumps(
+            translated_structured or structured,
+            ensure_ascii=False,
+        )
 
-        # — classify action type from the parsed “Action:” line, not by scanning full text —
-        proposal_type = (structured.get(“action”) or “”).strip().lower()
-        if proposal_type not in (“create”, “revise”, “skip”):
-            proposal_type = “skip”
+        # — classify action type from the parsed "Action:" line, not by scanning full text —
+        proposal_type = (structured.get("action") or "").strip().lower()
+        if proposal_type not in ("create", "revise", "skip"):
+            proposal_type = "skip"
 
         # — save the proposal —
         prop = ActivityProposal.objects.create(
@@ -2513,9 +2542,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
             activity=activity,
             proposal_type=proposal_type,
             suggested_action=raw,
-            translated_action=translate_text(raw, scenario.language),
+            translated_action=translated_raw,
             json_action=json.dumps(structured, ensure_ascii=False),
-            json_translated_action=json.dumps(translated_structured, ensure_ascii=False),
+            json_translated_action=translated_structured_json,
             status='new',
         )
         prop.flag.set(flag_list)
@@ -2648,6 +2677,9 @@ def parse_llm_proposal(response_suggested_action, proposal=None):
     return data
 
 def translate_text(text, target_language):
+    if text is None:
+        return ""
+
     target_language = target_language.strip().capitalize()
 
     if target_language.lower() in ['english', 'en', '']:
@@ -2666,11 +2698,11 @@ def translate_text(text, target_language):
             })
     except requests.exceptions.RequestException as e:
         print("❌ Request failed:", e)
-        return None
+        return text
     except ValueError:
         print("❌ Failed to parse JSON. Raw response:")
         print(translation_response.text)
-        return None
+        return text
     
     # print(f"TO RESPONSE EINAI: {translation_response.text}")
     translated_text = translation_response.json().get("response", "").strip()

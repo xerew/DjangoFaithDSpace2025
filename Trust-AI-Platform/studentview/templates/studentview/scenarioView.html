@@ -130,7 +130,7 @@
 				iframe.contentWindow.postMessage({
 					type:        'sendReadyMessage',
 					displayText: "Let's start! 🚀",
-					rasaMessage: "/greet"
+					rasaMessage: "/ask_me"
 				}, window.location.origin);
 			}
 		}
@@ -182,7 +182,7 @@
                         {% endif %}
                     </div>
                     <div class="col-md-4">
-                        <div class="chatbot-container">
+                        <div class="chatbot-container" style="position:sticky; top:80px; align-self:flex-start;">
                             <iframe src="{% url 'chat_interface' %}" style="width:100%; height:50vh;"></iframe>
                         </div>
                     </div>
@@ -284,10 +284,20 @@
 								iframe.style.width = '100%';
 								iframe.style.height = '600px';
 
+								function _localiseUrl(url) {
+									if (!url) return url;
+									try {
+										const u = new URL(url);
+										if (u.hostname !== window.location.hostname) {
+											return window.location.origin + u.pathname + u.search + u.hash;
+										}
+									} catch (e) {}
+									return url;
+								}
 								if (!data.experimentLL && data.simulation) {
-									iframe.src = data.simulation.iframe_url;  // Simulation iframe URL
+									iframe.src = _localiseUrl(data.simulation.iframe_url);
 								} else if (data.experimentLL) {
-									iframe.src = data.experimentLL.iframe_url;  // LTI integration iframe URL
+									iframe.src = _localiseUrl(data.experimentLL.iframe_url);
 								}
 
 								iframe.frameBorder = '0';

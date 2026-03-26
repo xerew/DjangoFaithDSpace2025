@@ -5,7 +5,7 @@ from .models import UserGroup, UserGroupMembership
 class UserGroupMembershipInline(admin.TabularInline):
     model = UserGroupMembership
     extra = 0  # No extra empty rows unless needed
-    readonly_fields = ('password',)  # Show generated passwords (readonly)
+    readonly_fields = ('initial_password',)  # Show generated passwords (readonly)
     autocomplete_fields = ('user',)  # If you want to search users easily
 
 # Admin for UserGroup
@@ -29,7 +29,7 @@ class UserGroupAdmin(admin.ModelAdmin):
 # Admin for UserGroupMembership (if you want to manage them separately too)
 @admin.register(UserGroupMembership)
 class UserGroupMembershipAdmin(admin.ModelAdmin):
-    list_display = ('group', 'user', 'password')  # Show group, user, and password
+    list_display = ('group', 'user', 'initial_password')  # Show group, user, and password
     search_fields = ('group__name', 'user__username')  # Searchable
     list_filter = ('group',)  # Filter sidebar
-    readonly_fields = ('password',)  # Don't allow password change here (optional)
+    readonly_fields = ('initial_password',)  # Don't allow password change here (optional)

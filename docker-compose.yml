@@ -29,7 +29,6 @@ services:
       - ./data/static:/app/staticfiles
       - ./data/media:/app/media
       - ./data:/data
-      - ./data/rag/rag_pdfs:/data/rag/rag_pdfs
     depends_on:
       - db
       - redis
@@ -48,8 +47,6 @@ services:
     volumes:
       - ./data:/data
       - ./data/media:/app/media
-      - ./data/rag/rag_pdfs:/data/rag/rag_pdfs
-      - ./data/rag/rag_pdfs:/data/rag/rag_indexes
     depends_on:
       - db
       - redis
@@ -63,6 +60,8 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     command: celery -A faithDev beat -l info
+    volumes:
+      - ./data:/data
     depends_on:
       - db
       - redis
@@ -72,21 +71,32 @@ services:
     image: rasa/rasa:3.6.0
     working_dir: /app
     volumes:
-      - ./RasaFaith:/app
+      - ./RasaFaith/RasaFaith:/app
     command: run --enable-api --cors "*" --debug
     expose:
       - "5005"
     depends_on:
+      - db
       - rasa_actions
     restart: unless-stopped
 
   rasa_actions:
-    image: rasa/rasa-sdk:3.7.0
+    build:
+      context: ./RasaFaith/RasaFaith/actions
+      dockerfile: Dockerfile
     working_dir: /app
     volumes:
-      - ./RasaFaith/actions:/app/actions
+      - ./RasaFaith/RasaFaith/actions:/app/actions
     ports:
       - "5055:5055"
+    environment:
+      DB_HOST: db
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PORT: "5432"
+    depends_on:
+      - db
     restart: unless-stopped
 
   nginx:
@@ -98,7 +108,6 @@ services:
       - ./data/static:/static:ro
       - ./data/media:/media:ro
       - ./data/rag/rag_pdfs:/rag_pdfs:ro
-      - ./data/rag/rag_pdfs:/rag_indexes:ro
     depends_on:
       - web
       - rasa

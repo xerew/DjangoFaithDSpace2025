@@ -13,20 +13,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='UserAnswer',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('timing', models.IntegerField(blank=True, default=0, null=True)),
-                ('created_on', models.DateTimeField(auto_now_add=True)),
-                ('activity', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='authoringtool.activity')),
-                ('answer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='authoringtool.answer')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'verbose_name': "User's Answer",
-                'verbose_name_plural': "User's Answers",
-                'ordering': ['user'],
-            },
-        ),
+        # This migration originally tried to re-create UserAnswer, which already exists.
+        # Removed empty CreateModel operation to avoid duplicate table error.
     ]
