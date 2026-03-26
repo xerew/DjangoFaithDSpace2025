@@ -2077,15 +2077,10 @@ def get_student_performance_metrics_task_status(request, task_id):
         return JsonResponse({'status': 'failed', 'error': str(result.info)})
 
 def get_teacher_groups(request, scenario_id):
-    """Fetch only the teacher's groups assigned to the selected scenario"""
-    teacher_id = request.user.id
-
-    # Fetch groups created by the teacher and assigned to the selected scenario
     groups = UserGroup.objects.filter(
-        created_by=teacher_id,  # FIX: Use `created_by` instead of `owner`
-        assigned_scenarios=scenario_id  # Ensure ManyToMany relationship with Scenario
+        created_by=request.user,
+        assigned_scenarios__id=scenario_id
     ).values('id', 'name')
-
     return JsonResponse({'groups': list(groups)})
 
 def ai_metrics(request, scenario_id):
@@ -2169,16 +2164,19 @@ def risk_flags_status(request, task_id):
     
     return JsonResponse({'status': r.state})
 
+@login_required
 def trigger_llm_context_task(request, scenario_id):
     if request.method == "POST":
         try:
             scenario = Scenario.objects.get(id=scenario_id)
-            task = generate_llm_context_for_scenario.delay(scenario.id)
+            force = request.GET.get("force", "false").lower() == "true"
+            task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force)
             return JsonResponse({"status": "started", "task_id": task.id})
         except Scenario.DoesNotExist:
             return JsonResponse({"error": "Scenario not found"}, status=404)
     return JsonResponse({"error": "Invalid request"}, status=400)
 
+@login_required
 def get_llm_context_task_status(request, task_id):
     task = AsyncResult(task_id)
     return JsonResponse({"state": task.state, "result": task.result})

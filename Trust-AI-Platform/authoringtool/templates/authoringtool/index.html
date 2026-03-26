@@ -38,41 +38,58 @@
 					<label class="col-12 col-sm-2 col-form-label">Student Groups (Optional)</label>
 					<div class="col-12 col-sm-10">
 					  <select id="groupSelect" class="form-select" name="group_ids" multiple>
-						<!-- Groups will be loaded dynamically -->
 					  </select>
+					  <small id="groupSelectMessage" style="display:none; color:gray;">No groups found for this scenario.</small>
 					</div>
 				  </div>
 				  <script>
-					document.getElementById("scenarioSelect").addEventListener("change", function() {
-					  const scenarioId = this.value;
-					  if (scenarioId) {
-						  fetch(`/authoringtool/get_teacher_groups/${scenarioId}/`)
-							  .then(response => response.json())
-							  .then(data => {
-								  const groupSelect = document.getElementById("groupSelect");
-								  groupSelect.innerHTML = ''; // Clear previous options
-				  
-								  if (!data.groups || data.groups.length === 0) {
-									  groupSelect.innerHTML = '<option value="">No groups available</option>';
-									  return;
-								  }
-				  
-								  data.groups.forEach(group => {
-									  console.log("Group Data:", group);  // Debugging output
-									  if (group.name) {  
-										  groupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
-									  } else {
-										  console.error("Invalid group data:", group);
-										  groupSelect.innerHTML += `<option value="">(Error: Missing Name)</option>`;
-									  }
-								  });
-							  })
-							  .catch(error => {
-								  console.error("Error fetching groups:", error);
-								  document.getElementById("groupSelect").innerHTML = '<option value="">Error loading groups</option>';
-							  });
-					  }
-					});
+                    window.dashboardRequestVersion = window.dashboardRequestVersion || 0;
+                    window.bumpDashboardRequestVersion = function() {
+                      window.dashboardRequestVersion += 1;
+                      return window.dashboardRequestVersion;
+                    };
+                    window.isDashboardRequestCurrent = function(version) {
+                      return version === window.dashboardRequestVersion;
+                    };
+
+                    document.addEventListener("DOMContentLoaded", function() {
+                const scenarioSelect = document.getElementById("scenarioSelect");
+                      const groupSelect = document.getElementById("groupSelect");
+                      const groupMsg = document.getElementById("groupSelectMessage");
+
+                      function loadGroups(scenarioId) {
+                        groupSelect.innerHTML = '';
+                        groupSelect.style.display = '';
+                        groupMsg.style.display = 'none';
+                        if (!scenarioId) return;
+                        (window.dashboardNativeFetch || fetch)(`/authoringtool/get_teacher_groups/${scenarioId}/`)
+                          .then(r => r.json())
+                          .then(data => {
+                            if (!data.groups || data.groups.length === 0) {
+                              groupSelect.style.display = 'none';
+                              groupMsg.textContent = 'No groups assigned to this scenario.';
+                              groupMsg.style.display = '';
+                              return;
+                            }
+                            data.groups.forEach(g => {
+                              groupSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+                            });
+                          })
+                          .catch(() => {
+                            groupSelect.style.display = 'none';
+                            groupMsg.textContent = 'Error loading groups.';
+                            groupMsg.style.color = 'red';
+                            groupMsg.style.display = '';
+                          });
+                      }
+
+                      // Only reload on real user interaction, not programmatic dispatchEvent calls
+                      scenarioSelect.addEventListener("change", function(e) {
+                        loadGroups(this.value);
+                      });
+
+                      loadGroups(scenarioSelect.value);
+                    });
 				  </script>
 				<div class="row mb-2">
                   <label class="col-12 col-sm-2 col-form-label">Start Date</label>
@@ -186,16 +203,24 @@
               <div id="sankeyChart" style="min-height: 300px; display: none;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
+                  const filterForm = document.getElementById("filter-form");
+                  filterForm.addEventListener("submit", (event) => {
+                    event.dashboardToken = event.dashboardToken || window.dashboardBeginRequest();
+                  });
+
                   const scenarioSelect = document.getElementById("scenarioSelect");
                   const startDateInput = document.getElementById("start-date-input");
                   const endDateInput = document.getElementById("end-date-input");
-                  const filterForm = document.getElementById("filter-form");
 				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
           
                   // Poll the Sankey task status
-                  function pollSankeyTask(taskId, onSuccess, onError) {
+                  function pollSankeyTask(taskId, expectedScenarioId, onSuccess, onError) {
                     const url = `/authoringtool/get_sankey_task_status/${taskId}/`;
                     const poll = setInterval(() => {
+                      if (scenarioSelect.value !== expectedScenarioId) {
+                        clearInterval(poll);
+                        return;
+                      }
                       fetch(url)
                         .then((response) => {
                           if (!response.ok) {
@@ -204,6 +229,10 @@
                           return response.json();
                         })
                         .then((data) => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data); // Pass the task result
@@ -213,6 +242,7 @@
                           }
                         })
                         .catch((error) => {
+                          if (scenarioSelect.value !== expectedScenarioId) return;
                           clearInterval(poll);
                           onError(error.message);
                         });
@@ -244,15 +274,19 @@
                       fetch(url)
                         .then((response) => response.json())
                         .then((data) => {
+                          if (scenarioSelect.value !== scenarioId) return;
                           const taskId = data.task_id;
                           pollSankeyTask(
                             taskId,
+                            scenarioId,
                             (result) => {
+                              if (scenarioSelect.value !== scenarioId) return;
                               document.getElementById("sankeyLoading").style.display = "none";
                               document.getElementById("sankeyChart").style.display = "block";
                               renderSankeyChart(result);
                             },
                             (error) => {
+                              if (scenarioSelect.value !== scenarioId) return;
                               document.getElementById("sankeyLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
                             }
                           );
@@ -267,7 +301,9 @@
           
                   // Render the Sankey chart
                   function renderSankeyChart(data) {
-                    const sankeyChart = echarts.init(document.querySelector("#sankeyChart"));
+                    const sankeyEl = document.querySelector("#sankeyChart");
+                    requestAnimationFrame(() => {
+                    const sankeyChart = echarts.getInstanceByDom(sankeyEl) || echarts.init(sankeyEl);
                     const option = {
                       tooltip: {
                         trigger: "item",
@@ -301,6 +337,8 @@
                       ],
                     };
                     sankeyChart.setOption(option);
+                    requestAnimationFrame(() => sankeyChart.resize());
+                    }); // end requestAnimationFrame
                   }
           
                   // Clear the Sankey chart
@@ -339,9 +377,13 @@
                       const filterForm = document.getElementById("filter-form");
 					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
       
-                      function pollFinalPerformanceTask(taskId, onSuccess, onError) {
-                          const url = `/authoringtool/get_final_performance_task_status/${taskId}/`;
-                          const poll = setInterval(() => {
+                      function pollFinalPerformanceTask(taskId, expectedScenarioId, onSuccess, onError) {
+                    const url = `/authoringtool/get_final_performance_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                              if (scenarioSelect.value !== expectedScenarioId) {
+                                  clearInterval(poll);
+                                  return;
+                              }
                               fetch(url)
                                   .then((response) => {
                                       if (!response.ok) {
@@ -350,6 +392,10 @@
                                       return response.json();
                                   })
                                   .then((data) => {
+                                      if (scenarioSelect.value !== expectedScenarioId) {
+                                          clearInterval(poll);
+                                          return;
+                                      }
                                       if (data.status === "completed") {
                                           clearInterval(poll);
                                           onSuccess(data.data);
@@ -359,6 +405,7 @@
                                       }
                                   })
                                   .catch((error) => {
+                                      if (scenarioSelect.value !== expectedScenarioId) return;
                                       clearInterval(poll);
                                       onError(error.message);
                                   });
@@ -388,15 +435,19 @@
                               fetch(url)
                                   .then((response) => response.json())
                                   .then((data) => {
+                                      if (scenarioSelect.value !== scenarioId) return;
                                       const taskId = data.task_id;
                                       pollFinalPerformanceTask(
                                           taskId,
+                                          scenarioId,
                                           (result) => {
+                                              if (scenarioSelect.value !== scenarioId) return;
                                               document.getElementById("waterfallLoading").style.display = "none";
                                               document.getElementById("waterfallChart").style.display = "block";
                                               renderWaterfallChart(result);
                                           },
                                           (error) => {
+                                              if (scenarioSelect.value !== scenarioId) return;
                                               document.getElementById("waterfallLoading").innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error}</p>`;
                                           }
                                       );
@@ -411,7 +462,8 @@
       
                       function renderWaterfallChart(data) {
                           const chartDom = document.getElementById("waterfallChart");
-                          const waterfallChart = echarts.init(chartDom);
+                          requestAnimationFrame(() => {
+                          const waterfallChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
                           const option = {
                               title: {
                                   subtext: "Student Performance Distribution"
@@ -458,6 +510,8 @@
                               ]
                           };
                           waterfallChart.setOption(option);
+                          requestAnimationFrame(() => waterfallChart.resize());
+                          }); // end requestAnimationFrame
                       }
       
                       function clearWaterfallChart() {
@@ -518,9 +572,13 @@
 					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
               
                       // Poll the task status
-                      function pollActivityTask(taskId, onSuccess, onError) {
-                        const url = `/authoringtool/get_activity_answers_data_task_status/${taskId}/`;
-                        const poll = setInterval(() => {
+                      function pollActivityTask(taskId, expectedScenarioId, onSuccess, onError) {
+                    const url = `/authoringtool/get_activity_answers_data_task_status/${taskId}/`;
+                    const poll = setInterval(() => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           fetch(url)
                             .then((response) => {
                               if (!response.ok) {
@@ -529,6 +587,10 @@
                               return response.json();
                             })
                             .then((data) => {
+                              if (scenarioSelect.value !== expectedScenarioId) {
+                                clearInterval(poll);
+                                return;
+                              }
                               if (data.status === "completed") {
                                 clearInterval(poll);
                                 onSuccess(data.data); // Pass the task result
@@ -571,6 +633,7 @@
                               const taskId = data.task_id;
                               pollActivityTask(
                                 taskId,
+                                scenarioId,
                                 (result) => {
                                   activityLoading.style.display = "none"; // Hide loading indicator
                                   activityChartElement.style.display = "block"; // Show chart
@@ -639,18 +702,20 @@
                           },
                         };
               
-                        activityChart.clear(); // Clear the chart before setting new options
-                        activityChart.setOption(option);
-              
+                        const currentActivityChart = echarts.getInstanceByDom(activityChartElement) || echarts.init(activityChartElement);
+                        currentActivityChart.clear();
+                        currentActivityChart.setOption(option);
+
                         // Trigger resize after rendering
                         setTimeout(() => {
-                          activityChart.resize();
+                          currentActivityChart.resize();
                         }, 500);
                       }
               
                       // Clear the chart
                       function clearActivityChart() {
-                        activityChart.clear();
+                        const chart = echarts.getInstanceByDom(activityChartElement);
+                        if (chart) chart.clear();
                       }
               
                       // Handle "Apply" button
@@ -688,9 +753,13 @@
                       const filterForm = document.getElementById("filter-form");
 					  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
               
-                      function pollPerformanceTask(taskId, onSuccess, onError) {
+                      function pollPerformanceTask(taskId, expectedScenarioId, onSuccess, onError) {
                         const url = `/authoringtool/get_performance_data_task_status/${taskId}/`;
                         const poll = setInterval(() => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           fetch(url)
                             .then((response) => {
                               if (!response.ok) {
@@ -699,6 +768,10 @@
                               return response.json();
                             })
                             .then((data) => {
+                              if (scenarioSelect.value !== expectedScenarioId) {
+                                clearInterval(poll);
+                                return;
+                              }
                               if (data.status === "completed") {
                                 clearInterval(poll);
                                 onSuccess(data.data); // Pass the task result
@@ -741,6 +814,7 @@
                               const taskId = data.task_id;
                               pollPerformanceTask(
                                 taskId,
+                                scenarioId,
                                 (result) => {
                                   document.getElementById("performanceLoading").style.display = "none";
                                   document.getElementById("performanceChart").style.display = "block";
@@ -888,9 +962,13 @@
 				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
           
                   // Poll task status
-                  function pollTimeSpentTask(taskId, onSuccess, onError) {
+                  function pollTimeSpentTask(taskId, expectedScenarioId, onSuccess, onError) {
                     const url = `/authoringtool/get_time_spent_task_status/${taskId}/`;
                     const poll = setInterval(() => {
+                      if (scenarioSelect.value !== expectedScenarioId) {
+                        clearInterval(poll);
+                        return;
+                      }
                       fetch(url)
                         .then((response) => {
                           if (!response.ok) {
@@ -899,6 +977,10 @@
                           return response.json();
                         })
                         .then((data) => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data); // Pass task result
@@ -940,9 +1022,10 @@
                         .then((response) => response.json())
                         .then((data) => {
                           const taskId = data.task_id;
-                          pollTimeSpentTask(
-                            taskId,
-                            (result) => {
+                              pollTimeSpentTask(
+                                taskId,
+                                scenarioId,
+                                (result) => {
                               timeSpentLoading.style.display = "none"; // Hide loading indicator
                               timeSpentChartElement.style.display = "block"; // Show chart
                               renderTimeSpentChart(result);
@@ -1015,18 +1098,20 @@
                       },
                     };
           
-                    timeSpentChart.clear(); // Clear chart before setting new options
-                    timeSpentChart.setOption(option);
-          
+                    const currentTimeSpentChart = echarts.getInstanceByDom(timeSpentChartElement) || echarts.init(timeSpentChartElement);
+                    currentTimeSpentChart.clear();
+                    currentTimeSpentChart.setOption(option);
+
                     // Trigger resize after rendering
                     setTimeout(() => {
-                      timeSpentChart.resize();
+                      currentTimeSpentChart.resize();
                     }, 500);
                   }
           
                   // Clear the chart
                   function clearTimeSpentChart() {
-                    timeSpentChart.clear();
+                    const chart = echarts.getInstanceByDom(timeSpentChartElement);
+                    if (chart) chart.clear();
                   }
           
                   // Update chart only when "Apply" is clicked
@@ -1068,9 +1153,13 @@
                   const filterForm = document.getElementById("filter-form");
 				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
           
-                  function pollDetailedPhaseScoresTask(taskId, onSuccess, onError) {
+                  function pollDetailedPhaseScoresTask(taskId, expectedScenarioId, onSuccess, onError) {
                     const url = `/authoringtool/get_detailed_phase_scores_data_task_status/${taskId}/`;
                     const poll = setInterval(() => {
+                      if (scenarioSelect.value !== expectedScenarioId) {
+                        clearInterval(poll);
+                        return;
+                      }
                       fetch(url)
                         .then((response) => {
                           if (!response.ok) {
@@ -1079,6 +1168,10 @@
                           return response.json();
                         })
                         .then((data) => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data); // Pass the task result
@@ -1121,6 +1214,7 @@
                           const taskId = data.task_id;
                           pollDetailedPhaseScoresTask(
                             taskId,
+                            scenarioId,
                             (result) => {
                               document.getElementById("detailedPhaseScoresLoading").style.display = "none"; // Hide loading indicator
                               document.getElementById("detailedPhaseScoresChart").style.display = "block"; // Show chart
@@ -1145,8 +1239,10 @@
                     const formattedMid = data.mid.map((value) => parseFloat(value.toFixed(2)));
                     const formattedHigh = data.high.map((value) => parseFloat(value.toFixed(2)));
                     const formattedAverage = data.average.map((value) => parseFloat(value.toFixed(2)));
+                    const detailedEl = document.querySelector("#detailedPhaseScoresChart");
           
-                    const detailedPhaseScoresChart = echarts.init(document.querySelector("#detailedPhaseScoresChart"));
+                    requestAnimationFrame(() => {
+                    const detailedPhaseScoresChart = echarts.getInstanceByDom(detailedEl) || echarts.init(detailedEl);
                     const option = {
                       tooltip: {
                         trigger: "axis",
@@ -1221,6 +1317,8 @@
                     };
                     detailedPhaseScoresChart.clear();
                     detailedPhaseScoresChart.setOption(option);
+                    requestAnimationFrame(() => detailedPhaseScoresChart.resize());
+                    }); // end requestAnimationFrame
                   }
           
                   function clearDetailedPhaseScoresChart() {
@@ -1264,9 +1362,13 @@
                   const filterForm = document.getElementById("filter-form");
 				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
           
-                  function pollPerformersTask(taskId, onSuccess, onError) {
+                  function pollPerformersTask(taskId, expectedScenarioId, onSuccess, onError) {
                     const url = `/authoringtool/get_performers_data_task_status/${taskId}/`;
                     const poll = setInterval(() => {
+                      if (scenarioSelect.value !== expectedScenarioId) {
+                        clearInterval(poll);
+                        return;
+                      }
                       fetch(url)
                         .then((response) => {
                           if (!response.ok) {
@@ -1275,6 +1377,10 @@
                           return response.json();
                         })
                         .then((data) => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data); // Pass the task result
@@ -1317,6 +1423,7 @@
                           const taskId = data.task_id;
                           pollPerformersTask(
                             taskId,
+                            scenarioId,
                             (result) => {
                               document.getElementById("performersLoading").style.display = "none"; // Hide loading indicator
                               document.getElementById("performersChart").style.display = "block"; // Show chart
@@ -1453,9 +1560,13 @@
                   const filterForm = document.getElementById("filter-form");
 				  const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
                   
-                  function pollTimeSpentTask(taskId, onSuccess, onError) {
+                  function pollTimeSpentTask(taskId, expectedScenarioId, onSuccess, onError) {
                     const url = `/authoringtool/get_time_spent_task_status/${taskId}/`;
                     const poll = setInterval(() => {
+                      if (scenarioSelect.value !== expectedScenarioId) {
+                        clearInterval(poll);
+                        return;
+                      }
                       fetch(url)
                         .then((response) => {
                           if (!response.ok) {
@@ -1464,6 +1575,10 @@
                           return response.json();
                         })
                         .then((data) => {
+                          if (scenarioSelect.value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                          }
                           if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data); // Pass the task result
@@ -1506,6 +1621,7 @@
                           const taskId = data.task_id;
                           pollTimeSpentTask(
                             taskId,
+                            scenarioId,
                             (result) => {
                               document.getElementById("phaseTimeLoading").style.display =
                                 "none"; // Hide loading indicator
@@ -1514,10 +1630,10 @@
                               renderPhaseTimeChart(result);
 							  // Trigger resize after rendering
 							  setTimeout(() => {
-							    const phaseTimeChart = echarts.init(
+							    const phaseTimeChart = echarts.getInstanceByDom(
 								  document.querySelector("#phaseTimeChart")
 							    );
-							    phaseTimeChart.resize();
+							    if (phaseTimeChart) phaseTimeChart.resize();
 							  }, 500);
                             },
                             (error) => {
@@ -1659,6 +1775,11 @@
             <!-- Loading Indicator -->
             <div id="pathsLoading" style="min-height: 300px; text-align: center; display: none;">
                 <p style="font-size: 18px; color: gray;">⏳ Generating Paths Report... Please wait.</p>
+            </div>
+
+            <!-- Empty state placeholder -->
+            <div class="chart-empty-state" style="min-height:300px; display:flex; align-items:center; justify-content:center; text-align:center; color:gray; font-size:18px; padding:24px;">
+                Select a scenario and click Apply to load this chart.
             </div>
 
             <!-- All Paths Content (Hidden Initially) -->
@@ -1810,7 +1931,7 @@
                 .then(response => response.json())
                 .then(data => {
                     const taskId = data.task_id;
-                    pollPathsTask(taskId, result => {
+                    pollPathsTask(taskId, scenarioId, result => {
                         pathsLoading.style.display = 'none';
                         scenarioPathContainer.style.display = 'block';
                         pathsContainer.style.display = 'block';
@@ -1823,12 +1944,20 @@
         }
     
         // Polling logic (you had this already)
-        function pollPathsTask(taskId, onSuccess, onError) {
+        function pollPathsTask(taskId, expectedScenarioId, onSuccess, onError) {
             const url = `/authoringtool/get_scenario_paths_task_status/${taskId}/`;
             const poll = setInterval(() => {
+                if (document.getElementById('scenarioSelect').value !== expectedScenarioId) {
+                    clearInterval(poll);
+                    return;
+                }
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
+                        if (document.getElementById('scenarioSelect').value !== expectedScenarioId) {
+                            clearInterval(poll);
+                            return;
+                        }
                         if (data.status === "completed") {
                             clearInterval(poll);
                             onSuccess(data.data);
@@ -1854,6 +1983,135 @@
 	document.addEventListener("DOMContentLoaded", () => {
 	  const startDateInput = document.getElementById('start-date-input');
 	  const endDateInput = document.getElementById('end-date-input');
+      const filterForm = document.getElementById('filter-form');
+      const scenarioSelect = document.getElementById('scenarioSelect');
+      const chartElements = document.querySelectorAll('.echart');
+      const loadingElements = document.querySelectorAll('[id$="Loading"]');
+      window.dashboardState = window.dashboardState || { token: 0, intervals: new Set(), controllers: new Set() };
+      if (!window.dashboardNativeSetInterval) {
+        window.dashboardNativeSetInterval = window.setInterval.bind(window);
+        window.dashboardNativeClearInterval = window.clearInterval.bind(window);
+        window.setInterval = function(handler, timeout, ...args) {
+          const intervalId = window.dashboardNativeSetInterval(handler, timeout, ...args);
+          window.dashboardState.intervals.add(intervalId);
+          return intervalId;
+        };
+        window.clearInterval = function(intervalId) {
+          window.dashboardState.intervals.delete(intervalId);
+          return window.dashboardNativeClearInterval(intervalId);
+        };
+      }
+      if (!window.dashboardNativeFetch) {
+        window.dashboardNativeFetch = window.fetch.bind(window);
+        window.fetch = function(url, options) {
+          const controller = new AbortController();
+          window.dashboardState.controllers.add(controller);
+          const opts = Object.assign({}, options, { signal: controller.signal });
+          return window.dashboardNativeFetch(url, opts)
+            .catch(function(err) {
+              if (err.name === 'AbortError') return new Promise(function() {});
+              throw err;
+            })
+            .finally(function() {
+              window.dashboardState.controllers.delete(controller);
+            });
+        };
+      }
+
+      window.dashboardBeginRequest = function() {
+        window.dashboardState.token += 1;
+        window.dashboardState.intervals.forEach((intervalId) => window.dashboardNativeClearInterval(intervalId));
+        window.dashboardState.intervals.clear();
+        window.dashboardState.controllers.forEach(function(c) { c.abort(); });
+        window.dashboardState.controllers.clear();
+        chartElements.forEach((chartEl) => {
+          if (window.echarts) {
+            const existingChart = window.echarts.getInstanceByDom(chartEl);
+            if (existingChart) {
+              existingChart.dispose();
+            }
+          }
+          chartEl.style.display = 'none';
+        });
+        return window.dashboardState.token;
+      };
+
+      window.dashboardTrackInterval = function(intervalId) {
+        window.dashboardState.intervals.add(intervalId);
+        return intervalId;
+      };
+
+      window.dashboardClearInterval = function(intervalId) {
+        window.clearInterval(intervalId);
+      };
+
+      window.dashboardIsCurrent = function(token, scenarioId) {
+        return token === window.dashboardState.token && scenarioSelect.value === scenarioId;
+      };
+
+      const defaultLoadingMarkup = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; color:gray; gap:12px;">
+          <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          <p style="font-size:18px; margin:0;">Loading analytics...</p>
+        </div>
+      `;
+
+      function showEmptyState() {
+        loadingElements.forEach((loadingEl) => {
+          loadingEl.style.display = 'none';
+        });
+        chartElements.forEach((chartEl) => {
+          chartEl.style.display = 'none';
+        });
+        document.querySelectorAll('.chart-empty-state').forEach((placeholder) => {
+          placeholder.style.display = 'flex';
+        });
+      }
+
+      function showLoadingState() {
+        document.querySelectorAll('.chart-empty-state').forEach((placeholder) => {
+          placeholder.style.display = 'none';
+        });
+        chartElements.forEach((chartEl) => {
+          chartEl.style.display = 'none';
+        });
+        loadingElements.forEach((loadingEl) => {
+          loadingEl.innerHTML = defaultLoadingMarkup;
+          loadingEl.style.display = 'block';
+        });
+      }
+
+      chartElements.forEach((chartEl) => {
+        chartEl.style.display = 'none';
+
+        const placeholder = document.createElement('div');
+        placeholder.className = 'chart-empty-state';
+        placeholder.setAttribute('data-chart-target', chartEl.id);
+        placeholder.style.minHeight = chartEl.style.minHeight || '300px';
+        placeholder.style.display = 'flex';
+        placeholder.style.alignItems = 'center';
+        placeholder.style.justifyContent = 'center';
+        placeholder.style.textAlign = 'center';
+        placeholder.style.color = 'gray';
+        placeholder.style.fontSize = '18px';
+        placeholder.style.padding = '24px';
+        placeholder.textContent = 'Select a scenario and click Apply to load this chart.';
+
+        chartEl.parentNode.insertBefore(placeholder, chartEl);
+      });
+
+      filterForm.addEventListener('submit', () => {
+        if (scenarioSelect.value) {
+          showLoadingState();
+        } else {
+          showEmptyState();
+        }
+      });
+
+      scenarioSelect.addEventListener('change', function() {
+        window.dashboardBeginRequest();
+        showEmptyState();
+      });
 
 	  // Set default values for start date and end date
 	  if (!startDateInput.value) {
@@ -1864,14 +2122,14 @@
 	  }
 
 	  document.getElementById('reset-button').addEventListener('click', () => {
-      const scenarioSelect = document.getElementById('scenarioSelect');
-      const filterForm = document.getElementById('filter-form');
-
       scenarioSelect.value = '';
       startDateInput.value = '';
       endDateInput.value = '';
+      showEmptyState();
       filterForm.dispatchEvent(new Event('submit'));
 	  });
+
+      showEmptyState();
 	});
   </script>
   </main>
