@@ -1,112 +1,236 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Edit Group</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  .scenario-picker { border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+  .scenario-picker-header { background: #f8f9fc; padding: 10px 14px; border-bottom: 1px solid #dee2e6; }
+  .scenario-picker-body { max-height: 320px; overflow-y: auto; padding: 12px 14px; }
+  .scenario-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #888; margin: 8px 0 6px; }
+  .scenario-section-label:first-child { margin-top: 0; }
+  .scenario-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+  .scenario-item:hover { background: #f0f4ff; }
+  .scenario-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+  .scenario-item .scenario-name { font-size: 14px; color: #333; flex: 1; }
+  .scenario-item .vis-badge { font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+  .vis-public  { background: #d1fae5; color: #065f46; }
+  .vis-org     { background: #fef3c7; color: #92400e; }
+  .vis-private { background: #fee2e2; color: #991b1b; }
+  .scenario-divider { border: none; border-top: 1px solid #eee; margin: 8px 0; }
+  .scenario-empty { font-size: 13px; color: #aaa; padding: 6px 0; }
+  .search-wrap { position: relative; }
+  .search-wrap .bi { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #aaa; pointer-events: none; }
+  .search-wrap input { padding-left: 32px; }
+  .selected-count { font-size: 12px; color: #6c757d; }
+  .member-badge { font-size: 13px; background: #e8f0fe; color: #1a56db; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+  #userWarning { font-size: 13px; margin-top: 6px; display: none; }
+</style>
+
 <main id="main" class="main">
+
   <div class="pagetitle">
     <h1>Edit Group: {{ group.name }}</h1>
     <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
-          <li class="breadcrumb-item active">Edit Group {{group.name}}</li>
-        </ol>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'view_group' group.id %}">{{ group.name }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+      </ol>
     </nav>
-    </div><!-- End Page Title -->
+  </div>
 
   <section class="section">
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Edit Group</h5>
-                    <form method="post" action="{% url 'edit_group' group.id %}">
-                    {% csrf_token %}
-                    
-                    <!-- Group Name -->
-                    <div class="row mb-3">
-                        <label for="name" class="col-sm-2 col-form-label">Group Name</label>
-                        <div class="col-sm-10">
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                            <div class="text-danger">{{ form.name.errors }}</div>
-                        {% endif %}
-                        </div>
-                    </div>
+    <form method="post" action="{% url 'edit_group' group.id %}" id="editGroupForm">
+      {% csrf_token %}
+      <div class="row g-4">
 
-                    <!-- User Prefix -->
-                    <div class="row mb-3">
-                        <label for="prefix" class="col-sm-2 col-form-label">User Prefix</label>
-                        <div class="col-sm-10">
-                        {{ form.prefix }}
-                        {% if form.prefix.errors %}
-                            <div class="text-danger">{{ form.prefix.errors }}</div>
-                        {% endif %}
-                        </div>
-                    </div>
+        <!-- Left: Group details -->
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-body p-4">
+              <h5 class="card-title d-flex align-items-center gap-2 mb-4">
+                <i class="bi bi-pencil-fill text-primary"></i> Group Details
+              </h5>
 
-                    <!-- Number of Users -->
-                    <div class="row mb-3">
-                        <label for="number_of_users" class="col-sm-2 col-form-label">Number of Users</label>
-                        <div class="col-sm-10">
-                        {{ form.number_of_users }}
-                        {% if form.number_of_users.errors %}
-                            <div class="text-danger">{{ form.number_of_users.errors }}</div>
-                        {% endif %}
-                        </div>
-                    </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Group Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+              </div>
 
-                    <!-- Assigned Scenarios -->
-                    <div class="row mb-3">
-                        <label for="scenario_select" class="col-sm-2 col-form-label">Assign Scenarios</label>
-                        <div class="col-sm-10">
-                        {% for scenario in scenarios %}
-                            <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="scenarios" value="{{ scenario.id }}" 
-                                    {% if scenario in group.assigned_scenarios.all %}checked{% endif %}>
-                            <label class="form-check-label" for="scenario{{ scenario.id }}">{{ scenario.name }}</label>
-                            </div>
-                        {% endfor %}
-                        {% if form.assigned_scenarios.errors %}
-                            <div class="text-danger">{{ form.assigned_scenarios.errors }}</div>
-                        {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-sm-10">
-                        <button type="submit" class="btn btn-primary" id="formSubmitButtonU">Update Group</button>
-                        <a href="{% url 'view_group' group.id %}" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </div>
-
-                    </form>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">
+                  User Prefix
+                  <span class="text-muted fw-normal small ms-1">— used to generate usernames</span>
+                </label>
+                {{ form.prefix }}
+                <div class="form-text text-warning-emphasis">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Changing the prefix affects <em>new</em> users only — existing accounts keep their current usernames.
                 </div>
+                {% if form.prefix.errors %}<div class="text-danger small mt-1">{{ form.prefix.errors }}</div>{% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                  Number of Students
+                  <span class="member-badge">{{ current_member_count }} current</span>
+                </label>
+                {{ form.number_of_users }}
+                <div id="userWarning"></div>
+                {% if form.number_of_users.errors %}<div class="text-danger small mt-1">{{ form.number_of_users.errors }}</div>{% endif %}
+              </div>
+
+              <div class="d-flex gap-2 mt-4 pt-2 border-top">
+                <a href="{% url 'view_group' group.id %}" class="btn btn-outline-secondary" id="cancelBtn">
+                  <i class="bi bi-x-lg me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary flex-grow-1" id="formSubmitButton">
+                  <i class="bi bi-check-lg me-1"></i> Save Changes
+                </button>
+              </div>
             </div>
+          </div>
         </div>
-    </div>
+
+        <!-- Right: Scenario selection -->
+        <div class="col-lg-7">
+          <div class="card h-100">
+            <div class="card-body p-4">
+              <h5 class="card-title d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-journal-bookmark-fill text-primary"></i> Assign Scenarios
+              </h5>
+              <p class="text-muted small mb-3">Select the scenarios this group will have access to.</p>
+
+              <div class="scenario-picker">
+                <div class="scenario-picker-header d-flex align-items-center gap-3">
+                  <div class="search-wrap flex-grow-1">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="scenarioSearch" class="form-control form-control-sm"
+                           placeholder="Search scenarios…" oninput="filterScenarios()">
+                  </div>
+                  <span class="selected-count" id="selectedCount">0 selected</span>
+                </div>
+
+                <div class="scenario-picker-body" id="scenarioList">
+
+                  {% if my_scenarios %}
+                  <div class="scenario-section-label" data-section>My Scenarios</div>
+                  {% for scenario in my_scenarios %}
+                  <label class="scenario-item" data-name="{{ scenario.name|lower }}">
+                    <input type="checkbox" name="assigned_scenarios" value="{{ scenario.id }}"
+                           {% if scenario.id in assigned_scenario_ids %}checked{% endif %}
+                           onchange="updateCount()">
+                    <span class="scenario-name">{{ scenario.name }}</span>
+                    {% if scenario.visibility_status == 'public' %}
+                      <span class="vis-badge vis-public">Public</span>
+                    {% elif scenario.visibility_status == 'org' %}
+                      <span class="vis-badge vis-org">Org-Only</span>
+                    {% else %}
+                      <span class="vis-badge vis-private">Private</span>
+                    {% endif %}
+                  </label>
+                  {% endfor %}
+                  {% endif %}
+
+                  {% if other_scenarios %}
+                  {% if my_scenarios %}<hr class="scenario-divider">{% endif %}
+                  <div class="scenario-section-label" data-section>Other Accessible Scenarios</div>
+                  {% for scenario in other_scenarios %}
+                  <label class="scenario-item" data-name="{{ scenario.name|lower }}">
+                    <input type="checkbox" name="assigned_scenarios" value="{{ scenario.id }}"
+                           {% if scenario.id in assigned_scenario_ids %}checked{% endif %}
+                           onchange="updateCount()">
+                    <span class="scenario-name">{{ scenario.name }}</span>
+                    {% if scenario.visibility_status == 'public' %}
+                      <span class="vis-badge vis-public">Public</span>
+                    {% elif scenario.visibility_status == 'org' %}
+                      <span class="vis-badge vis-org">Org-Only</span>
+                    {% else %}
+                      <span class="vis-badge vis-private">Private</span>
+                    {% endif %}
+                  </label>
+                  {% endfor %}
+                  {% endif %}
+
+                  {% if not my_scenarios and not other_scenarios %}
+                  <p class="scenario-empty">No scenarios available.</p>
+                  {% endif %}
+
+                </div>
+              </div>
+
+              {% if form.assigned_scenarios.errors %}
+              <div class="text-danger small mt-2">{{ form.assigned_scenarios.errors }}</div>
+              {% endif %}
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </form>
   </section>
+
 </main>
 
 <script>
-    document.getElementById('formSubmitButtonU').addEventListener('click', function(event) {
-        var form = document.querySelector('form');  // Get the form element
-        var submitButton = this;
-        var cancelButton = document.getElementById('cancelButton');
-        
-        // Prevent default behavior if the form is not valid
-        if (!form.checkValidity()) {
-          form.reportValidity();  // This will trigger the built-in browser validation messages
-          return;  // Don't proceed if the form is invalid
-        }
-      
-        // If the form is valid, proceed to disable buttons and show spinner
-        setTimeout(function() {
-          submitButton.innerHTML = `
-            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-            <span>Updating...</span>
-          `;
-          submitButton.disabled = true;
-          cancelButton.disabled = true;
-        }, 100); // Delay in milliseconds
-      });      
-  </script>
+  const currentMembers = {{ current_member_count }};
+
+  function filterScenarios() {
+    const q = document.getElementById('scenarioSearch').value.toLowerCase();
+    document.querySelectorAll('#scenarioList .scenario-item').forEach(item => {
+      item.style.display = item.dataset.name.includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('#scenarioList [data-section]').forEach(label => {
+      let next = label.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.hasAttribute('data-section') && !next.classList.contains('scenario-divider')) {
+        if (next.classList.contains('scenario-item') && next.style.display !== 'none') hasVisible = true;
+        next = next.nextElementSibling;
+      }
+      label.style.display = hasVisible ? '' : 'none';
+    });
+  }
+
+  function updateCount() {
+    const n = document.querySelectorAll('#scenarioList input[type="checkbox"]:checked').length;
+    document.getElementById('selectedCount').textContent = n + ' selected';
+  }
+
+  // Live warning on number-of-users change
+  const numInput = document.getElementById('{{ form.number_of_users.auto_id }}');
+  const warning = document.getElementById('userWarning');
+
+  numInput.addEventListener('input', function () {
+    const newVal = parseInt(this.value, 10);
+    warning.style.display = '';
+    if (isNaN(newVal) || newVal === currentMembers) {
+      warning.style.display = 'none';
+    } else if (newVal < currentMembers) {
+      const diff = currentMembers - newVal;
+      warning.className = 'text-danger';
+      warning.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Reducing by <strong>${diff}</strong> will permanently delete <strong>${diff}</strong> student account${diff > 1 ? 's' : ''} and all their data.`;
+    } else {
+      const diff = newVal - currentMembers;
+      warning.className = 'text-success';
+      warning.innerHTML = `<i class="bi bi-plus-circle me-1"></i><strong>${diff}</strong> new student account${diff > 1 ? 's' : ''} will be created.`;
+    }
+  });
+
+  // Submit: validate, then disable buttons and show spinner
+  document.getElementById('formSubmitButton').addEventListener('click', function (e) {
+    const form = document.getElementById('editGroupForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    setTimeout(() => {
+      this.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Saving…';
+      this.disabled = true;
+      document.getElementById('cancelBtn').classList.add('disabled');
+    }, 100);
+  });
+
+  // Init count on load
+  updateCount();
+</script>
 
 {% endblock %}

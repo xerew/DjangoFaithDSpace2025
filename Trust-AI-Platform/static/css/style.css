@@ -42,7 +42,7 @@ h6 {
 # Main
 --------------------------------------------------------------*/
 #main {
-  margin-top: 60px;
+  margin-top: 72px;
   padding: 20px 30px;
   transition: all 0.3s;
 }
@@ -356,6 +356,8 @@ h6 {
 --------------------------------------------------------------*/
 .logo {
   line-height: 1;
+  flex: 1;
+  justify-content: center;
 }
 
 @media (min-width: 1200px) {
@@ -365,21 +367,23 @@ h6 {
 }
 
 .logo img {
-  max-height: 26px;
-  margin-right: 6px;
+  max-height: 56px;
+  margin-right: 0;
 }
 
 .logo span {
-  font-size: 26px;
+  font-size: 16px;
   font-weight: 700;
   color: #012970;
   font-family: "Nunito", sans-serif;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .header {
   transition: all 0.5s;
   z-index: 997;
-  height: 60px;
+  height: 72px;
   box-shadow: 0px 2px 20px rgba(1, 41, 112, 0.1);
   background-color: #fff;
   padding-left: 20px;
@@ -599,13 +603,13 @@ h6 {
 --------------------------------------------------------------*/
 .sidebar {
   position: fixed;
-  top: 60px;
+  top: 0;
   left: 0;
   bottom: 0;
   width: 300px;
-  z-index: 996;
+  z-index: 998;
   transition: all 0.3s;
-  padding: 20px;
+  padding: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #aab7cf transparent;
@@ -635,6 +639,16 @@ h6 {
   #footer {
     margin-left: 300px;
   }
+
+  .header {
+    padding-left: 300px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .toggle-sidebar .header {
+    padding-left: 0;
+  }
 }
 
 @media (max-width: 1199px) {
@@ -656,7 +670,7 @@ h6 {
 }
 
 .sidebar-nav {
-  padding: 0;
+  padding: 16px 0 0 0;
   margin: 0;
   list-style: none;
 }
@@ -668,7 +682,7 @@ h6 {
 }
 
 .sidebar-nav .nav-item {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .sidebar-nav .nav-heading {
@@ -682,18 +696,18 @@ h6 {
 .sidebar-nav .nav-link {
   display: flex;
   align-items: center;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: #4154f1;
   transition: 0.3;
   background: #f6f9ff;
-  padding: 10px 15px;
-  border-radius: 4px;
+  padding: 14px 20px;
+  border-radius: 6px;
 }
 
 .sidebar-nav .nav-link i {
-  font-size: 16px;
-  margin-right: 10px;
+  font-size: 20px;
+  margin-right: 14px;
   color: #4154f1;
 }
 
@@ -704,6 +718,7 @@ h6 {
 
 .sidebar-nav .nav-link.collapsed i {
   color: #899bbd;
+  font-size: 20px;
 }
 
 .sidebar-nav .nav-link:hover {
@@ -1217,19 +1232,25 @@ h6 {
   padding: 20px 0;
   font-size: 14px;
   transition: all 0.3s;
-  border-top: 1px solid #cddfff;
+  background: #4b5563;
+  color: #fff;
+  border-top: none;
 }
 
 .footer .copyright {
   text-align: center;
-  color: #012970;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .footer .credits {
   padding-top: 5px;
   text-align: center;
   font-size: 13px;
-  color: #012970;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.footer .credits a {
+  color: #90caf9;
 }
 
 /*--------------------------------------------------------------
@@ -1356,10 +1377,63 @@ h6 {
 }
 
 .logo-login img {
-  max-height: 100px;
+  max-height: 180px;
   margin-right: 6px;
+}
+
+/* ── Login / Register page footer ───────────────────────────── */
+.login-footer {
+  background: #4b5563;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 0.75rem 1rem;
+}
+
+.eu-acknowledgement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.eu-logo-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eu-logo {
+  max-height: 36px;
+  width: auto;
+}
+
+.eu-funded-text {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.eu-text {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  max-width: 860px;
+  text-align: center;
+  opacity: 0.9;
 }
 
 .contentparagraph {
   max-width: 400px;
+}
+
+/* ── Documentation project cards ────────────────────────────── */
+.project-img {
+  max-height: 160px;
+  width: 100%;
+  object-fit: contain;
+  padding: 1rem;
+  background: #f8f9fa;
+}
+
+.text-justify-doc {
+  text-align: justify;
 }

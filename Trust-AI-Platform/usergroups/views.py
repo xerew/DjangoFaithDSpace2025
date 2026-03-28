@@ -55,26 +55,16 @@ def get_next_suffix(prefix):
 def create_user_group(request):
     if request.method == "POST":
         form = UserGroupForm(request.POST)
-        
-        # Check if any scenarios are selected
-        scenario_ids = request.POST.getlist('scenarios')
-        # if not scenario_ids:
-        #     form.add_error('assigned_scenarios', 'At least one scenario must be selected.')
 
         if form.is_valid():
             group = form.save(commit=False)
             group.created_by = request.user
             group.save()
+            form.save_m2m()  # Save assigned_scenarios from the form
 
             # Determine where to start numbering based on the shared prefix
             prefix = form.cleaned_data['prefix']
             next_suffix = get_next_suffix(prefix)
-
-            # Save scenarios manually
-            scenarios = Scenario.objects.filter(id__in=scenario_ids)
-            print("SCENARIOS: ", scenarios)
-            group.assigned_scenarios.set(scenarios)
-            # group.save()
 
             # Create users for the group
             for i in range(next_suffix, next_suffix + group.number_of_users):
@@ -82,8 +72,6 @@ def create_user_group(request):
                 password = group.generate_password()
                 user = User.objects.create_user(username=username, password=password)
                 UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
-
-            form.save_m2m()  # Save the ManyToMany field for scenarios
             messages.success(request, f"Group '{group.name}' created successfully with {group.number_of_users} users.")
             return redirect('list_groups')
     else:
@@ -93,13 +81,20 @@ def create_user_group(request):
     user = request.user
     org_ids = user.member_of_organizations.values_list('id', flat=True)
 
-    scenarios = Scenario.objects.filter(
+    all_scenarios = Scenario.objects.filter(
         Q(created_by=user) |  # Private scenarios created by the user
         Q(visibility_status='public') |  # Public scenarios
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))  # Org-only scenarios where user belongs to the org
     ).distinct()
 
-    return render(request, 'usergroups/create_group.html', {'form': form, 'scenarios': scenarios})
+    my_scenarios = [s for s in all_scenarios if s.created_by_id == user.id]
+    other_scenarios = [s for s in all_scenarios if s.created_by_id != user.id]
+
+    return render(request, 'usergroups/create_group.html', {
+        'form': form,
+        'my_scenarios': my_scenarios,
+        'other_scenarios': other_scenarios,
+    })
 
 @group_required('teachers')
 def list_groups(request):
@@ -153,9 +148,9 @@ def delete_group(request, group_id):
             membership.user.delete()  # Delete the actual user object
 
         # Now delete the group itself
+        group_name = group.name
         group.delete()
-
-        # Redirect back to the list of groups
+        messages.success(request, f"Group '{group_name}' and all its users have been deleted.")
         return redirect('list_groups')
     
     return render(request, 'usergroups/confirm_delete.html', {'group': group})
@@ -187,7 +182,7 @@ def edit_group(request, group_id):
                     password = group.generate_password()
                     user = User.objects.create_user(username=username, password=password)
                     UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
-                # messages.success(request, f"Added {diff} new users to the group.")
+                messages.success(request, f"Added {diff} new users to the group.")
 
             elif new_number_of_users < current_number_of_users:
                 # Removing extra users
@@ -196,20 +191,15 @@ def edit_group(request, group_id):
                 for membership in memberships_to_delete:
                     membership.user.delete()  # Deletes the user and their membership
                     membership.delete()
-                # messages.success(request, f"Removed {diff} users from the group.")
+                messages.success(request, f"Removed {diff} users from the group.")
 
             # Update the group model with the new number of users
             group.number_of_users = new_number_of_users
-            form.save()
-
-            # Update assigned scenarios
-            scenario_ids = request.POST.getlist('scenarios')
-            scenarios = Scenario.objects.filter(id__in=scenario_ids)
-            group.assigned_scenarios.set(scenarios)
+            form.save()  # calls save_m2m() internally, saves assigned_scenarios
 
             group.save()
 
-            # messages.success(request, f"Group '{group.name}' updated successfully.")
+            messages.success(request, f"Group '{group.name}' updated successfully.")
             return redirect('view_group', group_id=group.id)
 
     else:
@@ -218,13 +208,25 @@ def edit_group(request, group_id):
     # Pass scenarios based on the user's access rights
     user = request.user
     org_ids = user.member_of_organizations.values_list('id', flat=True)
-    scenarios = Scenario.objects.filter(
-        Q(created_by=user) | 
-        Q(visibility_status='public') | 
+    all_scenarios = Scenario.objects.filter(
+        Q(created_by=user) |
+        Q(visibility_status='public') |
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))
     ).distinct()
 
-    return render(request, 'usergroups/edit_group.html', {'form': form, 'group': group, 'scenarios': scenarios})
+    my_scenarios = [s for s in all_scenarios if s.created_by_id == user.id]
+    other_scenarios = [s for s in all_scenarios if s.created_by_id != user.id]
+    assigned_scenario_ids = set(group.assigned_scenarios.values_list('id', flat=True))
+    current_member_count = group.members.count()
+
+    return render(request, 'usergroups/edit_group.html', {
+        'form': form,
+        'group': group,
+        'my_scenarios': my_scenarios,
+        'other_scenarios': other_scenarios,
+        'assigned_scenario_ids': assigned_scenario_ids,
+        'current_member_count': current_member_count,
+    })
 
 @group_required('teachers')
 def view_group(request, group_id):
@@ -351,6 +353,13 @@ def list_student_groups(request):
         for s in Scenario.objects.filter(id__in=student_extras_by_scenarios.keys())
     }
 
+    # Build name -> visibility_status map for all scenarios seen in totals
+    scenario_names_in_totals = set(total_scenario_implementations.keys())
+    visibility_map = {
+        s.name: s.visibility_status
+        for s in Scenario.objects.filter(name__in=scenario_names_in_totals).only('name', 'visibility_status')
+    }
+
     # 2) Start from the real totals (currently keyed by scenario.name)
     adjusted_totals = dict(total_scenario_implementations)
     extras_applied = {}
@@ -373,7 +382,7 @@ def list_student_groups(request):
 
     # 6) Build rows so the template is dead-simple (no dict lookups)
     totals_rows = [
-        {"name": name, "total": total, "extra": extras_applied.get(name, 0)}
+        {"name": name, "total": total, "extra": extras_applied.get(name, 0), "visibility": visibility_map.get(name, '')}
         for name, total in adjusted_totals_sorted.items()
     ]
 

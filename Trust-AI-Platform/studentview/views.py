@@ -78,11 +78,16 @@ def scenario_form(request, scenario_id):
             'is_required': question.is_required
         })
     
+    answered_count = sum(1 for q in questions_with_text if q['existing_answer'])
+    total_questions = len(questions_with_text)
+
     context = {
         'myScenario': scenario,
         'questions': questions_with_text,
         'display_language': scenario_language,
-        'all_questions_answered': all_questions_answered
+        'all_questions_answered': all_questions_answered,
+        'answered_count': answered_count,
+        'total_questions': total_questions,
     }
     
     return render(request, 'studentview/scenarioForm.html', context)

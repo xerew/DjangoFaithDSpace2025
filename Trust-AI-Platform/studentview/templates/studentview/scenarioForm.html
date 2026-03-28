@@ -1,98 +1,203 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Pre-Scenario Questions</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  .form-card { max-width: 780px; margin: 0 auto; }
+  .scenario-header { background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%); border-radius: 12px 12px 0 0; padding: 28px 36px; }
+  .lang-badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.2); color: #fff; letter-spacing: 0.4px; }
+  .lang-badge-warning { background: rgba(255,193,7,0.25); color: #ffe082; }
+  .question-block { border: 1px solid #e8edf5; border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; background: #fafbff; transition: border-color 0.2s, box-shadow 0.2s; }
+  .question-block:focus-within { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.08); background: #fff; }
+  .question-block.readonly { background: #f8f9fc; border-color: #e0e0e0; }
+  .question-number { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #1a56db; margin-bottom: 6px; }
+  .question-text { font-size: 15px; color: #222; margin-bottom: 10px; line-height: 1.5; }
+  .char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 4px; }
+  .char-count.near-limit { color: #f59e0b; }
+  .progress-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .answered-banner { border-radius: 10px; background: #d1fae5; border: 1px solid #a7f3d0; color: #065f46; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .intro-text { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 24px; padding: 14px 18px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid #1a56db; }
+</style>
+
 <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>Scenarios</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            Student View
-          </li>
-          <li class="breadcrumb-item active">Scenarios</li>
-        </ol>
-      </nav>
-    </div>
-</main>
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
-            <div class="card shadow-lg" style="width: 100%; max-width: 700px;">
-                <div class="card-header text-center">
-                    <h3>Scenario Feedback Form</h3>
-                    <h5>{{ myScenario.name }}</h5>
-                    {% if display_language != 'English' and display_language in "Ελληνικά Greek Português Portuguese German Deutsch" %}
-                        <p class="text-muted">
-                            <small>Displaying questions in {{ display_language }}</small>
-                        </p>
-                    {% elif display_language != 'English' %}
-                        <p class="text-muted text-warning">
-                            <small>No translation available. Displaying questions in English.</small>
-                        </p>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <form method="post" action="{% url 'submit_answers' scenario_id=myScenario.id %}">
-                        {% csrf_token %}
-                        
-                        {% for question_data in questions %}
-                            <div class="mb-3">
-                                <label for="question_{{ question_data.question.id }}" class="form-label">
-                                    {{ question_data.text }}
-                                    {% if question_data.is_required %}
-                                        <span class="text-danger">*</span>
-                                    {% endif %}
-                                </label>
-                                <textarea class="form-control" 
-                                          id="question_{{ question_data.question.id }}" 
-                                          name="question_{{ question_data.question.id }}" 
-                                          rows="3"
-                                          {% if question_data.is_required %}required{% endif %}
-                                          {% if all_questions_answered %}readonly{% endif %}>{{ question_data.existing_answer }}</textarea>
-                            </div>
-                        {% empty %}
-                            <div class="alert alert-info">
-                                No questions have been set up for this scenario yet.
-                            </div>
-                        {% endfor %}
-        
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="button" class="btn btn-primary" {% if all_questions_answered %}disabled{% endif %} data-bs-toggle="modal" data-bs-target="#submitConfirmationModal">Submit Feedback</button>
-                            <a href="{% url 'studentView' scenario_id=myScenario.id %}" class="btn btn-secondary">Go to the Scenario</a>
-                        </div>
-                    </form>
-                </div>
+  <div class="pagetitle">
+    <h1>Pre-Scenario Questions</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Student View</a></li>
+        <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+      </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="form-card">
+
+      <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden;">
+
+        <!-- Header -->
+        <div class="scenario-header">
+          <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+            <div>
+              <div style="font-size:12px; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">Scenario</div>
+              <h4 style="color:#fff; margin:0; font-weight:700;">{{ myScenario.name }}</h4>
             </div>
+            <div class="text-end">
+              {% if display_language != 'English' and display_language in "Ελληνικά Greek Português Portuguese German Deutsch Spanish French Italian Romanian Estonian Ukrainian Persian" %}
+                <span class="lang-badge"><i class="bi bi-translate me-1"></i>{{ display_language }}</span>
+              {% elif display_language != 'English' %}
+                <span class="lang-badge lang-badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>Showing in English (no {{ display_language }} translation)</span>
+              {% else %}
+                <span class="lang-badge"><i class="bi bi-translate me-1"></i>English</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          {% if total_questions > 0 %}
+          <div class="mt-4">
+            <div class="progress-label" style="color:rgba(255,255,255,0.7);">
+              {{ answered_count }} of {{ total_questions }} question{{ total_questions|pluralize }} answered
+            </div>
+            <div class="progress" style="height:6px; background:rgba(255,255,255,0.2); border-radius:4px;">
+              <div class="progress-bar bg-white" id="progressBar" role="progressbar"
+                   style="width:{% if total_questions %}{% widthratio answered_count total_questions 100 %}{% else %}0{% endif %}%; border-radius:4px;"
+                   aria-valuenow="{{ answered_count }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}">
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
+
+        <!-- Body -->
+        <div class="card-body p-4">
+
+          <!-- Already answered banner -->
+          {% if all_questions_answered %}
+          <div class="answered-banner">
+            <i class="bi bi-check-circle-fill" style="font-size:20px;"></i>
+            <div>
+              <strong>You have already submitted your answers.</strong>
+              Your responses are shown below in read-only mode.
+            </div>
+          </div>
+          {% else %}
+          <!-- Intro -->
+          <div class="intro-text">
+            <i class="bi bi-info-circle me-2"></i>
+            Before starting the scenario, please take a moment to answer the following questions.
+            {% if total_questions > 0 %}
+              Questions marked <span class="text-danger fw-semibold">*</span> are required.
+            {% endif %}
+            <strong>These questions are optional</strong> — you can skip directly to the scenario if you prefer.
+          </div>
+          {% endif %}
+
+          <!-- Questions -->
+          <form method="post" action="{% url 'submit_answers' scenario_id=myScenario.id %}" id="feedbackForm">
+            {% csrf_token %}
+
+            {% for question_data in questions %}
+            <div class="question-block {% if all_questions_answered %}readonly{% endif %}">
+              <div class="question-number">Question {{ forloop.counter }}</div>
+              <div class="question-text">
+                {{ question_data.text }}
+                {% if question_data.is_required %}
+                  <span class="text-danger ms-1">*</span>
+                {% endif %}
+              </div>
+              <textarea class="form-control"
+                        id="question_{{ question_data.question.id }}"
+                        name="question_{{ question_data.question.id }}"
+                        rows="3"
+                        maxlength="2000"
+                        {% if question_data.is_required %}required{% endif %}
+                        {% if all_questions_answered %}readonly{% endif %}
+                        oninput="updateProgress(this)"
+                        >{{ question_data.existing_answer }}</textarea>
+              <div class="char-count" id="count_{{ question_data.question.id }}">
+                {% if question_data.existing_answer %}{{ question_data.existing_answer|length }}{% else %}0{% endif %} / 2000
+              </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>No questions have been set up for this scenario yet.
+            </div>
+            {% endfor %}
+
+            <!-- Actions -->
+            <div class="d-flex gap-3 mt-4 pt-3 border-top">
+              <a href="{% url 'studentView' scenario_id=myScenario.id %}" class="btn btn-outline-secondary flex-fill">
+                <i class="bi bi-skip-forward me-1"></i>
+                {% if all_questions_answered %}Go to Scenario{% else %}Skip & Go to Scenario{% endif %}
+              </a>
+              {% if not all_questions_answered %}
+              <button type="button" class="btn btn-primary flex-fill"
+                      data-bs-toggle="modal" data-bs-target="#submitConfirmationModal">
+                <i class="bi bi-send me-1"></i> Submit & Start Scenario
+              </button>
+              {% endif %}
+            </div>
+
+          </form>
+        </div>
+      </div>
     </div>
-</div>
+  </section>
+</main>
 
 <!-- Confirmation Modal -->
-<div class="modal fade" id="submitConfirmationModal" tabindex="-1" aria-labelledby="submitConfirmationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="submitConfirmationModalLabel">Confirm Submission</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to submit your feedback? This action cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmSubmit">Yes, Submit</button>
-            </div>
-        </div>
+<div class="modal fade" id="submitConfirmationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title">
+          <i class="bi bi-send-check text-primary me-2"></i>Submit Feedback
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="text-muted mb-0">
+          Once submitted your answers cannot be changed.
+          Are you ready to submit and start the scenario?
+        </p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go Back</button>
+        <button type="button" class="btn btn-primary" id="confirmSubmit">
+          <i class="bi bi-check-lg me-1"></i> Yes, Submit
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const confirmSubmitBtn = document.getElementById('confirmSubmit');
-        const form = document.querySelector('form');
-        
-        confirmSubmitBtn.addEventListener('click', function() {
-            form.submit();
-        });
-    });
+  // Submit form on confirm
+  document.getElementById('confirmSubmit').addEventListener('click', function () {
+    document.getElementById('feedbackForm').submit();
+  });
+
+  // Character counter + live progress bar
+  function updateProgress(textarea) {
+    const id = textarea.id.replace('question_', '');
+    const counter = document.getElementById('count_' + id);
+    const len = textarea.value.length;
+    counter.textContent = len + ' / 2000';
+    counter.className = 'char-count' + (len > 1800 ? ' near-limit' : '');
+
+    // Recount filled textareas for progress bar
+    const textareas = document.querySelectorAll('#feedbackForm textarea');
+    const filled = Array.from(textareas).filter(t => t.value.trim().length > 0).length;
+    const total = textareas.length;
+    const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+    const bar = document.getElementById('progressBar');
+    if (bar) {
+      bar.style.width = pct + '%';
+      bar.setAttribute('aria-valuenow', filled);
+      bar.closest('.progress').previousElementSibling.textContent = filled + ' of ' + total + ' question' + (total !== 1 ? 's' : '') + ' answered';
+    }
+  }
 </script>
+
 {% endblock atcontent %}

@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Student View</title>{% endblock %}
 {% block atcontent %}
 
     <script type="text/javascript">
@@ -152,43 +153,120 @@
 
     </script>
 
+    <style>
+      .welcome-card {
+        border-radius: 14px;
+        background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+        padding: 48px 36px;
+        text-align: center;
+        color: #fff;
+        margin-bottom: 16px;
+      }
+      .welcome-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+      .welcome-card p  { font-size: 14px; color: rgba(255,255,255,0.75); margin-bottom: 32px; }
+      #readyButton {
+        background: #fff;
+        color: #1a56db;
+        border: none;
+        font-size: 17px;
+        font-weight: 700;
+        padding: 14px 48px;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+        transition: transform 0.15s, box-shadow 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #readyButton:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.22); }
+      #restartButton {
+        margin-top: 12px;
+        font-size: 13px;
+        padding: 6px 18px;
+        border-radius: 20px;
+      }
+      .chatbot-card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 80px;
+      }
+      .chatbot-card-header {
+        background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+        padding: 13px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chatbot-card-header .plato-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px;
+      }
+      .chatbot-card-header .plato-name { color: #fff; font-weight: 700; font-size: 15px; }
+      .chatbot-card-header .plato-sub  { color: rgba(255,255,255,0.65); font-size: 11px; }
+      .chatbot-container iframe { display: block; }
+      #activityName { font-size: 26px; font-weight: 700; color: #1a2e58; margin-bottom: 16px; }
+      #activityContent { font-size: 17px; line-height: 1.75; color: #333; }
+    </style>
+
     <main id="main" class="main">
         <div class="pagetitle">
-        <h1>Scenarios</h1>
-        <nav>
+          <h1>{{ myScenario.name }}</h1>
+          <nav>
             <ol class="breadcrumb">
-            <li class="breadcrumb-item">Student View</li>
-            <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+              <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Student View</a></li>
+              <li class="breadcrumb-item active">{{ myScenario.name }}</li>
             </ol>
-        </nav>
+          </nav>
         </div>
-        <!-- End Page Title -->
-        <section class="section">
-            <div class="container mt-5" style="min-height: 70vh">
-			
-                <div class="row">
-                    <div class="col-md-8" id="activityContainer" data-activity-id="{{ activity.id }}">
-					<button id="readyButton" onclick="sendReadyMessage()" class="btn btn-primary" style="display: block; margin-bottom:5px;">Start</button>
-					{% if is_teacher %}
-					<button id="restartButton" onclick="sendRestartAndYes()"class="btn btn-secondary">Restart</button>
-					{% endif %}
 
-                        <h1 id="activityName"></h1>
-                        <div id="activityContent"></div>
-                        {% if activity_type_name == 'Experiment' %}
-                            <p class="card-text">
-                                <iframe id="simulationPreview" width="100%" height="600" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
-                            </p>
-                        {% endif %}
+        <section class="section">
+            <div class="row g-4" style="min-height: 70vh;">
+
+                <!-- Activity area -->
+                <div class="col-md-8" id="activityContainer" data-activity-id="{{ activity.id }}">
+
+                  <!-- Welcome card (hidden when activity loads) -->
+                  <div id="welcomeCard" class="welcome-card">
+                    <div style="font-size:48px; margin-bottom:16px;">🎓</div>
+                    <h2>{{ myScenario.name }}</h2>
+                    <p>Your AI learning companion <strong>Plato</strong> will guide you through this scenario.<br>Click Start when you're ready.</p>
+                    <button id="readyButton" onclick="sendReadyMessage()">
+                      <i class="bi bi-play-fill"></i> Start
+                    </button>
+                    {% if is_teacher %}
+                    <div>
+                      <button id="restartButton" onclick="sendRestartAndYes()" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Restart
+                      </button>
                     </div>
-                    <div class="col-md-4">
-                        <div class="chatbot-container" style="position:sticky; top:80px; align-self:flex-start;">
-                            <iframe src="{% url 'chat_interface' %}" style="width:100%; height:50vh;"></iframe>
-                        </div>
-                    </div>
+                    {% endif %}
+                  </div>
+
+                  <h1 id="activityName"></h1>
+                  <div id="activityContent"></div>
+
+                  {% if activity_type_name == 'Experiment' %}
+                  <iframe id="simulationPreview" width="100%" height="600" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                  {% endif %}
                 </div>
-                
+
+                <!-- Chatbot -->
+                <div class="col-md-4">
+                  <div class="chatbot-card">
+                    <div class="chatbot-container">
+                      <iframe src="{% url 'chat_interface' %}" style="width:100%; height:60vh; border:none;"></iframe>
+                    </div>
+                  </div>
+                </div>
+
             </div>
+        </div>
             <script>
                 {% comment %} function fetchAndDisplayActivity(activityId) {
                     fetch(`/studentview/get_activity/${activityId}`)
@@ -449,6 +527,16 @@
 						sendPendulumDataToIframe();
 						resetDurations();     // Reset for the next activity
 					});
+
+				// Hide welcome card when readyButton is hidden by the iframe message handler
+				(function () {
+					const btn = document.getElementById('readyButton');
+					const card = document.getElementById('welcomeCard');
+					if (!btn || !card) return;
+					new MutationObserver(function () {
+						if (btn.style.display === 'none') card.style.display = 'none';
+					}).observe(btn, { attributes: true, attributeFilter: ['style'] });
+				})();
 
             </script>
         </section>

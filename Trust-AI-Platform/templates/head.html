@@ -9,7 +9,6 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>fAith - Authoring Tool and Conversational Agent</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 
@@ -44,14 +43,8 @@
   <!-- ======= Header ======= -->
   <header id="header" class="header fixed-top d-flex align-items-center">
 
-    <div class="d-flex align-items-center justify-content-between">
-      <a href="{% url 'scenarios' %}" class="logo d-flex align-items-center">
-        <img src="{% static 'img/logo.png' %}" alt="">
-      </a>
-      <i class="bi bi-list toggle-sidebar-btn"></i>
-    </div><!-- End Logo -->
-
-
+    <!-- Burger at left of topbar, right after the sidebar -->
+    <i class="bi bi-list toggle-sidebar-btn" style="font-size:28px; color:#012970; cursor:pointer; padding: 0 16px;"></i>
 
     <nav class="header-nav ms-auto">
 	
@@ -61,7 +54,7 @@
 
           <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
             <img src="{% static 'img/avatar.png' %}" alt="Profile" class="rounded-circle">
-            <span class="d-none d-md-block dropdown-toggle ps-2">{{ user.first_name }} {{ user.last_name }} </span>
+            <span class="d-none d-md-block dropdown-toggle ps-2">{{ user.get_full_name|default:user.username }}</span>
           </a><!-- End Profile Iamge Icon -->
 
           <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
@@ -73,13 +66,19 @@
               <hr class="dropdown-divider">
             </li>
             {% if request.user|has_group:"teachers" %}
-            <!-- Link to Organizations -->
+            <li>
+              <a class="dropdown-item d-flex align-items-center" href="{% url 'profile' %}">
+                <i class="bi bi-gear"></i>
+                <span>Account Settings</span>
+              </a>
+            </li>
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'list_organizations' %}">
-                <i class="bi bi-people-fill"></i> <!-- Add icon for organizations -->
+                <i class="bi bi-people-fill"></i>
                 <span>Organizations</span>
               </a>
             </li>
+            <li>
               <hr class="dropdown-divider">
             </li>
             {% endif %}
@@ -101,6 +100,14 @@
   <!-- ======= Sidebar ======= -->
   <aside id="sidebar" class="sidebar">
 
+    <!-- Brand at top of sidebar -->
+    <div class="d-flex align-items-center px-3 border-bottom" style="height:72px;">
+      <a href="{% url 'scenarios' %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
+        <img src="{% static 'img/logo.png' %}" alt="Trust AI Lab Logo" style="max-height:34px;">
+        <span style="font-size:15px; font-weight:700; color:#012970;">Trust AI Lab</span>
+      </a>
+    </div>
+
     <ul class="sidebar-nav" id="sidebar-nav">
 
 	{% if request.user|has_group:"teachers" %}
@@ -113,14 +120,14 @@
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'scenarios' %}">
-          <i class="bi bi-gear-wide-connected"></i>
+          <i class="bi bi-pencil-square"></i>
           <span>Authoring Tool</span>
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'list_groups' %}">
-          <i class="bx bx-sitemap"></i>
+          <i class="bi bi-people-fill"></i>
           <span>Student Groups</span>
         </a>
       </li>
@@ -128,7 +135,7 @@
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'studentScenarios' %}">
-          <i class="bi bi-easel"></i>
+          <i class="bi bi-mortarboard"></i>
           <span>Student View</span>
         </a>
       </li>
@@ -146,7 +153,7 @@
       <ul class="sidebar-nav mt-auto">
         <li class="nav-item">
           <a class="nav-link collapsed" href="{% url 'tos' %}">
-            <i class="bi bi-file-post"></i>
+            <i class="bi bi-file-text"></i>
             <span>Terms of Service</span>
           </a>
         </li>

@@ -1,85 +1,232 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ group.name }}</title>{% endblock %}
 
 {% block atcontent %}
+<style>
+  .stat-card { border-radius: 10px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .stat-card .stat-icon { font-size: 22px; }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-card .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+  .vis-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .vis-public  { background: #d1fae5; color: #065f46; }
+  .vis-org     { background: #fef3c7; color: #92400e; }
+  .vis-private { background: #fee2e2; color: #991b1b; }
+  .member-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 600; }
+  .member-table td { font-size: 14px; vertical-align: middle; }
+  .members-scroll { max-height: 340px; overflow-y: auto; }
+  .info-row { display: flex; align-items: baseline; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; min-width: 120px; }
+  .info-value { font-size: 14px; color: #333; }
+</style>
+
 <main id="main" class="main">
 
   <div class="pagetitle">
-    <h1>Group Details: {{ group.name }}</h1>
+    <h1>{{ group.name }}</h1>
     <nav>
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
-        <li class="breadcrumb-item active">View Group</li>
+        <li class="breadcrumb-item active">{{ group.name }}</li>
       </ol>
     </nav>
-  </div><!-- End Page Title -->
+  </div>
 
-  <!-- Group Action Buttons -->
   <section class="section">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="d-flex justify-content-start mb-4">
-          <!-- Edit Group Button -->
-          <a href="{% url 'edit_group' group.id %}" class="btn btn-outline-info me-2">Edit Group</a>
-          
-          <!-- Download Credentials Button -->
-          <a href="{% url 'download_credentials' group.id %}" class="btn btn-outline-warning me-2">Download Credentials</a>
-          
-          <!-- Delete Group Button with Confirmation Modal -->
-          <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete Group</button>
-          
-          <!-- Delete Confirmation Modal -->
-          <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="deleteModalLabel">Delete Group</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  Are you sure you want to delete the group "{{ group.name }}"? This action cannot be undone.
-                </div>
-                <div class="modal-footer">
-                  <form method="post" action="{% url 'delete_group' group.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                  </form>
-                </div>
-              </div>
+
+    <!-- Action bar -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+      <a href="{% url 'edit_group' group.id %}" class="btn btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i> Edit Group
+      </a>
+      <a href="{% url 'download_credentials' group.id %}" class="btn btn-outline-warning">
+        <i class="bi bi-download me-1"></i> Download Credentials
+      </a>
+      <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        <i class="bi bi-trash me-1"></i> Delete Group
+      </button>
+    </div>
+
+    <!-- Stats row -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4">
+        <div class="card stat-card">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-value text-primary">{{ memberships|length }}</div>
+            <i class="bi bi-people-fill text-primary stat-icon"></i>
+          </div>
+          <div class="stat-label">Students</div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card stat-card">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-value text-success">{{ scenarios|length }}</div>
+            <i class="bi bi-journal-bookmark-fill text-success stat-icon"></i>
+          </div>
+          <div class="stat-label">Scenarios Assigned</div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card stat-card">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-value text-secondary" style="font-size:18px;">{{ group.created_on|date:"d M Y" }}</div>
+            <i class="bi bi-calendar3 text-secondary stat-icon"></i>
+          </div>
+          <div class="stat-label">Date Created</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Left: Group info + Scenarios -->
+      <div class="col-lg-4">
+
+        <!-- Group Info -->
+        <div class="card mb-4">
+          <div class="card-body p-4">
+            <h5 class="card-title d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-info-circle-fill text-primary"></i> Group Info
+            </h5>
+            <div class="info-row">
+              <span class="info-label">Group Name</span>
+              <span class="info-value fw-semibold">{{ group.name }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">User Prefix</span>
+              <span class="info-value"><code>{{ group.prefix }}</code></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Students</span>
+              <span class="info-value">{{ group.number_of_users }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Created By</span>
+              <span class="info-value">{{ group.created_by.get_full_name|default:group.created_by.username }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Created On</span>
+              <span class="info-value">{{ group.created_on|date:"d M Y, H:i" }}</span>
             </div>
           </div>
-          <!-- End Delete Confirmation Modal -->
         </div>
 
-        <!-- Group Information -->
+        <!-- Assigned Scenarios -->
         <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Group Information</h5>
-            <ul class="list-group">
-              <li class="list-group-item"><strong>Group Name:</strong> {{ group.name }}</li>
-              <li class="list-group-item"><strong>User Prefix:</strong> {{ group.prefix }}</li>
-              <li class="list-group-item"><strong>Number of Users:</strong> {{ group.number_of_users }}</li>
-              <li class="list-group-item"><strong>Date Created:</strong> {{ group.created_on|date:"Y-m-d H:i:s" }}</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card mt-4">
-          <div class="card-body">
-            <h5 class="card-title">Assigned Scenarios</h5>
-            <ul class="list-group">
-              {% for scenario in scenarios %}
-                <li class="list-group-item">{{ scenario.name }}</li>
-              {% empty %}
-                <li class="list-group-item">No scenarios assigned to this group.</li>
-              {% endfor %}
-            </ul>
+          <div class="card-body p-4">
+            <h5 class="card-title d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-journal-bookmark-fill text-primary"></i> Assigned Scenarios
+            </h5>
+            {% for scenario in scenarios %}
+            <div class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}">
+              <span style="font-size:14px;">{{ scenario.name }}</span>
+              {% if scenario.visibility_status == 'public' %}
+                <span class="vis-badge vis-public">Public</span>
+              {% elif scenario.visibility_status == 'org' %}
+                <span class="vis-badge vis-org">Org-Only</span>
+              {% else %}
+                <span class="vis-badge vis-private">Private</span>
+              {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">No scenarios assigned to this group.</p>
+            {% endfor %}
           </div>
         </div>
 
       </div>
+
+      <!-- Right: Members table -->
+      <div class="col-lg-8">
+        <div class="card h-100">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="card-title d-flex align-items-center gap-2 mb-0">
+                <i class="bi bi-person-lines-fill text-primary"></i> Student Accounts
+              </h5>
+              <a href="{% url 'download_credentials' group.id %}" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-download me-1"></i> Export Excel
+              </a>
+            </div>
+
+            {% if memberships %}
+            <div class="members-scroll">
+              <table class="table table-hover mb-0 member-table">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>#</th>
+                    <th>Username</th>
+                    <th>Initial Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in memberships %}
+                  <tr>
+                    <td class="text-muted">{{ forloop.counter }}</td>
+                    <td><code>{{ m.user.username }}</code></td>
+                    <td>
+                      <span class="password-text" style="display:none;">{{ m.initial_password }}</span>
+                      <span class="password-mask">••••••••</span>
+                      <button type="button" class="btn btn-link btn-sm p-0 ms-2 toggle-pw" style="font-size:12px;">Show</button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="text-muted small">No student accounts in this group.</p>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
-</main><!-- End #main -->
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Group
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete <strong>{{ group.name }}</strong>?
+          This will permanently delete the group and all <strong>{{ memberships|length }} student account(s)</strong>. This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form method="post" action="{% url 'delete_group' group.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-trash me-1"></i> Yes, Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const cell = this.closest('td');
+      const mask = cell.querySelector('.password-mask');
+      const text = cell.querySelector('.password-text');
+      const showing = text.style.display !== 'none';
+      text.style.display = showing ? 'none' : '';
+      mask.style.display = showing ? '' : 'none';
+      this.textContent = showing ? 'Show' : 'Hide';
+    });
+  });
+</script>
+
 {% endblock %}
