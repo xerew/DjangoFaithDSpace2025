@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Student Groups</title>{% endblock %}
 {% block atcontent %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -92,17 +93,12 @@
                         {% endif %}
                     </td>
                     <td>
-                      <!-- View Group Details Button -->
-                      <a href="{% url 'view_group' group.id %}" class="btn btn-primary">View</a>
-
-                      <!-- Download Credentials Button -->
-                      <a href="{% url 'download_credentials' group.id %}" class="btn btn-warning">Download Credentials</a>
-
-                      <!-- Edit Button -->
-                      <a href="{% url 'edit_group' group.id %}" class="btn btn-info">Edit</a>
-
-                      <!-- Delete Button with Confirmation Modal -->
-                      <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ group.id }}">Delete</button>
+                      <div class="d-flex flex-wrap gap-1">
+                      <a href="{% url 'view_group' group.id %}" class="btn btn-sm btn-primary">View</a>
+                      <a href="{% url 'download_credentials' group.id %}" class="btn btn-sm btn-warning">Credentials</a>
+                      <a href="{% url 'edit_group' group.id %}" class="btn btn-sm btn-info">Edit</a>
+                      <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ group.id }}">Delete</button>
+                      </div>
 
                       <!-- Delete Confirmation Modal -->
                       <div class="modal fade" id="deleteModal{{ group.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ group.id }}" aria-hidden="true">

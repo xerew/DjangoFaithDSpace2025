@@ -1,187 +1,269 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Authoring Tool</title>{% endblock %}
 {% block atcontent %}
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Scenarios</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-          Authoring Tool
-        </li>
-        <li class="breadcrumb-item active">Scenarios</li>
-      </ol>
-      <a type="button"
-        class="btn btn-outline-primary"
-        href="{% url 'createScenario' %}">Create New</a>
-    </nav>
+  <div class="pagetitle d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h1>Scenarios</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">Authoring Tool</li>
+          <li class="breadcrumb-item active">Scenarios</li>
+        </ol>
+      </nav>
+    </div>
+    <a type="button" class="btn btn-primary" href="{% url 'createScenario' %}">
+      <i class="bi bi-plus-lg"></i> Create New
+    </a>
   </div>
   <!-- End Page Title -->
 
-  <!-- Accordion for Filters -->
-  <div class="accordion" id="filterAccordion" style="margin-bottom:20px;">
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingOne">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-          Filters
-        </button>
-      </h2>
-      <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#filterAccordion">
-        <div class="accordion-body">
-          <form id="search-form" method="get" action="{% url 'scenarios' %}">
-            <div class="mb-3">
-              <label for="search-input" class="form-label">Search Scenarios</label>
-              <input type="text" class="form-control" name="q" id="search-input" placeholder="Search for scenario name, description, user that created it..." value="{{ query }}">
+  <!-- Always-visible Filters -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body p-4">
+      <form id="search-form" method="get" action="{% url 'scenarios' %}">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4 col-lg-3">
+            <label for="search-input" class="form-label fw-semibold">Search</label>
+            <input type="text" class="form-control" name="q" id="search-input"
+                   placeholder="Name, description, creator…" value="{{ query }}">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="start-date-input" class="form-label fw-semibold">From</label>
+            <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="end-date-input" class="form-label fw-semibold">To</label>
+            <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="language-select" class="form-label fw-semibold">Language</label>
+            <select class="form-select" name="language" id="language-select">
+              <option value="">All</option>
+              {% for lang in languages %}
+                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="visibility-select" class="form-label fw-semibold">Visibility</label>
+            <select class="form-select" name="visibility" id="visibility-select">
+              <option value="all" {% if visibility_filter == 'all' %}selected{% endif %}>All</option>
+              <option value="public" {% if visibility_filter == 'public' %}selected{% endif %}>Public</option>
+              <option value="org" {% if visibility_filter == 'org' %}selected{% endif %}>Org-Only</option>
+              <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>Private</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-auto d-flex align-items-end gap-3 flex-wrap">
+            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+              <input type="checkbox" class="form-check-input" name="show_mine" id="show-mine-switch"
+                     {% if show_mine %}checked{% endif %} style="margin-top:0;">
+              <label class="form-check-label fw-semibold" for="show-mine-switch">Show My Scenarios</label>
             </div>
-            <div class="mb-3">
-              <label for="start-date-input" class="form-label">Start Date</label>
-              <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
-            </div>
-            <div class="mb-3">
-              <label for="end-date-input" class="form-label">End Date</label>
-              <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
-            </div>
-            <div class="mb-3">
-              <label for="language-select" class="form-label">Language</label>
-              <select class="form-control" name="language" id="language-select">
-                <option value="">All Languages</option>
-                {% for lang in languages %}
-                  <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Visibility Filter -->
-            <div class="mb-3">
-              <label for="visibility-select" class="form-label">Visibility</label>
-              <select class="form-control" name="visibility" id="visibility-select">
-                <option value="all" {% if visibility_filter == 'all' %}selected{% endif %}>All</option>
-                <option value="public" {% if visibility_filter == 'public' %}selected{% endif %}>Public</option>
-                <option value="org" {% if visibility_filter == 'org' %}selected{% endif %}>Org-Only</option>
-                <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>Private</option>
-              </select>
-            </div>
-
-            <div class="mb-3 form-check form-switch">
-              <input type="checkbox" class="form-check-input" name="show_mine" id="show-mine-switch" {% if show_mine %}checked{% endif %}>
-              <label class="form-check-label" for="show-mine-switch">Show My Scenarios</label>
-            </div>
-
-            <div class="mb-3">
-              <button class="btn btn-outline-primary" type="submit">Search</button>
-              <button type="button" id="reset-button" class="btn btn-outline-secondary">Reset</button>
-            </div>
-          </form>
+            <button type="button" id="reset-button" class="btn btn-sm btn-outline-secondary">Reset</button>
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   </div>
-  <!-- End Accordion for Filters -->
-  
+  <!-- End Filters -->
+
   <section class="section">
-    <!-- Card with an image on left -->
-    {% for scenario in myScenarios %}
-      <div class="card mb-3">
-        <div class="row g-0">
-          <div class="col-md-4">
-            <img src="{{ scenario.image.url }}"
-                 class="img-fluid rounded-start cardimgnick"
-                 alt="{{ scenario.image.name }}"
-                 height="auto" width="auto">
-          </div>
-          <div class="col-md-8">
-            <div class="card-body">
-              <h5 class="card-title">{{ scenario.name }} 
-                <!-- Visibility Badge -->
-                {% if scenario.visibility_status == 'public' %}
-                  <span class="badge bg-success" style="color:white">Public</span>
-                {% elif scenario.visibility_status == 'org' %}
-                  <span class="badge bg-warning" style="color:white">Org-Only</span>
-                {% elif scenario.visibility_status == 'private' %}
-                  <span class="badge bg-danger" style="color:white">Private</span>
-                {% endif %}
-              </h5>
-              <p class="card-text">{{ scenario.description }}</p>
-
-              <a type="button"
-                 class="btn btn-outline-primary"
-                 href="{% url 'viewScenario' id=scenario.id %}">View</a>
-			  <a type="button"
-                  class="btn btn-outline-primary"
-                  href="{% url 'duplicate_scenario' scenario_id=scenario.id %}">Copy</a>
-              
-              <!-- Only allow editing and deleting for the owner -->
-              {% if request.user == scenario.created_by or scenario.can_edit %}
-                <a type="button"
-                  class="btn btn-outline-primary"
-                  href="{% url 'updateScenario' id=scenario.id %}">Update</a>
-                
-
-                <button type="button"
-                  class="btn btn-outline-secondary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#basicModal{{ scenario.id }}">Delete</button>
-                
-                <!-- Modal for deletion confirmation -->
-                <div class="modal fade" id="basicModal{{ scenario.id }}" tabindex="-1">
-                  <div class="modal-dialog">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title">Confirmation</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                      </div>
-                      <div class="modal-body">
-                        Are you sure you want to delete the {{ scenario.name }} scenario?
-                      </div>
-                      <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <a type="button" class="btn btn-danger" href="{% url 'deleteScenario' id=scenario.id %}">Yes, Delete</a>
+    <div class="row g-4" id="scenario-list">
+      {% for scenario in myScenarios %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm scenario-card">
+            <div class="scenario-img-wrapper">
+              <img src="{{ scenario.image.url }}" class="scenario-thumb" alt="{{ scenario.name }}">
+              <!-- Visibility badge overlaid on image -->
+              {% if scenario.visibility_status == 'public' %}
+                <span class="img-badge bg-success">Public</span>
+              {% elif scenario.visibility_status == 'org' %}
+                <span class="img-badge bg-warning">Org-Only</span>
+              {% elif scenario.visibility_status == 'private' %}
+                <span class="img-badge bg-danger">Private</span>
+              {% endif %}
+            </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title mb-1">{{ scenario.name }}</h5>
+              <p class="card-text text-muted small flex-grow-1">{{ scenario.description|truncatechars:110 }}</p>
+              <div class="mt-auto pt-2 d-flex flex-wrap gap-1">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'viewScenario' id=scenario.id %}">View</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}">Copy</a>
+                {% if request.user == scenario.created_by or scenario.can_edit %}
+                  <a class="btn btn-sm btn-outline-warning" href="{% url 'updateScenario' id=scenario.id %}">Update</a>
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          data-bs-toggle="modal" data-bs-target="#delModal{{ scenario.id }}">Delete</button>
+                  <div class="modal fade" id="delModal{{ scenario.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title">Confirm Delete</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">Are you sure you want to delete <strong>{{ scenario.name }}</strong>?</div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <a type="button" class="btn btn-danger" href="{% url 'deleteScenario' id=scenario.id %}">Yes, Delete</a>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <!-- End Modal for deletion confirmation -->
-              {% endif %}
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <!-- End Card with an image on left -->
+      {% empty %}
+        <div class="col-12">
+          <p class="text-muted">No scenarios found.</p>
+        </div>
       {% endfor %}
-    </section>
-  </main>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script>
-    $(document).ready(function() {
-      $('#search-input, #start-date-input, #end-date-input, #language-select, #show-mine-switch, #visibility-select').on('input change', function() {
-        $.ajax({
-          url: $('#search-form').attr('action'),
-          data: $('#search-form').serialize(), // Serialize form data
-          success: function(data) {
-            // Replace the scenario list with the new data
-            $('#scenario-list').html($(data).find('#scenario-list').html());
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav id="pagination-container" class="mt-4" aria-label="Scenario pages">
+      <ul class="pagination justify-content-center flex-wrap">
+        <!-- Previous -->
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.previous_page_number }}">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        <!-- Smart page range -->
+        {% for p in page_range %}
+          {% if p is None %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% elif p == page_obj.number %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?{{ filter_querystring }}&page={{ p }}">{{ p }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        <!-- Next -->
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.next_page_number }}">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+      <p class="text-center text-muted small">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        &mdash; {{ page_obj.paginator.count }} scenario{{ page_obj.paginator.count|pluralize }}
+      </p>
+    </nav>
+    {% endif %}
+  </section>
+</main>
+
+<style>
+  .scenario-card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .scenario-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+  }
+  .scenario-img-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #e9ecef;
+  }
+  .scenario-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+  .img-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: .3px;
+  }
+</style>
+
+<script>
+  (function () {
+    const form = document.getElementById('search-form');
+    const grid = document.getElementById('scenario-list');
+    let debounceTimer;
+    let currentRequest = null;
+
+    async function fetchResults() {
+      const params = new URLSearchParams(new FormData(form));
+      params.delete('page');
+      const url = '?' + params.toString();
+
+      // Abort previous in-flight request if any
+      if (currentRequest) currentRequest.abort();
+      const controller = new AbortController();
+      currentRequest = controller;
+
+      grid.style.opacity = '0.5';
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        grid.innerHTML = doc.getElementById('scenario-list').innerHTML;
+        grid.style.opacity = '1';
+
+        const newPag = doc.getElementById('pagination-container');
+        let oldPag = document.getElementById('pagination-container');
+        if (newPag) {
+          if (oldPag) {
+            oldPag.outerHTML = newPag.outerHTML;
+          } else {
+            grid.insertAdjacentHTML('afterend', newPag.outerHTML);
           }
-        });
-      });
+        } else if (oldPag) {
+          oldPag.remove();
+        }
 
-      $('#reset-button').click(function() {
-        // Clear the input fields
-        $('#search-input').val('');
-        $('#start-date-input').val('');
-        $('#end-date-input').val('');
-        $('#language-select').val('');
-        $('#show-mine-switch').prop('checked', false);
-        $('#visibility-select').val('all');
-        
-        // Submit the form to reload the page without filters
-        $('#search-form').submit();
-      });
-
-      // Check if any filter is applied and keep the accordion open if true
-      if ($('#search-input').val() || $('#start-date-input').val() || $('#end-date-input').val() || $('#language-select').val() || ($('#visibility-select').val() && $('#visibility-select').val() !== 'all') || $('#show-mine-switch').is(':checked')) {
-        $('#collapseOne').addClass('show');
-        $('.accordion-button').removeClass('collapsed').attr('aria-expanded', 'true');
+        history.replaceState({}, '', url);
+      } catch (e) {
+        if (e.name !== 'AbortError') grid.style.opacity = '1';
       }
+    }
+
+    function debounce() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchResults, 400);
+    }
+
+    document.getElementById('search-input').addEventListener('input', debounce);
+
+    ['start-date-input', 'end-date-input', 'language-select', 'visibility-select', 'show-mine-switch']
+      .forEach(id => document.getElementById(id).addEventListener('change', fetchResults));
+
+    document.getElementById('reset-button').addEventListener('click', function () {
+      document.getElementById('search-input').value = '';
+      document.getElementById('start-date-input').value = '';
+      document.getElementById('end-date-input').value = '';
+      document.getElementById('language-select').value = '';
+      document.getElementById('visibility-select').value = 'all';
+      document.getElementById('show-mine-switch').checked = false;
+      fetchResults();
     });
-  </script>
-  <!-- End #main -->
+  })();
+</script>
 {% endblock atcontent %}

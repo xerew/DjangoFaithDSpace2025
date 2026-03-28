@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
 from authoringtool.models import Scenario, Activity, NextQuestionLogic, Answer, Simulation, ExperimentLL, RemoteLabSession, Phase, Scenario, VRARExperiment, MultilingualAnswer, MultilingualQuestion
 from usergroups.models import UserGroupMembership
 import json
@@ -30,15 +31,19 @@ def scenario_viewer(request, scenario_id):
 def scenario_form(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
     
-    # Map scenario language to language code
+    # Map canonical scenario language to language code (see Scenario.LANGUAGE_CHOICES)
     language_mapping = {
-        'Ελληνικά': 'gr',
-        'Greek': 'gr',
-        'Português': 'pt',
+        'Greek':      'gr',
         'Portuguese': 'pt',
-        'German': 'de',
-        'Deutsch': 'de',
-        'English': 'en'
+        'German':     'de',
+        'Spanish':    'es',
+        'French':     'fr',
+        'Italian':    'it',
+        'Romanian':   'ro',
+        'Estonian':   'et',
+        'Ukrainian':  'uk',
+        'Persian':    'fa',
+        'English':    'en',
     }
     
     # Get the appropriate language code, default to English if not found
@@ -191,53 +196,84 @@ def chat_interface(request):
 def scenarios_view(request):
     user = request.user
     is_teacher = user.groups.filter(name='teachers').exists()
-    # Check if the user belongs to the 'teachers' group
-    if user.groups.filter(name='teachers').exists():
-        # If the user is a teacher, show their scenarios, public ones, and org ones they belong to
+    query = request.GET.get('q', '').strip()
+    language = request.GET.get('language', '')
+
+    if is_teacher:
         org_ids = user.member_of_organizations.values_list('id', flat=True)
-        
-        myScenarios = Scenario.objects.filter(
-            Q(created_by=user) |  # Scenarios the user created
-            Q(visibility_status='public') |  # Public scenarios
-            Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios the user is part of
+        base_qs = Scenario.objects.filter(
+            Q(created_by=user) |
+            Q(visibility_status='public') |
+            Q(visibility_status='org', organizations__id__in=org_ids)
         ).distinct()
     else:
-        # If the user is not a teacher, only show scenarios assigned to their group
         user_memberships = UserGroupMembership.objects.filter(user=user)
         group_ids = user_memberships.values_list('group_id', flat=True)
-
-        myScenarios = Scenario.objects.filter(
-            assigned_groups__id__in=group_ids  # Scenarios assigned to the groups the user is part of
+        base_qs = Scenario.objects.filter(
+            assigned_groups__id__in=group_ids
         ).distinct()
 
-    # Get all questions (IDs only — we only need the count / set membership)
+    if query:
+        base_qs = base_qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
+    if language:
+        base_qs = base_qs.filter(language=language)
+
+    base_qs = base_qs.order_by('-created_on')
+
+    # Annotate all scenarios (evaluate queryset once before pagination)
     all_question_ids = set(MultilingualQuestion.objects.values_list('id', flat=True))
     total_questions = len(all_question_ids)
+    scenario_list = list(base_qs)
 
-    # PERF-9: one bulk query for all user answers across all visible scenarios,
-    # then resolve per-scenario completion entirely in Python (no per-scenario DB hits).
     answered_pairs = set(
         MultilingualAnswer.objects.filter(
             user=user,
-            scenario__in=myScenarios
+            scenario_id__in=[s.id for s in scenario_list]
         ).values_list('scenario_id', 'question_id')
     )
-
-    # Build scenario_id -> set-of-answered-question-ids
-    answered_map = {}  # scenario_id -> set of question_ids
+    answered_map = {}
     for scenario_id, question_id in answered_pairs:
         answered_map.setdefault(scenario_id, set()).add(question_id)
-
-    for scenario in myScenarios:
+    for scenario in scenario_list:
         answered_for_scenario = answered_map.get(scenario.id, set())
         scenario.has_answered_all_questions = (
             total_questions > 0 and answered_for_scenario >= all_question_ids
         )
 
+    paginator = Paginator(scenario_list, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    get_params = request.GET.copy()
+    get_params.pop('page', None)
+    filter_querystring = get_params.urlencode()
+
+    # Smart page range
+    def _smart_page_range(po):
+        cur, total = po.number, po.paginator.num_pages
+        pages = set([1, total])
+        for i in range(max(1, cur - 2), min(total, cur + 2) + 1):
+            pages.add(i)
+        result, prev = [], None
+        for p in sorted(pages):
+            if prev is not None and p - prev > 1:
+                result.append(None)
+            result.append(p)
+            prev = p
+        return result
+
+    languages = Scenario.objects.values_list('language', flat=True).distinct().order_by('language')
+
     template = loader.get_template('studentview/scenarioSelection.html')
     context = {
-        'myScenarios': myScenarios,
-        'is_teacher': is_teacher
+        'myScenarios': page_obj,
+        'page_obj': page_obj,
+        'page_range': _smart_page_range(page_obj),
+        'filter_querystring': filter_querystring,
+        'is_teacher': is_teacher,
+        'query': query,
+        'selected_language': language,
+        'languages': languages,
     }
     return HttpResponse(template.render(context, request))
     

@@ -1,115 +1,164 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Pilot Implementations</title>{% endblock %}
 {% block atcontent %}
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Student Groups</h1>
-    <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item active">User Groups</li>
+
+  <!-- Page Title -->
+  <div class="pagetitle d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h1>Pilot Implementations</h1>
+      <nav>
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">User Groups</a></li>
+          <li class="breadcrumb-item active">Pilot Implementations</li>
         </ol>
-    </nav>
+      </nav>
+    </div>
+    <a href="{% url 'list_groups' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Groups
+    </a>
   </div>
 
   <section class="section">
-    <div class="row">
-      <div class="col-lg-12">
-		<div style="margin-bottom:10px">
-			<a href="{% url 'list_groups' %}" class="btn btn-primary">Back to Groups</a>
-		</div>
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Student Group List</h5>
-            <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th><a href="?sort=group">Group Name</a></th>
-                  <th><a href="?sort=teacher">Teacher in Charge</a></th>
-                  <th><a href="?sort=num_students">Number of Students</a></th>
-                  <th><a href="?sort=implementations&order={{ order }}">Implementations</a></th>
-                  <th><a href="?sort=first_implementation&order={{ order }}">First Implementation</a></th>
-                  <th><a href="?sort=last_implementation&order={{ order }}">Last Implementation</a></th>
-                  <th><a href="?sort=scenario">Scenarios Assigned</a></th>
-                  <th>Implementations Per Scenario</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for data in group_data %}
-                  <tr>
-                    <td>{{ data.group.name }}</td>
-                    <td>{{ data.teacher.username }}</td>
-                    <td>{{ data.num_students }}</td>
-                    <td>{{ data.implementations }}</td>
-                    <td>
-                      {% if data.first_implementation %}
-                        {{ data.first_implementation|date:"d/m/Y H:i" }}
-                      {% else %}
-                        No Implementation
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if data.last_implementation %}
-                        {{ data.last_implementation|date:"d/m/Y H:i" }}
-                      {% else %}
-                        No Implementation
-                      {% endif %}
-                    </td>
-                    <td>{{ data.scenarios }}</td>
-                    <td>
-                        {% for scenario, count in data.scenario_implementations.items %}
-                            <span style="display:block; font-weight:bold;">{{ scenario }}: <span style="color:blue;">{{ count }}</span></span>
-                        {% empty %}
-                            No Implementations
-                        {% endfor %}
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td colspan="7">No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            </div><!-- /.table-responsive -->
-            <h5 class="card-title mt-4">Total Implementations per Scenario</h5>
-            <div class="table-responsive">
-            <table class="table table-bordered table-sm">
-              <thead>
-                <tr>
-                  <th>Scenario</th>
-                  <th>Total Implementations <small class="text-muted">(incl. extras)</small></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in totals_rows %}
-                  <tr>
-                    <td>
-                      {{ row.name }}
-                      {% if row.extra %}
-                        <small class="text-muted">(+{{ row.extra }} extra)</small>
-                      {% endif %}
-                    </td>
-                    <td>{{ row.total }}</td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td colspan="2">No scenario implementations found.</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th>Grand Total</th>
-                  <th>{{ grand_total_implementations }}</th>
-                </tr>
-              </tfoot>
-            </table>
-            </div><!-- /.table-responsive -->
 
-          </div>
+    <!-- ── Summary stats row ─────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+      <div class="col-4">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-primary">{{ group_data|length }}</div>
+          <div class="text-muted small mt-1"><i class="bi bi-people me-1"></i>Groups</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-success">{{ grand_total_implementations }}</div>
+          <div class="text-muted small mt-1"><i class="bi bi-play-circle me-1"></i>Total Implementations</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-warning">{{ totals_rows|length }}</div>
+          <div class="text-muted small mt-1"><i class="bi bi-collection me-1"></i>Scenarios</div>
         </div>
       </div>
     </div>
+
+    <!-- ── Main two-column layout ─────────────────────────────────── -->
+    <div class="row g-4 align-items-start">
+
+      <!-- Card 1: Groups table (takes 8/12 on xl, full on smaller) -->
+      <div class="col-12 col-xl-8">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-0">
+            <div class="px-4 pt-4 pb-2 d-flex align-items-center gap-2">
+              <i class="bi bi-people-fill text-primary fs-5"></i>
+              <h5 class="card-title mb-0">Student Groups &amp; Implementations</h5>
+            </div>
+            <div class="table-scroll-wrapper">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light sticky-top-thead">
+                  <tr>
+                    <th class="ps-4"><a href="?sort=group" class="text-decoration-none text-dark">Group</a></th>
+                    <th><a href="?sort=teacher" class="text-decoration-none text-dark">Teacher</a></th>
+                    <th class="text-center"><a href="?sort=num_students" class="text-decoration-none text-dark">Students</a></th>
+                    <th class="text-center"><a href="?sort=implementations&order={{ order }}" class="text-decoration-none text-dark">Impls.</a></th>
+                    <th><a href="?sort=first_implementation&order={{ order }}" class="text-decoration-none text-dark">First</a></th>
+                    <th><a href="?sort=last_implementation&order={{ order }}" class="text-decoration-none text-dark">Last</a></th>
+                    <th class="pe-4"><a href="?sort=scenario" class="text-decoration-none text-dark">Per Scenario</a></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for data in group_data %}
+                    <tr>
+                      <td class="ps-4 fw-semibold">{{ data.group.name }}</td>
+                      <td class="text-muted small">{{ data.teacher.username }}</td>
+                      <td class="text-center">
+                        <span class="badge bg-primary rounded-pill">{{ data.num_students }}</span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-success rounded-pill">{{ data.implementations }}</span>
+                      </td>
+                      <td class="text-nowrap small text-muted">
+                        {% if data.first_implementation %}{{ data.first_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
+                      </td>
+                      <td class="text-nowrap small text-muted">
+                        {% if data.last_implementation %}{{ data.last_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
+                      </td>
+                      <td class="pe-4 small">
+                        {% for scenario, count in data.scenario_implementations.items %}
+                          <div class="d-flex align-items-center gap-1">
+                            <span class="text-truncate" style="max-width:140px;" title="{{ scenario }}">{{ scenario }}</span>
+                            <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto">{{ count }}</span>
+                          </div>
+                        {% empty %}
+                          <span class="text-muted">—</span>
+                        {% endfor %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Totals summary (takes 4/12 on xl, full on smaller) -->
+      <div class="col-12 col-xl-4">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-0">
+            <div class="px-4 pt-4 pb-2 d-flex align-items-center gap-2">
+              <i class="bi bi-bar-chart-fill text-success fs-5"></i>
+              <h5 class="card-title mb-0">Implementations per Scenario</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+              {% for row in totals_rows %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                  <div>
+                    <span class="fw-semibold small">{{ row.name }}</span>
+                    {% if row.extra %}
+                      <br><span class="text-muted" style="font-size:.75rem;">+{{ row.extra }} extra included</span>
+                    {% endif %}
+                  </div>
+                  <span class="badge bg-success rounded-pill ms-2">{{ row.total }}</span>
+                </li>
+              {% empty %}
+                <li class="list-group-item text-center text-muted py-4">No data yet.</li>
+              {% endfor %}
+              <!-- Grand total footer -->
+              <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 bg-light">
+                <span class="fw-bold">Grand Total</span>
+                <span class="badge bg-dark rounded-pill fs-6">{{ grand_total_implementations }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.row -->
   </section>
 </main>
+
+<style>
+  .table-scroll-wrapper {
+    max-height: 480px;
+    overflow-y: auto;
+  }
+  .sticky-top-thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+  }
+  /* Subtle primary badge for per-scenario counts */
+  .bg-primary-subtle { background-color: #cfe2ff !important; }
+</style>
 {% endblock %}
