@@ -1,149 +1,356 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ myPhase.name }}</title>{% endblock %}
 {% block atcontent %}
-  <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>Phase Details</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            Authoring Tool
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'scenarios' %}">Scenarios</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
-          </li>
-          <li class="breadcrumb-item active">{{ myPhase.name }}</li>
-        </ol>
-      </nav>
-    </div>
-    <!-- End Page Title -->
-    <section class="section">
-      <div class="row mb-2">
-        <div class="col-sm-10">
-          <a type="button"
-                  class="btn btn-secondary"
-                  href="{% url 'viewScenario' id=myScenario.id %}">Back to Scenario</a>
-          {% if can_edit %}
-            <a type="button"
-              class="btn btn-primary"
-              href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}">Create Activity</a>
-          {% endif %}
+
+<style>
+  /* ── Hero ── */
+  .phase-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px;
+    padding: 26px 30px 20px;
+    color: #fff;
+    margin-bottom: 26px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .phase-hero-icon {
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px;
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .phase-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .phase-hero .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .phase-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .phase-hero .breadcrumb-item a:hover { color: #fff; }
+  .phase-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  /* ── Section cards ── */
+  .phase-card {
+    border-radius: 12px;
+    border: 1px solid #e8edf5;
+    margin-bottom: 20px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .phase-card-header {
+    padding: 13px 22px 11px;
+    border-bottom: 1px solid #eef1f6;
+    background: #f8faff;
+    display: flex; align-items: center; justify-content: space-between;
+    font-weight: 700; font-size: 13.5px; color: #1e3a8a;
+  }
+  .phase-card-body { padding: 20px 22px; }
+
+  /* ── Activity type badges ── */
+  .type-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .type-question    { background: #dbeafe; color: #1d4ed8; }
+  .type-experiment  { background: #ede9fe; color: #6d28d9; }
+  .type-guidance    { background: #fef3c7; color: #b45309; }
+  .type-explanation { background: #d1fae5; color: #065f46; }
+  .type-default     { background: #f3f4f6; color: #374151; }
+
+  /* ── Bool badges ── */
+  .bool-yes { display: inline-flex; align-items: center; gap: 3px; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; background: #d1fae5; color: #065f46; }
+  .bool-no  { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; background: #f3f4f6; color: #9ca3af; }
+
+  /* ── Activities table ── */
+  .act-table { width: 100%; border-collapse: collapse; }
+  .act-table th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: #6b7280; font-weight: 700; padding: 10px 14px 8px;
+    background: #f8faff; border-bottom: 2px solid #eef1f6; white-space: nowrap;
+  }
+  .act-table td {
+    padding: 11px 14px; font-size: 13.5px; color: #374151;
+    border-bottom: 1px solid #f3f4f6; vertical-align: middle;
+  }
+  .act-table tr:last-child td { border-bottom: none; }
+  .act-table tbody tr:hover { background: #f8faff; }
+  .act-name-link { color: #1a56db; text-decoration: none; font-weight: 500; }
+  .act-name-link:hover { text-decoration: underline; }
+  .act-num { color: #9ca3af; font-size: 12px; font-weight: 600; width: 36px; }
+  .act-text-cell { color: #6b7280; font-size: 12.5px; max-width: 220px; }
+
+  /* ── Action buttons ── */
+  .act-actions { display: flex; gap: 5px; align-items: center; }
+  .act-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 7px;
+    font-size: 14px; text-decoration: none; transition: background 0.12s;
+    border: none; cursor: pointer;
+  }
+  .act-btn-view   { color: #1a56db; background: #eff6ff; }
+  .act-btn-view:hover   { background: #dbeafe; color: #1d4ed8; }
+  .act-btn-edit   { color: #6d28d9; background: #f5f3ff; }
+  .act-btn-edit:hover   { background: #ede9fe; color: #5b21b6; }
+  .act-btn-delete { color: #dc2626; background: #fef2f2; }
+  .act-btn-delete:hover { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Empty state ── */
+  .empty-act { text-align: center; padding: 54px 20px; color: #9ca3af; }
+  .empty-act i { font-size: 46px; margin-bottom: 14px; display: block; }
+
+  /* ── LLM context ── */
+  .llm-body { font-size: 13.5px; color: #374151; line-height: 1.75; }
+  .llm-body h1, .llm-body h2, .llm-body h3 { font-size: 14.5px; font-weight: 700; color: #1e3a8a; margin: 12px 0 4px; }
+  .llm-body p { margin-bottom: 8px; }
+  .llm-body ul, .llm-body ol { padding-left: 20px; margin-bottom: 8px; }
+  .llm-body li { margin-bottom: 3px; }
+  .llm-body strong { color: #1e3a8a; }
+</style>
+
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="phase-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="phase-hero-icon"><i class="bi bi-layers-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
+          {{ myScenario.name }}
         </div>
+        <h2 style="margin:0; font-size:21px; font-weight:700; line-height:1.2;">{{ myPhase.name }}</h2>
+        <div style="font-size:12.5px; opacity:0.75; margin-top:4px;">
+          Phase &middot; {{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}
+        </div>
+        <nav>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+            <li class="breadcrumb-item active">{{ myPhase.name }}</li>
+          </ol>
+        </nav>
       </div>
-      <div class="row">
-        <!-- Column for the card -->
-        <div class="col-lg-6">
-          <div class="card">
-            {% if myPhase.image %}
-              <img src="{{ myPhase.image.url }}" alt="{{ myPhase.name }}" class="card-img-top" height="auto" width="auto">
+      <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+        <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm"
+           style="background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);">
+          <i class="bi bi-arrow-left me-1"></i> Scenario
+        </a>
+        {% if can_edit %}
+        <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-sm"
+           style="background:#fff; color:#1a56db; font-weight:600; border:none;">
+          <i class="bi bi-plus-circle me-1"></i> New Activity
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+
+    <!-- ── Phase Info + LLM Context ── -->
+    <div class="row g-3 mb-2">
+
+      <!-- Phase metadata -->
+      <div class="col-lg-{% if myPhase.llm_context %}4{% else %}12{% endif %}">
+        <div class="phase-card h-100">
+          <div class="phase-card-header">
+            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>Phase Information</span>
+            {% if can_edit %}
+            <a href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=myPhase.id %}"
+               class="btn btn-sm btn-outline-secondary" style="font-size:11.5px; padding:3px 10px;">
+              <i class="bi bi-pencil me-1"></i> Edit
+            </a>
             {% endif %}
-            <div class="card-body">
-              <h5 class="card-title">{{ myPhase.name }}</h5>
-              <p class="card-text">
-                <strong>Description:</strong> {{ myPhase.description }}
-              </p>
-              <p class="card-text">
-                <strong>LLM Evaluation:</strong> {{ llm_html }}
-              </p>
-              {% if myPhase.video_url %}
-                <p class="card-text">
-                  <strong>Video URL:</strong> {{ myPhase.video_url }}
-                </p>
-              {% endif %}
-              <p class="card-text">
-                <strong>Created on:</strong> {{ myPhase.created_on }}
-              </p>
+          </div>
+          <div class="phase-card-body">
+            {% if myPhase.image %}
+            <img src="{{ myPhase.image.url }}" alt="{{ myPhase.name }}"
+                 style="width:100%; border-radius:8px; margin-bottom:16px; object-fit:cover; max-height:180px;">
+            {% endif %}
+            {% if myPhase.description %}
+            <p style="font-size:14px; color:#374151; line-height:1.65; margin-bottom:14px;">{{ myPhase.description }}</p>
+            {% else %}
+            <p class="text-muted small mb-3"><em>No description provided.</em></p>
+            {% endif %}
+            <div style="font-size:12.5px; color:#9ca3af;">
+              <i class="bi bi-calendar3 me-1"></i> Created {{ myPhase.created_on|date:"d M Y" }}
             </div>
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Activities</h5>
-          <!-- Table with hoverable rows -->
-          <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Name</th>
-                <th scope="col">Text</th>
-                <th scope="col">Type</th>
-                <th scope="col">Is Evaluatable?</th>
-                <th scope="col">Is Primary?</th>
-                <th scope="col">Helper</th>
-                <th scope="col">Created On</th>
-                <th scope="col">Created By</th>
-                <th scope="col">Options</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for activity in activities %}
-                <tr>
-                  <th scope="row">{{ forloop.counter }}</th>
-                  <td><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"> {{ activity.name }}</a></td>
-                  <td>{{ activity.plain_text|truncatechars:40 }}</td>
-                  <td>{{ activity.activity_type }}</td>
-                  <td>{{ activity.is_evaluatable|yesno:"Yes,No" }}</td>
-                  <td>{{ activity.is_primary_ev|yesno:"Yes,No" }}</td>
-                  <td>{{ activity.helper }}</td>
-                  <td>{{ activity.created_on }}</td>
-                  <td>{{ activity.created_by }}</td>
-                  <td class="icon">
-                    <a class="bi bi-eye"
-                        style="padding-right:5px"
-                        title="View"
-                        href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"></a>
-                    {% if can_edit %}
-                      <a class="bi bi-arrow-repeat"
-                          style="padding-right:5px"
-                          title="Update"
-                          href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"></a>
-                      <a href=""
-                          class="bi bi-trash"
-                          data-bs-toggle="modal"
-                          data-bs-placement="top"
-                          title="Delete"
-                          data-bs-target="#basicModal{{ activity.id }}"></a>
-                      <div class="modal fade" id="basicModal{{ activity.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                          <div class="modal-content">
-                            <div class="modal-header">
-                              <h5 class="modal-title">Confirmation</h5>
-                              <button type="button"
-                                      class="btn-close"
-                                      data-bs-dismiss="modal"
-                                      aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">Are you sure you wanna delete the activity?</div>
-                            <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                              <a type="button"
-                                  class="btn btn-primary"
-                                  href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Yes</a>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- End Basic Modal-->
-                    {% endif %}
-                  </td>
-                  
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="5">No activities found for this phase.</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          </div><!-- /.table-responsive -->
-          <!-- End Table with hoverable rows -->
+
+      <!-- LLM Evaluation Context -->
+      {% if myPhase.llm_context %}
+      <div class="col-lg-8">
+        <div class="phase-card h-100">
+          <div class="phase-card-header">
+            <span><i class="bi bi-robot me-2" style="color:#7c3aed;"></i>LLM Evaluation Context</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    style="font-size:11.5px; padding:3px 10px;"
+                    data-bs-toggle="collapse" data-bs-target="#llmCollapseBody">
+              <i class="bi bi-chevron-up" id="llmChevronIcon"></i>
+            </button>
+          </div>
+          <div class="collapse show" id="llmCollapseBody">
+            <div class="phase-card-body" style="max-height:360px; overflow-y:auto;">
+              <div class="llm-body">{{ llm_html }}</div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
-  </main>
-  <!-- End #main -->
+      {% endif %}
+
+    </div>
+
+    <!-- ── Activities ── -->
+    <div class="phase-card">
+      <div class="phase-card-header">
+        <span>
+          <i class="bi bi-list-task me-2" style="color:#1a56db;"></i>Activities
+          <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{{ activities|length }} total</span>
+        </span>
+        {% if can_edit %}
+        <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}"
+           class="btn btn-sm btn-primary" style="font-size:12px; padding:4px 14px;">
+          <i class="bi bi-plus-circle me-1"></i> New Activity
+        </a>
+        {% endif %}
+      </div>
+
+      {% if activities %}
+      <div class="table-responsive">
+        <table class="act-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Text</th>
+              <th>Type</th>
+              <th>Evaluatable</th>
+              <th>Primary</th>
+              <th>Helper</th>
+              <th>Created</th>
+              <th>By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in activities %}
+            <tr>
+              <td class="act-num">{{ forloop.counter }}</td>
+              <td>
+                <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
+                   class="act-name-link">{{ activity.name }}</a>
+              </td>
+              <td class="act-text-cell">{{ activity.plain_text|truncatechars:45 }}</td>
+              <td>
+                {% with t=activity.activity_type.name %}
+                <span class="type-badge
+                  {% if t == 'Question' %}type-question
+                  {% elif t == 'Experiment' %}type-experiment
+                  {% elif t == 'Guidance' %}type-guidance
+                  {% elif t == 'Explanation' %}type-explanation
+                  {% else %}type-default{% endif %}">
+                  {% if t == 'Question' %}<i class="bi bi-chat-text"></i>
+                  {% elif t == 'Experiment' %}<i class="bi bi-cpu"></i>
+                  {% elif t == 'Guidance' %}<i class="bi bi-compass"></i>
+                  {% elif t == 'Explanation' %}<i class="bi bi-book"></i>
+                  {% else %}<i class="bi bi-circle"></i>{% endif %}
+                  {{ t }}
+                </span>
+                {% endwith %}
+              </td>
+              <td>
+                {% if activity.is_evaluatable %}
+                  <span class="bool-yes"><i class="bi bi-check2"></i> Yes</span>
+                {% else %}
+                  <span class="bool-no">No</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if activity.is_primary_ev %}
+                  <span class="bool-yes"><i class="bi bi-check2"></i> Yes</span>
+                {% else %}
+                  <span class="bool-no">No</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12.5px; color:#6b7280;">{{ activity.helper|default:"—" }}</td>
+              <td style="font-size:12px; color:#9ca3af; white-space:nowrap;">{{ activity.created_on|date:"d M Y, H:i" }}</td>
+              <td style="font-size:12px; color:#6b7280;">{{ activity.created_by }}</td>
+              <td>
+                <div class="act-actions">
+                  <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
+                     class="act-btn act-btn-view" title="View"><i class="bi bi-eye"></i></a>
+                  {% if can_edit %}
+                  <a href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
+                     class="act-btn act-btn-edit" title="Edit"><i class="bi bi-pencil"></i></a>
+                  <button type="button" class="act-btn act-btn-delete" title="Delete"
+                          data-bs-toggle="modal" data-bs-target="#delModal{{ activity.id }}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% else %}
+      <div class="empty-act">
+        <i class="bi bi-clipboard-x text-muted"></i>
+        <h5 class="text-muted">No activities yet</h5>
+        <p class="text-muted small mb-3">Add the first activity to this phase to get started.</p>
+        {% if can_edit %}
+        <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-1"></i> Create First Activity
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+  </section>
+</main>
+
+<!-- ── Delete Modals ── -->
+{% if can_edit %}
+{% for activity in activities %}
+<div class="modal fade" id="delModal{{ activity.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Activity
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete <strong>{{ activity.name }}</strong>?
+        This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
+           class="btn btn-danger"><i class="bi bi-trash me-1"></i> Yes, Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+  // Toggle chevron for LLM collapse
+  var llmEl = document.getElementById('llmCollapseBody');
+  if (llmEl) {
+    llmEl.addEventListener('hide.bs.collapse', function () {
+      document.getElementById('llmChevronIcon').className = 'bi bi-chevron-down';
+    });
+    llmEl.addEventListener('show.bs.collapse', function () {
+      document.getElementById('llmChevronIcon').className = 'bi bi-chevron-up';
+    });
+  }
+</script>
+
 {% endblock atcontent %}

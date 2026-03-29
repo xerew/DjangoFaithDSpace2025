@@ -1,85 +1,142 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Create Organization</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  .org-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .org-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .org-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .org-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .org-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .org-hero .breadcrumb-item a:hover { color: #fff; }
+  .org-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-solid {
+    background: #fff; color: #1a56db; border: none;
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s, box-shadow 0.15s;
+    cursor: pointer; white-space: nowrap;
+  }
+  .hero-btn-solid:hover { background: #eef3ff; color: #1a56db; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+
+  .form-card { max-width: 760px; margin: 0 auto; }
+  .form-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #4154f1; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #e8edf5; }
+  .field-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px; }
+</style>
 
 <main id="main" class="main">
 
-  <div class="pagetitle">
-    <h1>Create Organization</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
-        <li class="breadcrumb-item active">Create Organization</li>
-      </ol>
-    </nav>
-  </div><!-- End Page Title -->
+  <div class="org-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="org-hero-icon"><i class="bi bi-building-add"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Organizations</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Create Organization</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">Fill in the details below. You will become its first admin.</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+          <li class="breadcrumb-item active">Create Organization</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'list_organizations' %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back to Organizations
+        </a>
+      </div>
+    </div>
+  </div>
 
   <section class="section">
-    <div class="row">
-      <div class="col-lg-8">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">New Organization</h5>
+    <div class="form-card">
+      <div class="card shadow-sm" style="border-radius:12px; overflow:hidden;">
+        <div class="card-body p-4">
+          <form method="post" enctype="multipart/form-data" id="createOrgForm">
+            {% csrf_token %}
 
-            <!-- Organization Form Elements -->
-            <form method="post" enctype="multipart/form-data">
-              {% csrf_token %}
-
-              <div class="row mb-3">
-                <label for="name" class="col-sm-2 col-form-label">Organization Name</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" id="name" name="name" required>
-                </div>
+            <div class="form-section-label">Basic Information</div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-8">
+                <label class="field-label">Organization Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="e.g. Information Management Unit" required>
               </div>
-
-              <div class="row mb-3">
-                <label for="short_name" class="col-sm-2 col-form-label">Short Name</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" id="short_name" name="short_name" required>
-                </div>
+              <div class="col-md-4">
+                <label class="field-label">Short Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="short_name" placeholder="e.g. IMU" required>
               </div>
+            </div>
 
-              <div class="row mb-3">
-                <label for="description" class="col-sm-2 col-form-label">Description</label>
-                <div class="col-sm-10">
-                  <textarea class="form-control" id="description" style="height: 100px" name="description" required></textarea>
-                </div>
+            <div class="mb-3">
+              <label class="field-label">Description <span class="text-danger">*</span></label>
+              <textarea class="form-control" name="description" rows="4" placeholder="Briefly describe the organization…" required></textarea>
+            </div>
+
+            <div class="form-section-label">Location & Language</div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="field-label">Country <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="country" placeholder="e.g. Greece" required>
               </div>
-
-              <div class="row mb-3">
-                <label for="country" class="col-sm-2 col-form-label">Country</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" id="country" name="country" required>
-                </div>
+              <div class="col-md-6">
+                <label class="field-label">Language <span class="text-danger">*</span></label>
+                <select class="form-select" name="language" required>
+                  <option value="" disabled selected>Select a language…</option>
+                  {% for lang in languages %}
+                    <option value="{{ lang.name }}">{{ lang.name }}</option>
+                  {% endfor %}
+                </select>
               </div>
+            </div>
 
-              <div class="row mb-3">
-                <label for="language" class="col-sm-2 col-form-label">Language</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" id="language" name="language" required>
-                </div>
-              </div>
+            <div class="form-section-label">Logo / Picture</div>
+            <div class="mb-4">
+              <label class="field-label">Upload Picture</label>
+              <input class="form-control" type="file" name="picture" accept="image/*">
+              <div class="form-text">Optional. Recommended: square image, at least 200×200px.</div>
+            </div>
 
-              <div class="row mb-3">
-                <label for="picture" class="col-sm-2 col-form-label">Upload Picture</label>
-                <div class="col-sm-10">
-                  <input class="form-control" type="file" id="picture" name="picture">
-                </div>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col-sm-10">
-                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                  <button type="submit" class="btn btn-primary" id="formSubmitButton">Create Organization</button>
-                </div>
-              </div>
-            </form><!-- End Organization Form Elements -->
-
-          </div>
+            <div class="d-flex gap-3 pt-3 border-top">
+              <a href="{% url 'list_organizations' %}" class="btn btn-outline-secondary flex-fill">
+                <i class="bi bi-arrow-left me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary flex-fill" id="formSubmitButton">
+                <i class="bi bi-check-lg me-1"></i>Create Organization
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </section>
+</main>
 
-</main><!-- End #main -->
+<script>
+  function submitOrg() {
+    const form = document.getElementById('createOrgForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    setTimeout(() => {
+      ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Creating…'; btn.disabled = true; }
+      });
+    }, 100);
+  }
+  document.getElementById('formSubmitButton').addEventListener('click', submitOrg);
+  document.getElementById('heroSubmitBtn').addEventListener('click', submitOrg);
+</script>
 
 {% endblock atcontent %}

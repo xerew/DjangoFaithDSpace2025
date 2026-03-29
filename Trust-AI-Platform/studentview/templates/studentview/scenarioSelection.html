@@ -1,203 +1,285 @@
 {% extends "main.html" %}
 {% block page_title %}<title>Trust AI Lab — Student Scenarios</title>{% endblock %}
 {% block atcontent %}
-  <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>Scenarios</h1>
-      <nav>
-        <ol class="breadcrumb">
+
+<style>
+  /* ── Hero ── */
+  .sv-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .sv-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .sv-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .sv-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .sv-hero .breadcrumb-item { color: rgba(255,255,255,0.72); }
+  .sv-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  /* ── Filter card ── */
+  .filter-card {
+    border-radius: 12px; border: 1px solid #e8edf5;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+  }
+  .filter-card-header {
+    padding: 12px 22px 10px; border-bottom: 1px solid #eef1f6;
+    border-radius: 11px 11px 0 0; background: #f8faff;
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 13px; color: #1e3a8a;
+  }
+  .filter-card-header i { font-size: 14px; color: #1a56db; }
+  .filter-card-body { padding: 18px 22px 16px; }
+  .f-label {
+    display: block; font-size: 11.5px; font-weight: 700;
+    color: #374151; margin-bottom: 5px; letter-spacing: 0.2px;
+  }
+  .f-label i { color: #1a56db; margin-right: 4px; }
+  .f-input {
+    width: 100%; border: 1.5px solid #d1d9e0; border-radius: 8px;
+    padding: 8px 12px; font-size: 13.5px; color: #1e293b;
+    transition: border-color 0.15s, box-shadow 0.15s; outline: none; background: #fff;
+  }
+  .f-input:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+  select.f-input { cursor: pointer; }
+  .f-reset {
+    background: none; border: 1.5px solid #d1d9e0; border-radius: 8px;
+    padding: 7px 16px; font-size: 12.5px; font-weight: 600; color: #6b7280;
+    cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .f-reset:hover { border-color: #1a56db; color: #1a56db; }
+
+  /* ── Scenario cards ── */
+  .scenario-card {
+    border: 1px solid #e8edf5 !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+  }
+  .scenario-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,86,219,0.13) !important;
+  }
+  .scenario-img-wrapper {
+    width: 100%; aspect-ratio: 16/9;
+    overflow: hidden; background: #e9ecef;
+  }
+  .scenario-thumb {
+    width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
+  }
+  .sc-card-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+  .sc-card-desc  { font-size: 13px; color: #6b7280; line-height: 1.55; }
+  .sc-btn-start {
+    font-size: 13px; font-weight: 600; border-radius: 8px;
+    padding: 7px 20px; border: 1.5px solid #1a56db; color: #1a56db;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+    transition: background 0.13s, color 0.13s;
+  }
+  .sc-btn-start:hover { background: #1a56db; color: #fff; }
+
+  /* ── Empty state ── */
+  .sc-empty {
+    text-align: center; padding: 60px 20px; color: #9ca3af;
+  }
+  .sc-empty i { font-size: 48px; margin-bottom: 12px; display: block; color: #d1d9e0; }
+  .sc-empty p { font-size: 14px; margin: 0; }
+</style>
+
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="sv-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="sv-hero-icon"><i class="bi bi-mortarboard"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
+          Student View
+        </div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Scenarios</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Browse and start your learning scenarios</div>
+        <nav><ol class="breadcrumb">
           <li class="breadcrumb-item">Student View</li>
           <li class="breadcrumb-item active">Scenarios</li>
-        </ol>
-      </nav>
-    </div>
-    <!-- End Page Title -->
-
-    <!-- Filters -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-body">
-        <form id="search-form" method="get">
-          <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-5 col-lg-4">
-              <label for="search-input" class="form-label fw-semibold">Search</label>
-              <input type="text" class="form-control" name="q" id="search-input"
-                     placeholder="Scenario name or description…" value="{{ query }}">
-            </div>
-            <div class="col-12 col-md-4 col-lg-3">
-              <label for="language-select" class="form-label fw-semibold">Language</label>
-              <select class="form-select" name="language" id="language-select">
-                <option value="">All Languages</option>
-                {% for lang in languages %}
-                  <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-12 col-md-auto d-flex gap-2">
-              <button type="button" id="reset-button" class="btn btn-sm btn-outline-secondary">Reset</button>
-            </div>
-          </div>
-        </form>
+        </ol></nav>
       </div>
     </div>
-    <!-- End Filters -->
+  </div>
 
-    <section class="section">
-      <div class="row g-4">
-        {% for scenario in myScenarios %}
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm scenario-card">
-              <div class="scenario-img-wrapper">
-                <img src="{{ scenario.image.url }}"
-                     class="scenario-thumb"
-                     alt="{{ scenario.name }}">
-              </div>
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title">{{ scenario.name }}</h5>
-                <p class="card-text text-muted small flex-grow-1">{{ scenario.description|truncatechars:110 }}</p>
-                <div class="mt-auto pt-2">
-                  {% if not is_teacher %}
-                    {% if scenario.has_answered_all_questions %}
-                      <a type="button" class="btn btn-outline-primary"
-                         href="{% url 'studentView' scenario_id=scenario.id %}">Start</a>
-                    {% else %}
-                      <a type="button" class="btn btn-outline-primary"
-                         href="{% url 'scenario_questions' scenario_id=scenario.id %}">Start</a>
-                    {% endif %}
+  <!-- ── Filter Card ── -->
+  <div class="filter-card">
+    <div class="filter-card-header">
+      <i class="bi bi-funnel"></i> Filter Scenarios
+    </div>
+    <div class="filter-card-body">
+      <form id="search-form" method="get">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-12 col-md-5 col-lg-4">
+            <label for="search-input" class="f-label"><i class="bi bi-search"></i>Search</label>
+            <input type="text" class="f-input" name="q" id="search-input"
+                   placeholder="Scenario name or description…" value="{{ query }}">
+          </div>
+
+          <div class="col-12 col-md-4 col-lg-3">
+            <label for="language-select" class="f-label"><i class="bi bi-translate"></i>Language</label>
+            <select class="f-input" name="language" id="language-select">
+              <option value="">All Languages</option>
+              {% for lang in languages %}
+                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 col-md-auto d-flex align-items-end">
+            <button type="button" id="reset-button" class="f-reset">
+              <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Scenario Grid ── -->
+  <section class="section">
+    <div class="row g-4" id="scenario-grid">
+      {% for scenario in myScenarios %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 scenario-card">
+            <div class="scenario-img-wrapper">
+              <img src="{{ scenario.image.url }}" class="scenario-thumb" alt="{{ scenario.name }}">
+            </div>
+            <div class="card-body d-flex flex-column" style="padding:16px 18px 14px;">
+              <div class="sc-card-title">{{ scenario.name }}</div>
+              <p class="sc-card-desc flex-grow-1">{{ scenario.description|truncatechars:110 }}</p>
+              <div class="mt-auto pt-2">
+                {% if not is_teacher %}
+                  {% if scenario.has_answered_all_questions %}
+                    <a class="sc-btn-start" href="{% url 'studentView' scenario_id=scenario.id %}">
+                      <i class="bi bi-play-circle"></i> Start
+                    </a>
                   {% else %}
-                    <a type="button" class="btn btn-outline-primary"
-                       href="{% url 'studentView' scenario_id=scenario.id %}">Start</a>
+                    <a class="sc-btn-start" href="{% url 'scenario_questions' scenario_id=scenario.id %}">
+                      <i class="bi bi-play-circle"></i> Start
+                    </a>
                   {% endif %}
-                </div>
+                {% else %}
+                  <a class="sc-btn-start" href="{% url 'studentView' scenario_id=scenario.id %}">
+                    <i class="bi bi-play-circle"></i> Start
+                  </a>
+                {% endif %}
               </div>
             </div>
           </div>
-        {% empty %}
-          <div class="col-12">
-            <p class="text-muted">No scenarios available.</p>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="sc-empty">
+            <i class="bi bi-folder2-open"></i>
+            <p>No scenarios available. Try adjusting your filters.</p>
           </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- ── Pagination ── -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav id="pagination-container" class="mt-4" aria-label="Scenario pages">
+      <ul class="pagination justify-content-center flex-wrap">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.previous_page_number }}">&laquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for p in page_range %}
+          {% if p is None %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% elif p == page_obj.number %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?{{ filter_querystring }}&page={{ p }}">{{ p }}</a></li>
+          {% endif %}
         {% endfor %}
-      </div>
 
-      <!-- Pagination -->
-      {% if page_obj.paginator.num_pages > 1 %}
-      <nav id="pagination-container" class="mt-4" aria-label="Scenario pages">
-        <ul class="pagination justify-content-center flex-wrap">
-          {% if page_obj.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.previous_page_number }}">&laquo;</a>
-            </li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-          {% endif %}
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.next_page_number }}">&raquo;</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+      <p class="text-center text-muted small">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        &mdash; {{ page_obj.paginator.count }} scenario{{ page_obj.paginator.count|pluralize }}
+      </p>
+    </nav>
+    {% endif %}
+  </section>
 
-          {% for p in page_range %}
-            {% if p is None %}
-              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
-            {% elif p == page_obj.number %}
-              <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-            {% else %}
-              <li class="page-item"><a class="page-link" href="?{{ filter_querystring }}&page={{ p }}">{{ p }}</a></li>
-            {% endif %}
-          {% endfor %}
+</main>
 
-          {% if page_obj.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?{{ filter_querystring }}&page={{ page_obj.next_page_number }}">&raquo;</a>
-            </li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-          {% endif %}
-        </ul>
-        <p class="text-center text-muted small">
-          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-          &mdash; {{ page_obj.paginator.count }} scenario{{ page_obj.paginator.count|pluralize }}
-        </p>
-      </nav>
-      {% endif %}
-    </section>
-  </main>
+<script>
+  (function () {
+    const form = document.getElementById('search-form');
+    const grid = document.getElementById('scenario-grid');
+    let debounceTimer;
+    let currentRequest = null;
 
-  <style>
-    .scenario-card {
-      border: none;
-      border-radius: 12px;
-      overflow: hidden;
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .scenario-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
-    }
-    .scenario-img-wrapper {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-      background: #e9ecef;
-    }
-    .scenario-thumb {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      display: block;
-    }
-  </style>
+    async function fetchResults() {
+      const params = new URLSearchParams(new FormData(form));
+      params.delete('page');
+      const url = '?' + params.toString();
 
-  <script>
-    (function () {
-      const form = document.getElementById('search-form');
-      const grid = document.querySelector('.row.g-4');
-      let debounceTimer;
-      let currentRequest = null;
+      if (currentRequest) currentRequest.abort();
+      const controller = new AbortController();
+      currentRequest = controller;
 
-      async function fetchResults() {
-        const params = new URLSearchParams(new FormData(form));
-        params.delete('page');
-        const url = '?' + params.toString();
+      grid.style.opacity = '0.5';
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
 
-        if (currentRequest) currentRequest.abort();
-        const controller = new AbortController();
-        currentRequest = controller;
+        grid.innerHTML = doc.getElementById('scenario-grid').innerHTML;
+        grid.style.opacity = '1';
 
-        grid.style.opacity = '0.5';
-        try {
-          const res = await fetch(url, { signal: controller.signal });
-          const html = await res.text();
-          const doc = new DOMParser().parseFromString(html, 'text/html');
-
-          grid.innerHTML = doc.querySelector('.row.g-4').innerHTML;
-          grid.style.opacity = '1';
-
-          const newPag = doc.getElementById('pagination-container');
-          let oldPag = document.getElementById('pagination-container');
-          if (newPag) {
-            if (oldPag) {
-              oldPag.outerHTML = newPag.outerHTML;
-            } else {
-              grid.insertAdjacentHTML('afterend', newPag.outerHTML);
-            }
-          } else if (oldPag) {
-            oldPag.remove();
-          }
-
-          history.replaceState({}, '', url);
-        } catch (e) {
-          if (e.name !== 'AbortError') grid.style.opacity = '1';
+        const newPag = doc.getElementById('pagination-container');
+        let oldPag = document.getElementById('pagination-container');
+        if (newPag) {
+          if (oldPag) { oldPag.outerHTML = newPag.outerHTML; }
+          else { grid.insertAdjacentHTML('afterend', newPag.outerHTML); }
+        } else if (oldPag) {
+          oldPag.remove();
         }
+
+        history.replaceState({}, '', url);
+      } catch (e) {
+        if (e.name !== 'AbortError') grid.style.opacity = '1';
       }
+    }
 
-      document.getElementById('search-input').addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(fetchResults, 400);
-      });
-      document.getElementById('language-select').addEventListener('change', fetchResults);
+    document.getElementById('search-input').addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchResults, 400);
+    });
+    document.getElementById('language-select').addEventListener('change', fetchResults);
 
-      document.getElementById('reset-button').addEventListener('click', function () {
-        document.getElementById('search-input').value = '';
-        document.getElementById('language-select').value = '';
-        fetchResults();
-      });
-    })();
-  </script>
-  <!-- End #main -->
+    document.getElementById('reset-button').addEventListener('click', function () {
+      document.getElementById('search-input').value = '';
+      document.getElementById('language-select').value = '';
+      fetchResults();
+    });
+  })();
+</script>
+
 {% endblock atcontent %}

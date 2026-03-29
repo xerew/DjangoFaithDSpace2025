@@ -10,6 +10,16 @@ from django.db import transaction
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
+class Language(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Scenario(models.Model):
     VISIBILITY_CHOICES = [
         ('private', 'Private (In-Progress)'),
@@ -49,6 +59,12 @@ class Scenario(models.Model):
     # Editable by organization's members
     is_editable_by_org = models.BooleanField(default=False, help_text="If checked, members of the selected organization(s) can edit this scenario.")
 
+    # Minimum implementations before Scenario Metrics & AI button is shown
+    ai_metrics_min_implementations = models.PositiveIntegerField(
+        default=300,
+        help_text="Minimum number of student implementations required before the Scenario Metrics & AI button is shown."
+    )
+
     class Meta:
         verbose_name = 'Scenario'
         verbose_name_plural = 'Scenarios'
@@ -56,6 +72,15 @@ class Scenario(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ScenarioHealthProxy(Scenario):
+    """Proxy used solely to power the Scenario Health Check admin page."""
+    class Meta:
+        proxy = True
+        verbose_name = 'Scenario Health Check'
+        verbose_name_plural = 'Scenario Health Check'
+
 
 class Phase(models.Model):
     name = models.CharField(max_length=255, null=False)

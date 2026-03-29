@@ -1,154 +1,41 @@
 {% extends "main.html" %}
 {% block page_title %}<title>Trust AI Lab — Pilot Implementations</title>{% endblock %}
 {% block atcontent %}
-<main id="main" class="main">
-
-  <!-- Page Title -->
-  <div class="pagetitle d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div>
-      <h1>Pilot Implementations</h1>
-      <nav>
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">User Groups</a></li>
-          <li class="breadcrumb-item active">Pilot Implementations</li>
-        </ol>
-      </nav>
-    </div>
-    <a href="{% url 'list_groups' %}" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-arrow-left me-1"></i>Back to Groups
-    </a>
-  </div>
-
-  <section class="section">
-
-    <!-- ── Summary stats row ─────────────────────────────────────── -->
-    <div class="row g-3 mb-4">
-      <div class="col-4">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="display-6 fw-bold text-primary">{{ group_data|length }}</div>
-          <div class="text-muted small mt-1"><i class="bi bi-people me-1"></i>Groups</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="display-6 fw-bold text-success">{{ grand_total_implementations }}</div>
-          <div class="text-muted small mt-1"><i class="bi bi-play-circle me-1"></i>Total Implementations</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="card border-0 shadow-sm text-center py-3">
-          <div class="display-6 fw-bold text-warning">{{ totals_rows|length }}</div>
-          <div class="text-muted small mt-1"><i class="bi bi-collection me-1"></i>Scenarios</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Main two-column layout ─────────────────────────────────── -->
-    <div class="row g-4 align-items-start">
-
-      <!-- Card 1: Groups table (takes 8/12 on xl, full on smaller) -->
-      <div class="col-12 col-xl-8">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body p-0">
-            <div class="px-4 pt-4 pb-2 d-flex align-items-center gap-2">
-              <i class="bi bi-people-fill text-primary fs-5"></i>
-              <h5 class="card-title mb-0">Student Groups &amp; Implementations</h5>
-            </div>
-            <div class="table-scroll-wrapper">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-light sticky-top-thead">
-                  <tr>
-                    <th class="ps-4"><a href="?sort=group" class="text-decoration-none text-dark">Group</a></th>
-                    <th><a href="?sort=teacher" class="text-decoration-none text-dark">Teacher</a></th>
-                    <th class="text-center"><a href="?sort=num_students" class="text-decoration-none text-dark">Students</a></th>
-                    <th class="text-center"><a href="?sort=implementations&order={{ order }}" class="text-decoration-none text-dark">Impls.</a></th>
-                    <th><a href="?sort=first_implementation&order={{ order }}" class="text-decoration-none text-dark">First</a></th>
-                    <th><a href="?sort=last_implementation&order={{ order }}" class="text-decoration-none text-dark">Last</a></th>
-                    <th class="pe-4"><a href="?sort=scenario" class="text-decoration-none text-dark">Per Scenario</a></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for data in group_data %}
-                    <tr>
-                      <td class="ps-4 fw-semibold">{{ data.group.name }}</td>
-                      <td class="text-muted small">{{ data.teacher.username }}</td>
-                      <td class="text-center">
-                        <span class="badge bg-primary rounded-pill">{{ data.num_students }}</span>
-                      </td>
-                      <td class="text-center">
-                        <span class="badge bg-success rounded-pill">{{ data.implementations }}</span>
-                      </td>
-                      <td class="text-nowrap small text-muted">
-                        {% if data.first_implementation %}{{ data.first_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
-                      </td>
-                      <td class="text-nowrap small text-muted">
-                        {% if data.last_implementation %}{{ data.last_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
-                      </td>
-                      <td class="pe-4 small">
-                        {% for scenario, count in data.scenario_implementations.items %}
-                          <div class="d-flex align-items-center gap-1">
-                            <span class="text-truncate" style="max-width:140px;" title="{{ scenario }}">{{ scenario }}</span>
-                            <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto">{{ count }}</span>
-                          </div>
-                        {% empty %}
-                          <span class="text-muted">—</span>
-                        {% endfor %}
-                      </td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td colspan="7" class="text-center text-muted py-5">
-                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                        No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 2: Totals summary (takes 4/12 on xl, full on smaller) -->
-      <div class="col-12 col-xl-4">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body p-0">
-            <div class="px-4 pt-4 pb-2 d-flex align-items-center gap-2">
-              <i class="bi bi-bar-chart-fill text-success fs-5"></i>
-              <h5 class="card-title mb-0">Implementations per Scenario</h5>
-            </div>
-            <ul class="list-group list-group-flush">
-              {% for row in totals_rows %}
-                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                  <div>
-                    <span class="fw-semibold small">{{ row.name }}</span>
-                    {% if row.extra %}
-                      <br><span class="text-muted" style="font-size:.75rem;">+{{ row.extra }} extra included</span>
-                    {% endif %}
-                  </div>
-                  <span class="badge bg-success rounded-pill ms-2">{{ row.total }}</span>
-                </li>
-              {% empty %}
-                <li class="list-group-item text-center text-muted py-4">No data yet.</li>
-              {% endfor %}
-              <!-- Grand total footer -->
-              <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 bg-light">
-                <span class="fw-bold">Grand Total</span>
-                <span class="badge bg-dark rounded-pill fs-6">{{ grand_total_implementations }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /.row -->
-  </section>
-</main>
 
 <style>
-  .table-scroll-wrapper {
-    max-height: 480px;
+  /* ── Hero ── */
+  .ug-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .ug-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .ug-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .ug-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .ug-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .ug-hero .breadcrumb-item a:hover { color: #fff; }
+  .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+  /* ── Stat cards ── */
+  .stat-card { border-radius: 12px; padding: 22px 16px; text-align: center; border: 1px solid #e8edf5; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .stat-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 12px; color: #9ca3af; margin-top: 5px; }
+
+  /* ── Tabbed card ── */
+  .table-scroll-wrapper,
+  .totals-scroll-wrapper {
+    height: 500px;
     overflow-y: auto;
   }
   .sticky-top-thead th {
@@ -158,7 +45,249 @@
     background: #f8f9fa;
     border-bottom: 2px solid #dee2e6;
   }
-  /* Subtle primary badge for per-scenario counts */
   .bg-primary-subtle { background-color: #cfe2ff !important; }
+
+  .no-results-row { display: none; }
+  .no-results-row.visible { display: table-row; }
+  .no-results-item { display: none; }
+  .no-results-item.visible { display: list-item; }
+  .impl-hidden { display: none !important; }
 </style>
+
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="ug-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="ug-hero-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Pilot Implementations</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">
+          {{ group_data|length }} group{{ group_data|length|pluralize }} &middot; {{ grand_total_implementations }} total implementations
+        </div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">User Groups</a></li>
+          <li class="breadcrumb-item active">Pilot Implementations</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'list_groups' %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back to Groups
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+
+    <!-- Stats row -->
+    <div class="row g-3 mb-2">
+      <div class="col-6 col-sm-3">
+        <div class="card stat-card">
+          <div class="stat-value text-primary">{{ group_data|length }}</div>
+          <div class="stat-label">Groups</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card stat-card">
+          <div class="stat-value text-success">{{ grand_total_implementations }}</div>
+          <div class="stat-label">Total Implementations</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card stat-card">
+          <div class="stat-value text-warning">{{ totals_rows|length }}</div>
+          <div class="stat-label">Scenarios Used</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card stat-card">
+          <div class="stat-value text-secondary">{{ total_scenarios_in_system }}</div>
+          <div class="stat-label">Total in System</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabbed card -->
+    <div class="card border-0 shadow-sm">
+
+      <!-- Tab headers + search -->
+      <div class="card-header bg-white border-bottom px-4 pt-3 pb-0">
+        <div class="d-flex align-items-end justify-content-between gap-3 flex-wrap">
+          <ul class="nav nav-tabs nav-tabs-bordered border-0 mb-0" id="implTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-groups" data-bs-toggle="tab"
+                      data-bs-target="#pane-groups" type="button" role="tab"
+                      aria-controls="pane-groups" aria-selected="true">
+                <i class="bi bi-table me-1"></i>Groups &amp; Implementations
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-totals" data-bs-toggle="tab"
+                      data-bs-target="#pane-totals" type="button" role="tab"
+                      aria-controls="pane-totals" aria-selected="false">
+                <i class="bi bi-bar-chart me-1"></i>Totals per Scenario
+              </button>
+            </li>
+          </ul>
+          <div class="mb-2" style="min-width:240px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" id="implSearch" class="form-control border-start-0 bg-light"
+                     placeholder="Filter by teacher or scenario…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab panes -->
+      <div class="tab-content" id="implTabsContent">
+
+        <!-- Pane 1: Groups & Implementations -->
+        <div class="tab-pane fade show active" id="pane-groups" role="tabpanel" aria-labelledby="tab-groups">
+          <div class="table-scroll-wrapper">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light sticky-top-thead">
+                <tr>
+                  <th class="ps-4"><a href="?sort=group" class="text-decoration-none text-dark">Group</a></th>
+                  <th><a href="?sort=teacher" class="text-decoration-none text-dark">Teacher</a></th>
+                  <th class="text-center"><a href="?sort=num_students" class="text-decoration-none text-dark">Students</a></th>
+                  <th class="text-center"><a href="?sort=implementations&order={{ order }}" class="text-decoration-none text-dark">Impls.</a></th>
+                  <th><a href="?sort=first_implementation&order={{ order }}" class="text-decoration-none text-dark">First</a></th>
+                  <th><a href="?sort=last_implementation&order={{ order }}" class="text-decoration-none text-dark">Last</a></th>
+                  <th class="pe-4"><a href="?sort=scenario" class="text-decoration-none text-dark">Per Scenario</a></th>
+                </tr>
+              </thead>
+              <tbody id="groups-tbody">
+                {% for data in group_data %}
+                  <tr class="group-row"
+                      data-teacher="{{ data.teacher.get_full_name|default:data.teacher.username|lower }}"
+                      data-scenario="{% for scenario, count in data.scenario_implementations.items %}{{ scenario|lower }} {% endfor %}">
+                    <td class="ps-4 fw-semibold">{{ data.group.name }}</td>
+                    <td class="text-muted small">{{ data.teacher.get_full_name|default:data.teacher.username }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-primary rounded-pill">{{ data.num_students }}</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-success rounded-pill">{{ data.implementations }}</span>
+                    </td>
+                    <td class="text-nowrap small text-muted">
+                      {% if data.first_implementation %}{{ data.first_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-nowrap small text-muted">
+                      {% if data.last_implementation %}{{ data.last_implementation|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </td>
+                    <td class="pe-4 small">
+                      {% for scenario, count in data.scenario_implementations.items %}
+                        <div class="d-flex align-items-center gap-1">
+                          <span class="text-truncate" style="max-width:160px;" title="{{ scenario }}">{{ scenario }}</span>
+                          <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto">{{ count }}</span>
+                        </div>
+                      {% empty %}
+                        <span class="text-muted">—</span>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                      <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                      No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.
+                    </td>
+                  </tr>
+                {% endfor %}
+                <tr class="no-results-row" id="groups-no-results">
+                  <td colspan="7" class="text-center text-muted py-4">
+                    <i class="bi bi-search fs-4 d-block mb-2"></i>No results match your filter.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pane 2: Totals per Scenario -->
+        <div class="tab-pane fade" id="pane-totals" role="tabpanel" aria-labelledby="tab-totals">
+          <ul class="list-group list-group-flush totals-scroll-wrapper" id="totals-list">
+            {% for row in totals_rows %}
+              <li class="list-group-item totals-row d-flex justify-content-between align-items-center px-4 py-3"
+                  data-scenario="{{ row.name|lower }}">
+                <div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-semibold">{{ row.name }}</span>
+                    {% if row.visibility == 'public' %}
+                      <span class="badge bg-success">Public</span>
+                    {% elif row.visibility == 'org' %}
+                      <span class="badge bg-warning text-dark">Org-Only</span>
+                    {% elif row.visibility == 'private' %}
+                      <span class="badge bg-danger">Private</span>
+                    {% endif %}
+                  </div>
+                  {% if row.extra %}
+                    <span class="text-muted" style="font-size:.75rem;">+{{ row.extra }} extra included</span>
+                  {% endif %}
+                </div>
+                <span class="badge bg-success rounded-pill ms-3">{{ row.total }}</span>
+              </li>
+            {% empty %}
+              <li class="list-group-item text-center text-muted py-5">No data yet.</li>
+            {% endfor %}
+            <li class="list-group-item no-results-item text-center text-muted py-4" id="totals-no-results">
+              <i class="bi bi-search d-block mb-2" style="font-size:1.3rem;"></i>No results match your filter.
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 bg-light" id="totals-grand-total">
+              <span class="fw-bold">Grand Total</span>
+              <span class="badge bg-dark rounded-pill fs-6">{{ grand_total_implementations }}</span>
+            </li>
+          </ul>
+        </div>
+
+      </div><!-- /.tab-content -->
+    </div><!-- /.card -->
+
+  </section>
+</main>
+
+<script>
+(function () {
+  const searchInput = document.getElementById('implSearch');
+
+  function filterGroups(term) {
+    const rows = document.querySelectorAll('#groups-tbody .group-row');
+    const noResults = document.getElementById('groups-no-results');
+    let visible = 0;
+    rows.forEach(function (row) {
+      const teacher  = (row.dataset.teacher  || '');
+      const scenario = (row.dataset.scenario || '');
+      const match = !term || teacher.includes(term) || scenario.includes(term);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noResults.classList.toggle('visible', visible === 0 && rows.length > 0);
+  }
+
+  function filterTotals(term) {
+    const rows = document.querySelectorAll('#totals-list .totals-row');
+    const noResults = document.getElementById('totals-no-results');
+    let visible = 0;
+    rows.forEach(function (row) {
+      const scenario = (row.dataset.scenario || '');
+      const match = !term || scenario.includes(term);
+      row.classList.toggle('impl-hidden', !match);
+      if (match) visible++;
+    });
+    noResults.classList.toggle('visible', visible === 0 && rows.length > 0);
+  }
+
+  function applyFilter() {
+    const term = searchInput.value.trim().toLowerCase();
+    filterGroups(term);
+    filterTotals(term);
+  }
+
+  searchInput.addEventListener('input', applyFilter);
+})();
+</script>
+
 {% endblock %}

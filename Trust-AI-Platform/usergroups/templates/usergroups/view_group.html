@@ -13,39 +13,94 @@
   .vis-private { background: #fee2e2; color: #991b1b; }
   .member-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 600; }
   .member-table td { font-size: 14px; vertical-align: middle; }
-  .members-scroll { max-height: 340px; overflow-y: auto; }
+  .members-scroll { max-height: 480px; overflow-y: auto; }
   .info-row { display: flex; align-items: baseline; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
   .info-row:last-child { border-bottom: none; }
   .info-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; min-width: 120px; }
   .info-value { font-size: 14px; color: #333; }
+
+  /* ── Hero ── */
+  .ug-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .ug-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .ug-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .ug-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .ug-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .ug-hero .breadcrumb-item a:hover { color: #fff; }
+  .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-solid {
+    background: #fff; color: #1a56db; border: none;
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s, box-shadow 0.15s;
+    cursor: pointer; white-space: nowrap;
+  }
+  .hero-btn-solid:hover { background: #eef3ff; color: #1a56db; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .hero-btn-warning {
+    background: rgba(217,119,6,0.20); color: #fcd34d; border: 1.5px solid rgba(217,119,6,0.45);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+  }
+  .hero-btn-warning:hover { background: rgba(217,119,6,0.35); color: #fff; }
+  .hero-btn-danger {
+    background: rgba(220,38,38,0.18); color: #fca5a5; border: 1.5px solid rgba(220,38,38,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+    cursor: pointer;
+  }
+  .hero-btn-danger:hover { background: rgba(220,38,38,0.32); color: #fff; }
 </style>
 
 <main id="main" class="main">
 
-  <div class="pagetitle">
-    <h1>{{ group.name }}</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
-        <li class="breadcrumb-item active">{{ group.name }}</li>
-      </ol>
-    </nav>
+  <div class="ug-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="ug-hero-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ group.name }}</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">
+          {{ memberships|length }} student{{ memberships|length|pluralize }} &middot; {{ scenarios|length }} scenario{{ scenarios|length|pluralize }} assigned
+        </div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+          <li class="breadcrumb-item active">{{ group.name }}</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start flex-wrap" style="padding-top:4px;">
+        <a href="{% url 'list_groups' %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back to Groups
+        </a>
+        <a href="{% url 'edit_group' group.id %}" class="hero-btn-solid">
+          <i class="bi bi-pencil"></i> Edit Group
+        </a>
+        <a href="{% url 'download_credentials' group.id %}" class="hero-btn-warning">
+          <i class="bi bi-download"></i> Download Credentials
+        </a>
+        <button type="button" class="hero-btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+          <i class="bi bi-trash"></i> Delete Group
+        </button>
+      </div>
+    </div>
   </div>
 
   <section class="section">
-
-    <!-- Action bar -->
-    <div class="d-flex gap-2 mb-4 flex-wrap">
-      <a href="{% url 'edit_group' group.id %}" class="btn btn-outline-primary">
-        <i class="bi bi-pencil me-1"></i> Edit Group
-      </a>
-      <a href="{% url 'download_credentials' group.id %}" class="btn btn-outline-warning">
-        <i class="bi bi-download me-1"></i> Download Credentials
-      </a>
-      <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteModal">
-        <i class="bi bi-trash me-1"></i> Delete Group
-      </button>
-    </div>
 
     <!-- Stats row -->
     <div class="row g-3 mb-4">
@@ -139,7 +194,7 @@
 
       <!-- Right: Members table -->
       <div class="col-lg-8">
-        <div class="card h-100">
+        <div class="card">
           <div class="card-body p-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <h5 class="card-title d-flex align-items-center gap-2 mb-0">
@@ -187,24 +242,24 @@
   </section>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="deleteModalLabel">
-            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Group
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+        <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
+          <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
+            <i class="bi bi-exclamation-triangle me-2"></i>Delete Group
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="font-size:14px;padding:20px 24px;">
           Are you sure you want to delete <strong>{{ group.name }}</strong>?
-          This will permanently delete the group and all <strong>{{ memberships|length }} student account(s)</strong>. This action cannot be undone.
+          This will permanently remove the group and all <strong>{{ memberships|length }} student account(s)</strong>. This cannot be undone.
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
           <form method="post" action="{% url 'delete_group' group.id %}" style="display:inline;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger">
+            <button type="submit" class="btn btn-danger btn-sm">
               <i class="bi bi-trash me-1"></i> Yes, Delete
             </button>
           </form>

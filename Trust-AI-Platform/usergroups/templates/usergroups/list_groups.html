@@ -3,8 +3,50 @@
 {% block atcontent %}
 
 <style>
-  .group-card { border-radius: 10px; transition: box-shadow 0.15s; }
-  .group-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.09); }
+  /* ── Hero ── */
+  .ug-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .ug-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .ug-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .ug-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .ug-hero .breadcrumb-item { color: rgba(255,255,255,0.72); }
+  .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  /* ── Hero buttons ── */
+  .hero-btn-solid {
+    background: #fff; color: #1a56db; border: none;
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 8px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s, box-shadow 0.15s; white-space: nowrap;
+  }
+  .hero-btn-solid:hover { background: #eef3ff; color: #1a56db; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+    cursor: pointer;
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-green {
+    background: rgba(22,163,74,0.18); color: #bbf7d0; border: 1.5px solid rgba(22,163,74,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+    cursor: pointer;
+  }
+  .hero-btn-green:hover { background: rgba(22,163,74,0.30); color: #fff; }
+
+  /* ── Cards ── */
+  .group-card { border-radius: 12px; border: 1px solid #e8edf5; transition: box-shadow 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .group-card:hover { box-shadow: 0 4px 18px rgba(26,86,219,0.10); border-color: #c5d0f0; }
   .group-name { font-size: 16px; font-weight: 600; color: #1a56db; text-decoration: none; }
   .group-name:hover { text-decoration: underline; }
   .scenario-pill { display: inline-block; font-size: 12px; background: #e8f0fe; color: #1a56db; border-radius: 20px; padding: 2px 10px; margin: 2px 2px 2px 0; }
@@ -15,34 +57,41 @@
 </style>
 
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Your Groups</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item active">User Groups</li>
-      </ol>
-    </nav>
+
+  <!-- ── Hero ── -->
+  <div class="ug-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="ug-hero-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
+          User Groups
+        </div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Your Groups</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Manage student groups and scenario assignments</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item active">User Groups</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex flex-wrap gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'create_group' %}" class="hero-btn-solid">
+          <i class="bi bi-plus-circle"></i> Create New Group
+        </a>
+        {% if is_dspace_partner %}
+        <a href="{% url 'list_student_groups' %}" class="hero-btn-ghost">
+          <i class="bi bi-bar-chart-line"></i> Pilot Implementations
+        </a>
+        <button id="downloadCsvBtn" class="hero-btn-green">
+          <i class="bi bi-filetype-csv"></i> Open Questions CSV
+        </button>
+        <span id="csvDownloadStatus" style="display:none; align-items:center; gap:6px; color:rgba(255,255,255,0.85); font-size:13px; font-weight:600;">
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Downloading…
+        </span>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   <section class="section">
-
-    <!-- Action bar -->
-    <div class="d-flex gap-2 flex-wrap mb-4">
-      <a href="{% url 'create_group' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-1"></i> Create New Group
-      </a>
-      {% if is_dspace_partner %}
-      <a href="{% url 'list_student_groups' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-bar-chart-line me-1"></i> Pilot Implementations
-      </a>
-      <button id="downloadCsvBtn" class="btn btn-outline-success">
-        <i class="bi bi-filetype-csv me-1"></i> Open Questions CSV
-      </button>
-      <span id="csvDownloadStatus" style="display:none;" class="text-success fw-semibold d-flex align-items-center gap-2 ms-1">
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Downloading…
-      </span>
-      {% endif %}
-    </div>
 
     <!-- Groups -->
     {% if groups %}
@@ -110,23 +159,23 @@
 
         <!-- Delete Modal -->
         <div class="modal fade" id="deleteModal{{ group.id }}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">
-                  <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Group
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+              <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
+                <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
+                  <i class="bi bi-exclamation-triangle me-2"></i>Delete Group
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
-              <div class="modal-body">
+              <div class="modal-body" style="font-size:14px;padding:20px 24px;">
                 Are you sure you want to delete <strong>{{ group.name }}</strong>?
                 This will permanently remove the group and all its student accounts. This cannot be undone.
               </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <form method="post" action="{% url 'delete_group' group.id %}" style="display:inline;">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-danger">
+                  <button type="submit" class="btn btn-danger btn-sm">
                     <i class="bi bi-trash me-1"></i> Yes, Delete
                   </button>
                 </form>

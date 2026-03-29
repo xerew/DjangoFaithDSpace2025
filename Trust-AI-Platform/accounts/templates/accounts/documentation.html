@@ -1,163 +1,292 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Documentation & Tutorials</title>{% endblock %}
 {% load static %}
 {% block atcontent %}
+
+<style>
+  /* Hero */
+  .doc-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .doc-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .doc-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .doc-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .doc-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  /* Section headings */
+  .doc-section-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #4154f1;
+    margin: 0 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e8edf5;
+  }
+
+  /* Resource tiles */
+  .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .resource-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    background: #fff;
+    text-decoration: none;
+    transition: box-shadow 0.18s, border-color 0.18s, transform 0.15s;
+    cursor: pointer;
+  }
+  .resource-tile:hover {
+    box-shadow: 0 4px 18px rgba(1,41,112,0.1);
+    border-color: #c5d0f0;
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .resource-tile-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .resource-tile-icon.pdf   { background: #fff3e0; color: #e65100; }
+  .resource-tile-icon.link  { background: #e8f5e9; color: #2e7d32; }
+  .resource-tile-icon.form  { background: #e3f2fd; color: #1565c0; }
+  .resource-tile-icon.image { background: #f3e5f5; color: #6a1b9a; }
+  .resource-tile-icon.doc   { background: #e8edf5; color: #4154f1; }
+  .resource-tile-body { flex: 1; min-width: 0; }
+  .resource-tile-title { font-size: 13px; font-weight: 700; color: #012970; line-height: 1.3; margin-bottom: 3px; }
+  .resource-tile-desc  { font-size: 11.5px; color: #888; line-height: 1.4; }
+
+  /* Project cards */
+  .project-card {
+    border-radius: 14px;
+    border: 1px solid #e8edf5;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .project-card:hover { box-shadow: 0 6px 24px rgba(1,41,112,0.1); border-color: #c5d0f0; }
+  .project-card-img {
+    background: #f8faff;
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #e8edf5;
+    min-height: 140px;
+  }
+  .project-card-img img { max-height: 90px; max-width: 100%; object-fit: contain; }
+  .project-card-body { padding: 22px 24px; flex: 1; display: flex; flex-direction: column; }
+  .project-card-title { font-size: 15px; font-weight: 700; color: #012970; margin-bottom: 10px; text-align: center; }
+  .project-card-text  { font-size: 13px; color: #555; line-height: 1.75; text-align: justify; flex: 1; margin-bottom: 18px; }
+  .project-card-btn   { display: block; text-align: center; }
+</style>
+
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Documentation & Tutorials</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item active">Help & Resources</li>
-      </ol>
-    </nav>
+
+  <div class="doc-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="doc-hero-icon"><i class="bi bi-book-half"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Help & Resources</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Documentation & Tutorials</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">Guides, tutorials, external tools, and project information</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item active">Documentation & Tutorials</li>
+        </ol></nav>
+      </div>
+    </div>
   </div>
 
   <section class="section">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Guides & Useful Links</h5>
-            <p>Welcome to the Documentation section. Here you can find helpful guides and resources for using the platform.</p>
-            <!-- Links to trigger modals -->
-            <ul class="list-group">
-                <li class="list-group-item">
-                  <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModalEnglish" class="text-primary">
-                    <i class="bi bi-file-earmark-pdf"></i> View PDF Guide (English)
-                  </a>
-                </li>
-                <li class="list-group-item">
-                  <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModalGreek" class="text-primary">
-                    <i class="bi bi-file-earmark-pdf"></i> Προβολή Οδηγού PDF (Ελληνικά)
-                  </a>
-                </li>
-                <li class="list-group-item">
-                    <a href="https://docs.google.com/document/d/1G5Wbvf_tgNXD0AeTzkEwTHV5zWF-fBjiU2EQxebfxv4/edit?tab=t.0#heading=h.anxocjpv03me" target="_blank" class="text-primary">
-                        <i class="bi bi-calendar-week"></i> Platform Change Log
-                    </a>
-                </li>
-                <li class="list-group-item">
-                    <a href="https://forms.gle/wVamjq2yyJMFJqq8A" target="_blank" class="text-primary">
-                        <i class="bi bi-chat-square"></i> Platform Issue Reporting Form
-                    </a>
-                </li>
-				<li class="list-group-item">
-                  <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" class="text-primary">
-                    <i class="bi bi-image"></i> VR/AR Lab Target Image
-                  </a>
-                </li>
-                {% if is_dspace_partner %}
-                <li class="list-group-item">
-                    <a href="https://docs.google.com/document/d/1jdpXgmWup-Y0jv44-qJ1UhyzLzuYDYsuOibJCGMdIHg/edit?tab=t.0" target="_blank" class="text-primary">
-                        <i class="bi bi-pen"></i> Feature Request
-                    </a>
-                </li>
-				<li class="list-group-item">
-                  <a href="https://docs.google.com/document/d/1Z9QiPyCPa0UZRa-0HYr6j6efFnh6lUSTDWsb6zlkapA/edit?tab=t.0" target="_blank" class="text-primary">
-                      <i class="bi bi-pen"></i> Available Scenarios in the Platform
-                  </a>
-                </li>
-                {% endif %}
-            </ul>
-              
-            <!-- PDF Viewer Modal -->
-            <div class="modal fade" id="pdfModalEnglish" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl"> <!-- modal-xl makes it larger -->
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="pdfModalLabel">PDF Documentation</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <iframe src="{% static 'pdfs/documentation_en.pdf' %}" width="100%" height="700px" style="border: none;"></iframe>
-                        </div>
-                        <div class="modal-footer">
-                            <a href="{% static 'pdfs/documentation_en.pdf' %}" class="btn btn-success" download>
-                                <i class="bi bi-download"></i> Download PDF
-                            </a>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- PDF Viewer Modal (Greek) -->
-            <div class="modal fade" id="pdfModalGreek" tabindex="-1" aria-labelledby="pdfModalGreekLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="pdfModalGreekLabel">PDF Documentation (Ελληνικά)</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <iframe src="{% static 'pdfs/documentation_gr.pdf' %}" width="100%" height="700px" style="border: none;"></iframe>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="{% static 'pdfs/documentation_gr.pdf' %}" class="btn btn-success" download>
-                        <i class="bi bi-download"></i> Λήψη PDF (Ελληνικά)
-                        </a>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Κλείσιμο</button>
-                    </div>
-                </div>
-            </div>
-            </div>
-              <!-- End of PDF Viewer Modals -->
-			  <!-- Image Viewer Modal -->
-			  <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="imageModalLabel">VR/AR Lab Target Image</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body text-center">
-                    <img src="{% static 'img/vr_ar_target_image.jpg' %}" alt="Target Image" class="img-fluid" style="max-height: 700px;">
-                  </div>
-                  <div class="modal-footer">
-                    <a href="{% static 'img/vr_ar_target_image.jpg' %}" class="btn btn-success" download>
-                      <i class="bi bi-download"></i> Download Image
-                    </a>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+
+    <!-- Guides -->
+    <div class="doc-section-label"><i class="bi bi-file-earmark-text me-1"></i>Guides</div>
+    <div class="resource-grid">
+
+      <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#pdfModalEnglish">
+        <div class="resource-tile-icon pdf"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">PDF Guide (English)</div>
+          <div class="resource-tile-desc">Full platform user guide in English</div>
         </div>
-      </div>
+      </a>
+
+      <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#pdfModalGreek">
+        <div class="resource-tile-icon pdf"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Οδηγός PDF (Ελληνικά)</div>
+          <div class="resource-tile-desc">Πλήρης οδηγός χρήσης στα Ελληνικά</div>
+        </div>
+      </a>
+
+      <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#imageModal">
+        <div class="resource-tile-icon image"><i class="bi bi-image-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">VR/AR Lab Target Image</div>
+          <div class="resource-tile-desc">Reference target image for VR/AR lab sessions</div>
+        </div>
+      </a>
+
     </div>
-    
-    <!-- Project Links Section -->
-    <div class="row">
-        <div class="col-lg-6">
-          <div class="card">
-            <img src="{% static 'img/Logo-dspace.png' %}" class="project-img card-img-top" alt="Project 1">
-            <div class="card-body text-center">
-              <h5 class="card-title">Discovery Space</h5>
-              <p class="card-text text-justify-doc">
-                Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation - Forward Looking project that aspires to develop a roadmap for the AI-Enhanced Classroom for Deeper Learning in STEM that facilitates the transformation of the traditional classroom to an innovative environment that promotes the scientific exploration and supports the development of key skills for all students.
-              </p>
-              <a href="https://discoveryspace.eu/" class="btn btn-primary" target="_blank">
-                <i class="bi bi-globe"></i> Visit Project's Site
-              </a>
-            </div>
-          </div>
+
+    <!-- Tools & External Links -->
+    <div class="doc-section-label"><i class="bi bi-tools me-1"></i>Tools & External Links</div>
+    <div class="resource-grid">
+
+      <a class="resource-tile" href="https://docs.google.com/document/d/1G5Wbvf_tgNXD0AeTzkEwTHV5zWF-fBjiU2EQxebfxv4/edit?tab=t.0#heading=h.anxocjpv03me" target="_blank">
+        <div class="resource-tile-icon link"><i class="bi bi-calendar-week-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Platform Change Log</div>
+          <div class="resource-tile-desc">Latest updates, fixes, and new features</div>
         </div>
-  
-        <div class="col-lg-6">
-          <div class="card">
-            <img src="{% static 'img/logo_faith.png' %}" class="project-img card-img-top" alt="Project 2">
-            <div class="card-body text-center">
-              <h5 class="card-title">Fostering  Artificial  Intelligence  Trust for  Humans towards the optimization of trustworthiness through large-scale pilots in critical domains</h5>
-              <p class="card-text text-justify-doc">
-                FAITH aims to provide the practitioners and stakeholders of AI systems not only with a comprehensive analysis of the foundations of AI trustworthiness but also with an operational playbook for how to assess, and build trustworthy AI systems and how to continuously measure their trustworthiness.
-              </p>
-              <a href="https://faith-ec-project.eu/" class="btn btn-primary" target="_blank">
-                <i class="bi bi-globe"></i> Visit Project's Site
-              </a>
-            </div>
+      </a>
+
+      <a class="resource-tile" href="https://forms.gle/wVamjq2yyJMFJqq8A" target="_blank">
+        <div class="resource-tile-icon form"><i class="bi bi-chat-square-text-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Issue Reporting Form</div>
+          <div class="resource-tile-desc">Report a bug or problem with the platform</div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Partner Resources (dspace only) -->
+    {% if is_dspace_partner %}
+    <div class="doc-section-label"><i class="bi bi-shield-check me-1"></i>Partner Resources</div>
+    <div class="resource-grid">
+
+      <a class="resource-tile" href="https://docs.google.com/document/d/1jdpXgmWup-Y0jv44-qJ1UhyzLzuYDYsuOibJCGMdIHg/edit?tab=t.0" target="_blank">
+        <div class="resource-tile-icon doc"><i class="bi bi-pencil-square"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Feature Request</div>
+          <div class="resource-tile-desc">Submit ideas and feature requests for the platform</div>
+        </div>
+      </a>
+
+      <a class="resource-tile" href="https://docs.google.com/document/d/1Z9QiPyCPa0UZRa-0HYr6j6efFnh6lUSTDWsb6zlkapA/edit?tab=t.0" target="_blank">
+        <div class="resource-tile-icon doc"><i class="bi bi-collection-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Available Scenarios</div>
+          <div class="resource-tile-desc">Browse all scenarios currently available in the platform</div>
+        </div>
+      </a>
+
+    </div>
+    {% endif %}
+
+    <!-- Project Cards -->
+    <div class="doc-section-label"><i class="bi bi-diagram-3 me-1"></i>Associated Projects</div>
+    <div class="row g-3 mb-3">
+
+      <div class="col-lg-6">
+        <div class="project-card">
+          <div class="project-card-img">
+            <img src="{% static 'img/Logo-dspace.png' %}" alt="Discovery Space">
+          </div>
+          <div class="project-card-body">
+            <div class="project-card-title">Discovery Space</div>
+            <p class="project-card-text">
+              Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation — Forward Looking project that aspires to develop a roadmap for the AI-Enhanced Classroom for Deeper Learning in STEM. It facilitates the transformation of the traditional classroom into an innovative environment that promotes scientific exploration and supports the development of key skills for all students.
+            </p>
+            <a href="https://discoveryspace.eu/" class="btn btn-primary project-card-btn" target="_blank">
+              <i class="bi bi-globe me-1"></i>Visit Project's Site
+            </a>
           </div>
         </div>
       </div>
-      <!-- End of Project Links Section -->
+
+      <div class="col-lg-6">
+        <div class="project-card">
+          <div class="project-card-img">
+            <img src="{% static 'img/logo_faith.png' %}" alt="FAITH Project">
+          </div>
+          <div class="project-card-body">
+            <div class="project-card-title">FAITH — Fostering Artificial Intelligence Trust for Humans</div>
+            <p class="project-card-text">
+              FAITH aims to provide the practitioners and stakeholders of AI systems not only with a comprehensive analysis of the foundations of AI trustworthiness, but also with an operational playbook for how to assess and build trustworthy AI systems and how to continuously measure their trustworthiness.
+            </p>
+            <a href="https://faith-ec-project.eu/" class="btn btn-primary project-card-btn" target="_blank">
+              <i class="bi bi-globe me-1"></i>Visit Project's Site
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </section>
 </main>
+
+<!-- PDF Modal (English) -->
+<div class="modal fade" id="pdfModalEnglish" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF Documentation (English)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <iframe src="{% static 'pdfs/documentation_en.pdf' %}" width="100%" height="700px" style="border:none; border-radius:8px;"></iframe>
+      </div>
+      <div class="modal-footer border-0">
+        <a href="{% static 'pdfs/documentation_en.pdf' %}" class="btn btn-success" download>
+          <i class="bi bi-download me-1"></i>Download PDF
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal (Greek) -->
+<div class="modal fade" id="pdfModalGreek" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Οδηγός PDF (Ελληνικά)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <iframe src="{% static 'pdfs/documentation_gr.pdf' %}" width="100%" height="700px" style="border:none; border-radius:8px;"></iframe>
+      </div>
+      <div class="modal-footer border-0">
+        <a href="{% static 'pdfs/documentation_gr.pdf' %}" class="btn btn-success" download>
+          <i class="bi bi-download me-1"></i>Λήψη PDF (Ελληνικά)
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Κλείσιμο</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-image text-purple me-2"></i>VR/AR Lab Target Image</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="{% static 'img/vr_ar_target_image.jpg' %}" alt="Target Image" class="img-fluid" style="max-height:700px; border-radius:8px;">
+      </div>
+      <div class="modal-footer border-0">
+        <a href="{% static 'img/vr_ar_target_image.jpg' %}" class="btn btn-success" download>
+          <i class="bi bi-download me-1"></i>Download Image
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

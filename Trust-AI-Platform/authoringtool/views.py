@@ -488,6 +488,8 @@ def viewScenario(request, id):
         rag_files = []
 
 
+    implementation_count = UserScenarioScore.objects.filter(scenario=myScenario).values('user').distinct().count()
+
     template = loader.get_template('authoringtool/viewScenario.html')
     context = {
         'myScenario': myScenario,
@@ -498,7 +500,8 @@ def viewScenario(request, id):
         'mermaid_graph_definition': mermaid_graph_definition,
         'can_edit': can_edit,
         'rag_files': rag_files,
-        "llm_html": mark_safe(markdown.markdown(myScenario.llm_context or ""))
+        "llm_html": mark_safe(markdown.markdown(myScenario.llm_context or "")),
+        'implementation_count': implementation_count,
     }
     return HttpResponse(template.render(context, request))
 
@@ -523,8 +526,8 @@ def delete_rag_pdf(request, scenario_id, filename):
 
 @group_required('teachers')
 def createPhase(request, id):
-    context = {'scenario_id': id}
-    # template = loader.get_template('authoringtool/createPhase.html')
+    scenario = get_object_or_404(Scenario, id=id)
+    context = {'scenario_id': id, 'myScenario': scenario}
     return render(request, 'authoringtool/createPhase.html', context)
 
 @group_required('teachers')
@@ -554,7 +557,8 @@ def updatePhase(request, scenario_id, phase_id):
     template = loader.get_template('authoringtool/updatePhase.html')
     context = {
         'Phase': updatePhase,
-        'scenario_id': scenario_id
+        'scenario_id': scenario_id,
+        'myScenario': scenario,
     }
     return render(request, 'authoringtool/updatePhase.html', context)
 
@@ -620,12 +624,20 @@ def createActivity(request, scenario_id, phase_id):
     # Fetch VR/AR Labs
     vr_ar_exp = VRARExperiment.objects.all()
     # linked_activities = NextQuestionLogic.objects.values_list('next_activity', flat=True)
-    eligible_activities = Activity.objects.filter(scenario=scenario_id)#, activity_type__name='Question')# .exclude(id__in=linked_activities)
+    eligible_activities = Activity.objects.select_related('phase').filter(
+        scenario=scenario_id
+    ).order_by('phase__created_on', 'created_on')
+    # eval_activities: current phase + later phases only (for evaluation multi-picker)
+    eval_activities = Activity.objects.select_related('phase').filter(
+        scenario=scenario_id,
+        phase__created_on__gte=phase.created_on
+    ).order_by('phase__created_on', 'created_on')
     context = {
         'activityTypes': activityTypes,
         'myScenario': scenario,
-        'myPhase': phase, 
+        'myPhase': phase,
         'eligible_activities': eligible_activities,
+        'eval_activities': eval_activities,
         'simulations': simulations,
         'remote_labs': remote_labs,
         'vr_ar_exp': vr_ar_exp,
@@ -768,7 +780,14 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
         next_activity_data = next_activity_logic.next_activity
     else:
         next_activity_data = None
-    eligible_activities = Activity.objects.filter(scenario=scenario_id).exclude(id=activity_id)#, activity_type__name='Question'
+    eligible_activities = Activity.objects.select_related('phase').filter(
+        scenario=scenario_id
+    ).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
+    # eval_activities: current phase + later phases only (for evaluation multi-picker)
+    eval_activities = Activity.objects.select_related('phase').filter(
+        scenario=scenario_id,
+        phase__created_on__gte=phase.created_on
+    ).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
     template = loader.get_template('authoringtool/updateActivity.html')
     context = {
         'Activity': updateActivity,
@@ -781,6 +800,7 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
         'current_activity_type_id': updateActivity.activity_type.id,
         'current_activity_type_name': updateActivity.activity_type.name,
         'eligible_activities': eligible_activities,
+        'eval_activities': eval_activities,
         'nextActivity': next_activity_data,
         'nextActivityIdsList': nextActivityIdsList,
         'existing_sim': existing_sim,
@@ -1180,12 +1200,12 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
 
 @group_required('teachers')
 def createCriterion(request, scenario_id, phase_id, activity_id):
-    activityPrimary = Activity.objects.filter(id=activity_id)
+    activityPrimary = Activity.objects.get(id=activity_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activity_id).first()
     myScenario = Scenario.objects.get(id=scenario_id)
     myPhase = Phase.objects.get(id=phase_id)
 
-    eligible_activities = Activity.objects.filter(scenario=scenario_id).exclude(id=activity_id)
+    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
     
     context = {
         'myScenario': myScenario,
@@ -1256,7 +1276,7 @@ def updateCriterion(request, scenario_id, phase_id, activity_id):
     myScenario = Scenario.objects.get(id=scenario_id)
     myPhase = Phase.objects.get(id=phase_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activityPrimary.id).first()
-    eligible_activities = Activity.objects.filter(scenario=scenario_id).exclude(id=activity_id)
+    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
     context_creation = {
         'myScenario': myScenario,
         'myPhase': myPhase, 

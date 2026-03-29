@@ -19,15 +19,50 @@
   .intro-text { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 24px; padding: 14px 18px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid #1a56db; }
 </style>
 
+<style>
+  .sv-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 22px 28px 18px; color: #fff;
+    margin-bottom: 24px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .sv-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 44px; height: 44px; display: flex; align-items: center;
+    justify-content: center; font-size: 20px; flex-shrink: 0;
+  }
+  .sv-hero .breadcrumb { background: none; margin: 8px 0 0; padding: 0; font-size: 12px; }
+  .sv-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .sv-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .sv-hero .breadcrumb-item a:hover { color: #fff; }
+  .sv-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .sv-hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13px; border-radius: 8px;
+    padding: 6px 16px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s; white-space: nowrap;
+  }
+  .sv-hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+</style>
+
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Pre-Scenario Questions</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Student View</a></li>
-        <li class="breadcrumb-item active">{{ myScenario.name }}</li>
-      </ol>
-    </nav>
+  <div class="sv-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="sv-hero-icon"><i class="bi bi-clipboard-check"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Student View</div>
+        <h2 style="margin:0;font-size:18px;font-weight:700;line-height:1.2;">Pre-Scenario Questions</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'studentScenarios' %}" class="sv-hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back to Scenarios
+        </a>
+      </div>
+    </div>
   </div>
 
   <section class="section">

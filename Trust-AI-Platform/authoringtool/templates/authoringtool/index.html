@@ -1,45 +1,98 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Dashboard</title>{% endblock %}
 
 {% block atcontent %}
+<style>
+  /* ── Custom Searchable Picker ── */
+  .csp-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 1055; background: #fff;
+    border: 1px solid #cdd5e0; border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.13); overflow: hidden;
+  }
+  .csp-search-wrap { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+  .csp-list { max-height: 260px; overflow-y: auto; }
+  .csp-item {
+    padding: 9px 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13.5px; color: #1e293b;
+    transition: background 0.1s;
+  }
+  .csp-item:hover { background: #f0f4ff; }
+  .csp-item.csp-selected { background: #eef2ff; font-weight: 600; color: #1a56db; }
+  .csp-item.csp-selected:hover { background: #e0e7ff; }
+  .csp-item.csp-clear { color: #888; font-size: 12.5px; border-bottom: 1px solid #eee; }
+  .csp-item.csp-clear:hover { background: #fff5f5; color: #dc2626; }
+</style>
   <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>Dashboard</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="{% url 'index' %}">Home</a>
-          </li>
-          <li class="breadcrumb-item active">Dashboard</li>
-        </ol>
-      </nav>
+    <!-- ── Hero ── -->
+    <div style="background:linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%);border-radius:14px;padding:26px 30px 20px;color:#fff;margin-bottom:26px;box-shadow:0 4px 20px rgba(26,86,219,0.18);">
+      <div class="d-flex align-items-start gap-3">
+        <div style="background:rgba(255,255,255,0.18);border-radius:10px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Authoring Tool</div>
+          <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Dashboard</h2>
+          <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Analytics and performance metrics</div>
+          <nav><ol class="breadcrumb" style="background:none;margin:10px 0 0;padding:0;font-size:12px;">
+            <li class="breadcrumb-item" style="color:rgba(255,255,255,0.72);"><a href="{% url 'index' %}" style="color:rgba(255,255,255,0.72);text-decoration:none;">Home</a></li>
+            <li class="breadcrumb-item active" style="color:rgba(255,255,255,0.92);">Dashboard</li>
+          </ol></nav>
+        </div>
+      </div>
     </div>
     <section class="section dashboard">
       <div class="row">
         <!-- Global Scenario Select Dropdown -->
         <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Filters</h5>
+          <div style="border-radius:12px;border:1px solid #e8edf5;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:24px;">
+            <div style="padding:12px 22px 10px;border-bottom:1px solid #eef1f6;border-radius:11px 11px 0 0;background:#f8faff;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#1e3a8a;">
+              <i class="bi bi-funnel" style="font-size:14px;color:#1a56db;"></i> Analytics Filters
+            </div>
+            <div style="padding:20px 24px 18px;">
 			  <form id="filter-form">
-				  <div class="row mb-2">
-					<label class="col-12 col-sm-2 col-form-label">Scenario Selection</label>
+				  <div class="row mb-3">
+					<label class="col-12 col-sm-2 col-form-label" style="font-size:12px;font-weight:700;color:#374151;"><i class="bi bi-collection" style="color:#1a56db;margin-right:4px;"></i>Scenario</label>
 					<div class="col-12 col-sm-10">
-            <select id="scenarioSelect" class="form-select">
-              <option value="">Select Scenario</option>
-              {% for scenario in scenarios %}
-                <option value="{{ scenario.id }}" {% if scenario.name == "Photoelectric Effect" %}selected{% endif %}>
-                {{ scenario.name }}
-              </option>
-              {% endfor %}
-            </select>
+                    <!-- Custom Searchable Picker -->
+                    <div class="csp-wrapper" style="position:relative;">
+                      <button type="button" id="scenarioPickerBtn"
+                              class="form-select text-start d-flex align-items-center justify-content-between"
+                              style="cursor:pointer;background:#fff;border:1.5px solid #d1d9e0;border-radius:8px;font-size:13.5px;">
+                        <span id="scenarioPickerLabel" class="text-muted">Select Scenario…</span>
+                        <i class="bi bi-search ms-2 text-muted" style="font-size:13px;flex-shrink:0;"></i>
+                      </button>
+                      <div id="scenarioPickerDropdown" class="csp-dropdown" style="display:none;">
+                        <div class="csp-search-wrap">
+                          <input type="text" id="scenarioSearchInput" class="form-control form-control-sm"
+                                 placeholder="Search scenarios…" autocomplete="off">
+                        </div>
+                        <div id="scenarioPickerList" class="csp-list">
+                          <div class="csp-item csp-clear" data-value=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                          {% for scenario in scenarios %}
+                          <div class="csp-item" data-value="{{ scenario.id }}">
+                            <span class="csp-item-name">{{ scenario.name }}</span>
+                          </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Hidden native select (kept for existing chart JS that reads scenarioSelect.value) -->
+                    <select id="scenarioSelect" name="scenario_id" style="display:none;">
+                      <option value="">Select Scenario</option>
+                      {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}" {% if scenario.name == "Photoelectric Effect" %}selected{% endif %}>{{ scenario.name }}</option>
+                      {% endfor %}
+                    </select>
           </div>
 				  </div>
-				  <div class="row mb-2">
-					<label class="col-12 col-sm-2 col-form-label">Student Groups (Optional)</label>
+				  <div class="row mb-3">
+					<label class="col-12 col-sm-2 col-form-label" style="font-size:12px;font-weight:700;color:#374151;"><i class="bi bi-people" style="color:#1a56db;margin-right:4px;"></i>Student Groups <span style="font-weight:400;color:#9ca3af;">(Optional)</span></label>
 					<div class="col-12 col-sm-10">
-					  <select id="groupSelect" class="form-select" name="group_ids" multiple>
+					  <select id="groupSelect" class="form-select" name="group_ids" multiple style="border:1.5px solid #d1d9e0;border-radius:8px;font-size:13.5px;">
 					  </select>
-					  <small id="groupSelectMessage" style="display:none; color:gray;">No groups found for this scenario.</small>
+					  <small id="groupSelectMessage" style="display:none; color:#9ca3af; font-size:11.5px;">No groups found for this scenario.</small>
 					</div>
 				  </div>
 				  <script>
@@ -83,30 +136,154 @@
                           });
                       }
 
-                      // Only reload on real user interaction, not programmatic dispatchEvent calls
-                      scenarioSelect.addEventListener("change", function(e) {
-                        loadGroups(this.value);
-                      });
+                      // Sync picker label if a scenario is pre-selected
+                      (function () {
+                        var preSelected = scenarioSelect.options[scenarioSelect.selectedIndex];
+                        if (preSelected && preSelected.value) {
+                          var lbl = document.getElementById('scenarioPickerLabel');
+                          if (lbl) { lbl.textContent = preSelected.text.trim(); lbl.classList.remove('text-muted'); }
+                          // Mark the matching item as selected
+                          var items = document.querySelectorAll('#scenarioPickerList .csp-item');
+                          items.forEach(function (i) {
+                            if (i.getAttribute('data-value') === preSelected.value) {
+                              i.classList.add('csp-selected');
+                            }
+                          });
+                        }
+                      })();
+
+                      // Native select change drives loadGroups (CSP dispatches 'change' on the hidden select)
+                      scenarioSelect.addEventListener('change', function () { loadGroups(this.value); });
 
                       loadGroups(scenarioSelect.value);
+
+                      // ── Custom Searchable Picker ──
+                      initSearchablePicker(
+                        'scenarioPickerBtn', 'scenarioPickerDropdown',
+                        'scenarioSearchInput', 'scenarioPickerList',
+                        'scenarioSelect', 'Select Scenario…'
+                      );
                     });
+
+                      // -- initSearchablePicker --
+                      function initSearchablePicker(btnId, dropdownId, searchId, listId, selectId, placeholder) {
+                        var btn          = document.getElementById(btnId);
+                        var dropdown     = document.getElementById(dropdownId);
+                        var searchInput  = document.getElementById(searchId);
+                        var list         = document.getElementById(listId);
+                        var hiddenSelect = document.getElementById(selectId);
+                        if (!btn || !dropdown || !hiddenSelect) return;
+                        btn.addEventListener('click', function (e) {
+                          e.stopPropagation();
+                          var isOpen = dropdown.style.display === 'block';
+                          document.querySelectorAll('.csp-dropdown').forEach(function (d) { d.style.display = 'none'; });
+                          dropdown.style.display = isOpen ? 'none' : 'block';
+                          if (!isOpen) { searchInput.value = ''; filterItems(''); searchInput.focus(); }
+                        });
+                        searchInput.addEventListener('input', function () { filterItems(this.value.toLowerCase()); });
+                        list.addEventListener('click', function (e) {
+                          var item = e.target.closest('.csp-item');
+                          if (!item) return;
+                          var val    = item.getAttribute('data-value') || '';
+                          var nameEl = item.querySelector('.csp-item-name');
+                          var name   = nameEl ? nameEl.textContent.trim() : '';
+                          var labelSpan = document.getElementById(btnId.replace('Btn', 'Label'));
+                          if (labelSpan) {
+                            labelSpan.textContent = val ? name : placeholder;
+                            if (val) labelSpan.classList.remove('text-muted');
+                            else labelSpan.classList.add('text-muted');
+                          }
+                          list.querySelectorAll('.csp-item').forEach(function (i) {
+                            i.classList.remove('csp-selected');
+                            var chk = i.querySelector('.bi-check2');
+                            if (chk) chk.remove();
+                          });
+                          if (val) {
+                            item.classList.add('csp-selected');
+                            var check = document.createElement('i');
+                            check.className = 'bi bi-check2 text-primary';
+                            item.appendChild(check);
+                          }
+                          hiddenSelect.value = val;
+                          hiddenSelect.dispatchEvent(new Event('change'));
+                          dropdown.style.display = 'none';
+                        });
+                        document.addEventListener('click', function (e) {
+                          if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                            dropdown.style.display = 'none';
+                          }
+                        });
+                        function filterItems(query) {
+                          list.querySelectorAll('.csp-item:not(.csp-clear)').forEach(function (item) {
+                            var text = (item.querySelector('.csp-item-name') || item).textContent.toLowerCase();
+                            item.style.display = text.includes(query) ? '' : 'none';
+                          });
+                        }
+                      }
 				  </script>
-				<div class="row mb-2">
-                  <label class="col-12 col-sm-2 col-form-label">Start Date</label>
+				<div class="row mb-3">
+                  <label class="col-12 col-sm-2 col-form-label" style="font-size:12px;font-weight:700;color:#374151;"><i class="bi bi-calendar-range" style="color:#1a56db;margin-right:4px;"></i>Date Range</label>
                   <div class="col-12 col-sm-10">
-                    <input type="date" class="form-control" name="start_date" id="start-date-input" value="{{ start_date }}">
+                    <!-- Quick presets -->
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="7">Last 7 days</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="30">Last 30 days</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="90">Last 3 months</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="180">Last 6 months</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="365">Last 1 year</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary date-preset" data-days="0">All time</button>
+                    </div>
+                    <!-- Start / End side by side -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <input type="date" class="form-control" style="max-width:180px;border:1.5px solid #d1d9e0;border-radius:8px;font-size:13.5px;" name="start_date" id="start-date-input" value="{{ start_date }}">
+                      <span style="color:#9ca3af;font-weight:600;">—</span>
+                      <input type="date" class="form-control" style="max-width:180px;border:1.5px solid #d1d9e0;border-radius:8px;font-size:13.5px;" name="end_date" id="end-date-input" value="{{ end_date }}">
+                    </div>
+                    <script>
+                    (function () {
+                      var today = new Date().toISOString().split("T")[0];
+                      var s = document.getElementById("start-date-input");
+                      var e = document.getElementById("end-date-input");
+                      s.setAttribute("max", today);
+                      e.setAttribute("max", today);
+                      s.addEventListener("change", function () { e.setAttribute("min", this.value || ""); });
+                      e.addEventListener("change", function () { s.setAttribute("max", this.value || today); });
+                      document.querySelectorAll(".date-preset").forEach(function (btn) {
+                        btn.addEventListener("click", function () {
+                          var days = parseInt(this.dataset.days, 10);
+                          if (days === 0) {
+                            s.value = ""; e.value = "";
+                            s.removeAttribute("min"); e.setAttribute("max", today);
+                          } else {
+                            var end = new Date(), start = new Date();
+                            start.setDate(end.getDate() - days);
+                            s.value = start.toISOString().split("T")[0];
+                            e.value = end.toISOString().split("T")[0];
+                            e.setAttribute("min", s.value);
+                            s.setAttribute("max", e.value);
+                          }
+                          document.querySelectorAll(".date-preset").forEach(function (b) {
+                            b.classList.remove("btn-secondary", "active");
+                            b.classList.add("btn-outline-secondary");
+                          });
+                          this.classList.remove("btn-outline-secondary");
+                          this.classList.add("btn-secondary", "active");
+                        });
+                      });
+                    })();
+                    </script>
                   </div>
                 </div>
-                <div class="row mb-2">
-                  <label class="col-12 col-sm-2 col-form-label">End Date</label>
-                  <div class="col-12 col-sm-10">
-                    <input type="date" class="form-control" name="end_date" id="end-date-input" value="{{ end_date }}">
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <button class="btn btn-outline-primary" type="submit">Apply</button>
-                  <button type="button" id="reset-button" class="btn btn-outline-secondary">Reset</button>
-				  <button type="button" id="generateDownloadButton" class="btn btn-outline-success">Generate and Download CSV</button>
+                <div class="mb-3 d-flex flex-wrap gap-2" style="margin-top:4px;">
+                  <button type="submit" style="background:#1a56db;color:#fff;border:none;border-radius:8px;padding:8px 22px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                    <i class="bi bi-check-circle"></i> Apply
+                  </button>
+                  <button type="button" id="reset-button" style="background:none;border:1.5px solid #d1d9e0;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                  </button>
+				  <button type="button" id="generateDownloadButton" style="background:none;border:1.5px solid #16a34a;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+                    <i class="bi bi-download"></i> Generate &amp; Download CSV
+                  </button>
                   <script>
                     document.addEventListener("DOMContentLoaded", () => {
                         const generateDownloadButton = document.getElementById("generateDownloadButton");
@@ -121,8 +298,8 @@
                             const endDate = endDateInput.value;
 							const selectedGroups = Array.from(groupSelect.selectedOptions).map(option => option.value); // Get selected groups
             
-                            if (!scenarioId || !startDate || !endDate) {
-                                alert("Please select a scenario and specify start and end dates.");
+                            if (!scenarioId) {
+                                alert("Please select a scenario.");
                                 return;
                             }
             

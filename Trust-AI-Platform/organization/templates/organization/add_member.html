@@ -1,10 +1,27 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Add Member</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  .form-card { max-width: 860px; margin: 0 auto; }
+  .form-header { background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%); border-radius: 12px 12px 0 0; padding: 28px 32px; }
+  .form-header h4 { color: #fff; font-weight: 700; margin: 0; font-size: 20px; }
+  .form-header p  { color: rgba(255,255,255,0.75); margin: 4px 0 0; font-size: 13px; }
+  .field-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px; }
+
+  /* Results table */
+  .result-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #f0f4ff; transition: background 0.15s; }
+  .result-row:last-child { border-bottom: none; }
+  .result-row:hover { background: #f8faff; }
+  .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #4154f1, #1a56db); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .user-name { font-weight: 600; font-size: 14px; color: #012970; line-height: 1.2; }
+  .user-meta { font-size: 12px; color: #888; }
+</style>
 
 <main id="main" class="main">
 
   <div class="pagetitle">
-    <h1>Add Member to {{ organization.name }}</h1>
+    <h1>Add Member</h1>
     <nav>
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
@@ -12,99 +29,114 @@
         <li class="breadcrumb-item active">Add Member</li>
       </ol>
     </nav>
-  </div><!-- End Page Title -->
+  </div>
+
+  <div class="mb-3">
+    <a href="{% url 'organization_detail' organization.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to {{ organization.name }}
+    </a>
+  </div>
 
   <section class="section">
-    <div class="row">
-      <div class="col-lg-8">
+    <div class="form-card">
+      <div class="card shadow-sm" style="border-radius:12px; overflow:hidden;">
 
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Search for Member</h5>
-
-            <!-- Search Form -->
-            <form method="post">
-              {% csrf_token %}
-              <div class="row mb-3">
-                <label for="username" class="col-sm-3 col-form-label">Username</label>
-                <div class="col-sm-9">
-                  <input type="text" class="form-control" id="username" name="username">
-                </div>
-              </div>
-
-              <div class="row mb-3">
-                <label for="first_name" class="col-sm-3 col-form-label">First Name</label>
-                <div class="col-sm-9">
-                  <input type="text" class="form-control" id="first_name" name="first_name">
-                </div>
-              </div>
-
-              <div class="row mb-3">
-                <label for="last_name" class="col-sm-3 col-form-label">Last Name</label>
-                <div class="col-sm-9">
-                  <input type="text" class="form-control" id="last_name" name="last_name">
-                </div>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col-sm-9 offset-sm-3">
-                  <button type="submit" class="btn btn-primary">Search Members</button>
-                </div>
-              </div>
-            </form><!-- End Search Form -->
-
-            <!-- Results (if any) -->
-            {% if users %}
-              <h5 class="mt-4">Matching Users:</h5>
-              <div class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for user in users %}
-                    <tr>
-                      <td>{{ forloop.counter }}</td>
-                      <td>{{ user.username }}</td>
-                      <td>{{ user.first_name }}</td>
-                      <td>{{ user.last_name }}</td>
-                      <td>
-                        {% if user in organization.members.all %}
-                          <span class="badge bg-success">Already in Org</span>
-                        {% else %}
-                          <span class="badge bg-secondary">Not in Org</span>
-                        {% endif %}
-                      </td>
-                      <td>
-                        {% if user not in organization.members.all %}
-                          <a href="{% url 'add_member_to_org_confirm' organization.id user.id %}" class="btn btn-primary btn-sm">Add to Organization</a>
-                        {% else %}
-                          <button class="btn btn-secondary btn-sm" disabled>Already Added</button>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-              </div><!-- /.table-responsive -->
-            {% elif search_performed %}
-              <p>No users found matching your query.</p>
-            {% endif %}
-
-          </div>
+        <div class="form-header">
+          <h4><i class="bi bi-person-plus me-2"></i>Add Member — {{ organization.name }}</h4>
+          <p>Search for a user by username, first name, or last name, then add them to the organization.</p>
         </div>
+
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="field-label">Username</label>
+                <input type="text" class="form-control" name="username" value="{{ request.POST.username }}" placeholder="e.g. jsmith">
+              </div>
+              <div class="col-md-4">
+                <label class="field-label">First Name</label>
+                <input type="text" class="form-control" name="first_name" value="{{ request.POST.first_name }}" placeholder="e.g. John">
+              </div>
+              <div class="col-md-4">
+                <label class="field-label">Last Name</label>
+                <input type="text" class="form-control" name="last_name" value="{{ request.POST.last_name }}" placeholder="e.g. Smith">
+              </div>
+            </div>
+            <div class="d-flex gap-3 pt-3 border-top">
+              <a href="{% url 'organization_detail' organization.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary flex-fill">
+                <i class="bi bi-search me-1"></i>Search Members
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results -->
+        {% if search_performed %}
+        <div class="border-top">
+          <div class="px-4 pt-3 pb-2">
+            <span style="font-size:13px; font-weight:700; color:#012970;">
+              <i class="bi bi-people-fill me-1"></i>
+              {% if users %}{{ users|length }} user{{ users|length|pluralize }} found{% else %}No users found{% endif %}
+            </span>
+          </div>
+
+          {% if users %}
+            {% for user in users %}
+            <div class="result-row">
+
+              <!-- Avatar -->
+              <div class="user-avatar">
+                {{ user.first_name|default:user.username|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+              </div>
+
+              <!-- Info -->
+              <div class="flex-grow-1 min-width-0">
+                <div class="user-name">
+                  {% if user.get_full_name %}
+                    {{ user.get_full_name }}
+                    <span class="user-meta ms-1">@{{ user.username }}</span>
+                  {% else %}
+                    {{ user.username }}
+                  {% endif %}
+                </div>
+                {% if user.email %}
+                  <div class="user-meta"><i class="bi bi-envelope me-1"></i>{{ user.email }}</div>
+                {% endif %}
+              </div>
+
+              <!-- Status + Action -->
+              <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                {% if user in organization.members.all %}
+                  <span class="badge text-bg-success" style="font-size:11px; padding: 6px 12px;">Already a member</span>
+                {% else %}
+                  <form method="post" action="{% url 'add_member_to_org_confirm' organization.id user.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="bi bi-person-plus-fill me-1"></i>Add to Org
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="px-4 py-4 text-center text-muted" style="font-size:14px;">
+              <i class="bi bi-person-x" style="font-size:28px; display:block; margin-bottom:8px;"></i>
+              No users matched your search. Try different terms.
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
 
       </div>
     </div>
   </section>
 
-</main><!-- End #main -->
+</main>
 
-{% endblock %}
+{% endblock atcontent %}

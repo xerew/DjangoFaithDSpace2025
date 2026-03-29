@@ -1,132 +1,250 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Create Answers</title>{% endblock %}
 {% block atcontent %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    let answerCount = document.querySelectorAll('.answerFields').length; // Initialize counter based on existing answers
-  
-    function addMoreAnswers() {
-      var answerFieldsList = document.getElementById('answerFieldsList');
-      if (!answerFieldsList) return;
-  
-      var originalAnswerFields = answerFieldsList.querySelector('.answerFields');
-      if (!originalAnswerFields) return;
-  
-      var newAnswerFields = originalAnswerFields.cloneNode(true);
-  
-      // Update the name attributes of the inputs and textareas to include the new answerCount index
-      Array.from(newAnswerFields.querySelectorAll('input, textarea')).forEach(function(input) {
-        const nameAttr = input.getAttribute('name');
-        if (nameAttr) {
-          // Replace the index in square brackets with the current answerCount value
-          const newNameAttr = nameAttr.replace(/\[\d+\]/, `[${answerCount}]`);
-          input.setAttribute('name', newNameAttr);
-        }
-  
-        // Reset the input or textarea value
-        if (input.type === 'checkbox') {
-          input.checked = false;
-        } else {
-          input.value = '';
-        }
-      });
-  
-      // Add a "Remove" button if it doesn't exist
-      if (!newAnswerFields.querySelector('.removeAnswer')) {
-        var removeButton = document.createElement('button');
-        removeButton.innerText = 'Remove';
-        removeButton.type = 'button';
-        removeButton.classList.add('removeAnswer', 'btn', 'btn-danger', 'mt-2');
-  
-        removeButton.onclick = function() {
-          // Remove the closest `.answerFields` parent element
-          var container = this.closest('.answerFields');
-          if (container) {
-            container.remove();
-          }
-        };
-  
-        newAnswerFields.appendChild(removeButton);
-      }
-  
-      answerFieldsList.appendChild(newAnswerFields);
-      answerCount++; // Increment the counter after adding new answer fields
-    }
-  
-    var addMoreAnswersBtn = document.getElementById('addMoreAnswers');
-    if (addMoreAnswersBtn) {
-      addMoreAnswersBtn.addEventListener('click', addMoreAnswers);
-    }
-  });
-</script>  
+<style>
+  .answer-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+    border-radius: 14px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .answer-hero-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .answer-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
+  .answer-hero p  { margin: 0; font-size: 12.5px; color: rgba(255,255,255,0.8); }
+
+  .answer-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.18s;
+  }
+  .answer-card:hover { box-shadow: 0 4px 16px rgba(1,41,112,0.07); }
+
+  .answer-card-header {
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    padding: 11px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .answer-card-label {
+    font-size: 13px; font-weight: 700; color: #012970;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .answer-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #4154f1, #1a56db);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .answer-card-body { padding: 18px 20px; }
+
+  .correct-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #f8faff; border: 1px solid #e0e8ff;
+    border-radius: 10px; padding: 10px 16px;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    height: 100%;
+  }
+  .correct-row:hover { background: #eef2ff; border-color: #c5d0f0; }
+  .correct-row input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; accent-color: #4154f1; flex-shrink: 0; }
+  .correct-row-label { font-size: 13.5px; font-weight: 600; color: #012970; cursor: pointer; margin: 0; user-select: none; }
+
+  .btn-remove-answer {
+    background: none; border: 1px solid #fca5a5; color: #dc2626;
+    border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-remove-answer:hover { background: #fff5f5; }
+</style>
 
 <main id="main" class="main">
   <div class="pagetitle">
-    <h1>Answer Creation</h1>
+    <h1>Create Answers</h1>
     <nav>
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="">Home</a></li>
-        <li class="breadcrumb-item"><a href="">Activity Details</a></li>
+        <li class="breadcrumb-item"><a href="#">Home</a></li>
+        <li class="breadcrumb-item">Activity Details</li>
         <li class="breadcrumb-item active">Create Answers</li>
       </ol>
     </nav>
-  </div><!-- End Page Title -->
+  </div>
 
   <section class="section">
     <div class="row">
-      <div class="col-lg-8">
+      <div class="col-lg-9">
 
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">New Answer</h5>
-
-            <!-- General Form Elements -->
-            <form action="{% url 'createAnswers' scenario_id=scenario_id phase_id=phase_id activity_id=activity_id %}" method="post" enctype="multipart/form-data">{% csrf_token %}
-              
-              <!-- Answer Fields -->
-              <div id="answerFieldsList">
-                <div class="answerFields" style="margin-bottom: 15px;">
-                  <div class="mb-3">
-                    <label for="answerText" class="form-label">Answer Text</label>
-                    <textarea class="form-control" name="answers[0][text]" required></textarea>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-check-label" for="isCorrect">Is Correct?</label>
-                    <input class="form-check-input" type="checkbox" name="answers[0][is_correct]">
-                  </div>
-                  <div class="mb-3">
-                    <label for="answerWeight" class="form-label">Answer Weight</label>
-                    <input type="number" class="form-control" name="answers[0][answer_weight]">
-                  </div>
-                  <div class="mb-3">
-                    <label for="answerImage" class="form-label">Image (optional)</label>
-                    <input type="file" class="form-control" name="answers[0][image]">
-                  </div>
-                  <div class="mb-3">
-                    <label for="vidUrl" class="form-label">Video URL (optional)</label>
-                    <input type="text" class="form-control" name="answers[0][vid_url]">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Add More Answers Button -->
-              <div class="mb-3">
-                <button type="button" id="addMoreAnswers" class="btn btn-info">Add More Answers</button>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col-sm-10">
-                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                  <button type="submit" class="btn btn-primary">Create Answers</button>
-                </div>
-              </div>
-            </form><!-- End General Form Elements -->
+        <div class="answer-hero">
+          <div class="answer-hero-icon"><i class="bi bi-check2-square"></i></div>
+          <div>
+            <h2>Create Answers</h2>
+            <p>Add one or more answer options. Exactly one must be marked as correct. Assign a weight (1–3) to each.</p>
           </div>
         </div>
+
+        <form action="{% url 'createAnswers' scenario_id=scenario_id phase_id=phase_id activity_id=activity_id %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div id="answerFieldsList">
+            <div class="answerFields">
+              <div class="answer-card">
+                <div class="answer-card-header">
+                  <div class="answer-card-label">
+                    <div class="answer-num">1</div>
+                    Answer 1
+                  </div>
+                </div>
+                <div class="answer-card-body">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="answers[0][text]" rows="3" placeholder="Enter the answer option…" required></textarea>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-sm-5">
+                      <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+                      <select class="form-select" name="answers[0][answer_weight]" required>
+                        <option value="" disabled selected>Select weight…</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-7 d-flex flex-column justify-content-end">
+                      <label class="correct-row">
+                        <input type="checkbox" class="is-correct-check" name="answers[0][is_correct]">
+                        <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <button type="button" id="addMoreAnswers" class="btn btn-outline-primary">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Answer
+            </button>
+          </div>
+
+          <div id="correct-answer-error" class="alert alert-danger d-none mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Exactly one answer must be marked as correct.
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
+              <i class="bi bi-arrow-left me-1"></i>Cancel
+            </button>
+            <button type="submit" id="submitBtn" class="btn btn-primary px-4">
+              <i class="bi bi-check2-circle me-1"></i>Create Answers
+            </button>
+          </div>
+        </form>
+
       </div>
     </div>
   </section>
+</main>
 
-</main><!-- End #main -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  let answerCount = 1;
+
+  function renumber() {
+    document.querySelectorAll('#answerFieldsList .answerFields').forEach(function (el, i) {
+      var label = el.querySelector('.answer-card-label');
+      if (label) label.innerHTML = `<div class="answer-num">${i + 1}</div> Answer ${i + 1}`;
+    });
+  }
+
+  // Radio-like: checking one unchecks all others
+  document.addEventListener('change', function (e) {
+    if (e.target.classList.contains('is-correct-check') && e.target.checked) {
+      document.querySelectorAll('.is-correct-check').forEach(function (cb) {
+        if (cb !== e.target) cb.checked = false;
+      });
+      document.getElementById('correct-answer-error').classList.add('d-none');
+    }
+  });
+
+  document.getElementById('addMoreAnswers').addEventListener('click', function () {
+    var div = document.createElement('div');
+    div.className = 'answerFields';
+    div.innerHTML = `
+      <div class="answer-card">
+        <div class="answer-card-header">
+          <div class="answer-card-label"></div>
+          <button type="button" class="removeAnswer btn-remove-answer">
+            <i class="bi bi-trash3 me-1"></i>Remove
+          </button>
+        </div>
+        <div class="answer-card-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="answers[${answerCount}][text]" rows="3" placeholder="Enter the answer option…" required></textarea>
+          </div>
+          <div class="row g-3">
+            <div class="col-sm-5">
+              <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+              <select class="form-select" name="answers[${answerCount}][answer_weight]" required>
+                <option value="" disabled selected>Select weight…</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <div class="col-sm-7 d-flex flex-column justify-content-end">
+              <label class="correct-row">
+                <input type="checkbox" class="is-correct-check" name="answers[${answerCount}][is_correct]">
+                <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('answerFieldsList').appendChild(div);
+    answerCount++;
+    renumber();
+  });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.removeAnswer');
+    if (btn) {
+      btn.closest('.answerFields').remove();
+      renumber();
+    }
+  });
+
+  document.querySelector('form').addEventListener('submit', function (e) {
+    var checked = document.querySelectorAll('.is-correct-check:checked').length;
+    var errorEl = document.getElementById('correct-answer-error');
+    if (checked !== 1) {
+      e.preventDefault();
+      errorEl.classList.remove('d-none');
+      errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    errorEl.classList.add('d-none');
+    var btn = document.getElementById('submitBtn');
+    btn.innerHTML = `<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>Saving…`;
+    btn.disabled = true;
+  });
+});
+</script>
 
 {% endblock %}

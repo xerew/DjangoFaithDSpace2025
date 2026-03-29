@@ -1,229 +1,465 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Activity Details</title>{% endblock %}
 {% block atcontent %}
-  <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>Activity Details</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            Authoring Tool
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'scenarios' %}">Scenarios</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
-          </li>
-          <li class="breadcrumb-item active">{{ activity.name }}</li>
-        </ol>
-      </nav>
-    </div>
-    <!-- End Page Title -->
-    <section class="section">
-      <div class="row mb-2">
-        <div class="col-sm-10">
-          <a type="button"
-                  class="btn btn-secondary"
-                  href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">Back to Phase</a>
+
+<style>
+  /* ── Hero ─────────────────────────────────────────────── */
+  .act-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+    border-radius: 14px;
+    padding: 26px 30px 20px;
+    color: #fff;
+    margin-bottom: 26px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .act-hero-icon {
+    width: 50px; height: 50px; border-radius: 10px;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .act-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+  .act-hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .act-type-badge {
+    font-size: 11px; font-weight: 700; padding: 4px 12px;
+    border-radius: 20px; background: rgba(255,255,255,0.2);
+    color: #fff; letter-spacing: 0.4px;
+  }
+  .act-type-badge.evaluatable { background: rgba(52,211,153,0.3); }
+  .hero-btn-ghost  { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  .hero-btn-ghost:hover  { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-solid  { background: #fff; color: #1a56db; font-weight: 600; border: none; }
+  .hero-btn-solid:hover  { background: #e8f0fe; color: #1a56db; }
+  .hero-btn-outline { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+  .hero-btn-outline:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+  /* ── Info card ────────────────────────────────────────── */
+  .info-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .info-card-header {
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    padding: 11px 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.7px; color: #4154f1;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .info-row {
+    display: flex; align-items: flex-start;
+    padding: 11px 20px;
+    border-bottom: 1px solid #f0f4ff;
+    gap: 14px; font-size: 13.5px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label {
+    min-width: 155px; font-weight: 700; color: #012970;
+    display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+  }
+  .info-label i { color: #4154f1; font-size: 14px; }
+  .info-value { color: #444; flex: 1; line-height: 1.65; }
+  .info-value a { color: #1a56db; font-weight: 600; text-decoration: none; }
+  .info-value a:hover { text-decoration: underline; }
+
+  .performer-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; border-bottom: 1px solid #f0f4ff; font-size: 13.5px;
+  }
+  .performer-row:last-child { border-bottom: none; }
+  .performer-row a { color: #1a56db; font-weight: 600; text-decoration: none; }
+  .performer-row a:hover { text-decoration: underline; }
+  .performer-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .performer-badge.high { background: #dcfce7; color: #166534; }
+  .performer-badge.mid  { background: #fef9c3; color: #854d0e; }
+  .performer-badge.low  { background: #fee2e2; color: #991b1b; }
+
+  .content-body { padding: 16px 20px; font-size: 13.5px; color: #444; line-height: 1.75; }
+
+  /* ── LLM Evaluation card ── */
+  .llm-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .llm-card-header {
+    background: #f5f3ff;
+    border-bottom: 1px solid #ede9fe;
+    padding: 11px 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.7px; color: #6d28d9;
+    display: flex; align-items: center; justify-content: space-between; gap: 7px;
+  }
+  .llm-body { font-size: 13.5px; color: #374151; line-height: 1.75; }
+  .llm-body h1, .llm-body h2, .llm-body h3 { font-size: 14.5px; font-weight: 700; color: #1e3a8a; margin: 12px 0 4px; }
+  .llm-body p { margin-bottom: 8px; }
+  .llm-body ul, .llm-body ol { padding-left: 20px; margin-bottom: 8px; }
+  .llm-body li { margin-bottom: 3px; }
+  .llm-body strong { color: #1e3a8a; }
+
+  /* ── Answer cards ─────────────────────────────────────── */
+  .answer-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.18s;
+  }
+  .answer-card:hover { box-shadow: 0 4px 16px rgba(1,41,112,0.07); }
+  .answer-card-header {
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .answer-card-label {
+    font-size: 13px; font-weight: 700; color: #012970;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .answer-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #4154f1, #1a56db);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .answer-status {
+    font-size: 11px; font-weight: 700; padding: 4px 12px;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .answer-status.correct   { background: #dcfce7; color: #166534; }
+  .answer-status.incorrect { background: #fee2e2; color: #991b1b; }
+  .answer-card-body { padding: 14px 18px; }
+  .answer-text { font-size: 13.5px; color: #222; margin-bottom: 10px; line-height: 1.6; }
+  .answer-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .answer-weight-badge {
+    font-size: 11.5px; font-weight: 700;
+    background: #f0f4ff; color: #4154f1;
+    border: 1px solid #dce4ff;
+    border-radius: 8px; padding: 3px 10px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .answer-next { font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px; }
+  .answer-next a { color: #1a56db; font-weight: 600; }
+
+  .experiment-frame { border-radius: 10px; overflow: hidden; border: 1px solid #e8edf5; }
+  .qr-wrap { text-align: center; padding: 20px 0; }
+  .qr-wrap img { border-radius: 10px; border: 1px solid #e8edf5; }
+</style>
+
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Activity Details</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">Authoring Tool</li>
+        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
+        <li class="breadcrumb-item active">{{ activity.name }}</li>
+      </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+
+    <!-- Hero -->
+    <div class="act-hero">
+      <div class="d-flex align-items-start gap-3">
+        <div class="act-hero-icon">
+          {% if activity.activity_type.name == 'Question' %}
+            <i class="bi bi-question-circle"></i>
+          {% elif activity.activity_type.name == 'Experiment' %}
+            <i class="bi bi-eyedropper"></i>
+          {% else %}
+            <i class="bi bi-file-text"></i>
+          {% endif %}
+        </div>
+        <div class="flex-grow-1">
+          <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
+            {{ myScenario.name }} &rsaquo; {{ myPhase.name }}
+          </div>
+          <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">{{ activity.name }}</h2>
+          <div class="act-hero-badges">
+            <span class="act-type-badge">{{ activity.activity_type.name }}</span>
+            {% if activity.is_evaluatable %}
+              <span class="act-type-badge evaluatable"><i class="bi bi-check-circle me-1"></i>Evaluatable</span>
+            {% endif %}
+            {% if activity.is_primary_ev %}
+              <span class="act-type-badge" style="background:rgba(251,191,36,0.3);">
+                <i class="bi bi-star me-1"></i>Primary Evaluation
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+          <a class="btn btn-sm hero-btn-ghost" href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">
+            <i class="bi bi-arrow-left me-1"></i>Phase
+          </a>
           {% if can_edit %}
-            <a type="button"
-            class="btn btn-primary"
-            href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Activity</a>
+            <a class="btn btn-sm hero-btn-solid" href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
+              <i class="bi bi-pencil-square me-1"></i>Edit
+            </a>
             {% if activity.activity_type.name == 'Question' %}
-              <a type="button"
-                class="btn btn-outline-primary"
-                href="{% url 'updateAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Answers</a>
+              <a class="btn btn-sm hero-btn-outline" href="{% url 'updateAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
+                <i class="bi bi-list-check me-1"></i>Answers
+              </a>
             {% endif %}
             {% if activity.is_evaluatable %}
-              <a type="button"
-                  class="btn btn-info"
-                  href="{% url 'updateCriterion' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">Update Criterion</a>
+              <a class="btn btn-sm hero-btn-outline" href="{% url 'updateCriterion' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
+                <i class="bi bi-sliders me-1"></i>Criterion
+              </a>
             {% endif %}
           {% endif %}
         </div>
       </div>
-      <div class="row">
-        <!-- Column for the card -->
-        <div class="col-lg-6">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">{{ activity.name }}</h5>
-              <p class="card-text">
-                <strong>Activity Type:</strong> {{ activity.activity_type.name }}
-              </p>
-              {% if activity.is_evaluatable %}
-                <p class="card-text">
-                  <strong>Is Evaluatable:</strong> {{ activity.is_evaluatable }}
-                </p>
-				<p class="card-text">
-                  <strong>Is Primary Evaluation:</strong> {{ activity.is_primary_ev }}
-                </p>
-                <p class="card-text">
-                  <strong>Evaluating:</strong>
-                  {% for act in activities %}
-                    <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=act.id %}">
-                      {% if not forloop.first %}-{% endif %} {{ act.name }}</a>
-                  {% endfor %}
-                </p>
-                <p class="card-text">
-                  <strong>High Performers:</strong>{% if high_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=high_activity.id %}"> {{ high_activity.name }} {% else %} Not Set {% endif %}</a>
-                </p>
-                <p class="card-text">
-                  <strong>Mid Performers:</strong>{% if mid_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=mid_activity.id %}"> {{ mid_activity.name }} {% else %} Not Set {% endif %}</a>
-                </p>
-                <p class="card-text">
-                  <strong>Low Performers:</strong>{% if low_activity %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=low_activity.id %}"> {{ low_activity.name }} {% else %} Not Set {% endif %}</a>
-                </p>
+    </div>
+
+    <div class="row g-3">
+
+      <!-- ── Left: activity info ── -->
+      <div class="col-lg-6">
+
+        <!-- Basic info -->
+        <div class="info-card">
+          <div class="info-card-header"><i class="bi bi-info-circle"></i> Activity Info</div>
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-tag"></i> Type</div>
+            <div class="info-value">{{ activity.activity_type.name }}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-speedometer2"></i> Performance Threshold</div>
+            <div class="info-value">{{ activity.score_limit }}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-clock"></i> Created On</div>
+            <div class="info-value">{{ activity.created_on }}</div>
+          </div>
+          {% if activity.activity_type.name != 'Question' and not activity.is_evaluatable %}
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Next Activity</div>
+            <div class="info-value">
+              {% if nextActivity %}
+                <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=nextActivity.id %}">{{ nextActivity.name }}</a>
+              {% else %}
+                <span class="text-muted">End</span>
               {% endif %}
-                <p class="card-text">
-                  <strong>Score Limit:</strong> {{ activity.score_limit }}
-                </p>
-              {% if activity.activity_type.name != 'Question' %}
-                {% if not activity.is_evaluatable %}
-                  <p class="card-text">
-                    <strong>Next Activity:</strong>{% if nextActivity.id == None %} End {% else %}<a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=nextActivity.id %}"> {% if nextActivity.id == None %}End{% else %}{{ nextActivity.name }}{% endif %}</a>{% endif %}
-                  </p>
-                {% endif %}
-              {% endif %}
-              <p class="card-text">
-                <strong>Must Wait:</strong> {{ activity.must_wait }}
-              </p>
-              <p class="card-text">
-                <strong>Created on:</strong> {{ activity.created_on }}
-              </p>
-              <p class="card-text">
-                <strong>Content:</strong> {{ activity.text|safe }}
-              </p>
-              {% if activity.activity_type.name == 'Experiment' and not existingRemote and not existingVR_AR %}
-                <p class="card-text">
-                  <strong>Simulation Name:</strong> {{ existingSim.name }}
-                </p>
-                <p class="card-text">
-                  <iframe id="simulationPreview" width="100%" height="400" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
-                </p>
-              {% elif  activity.activity_type.name == 'Experiment' and existingRemote and not existingVR_AR %}
-              <p class="card-text">
-                <strong>Simulation Name:</strong> {{ existingRemote.name }}
-              </p>
-              <p class="card-text">
-                <iframe id="simulationPreview" width="100%" height="400" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
-              </p>
-			  {% elif activity.activity_type.name == 'Experiment' and existingVR_AR %}
-                <p class="card-text">
-                    <strong>VR/AR Experiment Name:</strong> {{ existingVR_AR.name }}
-                </p>
-                {% if existingVR_AR.qr_code %}
-                    <p class="card-text">
-                        <strong>QR Code for VR/AR Experiment:</strong>
-                    </p>
-                    <div style="text-align: center;">
-                        <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code for {{ existingVR_AR.name }}" width="300" height="300">
-                    </div>
-                {% else %}
-                    <p>No QR Code Available for this VR/AR Experiment.</p>
-                {% endif %}
-              {% endif %}
-              <p class="card-text">
-                <strong>LLM Evaluation:</strong> {{ llm_html }}
-              </p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Evaluation branching -->
+        {% if activity.is_evaluatable %}
+        <div class="info-card">
+          <div class="info-card-header"><i class="bi bi-bar-chart"></i> Evaluation</div>
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-layers"></i> Evaluating</div>
+            <div class="info-value">
+              {% for act in activities %}
+                <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=act.id %}">{{ act.name }}</a>{% if not forloop.last %}, {% endif %}
+              {% empty %}
+                <span class="text-muted">None</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="performer-row">
+            <span class="performer-badge high">High</span>
+            {% if high_activity %}
+              <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=high_activity.id %}">{{ high_activity.name }}</a>
+            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+          </div>
+          <div class="performer-row">
+            <span class="performer-badge mid">Mid</span>
+            {% if mid_activity %}
+              <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=mid_activity.id %}">{{ mid_activity.name }}</a>
+            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+          </div>
+          <div class="performer-row">
+            <span class="performer-badge low">Low</span>
+            {% if low_activity %}
+              <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=low_activity.id %}">{{ low_activity.name }}</a>
+            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        {% if activity.text %}
+        <div class="info-card">
+          <div class="info-card-header"><i class="bi bi-text-paragraph"></i> Content</div>
+          <div class="content-body">{{ activity.text|safe }}</div>
+        </div>
+        {% endif %}
+
+        <!-- LLM Evaluation -->
+        {% if llm_html %}
+        <div class="llm-card">
+          <div class="llm-card-header">
+            <span><i class="bi bi-robot me-2"></i>LLM Evaluation Context</span>
+            <button type="button" class="btn btn-sm"
+                    style="background:rgba(109,40,217,0.1); color:#6d28d9; border:none; padding:2px 10px; font-size:11px; border-radius:6px;"
+                    data-bs-toggle="collapse" data-bs-target="#llmActivityBody">
+              <i class="bi bi-chevron-up" id="llmActivityChevron"></i>
+            </button>
+          </div>
+          <div class="collapse show" id="llmActivityBody">
+            <div class="content-body" style="max-height:380px; overflow-y:auto;">
+              <div class="llm-body">{{ llm_html }}</div>
             </div>
           </div>
         </div>
-        {% if activity.activity_type.name == 'Question' %}
-          <!-- Column for the accordion -->
-          <div class="col-lg-6">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">Answers</h5>
-                <!-- Default Accordion -->
-                {% if answers %}
-                  <div class="accordion" id="accordionExample">
-                    {% for answer in answers %}
-                      <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading{{ answer.id }}">
-                          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#collapse{{ answer.id }}"
-                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-                            aria-controls="collapse{{ answer.id }}">Answer {{ forloop.counter }}
-                          </button>
-                        </h2>
-                        <div id="collapse{{ answer.id }}"
-                          class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
-                          aria-labelledby="heading{{ answer.id }}"
-                          data-bs-parent="#accordionExample">
-                          <div class="accordion-body">
-                            <p>
-                              <strong {% if answer.is_correct %}style="color: green;"{% else %}style="color:red;" {% endif %}>
-                                {% if answer.is_correct %}
-                                  Correct
-                                {% else %}
-                                  Incorrect
-                                {% endif %}
-                              </strong>
-                            </p>
-                            <p>
-                              <strong>Answer Text:</strong> {{ answer.text }}
-                            </p>
-                            <p>
-                              <strong>Answer Weight:</strong> {{ answer.answer_weight }} points
-                            </p>
-                            {% if not activity.is_evaluatable %}
-                              {% if answer.next_activity %}
-                                <p>
-                                  <strong>Next Activity:</strong> <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=answer.next_activity.id %}">{{ answer.next_activity.name }}</a>
-                                </p>
-                              {% else %}
-                                <p>No next activity defined for this answer.</p>
-                              {% endif %}
-                            {% endif %}
-                            {% if can_edit %}
-                              <button type="button"
-                                class="btn btn-outline-secondary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#basicModal{{ answer.id }}">Delete</button>
-                            {% endif %}
-                              <!-- Basic Modal -->
-                            <div class="modal fade" id="basicModal{{ answer.id }}" tabindex="-1">
-                              <div class="modal-dialog">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5 class="modal-title">Confirmation</h5>
-                                    <button type="button"
-                                      class="btn-close"
-                                      data-bs-dismiss="modal"
-                                      aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">Are you sure you wanna delete this answer?</div>
-                                  <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <a type="button"
-                                      class="btn btn-primary"
-                                      href="{% url 'deleteAnswer' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id answer_id=answer.id %}">Yes</a>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <!-- End Basic Modal-->
-                          </div>
-                        </div>
-                      </div>
-                    {% endfor %}
-                  </div>                  
+        {% endif %}
+
+      </div>
+
+      <!-- ── Right: experiment preview ── -->
+      {% if activity.activity_type.name == 'Experiment' %}
+      <div class="col-lg-6">
+        <div class="info-card">
+          <div class="info-card-header"><i class="bi bi-eyedropper"></i> Experiment Preview</div>
+          <div class="content-body">
+            {% if existingSim and not existingRemote and not existingVR_AR %}
+              <p style="font-size:13px; margin-bottom:10px;"><strong>Simulation:</strong> {{ existingSim.name }}</p>
+              <div class="experiment-frame">
+                <iframe width="100%" height="420" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+              </div>
+            {% elif existingRemote and not existingVR_AR %}
+              <p style="font-size:13px; margin-bottom:10px;"><strong>Remote Lab:</strong> {{ existingRemote.name }}</p>
+              <div class="experiment-frame">
+                <iframe width="100%" height="420" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
+              </div>
+            {% elif existingVR_AR %}
+              <p style="font-size:13px; margin-bottom:10px;"><strong>VR/AR Experiment:</strong> {{ existingVR_AR.name }}</p>
+              {% if existingVR_AR.qr_code %}
+                <div class="qr-wrap">
+                  <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code" width="240" height="240">
+                  <p style="font-size:12px; color:#888; margin-top:8px;">Scan with a VR/AR-enabled device</p>
                 </div>
               {% else %}
-                No Answers found for this activity!
+                <p class="text-muted" style="font-size:13px;">No QR Code available for this experiment.</p>
               {% endif %}
-              <!-- End Default Accordion Example -->
-            </div>
+            {% else %}
+              <p class="text-muted" style="font-size:13px;">No experiment configured for this activity.</p>
+            {% endif %}
           </div>
         </div>
+      </div>
       {% endif %}
-    </section>
-  </main>
-  <!-- End #main -->
+
+      <!-- ── Right: answers ── -->
+      {% if activity.activity_type.name == 'Question' %}
+      <div class="col-lg-6">
+        <div class="info-card">
+          <div class="info-card-header"><i class="bi bi-list-check"></i> Answers</div>
+          <div style="padding: 14px 14px 6px;">
+            {% if answers %}
+              {% for answer in answers %}
+              <div class="answer-card">
+                <div class="answer-card-header">
+                  <div class="answer-card-label">
+                    <div class="answer-num">{{ forloop.counter }}</div>
+                    Answer {{ forloop.counter }}
+                  </div>
+                  <span class="answer-status {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                    {% if answer.is_correct %}
+                      <i class="bi bi-check-circle-fill me-1"></i>Correct
+                    {% else %}
+                      <i class="bi bi-x-circle-fill me-1"></i>Incorrect
+                    {% endif %}
+                  </span>
+                </div>
+                <div class="answer-card-body">
+                  <div class="answer-text">{{ answer.text }}</div>
+                  <div class="answer-meta">
+                    <span class="answer-weight-badge">
+                      <i class="bi bi-speedometer2"></i> Weight: {{ answer.answer_weight }}
+                    </span>
+                    {% if not activity.is_evaluatable %}
+                      {% if answer.next_activity %}
+                        <span class="answer-next">
+                          <i class="bi bi-arrow-right-circle text-primary"></i>
+                          Next: <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=answer.next_activity.id %}">{{ answer.next_activity.name }}</a>
+                        </span>
+                      {% else %}
+                        <span class="answer-next text-muted"><i class="bi bi-dash-circle me-1"></i>No next activity</span>
+                      {% endif %}
+                    {% endif %}
+                    {% if can_edit %}
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-auto"
+                      data-bs-toggle="modal" data-bs-target="#deleteModal{{ answer.id }}"
+                      style="font-size:12px; padding:3px 10px;">
+                      <i class="bi bi-trash3 me-1"></i>Delete
+                    </button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Delete modal -->
+              <div class="modal fade" id="deleteModal{{ answer.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="border-radius:14px; overflow:hidden;">
+                    <div class="modal-header border-0 pb-0">
+                      <h5 class="modal-title" style="font-size:16px; font-weight:700; color:#012970;">
+                        <i class="bi bi-trash3 text-danger me-2"></i>Delete Answer
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="font-size:13.5px; color:#444;">
+                      Are you sure you want to delete <strong>Answer {{ forloop.counter }}</strong>? This action cannot be undone.
+                    </div>
+                    <div class="modal-footer border-0">
+                      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                      <a class="btn btn-danger btn-sm" href="{% url 'deleteAnswer' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id answer_id=answer.id %}">
+                        <i class="bi bi-trash3 me-1"></i>Yes, Delete
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+
+            {% else %}
+              <div style="padding:24px; text-align:center; color:#888; font-size:13.5px;">
+                <i class="bi bi-inbox" style="font-size:32px; display:block; margin-bottom:10px; color:#ccc;"></i>
+                No answers found for this activity.
+                {% if can_edit %}
+                  <div style="margin-top:14px;">
+                    <a class="btn btn-sm btn-primary" href="{% url 'createAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
+                      <i class="bi bi-plus-circle me-1"></i>Create Answers
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </section>
+</main>
+
+<script>
+  var llmActEl = document.getElementById('llmActivityBody');
+  if (llmActEl) {
+    llmActEl.addEventListener('hide.bs.collapse', function () {
+      document.getElementById('llmActivityChevron').className = 'bi bi-chevron-down';
+    });
+    llmActEl.addEventListener('show.bs.collapse', function () {
+      document.getElementById('llmActivityChevron').className = 'bi bi-chevron-up';
+    });
+  }
+</script>
+
 {% endblock atcontent %}

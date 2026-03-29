@@ -26,17 +26,60 @@
   #userWarning { font-size: 13px; margin-top: 6px; display: none; }
 </style>
 
+<style>
+  .ug-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .ug-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .ug-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .ug-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .ug-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .ug-hero .breadcrumb-item a:hover { color: #fff; }
+  .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s;
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-solid {
+    background: #fff; color: #1a56db; border: none;
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .hero-btn-solid:hover { background: #eef3ff; color: #1a56db; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+</style>
+
 <main id="main" class="main">
 
-  <div class="pagetitle">
-    <h1>Edit Group: {{ group.name }}</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'view_group' group.id %}">{{ group.name }}</a></li>
-        <li class="breadcrumb-item active">Edit</li>
-      </ol>
-    </nav>
+  <div class="ug-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="ug-hero-icon"><i class="bi bi-pencil-square"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Edit Group</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ group.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'view_group' group.id %}">{{ group.name }}</a></li>
+          <li class="breadcrumb-item active">Edit</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'view_group' group.id %}" class="hero-btn-ghost" id="cancelBtn">
+          <i class="bi bi-arrow-left"></i> Back to Group
+        </a>
+      </div>
+    </div>
   </div>
 
   <section class="section">
@@ -219,15 +262,19 @@
   });
 
   // Submit: validate, then disable buttons and show spinner
-  document.getElementById('formSubmitButton').addEventListener('click', function (e) {
+  function submitEdit() {
     const form = document.getElementById('editGroupForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     setTimeout(() => {
-      this.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Saving…';
-      this.disabled = true;
+      ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Saving…'; btn.disabled = true; }
+      });
       document.getElementById('cancelBtn').classList.add('disabled');
     }, 100);
-  });
+  }
+  document.getElementById('formSubmitButton').addEventListener('click', submitEdit);
+  document.getElementById('heroSubmitBtn').addEventListener('click', submitEdit);
 
   // Init count on load
   updateCount();

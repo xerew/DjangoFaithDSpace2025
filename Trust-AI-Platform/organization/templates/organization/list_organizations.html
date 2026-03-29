@@ -1,85 +1,263 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Organizations</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  /* ── Hero ── */
+  .org-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .org-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .org-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .org-hero .breadcrumb-item { color: rgba(255,255,255,0.72); }
+  .org-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .org-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .hero-btn-solid {
+    background: #fff; color: #1a56db; border: none;
+    font-weight: 600; font-size: 13.5px; border-radius: 8px;
+    padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background 0.15s, box-shadow 0.15s;
+  }
+  .hero-btn-solid:hover { background: #eef3ff; color: #1a56db; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+
+  /* ── Filter card ── */
+  .filter-card {
+    border-radius: 12px; border: 1px solid #e8edf5;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+  }
+  .filter-card-header {
+    padding: 12px 22px 10px; border-bottom: 1px solid #eef1f6;
+    border-radius: 11px 11px 0 0; background: #f8faff;
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 13px; color: #1e3a8a;
+  }
+  .filter-card-header i { font-size: 14px; color: #1a56db; }
+  .filter-card-body { padding: 18px 22px 16px; }
+  .f-label {
+    display: block; font-size: 11.5px; font-weight: 700;
+    color: #374151; margin-bottom: 5px; letter-spacing: 0.2px;
+  }
+  .f-label i { color: #1a56db; margin-right: 4px; }
+  .f-input {
+    width: 100%; border: 1.5px solid #d1d9e0; border-radius: 8px;
+    padding: 8px 12px; font-size: 13.5px; color: #1e293b;
+    transition: border-color 0.15s, box-shadow 0.15s; outline: none; background: #fff;
+  }
+  .f-input:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+  select.f-input { cursor: pointer; }
+  .f-reset {
+    background: none; border: 1.5px solid #d1d9e0; border-radius: 8px;
+    padding: 7px 16px; font-size: 12.5px; font-weight: 600; color: #6b7280;
+    cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+  }
+  .f-reset:hover { border-color: #1a56db; color: #1a56db; }
+  .f-submit {
+    background: #1a56db; color: #fff; border: none; border-radius: 8px;
+    padding: 8px 20px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .f-submit:hover { background: #1648c0; }
+
+  /* ── Cards ── */
+  .org-card { border-radius: 12px; border: 1px solid #e8edf5; transition: box-shadow 0.2s, border-color 0.2s; overflow: hidden; height: 100%; }
+  .org-card:hover { box-shadow: 0 4px 20px rgba(1,41,112,0.1); border-color: #c5d0f0; }
+  .org-card-header { background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%); padding: 20px; display: flex; align-items: center; gap: 14px; }
+  .org-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0; }
+  .org-initials { width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .org-card-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.3; }
+  .org-card-short { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .org-card-body { padding: 16px 18px; }
+  .org-meta { font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+  .org-member-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 4px; }
+  .badge-mine   { background: #e8f5e9; color: #2e7d32; }
+  .badge-other  { background: #f5f5f5; color: #888; }
+  .section-heading { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #4154f1; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid #e8edf5; }
+</style>
 
 <main id="main" class="main">
 
-  <div class="pagetitle">
-    <h1>All Organizations</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item active">Organizations</li>
-      </ol>
-    </nav>
-  </div><!-- End Page Title -->
+  <!-- ── Hero ── -->
+  <div class="org-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="org-hero-icon"><i class="bi bi-building"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
+          Platform
+        </div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">All Organizations</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
+          Browse and manage organizations
+          {% with total=my_orgs|length|add:other_orgs|length %}
+            &mdash; {{ total }} organization{{ total|pluralize }} found
+          {% endwith %}
+        </div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item active">Organizations</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'create_organization' %}" class="hero-btn-solid">
+          <i class="bi bi-plus-lg"></i> Create New Organization
+        </a>
+      </div>
+    </div>
+  </div>
 
   <section class="section">
-    <div class="row mb-3">
-      <div class="col-lg-12">
-        <a href="{% url 'create_organization' %}" class="btn btn-primary">Create New Organization</a>
+
+    <!-- ── Filter Card ── -->
+    <div class="filter-card">
+      <div class="filter-card-header">
+        <i class="bi bi-funnel"></i> Filter Organizations
+      </div>
+      <div class="filter-card-body">
+        <form method="get">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="f-label"><i class="bi bi-search"></i>Search</label>
+              <input type="text" name="q" class="f-input" placeholder="Name, short name, country…" value="{{ query }}">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="f-label"><i class="bi bi-translate"></i>Language</label>
+              <select name="language" class="f-input">
+                <option value="">All Languages</option>
+                {% for lang in languages %}
+                  <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="f-label"><i class="bi bi-sort-alpha-down"></i>Sort By</label>
+              <select name="sort" class="f-input">
+                <option value="name"     {% if sort == "name" %}selected{% endif %}>Name A→Z</option>
+                <option value="-name"    {% if sort == "-name" %}selected{% endif %}>Name Z→A</option>
+                <option value="country"  {% if sort == "country" %}selected{% endif %}>Country</option>
+                <option value="-members" {% if sort == "-members" %}selected{% endif %}>Most Members</option>
+                <option value="members"  {% if sort == "members" %}selected{% endif %}>Fewest Members</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-2 d-flex gap-2 align-items-end">
+              <button type="submit" class="f-submit flex-fill">
+                <i class="bi bi-search"></i> Filter
+              </button>
+              <a href="{% url 'list_organizations' %}" class="f-reset">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </a>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
 
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Organization List</h5>
-
-            <!-- Table with hoverable rows -->
-            <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Organization Name</th>
-                  <th scope="col">Short Name</th>
-                  <th scope="col">Country</th>
-                  <th scope="col">Language</th>
-                  <th scope="col">Member</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for org in organizations %}
-                  <tr>
-                    <th scope="row">{{ forloop.counter }}</th>
-                    <td>{{ org.name }}</td>
-                    <td>{{ org.short_name }}</td>
-                    <td>{{ org.country }}</td>
-                    <td>{{ org.language }}</td>
-                    <td>
-                      {% if request.user in org.members.all %}
-                        <i class="bi bi-check-circle-fill" style="color: green;"></i>
-                      {% else %}
-                        <i class="bi bi-x-circle-fill" style="color: red;"></i>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <!-- View Details -->
-                      <a href="{% url 'organization_detail' org.id %}" class="btn btn-info btn-sm">View</a>
-
-                      <!-- Edit button if user is admin of this organization -->
-                      {% if request.user in org.admins.all %}
-                        <a href="{% url 'edit_organization' org.id %}" class="btn btn-warning btn-sm">Edit</a>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td colspan="6">No organizations found.</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            </div><!-- /.table-responsive -->
-            <!-- End Table with hoverable rows -->
-
+    <!-- My Organizations -->
+    {% if my_orgs %}
+    <div class="mb-4">
+      <div class="section-heading">
+        <i class="bi bi-person-check me-1"></i>My Organizations ({{ my_orgs|length }})
+      </div>
+      <div class="row g-3">
+        {% for org in my_orgs %}
+        <div class="col-md-6 col-xl-4">
+          <div class="org-card">
+            <div class="org-card-header">
+              {% if org.picture %}
+                <img src="{{ org.picture.url }}" alt="{{ org.name }}" class="org-avatar">
+              {% else %}
+                <div class="org-initials">{{ org.short_name|default:org.name|slice:":2"|upper }}</div>
+              {% endif %}
+              <div class="overflow-hidden">
+                <div class="org-card-name">{{ org.name }}</div>
+                <div class="org-card-short">{{ org.short_name }}</div>
+              </div>
+              <span class="org-member-badge badge-mine ms-auto flex-shrink-0">
+                <i class="bi bi-check-circle-fill"></i> Member
+              </span>
+            </div>
+            <div class="org-card-body">
+              <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-people"></i> {{ org.member_count }} member{{ org.member_count|pluralize }}</div>
+              <div class="d-flex gap-2 mt-3">
+                <a href="{% url 'organization_detail' org.id %}" class="btn btn-primary btn-sm flex-fill">
+                  <i class="bi bi-eye me-1"></i>View
+                </a>
+                {% if request.user in org.admins.all or request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'edit_organization' org.id %}" class="btn btn-outline-warning btn-sm">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
+        {% endfor %}
       </div>
     </div>
-  </section>
+    {% endif %}
 
-</main><!-- End #main -->
+    <!-- Other Organizations -->
+    {% if other_orgs %}
+    <div class="mb-4">
+      <div class="section-heading" style="color:#888; border-color:#e8edf5;">
+        <i class="bi bi-building me-1"></i>Other Organizations ({{ other_orgs|length }})
+      </div>
+      <div class="row g-3">
+        {% for org in other_orgs %}
+        <div class="col-md-6 col-xl-4">
+          <div class="org-card" style="opacity:0.85;">
+            <div class="org-card-header" style="background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);">
+              {% if org.picture %}
+                <img src="{{ org.picture.url }}" alt="{{ org.name }}" class="org-avatar">
+              {% else %}
+                <div class="org-initials">{{ org.short_name|default:org.name|slice:":2"|upper }}</div>
+              {% endif %}
+              <div class="overflow-hidden">
+                <div class="org-card-name">{{ org.name }}</div>
+                <div class="org-card-short">{{ org.short_name }}</div>
+              </div>
+              <span class="org-member-badge badge-other ms-auto flex-shrink-0 bg-white">
+                <i class="bi bi-person-x"></i> Not a member
+              </span>
+            </div>
+            <div class="org-card-body">
+              <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-people"></i> {{ org.member_count }} member{{ org.member_count|pluralize }}</div>
+              <div class="d-flex gap-2 mt-3">
+                <a href="{% url 'organization_detail' org.id %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                  <i class="bi bi-eye me-1"></i>View
+                </a>
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'edit_organization' org.id %}" class="btn btn-outline-warning btn-sm">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not my_orgs and not other_orgs %}
+    <div class="text-center py-5" style="color:#888;">
+      <i class="bi bi-building" style="font-size:40px; display:block; margin-bottom:12px;"></i>
+      No organizations found matching your filters.
+    </div>
+    {% endif %}
+
+  </section>
+</main>
 
 {% endblock %}

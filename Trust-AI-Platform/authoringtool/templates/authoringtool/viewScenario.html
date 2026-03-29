@@ -1,230 +1,527 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ myScenario.name }}</title>{% endblock %}
 {% block atcontent %}
-  <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>{{ myScenario.name }} Scenario Details</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            Authoring Tool
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'scenarios' %}">Scenarios</a>
-          </li>
-          <li class="breadcrumb-item active">{{ myScenario.name }}</li>
-        </ol>
-      </nav>
-    </div>
-    <!-- End Page Title -->
-    <section class="section">
-      <div class="row mb-2">
-        <div class="col-sm-10">
-          <a type="button"
-                  class="btn btn-secondary"
-                  href="{% url 'scenarios' %}">Back to Scenarios</a>
-          {% if can_edit %}
-            <a type="button"
-            class="btn btn-warning"
-            href="{% url 'updateScenario' id=myScenario.id %}">Update Scenario</a>
-            <a type="button"
-              class="btn btn-primary"
-              href="{% url 'createPhase' id=myScenario.id %}">Create Phase</a>
+
+<style>
+  /* ── Hero ── */
+  .sc-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px;
+    padding: 26px 30px 20px;
+    color: #fff;
+    margin-bottom: 26px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .sc-hero-icon {
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px;
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .sc-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .sc-hero .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .sc-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .sc-hero .breadcrumb-item a:hover { color: #fff; }
+  .sc-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost   { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  .hero-btn-ghost:hover   { background: rgba(255,255,255,0.25); color: #fff; }
+  .hero-btn-solid   { background: #fff; color: #1a56db; font-weight: 600; border: none; }
+  .hero-btn-solid:hover   { background: #e8f0fe; color: #1a56db; }
+  .hero-btn-outline { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+  .hero-btn-outline:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  .hero-btn-amber   { background: rgba(251,191,36,0.25); color: #fde68a; border: 1px solid rgba(251,191,36,0.4); }
+  .hero-btn-amber:hover   { background: rgba(251,191,36,0.38); color: #fef3c7; }
+
+  /* ── Section cards ── */
+  .sc-card {
+    border-radius: 12px;
+    border: 1px solid #e8edf5;
+    margin-bottom: 20px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .sc-card-header {
+    padding: 13px 20px 11px;
+    border-bottom: 1px solid #eef1f6;
+    background: #f8faff;
+    display: flex; align-items: center; justify-content: space-between;
+    font-weight: 700; font-size: 13.5px; color: #1e3a8a;
+  }
+  .sc-card-body { padding: 18px 20px; }
+
+  /* ── Meta rows ── */
+  .meta-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid #f3f4f6;
+    font-size: 13.5px;
+  }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-lbl { min-width: 170px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .meta-lbl i { color: #1a56db; font-size: 14px; }
+  .meta-val { color: #555; flex: 1; line-height: 1.6; }
+
+  /* ── PDF list ── */
+  .pdf-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-radius: 8px; background: #f8faff;
+    border: 1px solid #e8edf5; margin-bottom: 8px; font-size: 13.5px;
+  }
+  .pdf-item:last-child { margin-bottom: 0; }
+  .pdf-link { color: #1a56db; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 7px; }
+  .pdf-link:hover { text-decoration: underline; }
+
+  /* ── Phase cards ── */
+  .phase-colors { --c0:#1a56db; --c1:#7c3aed; --c2:#0891b2; --c3:#d97706; --c4:#dc2626; }
+  .phase-item {
+    border-radius: 10px; border: 1px solid #e8edf5;
+    margin-bottom: 14px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden;
+  }
+  .phase-item:last-child { margin-bottom: 0; }
+  .phase-item-header {
+    padding: 11px 16px; border-bottom: 1px solid #eef1f6;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: #f8faff;
+  }
+  .phase-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .phase-name-link { font-weight: 700; font-size: 14px; color: #1e3a8a; text-decoration: none; }
+  .phase-name-link:hover { color: #1a56db; text-decoration: underline; }
+  .phase-item-body { padding: 14px 16px; }
+  .phase-desc { font-size: 13px; color: #555; margin-bottom: 12px; line-height: 1.6; }
+  .phase-act-list { list-style: none; padding: 0; margin: 0 0 12px; }
+  .phase-act-list li {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px;
+  }
+  .phase-act-list li:last-child { border-bottom: none; }
+  .phase-act-list a { color: #1a56db; text-decoration: none; font-weight: 500; }
+  .phase-act-list a:hover { text-decoration: underline; }
+  .act-dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+
+  /* ── Type mini-badge ── */
+  .type-mini {
+    font-size: 10px; font-weight: 700; padding: 1px 7px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .type-q  { background: #dbeafe; color: #1d4ed8; }
+  .type-e  { background: #ede9fe; color: #6d28d9; }
+  .type-g  { background: #fef3c7; color: #b45309; }
+  .type-ex { background: #d1fae5; color: #065f46; }
+  .type-d  { background: #f3f4f6; color: #374151; }
+
+  /* ── Phase actions ── */
+  .phase-actions { display: flex; gap: 6px; align-items: center; }
+  .ph-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 28px; padding: 0 10px; border-radius: 6px; font-size: 12px;
+    font-weight: 500; text-decoration: none; border: none; cursor: pointer;
+    gap: 4px; transition: background 0.12s;
+  }
+  .ph-btn-view   { color: #1a56db; background: #eff6ff; }
+  .ph-btn-view:hover   { background: #dbeafe; }
+  .ph-btn-edit   { color: #6d28d9; background: #f5f3ff; }
+  .ph-btn-edit:hover   { background: #ede9fe; }
+  .ph-btn-delete { color: #dc2626; background: #fef2f2; }
+  .ph-btn-delete:hover { background: #fee2e2; }
+
+  /* ── LLM card ── */
+  .llm-card { border-radius: 12px; border: 1px solid #ede9fe; margin-bottom: 20px; background: #fff; overflow: hidden; }
+  .llm-card-hdr {
+    background: #f5f3ff; border-bottom: 1px solid #ede9fe;
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+    font-weight: 700; font-size: 13px; color: #6d28d9;
+  }
+  .llm-body { font-size: 13.5px; color: #374151; line-height: 1.75; }
+  .llm-body h1, .llm-body h2, .llm-body h3 { font-size: 14.5px; font-weight: 700; color: #1e3a8a; margin: 12px 0 4px; }
+  .llm-body p { margin-bottom: 8px; }
+  .llm-body ul, .llm-body ol { padding-left: 20px; margin-bottom: 8px; }
+  .llm-body li { margin-bottom: 3px; }
+
+  /* ── Mermaid ── */
+  .mermaid-wrap { padding: 20px; overflow-x: auto; }
+  .mermaid { font-size: 13px; }
+
+  /* ── Empty state ── */
+  .empty-phases { text-align: center; padding: 40px 20px; color: #9ca3af; }
+  .empty-phases i { font-size: 40px; margin-bottom: 12px; display: block; }
+
+  /* ── Phase border colors per index ── */
+  .phase-color-0 { border-left: 4px solid #1a56db; }
+  .phase-color-1 { border-left: 4px solid #7c3aed; }
+  .phase-color-2 { border-left: 4px solid #0891b2; }
+  .phase-color-3 { border-left: 4px solid #d97706; }
+  .phase-color-4 { border-left: 4px solid #dc2626; }
+  .phase-num-0 { background: #1a56db; }
+  .phase-num-1 { background: #7c3aed; }
+  .phase-num-2 { background: #0891b2; }
+  .phase-num-3 { background: #d97706; }
+  .phase-num-4 { background: #dc2626; }
+</style>
+
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="sc-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="sc-hero-icon"><i class="bi bi-journal-richtext"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
+          Scenario
+        </div>
+        <h2 style="margin:0; font-size:21px; font-weight:700; line-height:1.2;">{{ myScenario.name }}</h2>
+        <div style="font-size:12.5px; opacity:0.75; margin-top:4px;">
+          {{ phase_count }} phase{{ phase_count|pluralize }} &middot; {{ myScenario.language }}
+          {% if myScenario.suggested_learning_time %}&middot; {{ myScenario.suggested_learning_time }} min{% endif %}
+        </div>
+        <nav>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item active">{{ myScenario.name }}</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
+        <a href="{% url 'scenarios' %}" class="btn btn-sm hero-btn-ghost">
+          <i class="bi bi-arrow-left me-1"></i> Scenarios
+        </a>
+        {% if can_edit %}
+          <a href="{% url 'updateScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-amber">
+            <i class="bi bi-pencil me-1"></i> Edit
+          </a>
+          {% if phase_count < 5 %}
+            <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
+              <i class="bi bi-plus-circle me-1"></i> New Phase
+            </a>
+          {% else %}
+            <span class="btn btn-sm hero-btn-solid disabled" title="Maximum of 5 phases reached">
+              <i class="bi bi-plus-circle me-1"></i> New Phase
+            </span>
           {% endif %}
-            <a type="button"
-              class="btn btn-primary"
-              href="{% url 'ai_metrics' scenario_id=myScenario.id %}">Scenario Metrics &amp; AI</a>
-          
+        {% endif %}
+        {% if implementation_count >= myScenario.ai_metrics_min_implementations %}
+          <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-outline">
+            <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="row g-3">
+
+      <!-- ── Left column: Scenario info + PDFs ── -->
+      <div class="col-lg-4">
+
+        <!-- Scenario image -->
+        {% if myScenario.image %}
+        <div class="sc-card mb-3" style="overflow:hidden;">
+          <img src="{{ myScenario.image.url }}" alt="{{ myScenario.name }}"
+               style="width:100%; object-fit:cover; max-height:200px; display:block;">
+        </div>
+        {% endif %}
+
+        <!-- Scenario metadata -->
+        <div class="sc-card">
+          <div class="sc-card-header">
+            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>Scenario Info</span>
+          </div>
+          <div class="sc-card-body" style="padding:0;">
+            {% if myScenario.description %}
+            <div style="padding:14px 20px 10px; font-size:13.5px; color:#374151; line-height:1.65; border-bottom:1px solid #f3f4f6;">
+              {{ myScenario.description }}
+            </div>
+            {% endif %}
+            <div style="padding:6px 20px 12px;">
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-people"></i> Age Range</div>
+                <div class="meta-val">{{ min_age }}–{{ max_age }} years</div>
+              </div>
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-translate"></i> Language</div>
+                <div class="meta-val">{{ myScenario.language }}</div>
+              </div>
+              {% if myScenario.suggested_learning_time %}
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-clock"></i> Learning Time</div>
+                <div class="meta-val">{{ myScenario.suggested_learning_time }} minutes</div>
+              </div>
+              {% endif %}
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-calendar3"></i> Created</div>
+                <div class="meta-val">{{ myScenario.created_on|date:"d M Y" }}</div>
+              </div>
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-person"></i> Created By</div>
+                <div class="meta-val">{{ myScenario.created_by.get_full_name|default:myScenario.created_by }}</div>
+              </div>
+              {% if myScenario.origin_scenario %}
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-diagram-2"></i> Origin</div>
+                <div class="meta-val">{{ myScenario.origin_scenario.name }}</div>
+              </div>
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-person-check"></i> Original Creator</div>
+                <div class="meta-val">{{ myScenario.origin_scenario.created_by.get_full_name }}</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- PDF Files -->
+        <div class="sc-card">
+          <div class="sc-card-header">
+            <span><i class="bi bi-file-earmark-pdf me-2" style="color:#dc2626;"></i>RAG Documents</span>
+            <span style="font-size:11.5px; color:#9ca3af; font-weight:400;">{{ rag_files|length }} file{{ rag_files|length|pluralize }}</span>
+          </div>
+          <div class="sc-card-body">
+            {% if can_edit or request.user.is_superuser %}
+            <form method="post" enctype="multipart/form-data" class="mb-3">
+              {% csrf_token %}
+              <div class="input-group input-group-sm">
+                <input type="file" name="rag_pdf" accept=".pdf" class="form-control" required>
+                <button type="submit" class="btn btn-success btn-sm">
+                  <i class="bi bi-upload me-1"></i>Upload
+                </button>
+              </div>
+            </form>
+            {% endif %}
+            {% if rag_files %}
+              {% for f in rag_files %}
+              <div class="pdf-item">
+                <a href="#" class="pdf-link" data-bs-toggle="modal" data-bs-target="#pdfModal{{ forloop.counter }}">
+                  <i class="bi bi-file-earmark-pdf-fill text-danger"></i>{{ f }}
+                </a>
+                {% if can_edit or request.user.is_superuser %}
+                <a href="{% url 'delete_rag_pdf' scenario_id=myScenario.id filename=f %}"
+                   class="btn btn-sm btn-outline-danger" style="padding:2px 8px; font-size:12px;">
+                  <i class="bi bi-trash"></i>
+                </a>
+                {% endif %}
+              </div>
+
+              <!-- PDF Modal -->
+              <div class="modal fade" id="pdfModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>{{ f }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                      <iframe src="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
+                              width="100%" height="700px" style="border:none; display:block;"></iframe>
+                    </div>
+                    <div class="modal-footer">
+                      <a href="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
+                         class="btn btn-success" download>
+                        <i class="bi bi-download me-1"></i>Download
+                      </a>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div style="text-align:center; color:#9ca3af; padding:16px 0; font-size:13px;">
+                <i class="bi bi-file-earmark" style="font-size:28px; display:block; margin-bottom:8px;"></i>
+                No documents uploaded yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- LLM Context -->
+        {% if llm_html %}
+        <div class="llm-card">
+          <div class="llm-card-hdr">
+            <span><i class="bi bi-robot me-2"></i>LLM Evaluation Context</span>
+            <button type="button" class="btn btn-sm"
+                    style="background:rgba(109,40,217,0.1); color:#6d28d9; border:none; padding:2px 10px; font-size:11px; border-radius:6px;"
+                    data-bs-toggle="collapse" data-bs-target="#llmScBody">
+              <i class="bi bi-chevron-up" id="llmScChevron"></i>
+            </button>
+          </div>
+          <div class="collapse show" id="llmScBody">
+            <div style="padding:16px 20px; max-height:340px; overflow-y:auto;">
+              <div class="llm-body">{{ llm_html }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- ── Right column: Phases ── -->
+      <div class="col-lg-8">
+
+        <div class="sc-card">
+          <div class="sc-card-header">
+            <span><i class="bi bi-layers me-2" style="color:#1a56db;"></i>Phases
+              <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{{ phase_count }} of 5</span>
+            </span>
+            {% if can_edit and phase_count < 5 %}
+            <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-sm btn-primary" style="font-size:12px; padding:4px 14px;">
+              <i class="bi bi-plus-circle me-1"></i> New Phase
+            </a>
+            {% endif %}
+          </div>
+          <div class="sc-card-body">
+            {% if Phases %}
+              {% for phase in Phases %}
+              {% with idx=forloop.counter0 %}
+              <div class="phase-item phase-color-{{ idx }}">
+                <div class="phase-item-header">
+                  <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+                    <div class="phase-num phase-num-{{ idx }}">{{ forloop.counter }}</div>
+                    <a href="{% url 'phase' scenario_id=myScenario.id phase_id=phase.id %}" class="phase-name-link">
+                      {{ phase.name }}
+                    </a>
+                    <span style="font-size:11.5px; color:#9ca3af; margin-left:4px;">
+                      {{ phase.activities.count }} activit{{ phase.activities.count|pluralize:"y,ies" }}
+                    </span>
+                  </div>
+                  <div class="phase-actions flex-shrink-0">
+                    <a href="{% url 'phase' scenario_id=myScenario.id phase_id=phase.id %}" class="ph-btn ph-btn-view">
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                    {% if can_edit %}
+                    <a href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=phase.id %}" class="ph-btn ph-btn-edit">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    {% if phase_count > 1 %}
+                    <button type="button" class="ph-btn ph-btn-delete"
+                            data-bs-toggle="modal" data-bs-target="#phaseDelModal{{ phase.id }}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="phase-item-body">
+                  {% if phase.description %}
+                  <p class="phase-desc">{{ phase.description }}</p>
+                  {% endif %}
+                  {% if phase.activities.all %}
+                  <ul class="phase-act-list">
+                    {% for activity in phase.activities.all %}
+                    <li>
+                      <span class="act-dot"></span>
+                      <a href="{% url 'activity' scenario_id=myScenario.id phase_id=phase.id activity_id=activity.id %}">
+                        {{ activity.name }}
+                      </a>
+                      {% with t=activity.activity_type.name %}
+                      <span class="type-mini
+                        {% if t == 'Question' %}type-q
+                        {% elif t == 'Experiment' %}type-e
+                        {% elif t == 'Guidance' %}type-g
+                        {% elif t == 'Explanation' %}type-ex
+                        {% else %}type-d{% endif %}">{{ t }}</span>
+                      {% endwith %}
+                    </li>
+                    {% endfor %}
+                  </ul>
+                  {% else %}
+                  <p style="font-size:12.5px; color:#9ca3af; margin:0;">
+                    <i class="bi bi-inbox me-1"></i>No activities yet —
+                    {% if can_edit %}
+                    <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=phase.id %}" style="color:#1a56db;">create one</a>
+                    {% else %}none added{% endif %}
+                  </p>
+                  {% endif %}
+                </div>
+              </div>
+              {% endwith %}
+              {% endfor %}
+            {% else %}
+            <div class="empty-phases">
+              <i class="bi bi-layers text-muted"></i>
+              <h5 class="text-muted">No phases yet</h5>
+              <p class="text-muted small mb-3">Add the first phase to start building this scenario.</p>
+              {% if can_edit %}
+              <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Create First Phase
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Activity Flow Chart ── -->
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>Activity Flow Chart</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:11.5px; padding:3px 10px;"
+                data-bs-toggle="collapse" data-bs-target="#mermaidCollapse">
+          <i class="bi bi-chevron-up" id="mermaidChevron"></i>
+        </button>
+      </div>
+      <div class="collapse show" id="mermaidCollapse">
+        <div class="mermaid-wrap">
+          <div class="mermaid">{{ mermaid_graph_definition|safe }}</div>
         </div>
       </div>
-      <div class="row">
-        <!-- Column for the card -->
-        <div class="col-lg-6">
-          <div class="card">
-            <img src="{{ myScenario.image.url }}"
-                 alt="{{ myScenario.name }}"
-                 class="card-img-top"
-                 height="auto"
-                 width="auto">
-            <div class="card-body">
-              <h5 class="card-title">{{ myScenario.name }}</h5>
-              <p class="card-text">
-                <strong>Description:</strong> {{ myScenario.description }}
-              </p>
-              <p class="card-text">
-                <strong>Age of Students:</strong> {{ min_age }} - {{ max_age }} years of age
-              </p>
-              <p class="card-text">
-                <strong>Language:</strong> {{ myScenario.language }}
-              </p>
-              <p class="card-text">
-                <strong>Suggested Learning Time:</strong> {{ myScenario.suggested_learning_time }} minutes
-              </p>
-              <p class="card-text">
-                <strong>Upload PDF Files:</strong>
-              </p>
-              {% if can_edit or request.user.is_superuser %}
-                <form method="post" enctype="multipart/form-data" class="mb-3">
-                  {% csrf_token %}
-                  <div class="input-group">
-                    <input type="file" name="rag_pdf" accept=".pdf" class="form-control" required>
-                    <button type="submit" class="btn btn-success">Upload</button>
-                  </div>
-                </form>
-              {% endif %}
+    </div>
 
-              {% if rag_files %}
-                <h5 class="mt-4"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Uploaded PDFs</h5>
-                <ul class="list-group">
-                  {% for f in rag_files %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <a href="#" data-bs-toggle="modal" data-bs-target="#modal_{{ forloop.counter }}" class="text-primary">
-                        <i class="bi bi-file-earmark-pdf"></i> {{ f }}
-                      </a>
-                      {% if can_edit or request.user.is_superuser %}
-                        <a href="{% url 'delete_rag_pdf' scenario_id=myScenario.id filename=f %}" class="btn btn-sm btn-outline-danger">
-                          <i class="bi bi-trash"></i>
-                        </a>
-                      {% endif %}
-                    </li>
+  </section>
+</main>
 
-                    <!-- Modal for viewing PDF -->
-                    <div class="modal fade" id="modal_{{ forloop.counter }}" tabindex="-1" aria-labelledby="pdfModalLabel_{{ forloop.counter }}" aria-hidden="true">
-                      <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                          <div class="modal-header">
-                            <h5 class="modal-title" id="pdfModalLabel_{{ forloop.counter }}">{{ f }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                          </div>
-                          <div class="modal-body">
-                            <!-- <iframe src="/rag_pdfs/scenario_{{ myScenario.id }}/{{ f }}" width="100%" height="700px" style="border: none;"></iframe> -->
-                            <iframe src="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}" width="100%" height="700px" style="border:none;"></iframe>
-                          </div>
-                          <div class="modal-footer">
-                            
-                            <a href="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}" class="btn btn-success" download>
-                              <i class="bi bi-download"></i> Download
-                            </a>
-                            
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  {% endfor %}
-                </ul>
-              {% endif %}
+<!-- ── Phase Delete Modals ── -->
+{% if can_edit %}
+{% for phase in Phases %}
+<div class="modal fade" id="phaseDelModal{{ phase.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Phase
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete <strong>{{ phase.name }}</strong>?
+        All activities in this phase will also be deleted. This cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% url 'deletePhase' scenario_id=myScenario.id phase_id=phase.id %}"
+           class="btn btn-danger"><i class="bi bi-trash me-1"></i> Yes, Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
 
-              {% if myScenario.video_url %}
-                <p class="card-text">
-                  <strong>Video URL:</strong> {{ myScenario.video_url }}
-                </p>
-              {% endif %}
-              <p class="card-text">
-                <strong>Created on:</strong> {{ myScenario.created_on }}
-              </p>
-              <p class="card-text">
-                <strong>LLM Evaluation:</strong> {{ llm_html }}
-              </p>
-              <p> 
-              <strong>Created by:</strong> {{ myScenario.created_by.get_full_name }}
-              </p>
-              <p> 
-              <strong>Originated by:</strong> {{ myScenario.origin_scenario.name }}
-              </p>
-              <p> 
-              <strong>Original Creator:</strong> {{ myScenario.origin_scenario.created_by.get_full_name }}
-              </p>
-            </div>
-          </div>
-        </div>
-        <!-- Column for the accordion -->
-        <div class="col-lg-6">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Phases</h5>
-              <!-- Default Accordion -->
-              <div class="accordion" id="accordionExample">
-                {% for phase in Phases %}
-                  <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading{{ phase.id }}">
-                      <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
-                              type="button"
-                              data-bs-toggle="collapse"
-                              data-bs-target="#collapse{{ phase.id }}"
-                              aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-                              aria-controls="collapse{{ phase.id }}">{{ phase.name }}</button>
-                    </h2>
-                    <div id="collapse{{ phase.id }}"
-                         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
-                         aria-labelledby="heading{{ phase.id }}"
-                         data-bs-parent="#accordionExample">
-                      <div class="accordion-body">
-                        <p>
-                          <strong>{{ phase.description }}</strong>
-                        </p>
-                        <strong>Activities:</strong>
-                        <ul>
-                          {% for activity in phase.activities.all %}
-                            <li> <a href="{% url 'activity' scenario_id=myScenario.id phase_id=phase.id activity_id=activity.id %}"> {{ activity.name }}</a> - {{ activity.created_on }}</li>
-                          {% empty %}
-                            <li>No activities found for this phase.</li>
-                          {% endfor %}
-                        </ul>
-                        <a type="button"
-                           class="btn btn-outline-primary"
-                           href="{% url 'phase' scenario_id=myScenario.id phase_id=phase.id %}">View</a>
-                        {% if can_edit %}
-                          <a type="button"
-                            class="btn btn-outline-primary"
-                            href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=phase.id %}">Update</a>
-                        <button type="button"
-                                class="btn btn-outline-secondary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#basicModal{{ phase.id }}">Delete</button>
-                        {% endif %}
-                        <!-- Basic Modal -->
-                        <div class="modal fade" id="basicModal{{ phase.id }}" tabindex="-1">
-                          <div class="modal-dialog">
-                            <div class="modal-content">
-                              <div class="modal-header">
-                                <h5 class="modal-title">Confirmation</h5>
-                                <button type="button"
-                                        class="btn-close"
-                                        data-bs-dismiss="modal"
-                                        aria-label="Close"></button>
-                              </div>
-                              <div class="modal-body">Are you sure you wanna delete the {{ phase.name }} phase?</div>
-                              <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <a type="button"
-                                   class="btn btn-primary"
-                                   href="{% url 'deletePhase' scenario_id=myScenario.id phase_id=phase.id %}">Yes</a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <!-- End Basic Modal-->
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-                <!-- End Default Accordion Example -->
-              </div>
-            </div>
-          </div>
-        </div>
-          <div class="col-lg-12">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">Scenario Activity Chart</h5>
-              </div>
-              <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-              <script>mermaid.initialize({ startOnLoad: true });</script>
-              <div class="mermaid">{{ mermaid_graph_definition | safe }}</div>
-            </div>
-          </div>
-        </div>
-    </section>
-  </main>
-  <!-- End #main -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+  // LLM chevron toggle
+  var llmEl = document.getElementById('llmScBody');
+  if (llmEl) {
+    llmEl.addEventListener('hide.bs.collapse', function () { document.getElementById('llmScChevron').className = 'bi bi-chevron-down'; });
+    llmEl.addEventListener('show.bs.collapse', function () { document.getElementById('llmScChevron').className = 'bi bi-chevron-up'; });
+  }
+
+  // Mermaid chevron toggle
+  var mermaidEl = document.getElementById('mermaidCollapse');
+  if (mermaidEl) {
+    mermaidEl.addEventListener('hide.bs.collapse', function () { document.getElementById('mermaidChevron').className = 'bi bi-chevron-down'; });
+    mermaidEl.addEventListener('show.bs.collapse', function () { document.getElementById('mermaidChevron').className = 'bi bi-chevron-up'; });
+  }
+</script>
+
 {% endblock atcontent %}

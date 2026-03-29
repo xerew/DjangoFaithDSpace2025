@@ -1,212 +1,358 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Edit Scenario</title>{% endblock %}
 {% block atcontent %}
+
+<style>
+  /* ── Hero ── */
+  .sc-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .sc-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .sc-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .sc-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .sc-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .sc-hero .breadcrumb-item a:hover { color:#fff; }
+  .sc-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+
+  /* ── Cards ── */
+  .sc-card {
+    border-radius: 12px; border: 1px solid #e8edf5;
+    margin-bottom: 20px; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: visible;
+  }
+  .sc-card-header {
+    padding: 13px 22px 11px; border-bottom: 1px solid #eef1f6;
+    border-radius: 11px 11px 0 0; background: #f8faff;
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 700; font-size: 13.5px; color: #1e3a8a;
+  }
+  .sc-card-header i { font-size: 15px; color: #1a56db; }
+  .sc-card-body { padding: 22px 26px 20px; }
+
+  /* ── Fields ── */
+  .sc-field { margin-bottom: 20px; }
+  .sc-field:last-child { margin-bottom: 0; }
+  .sc-label {
+    display: block; font-size: 12.5px; font-weight: 700;
+    color: #374151; margin-bottom: 6px; letter-spacing: 0.2px;
+  }
+  .sc-label i { color: #1a56db; margin-right: 5px; }
+  .sc-label .sc-required { color: #dc2626; margin-left: 2px; }
+  .sc-input {
+    width: 100%; border: 1.5px solid #d1d9e0; border-radius: 8px;
+    padding: 9px 13px; font-size: 14px; color: #1e293b;
+    transition: border-color 0.15s, box-shadow 0.15s; outline: none; background: #fff;
+  }
+  .sc-input:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+  textarea.sc-input { resize: vertical; min-height: 100px; line-height: 1.6; }
+  select.sc-input { cursor: pointer; }
+  .sc-hint { font-size: 11.5px; color: #9ca3af; margin-top: 4px; }
+  .sc-divider { border: none; border-top: 1px solid #eef1f6; margin: 20px 0; }
+
+  /* ── Inline pair ── */
+  .sc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 576px) { .sc-pair { grid-template-columns: 1fr; } }
+
+  /* ── Image upload ── */
+  .img-upload-area {
+    border: 2px dashed #d1d9e0; border-radius: 10px;
+    padding: 24px; text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s; position: relative;
+  }
+  .img-upload-area:hover { border-color: #1a56db; background: #f8faff; }
+  .img-upload-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .img-upload-icon { font-size: 32px; color: #9ca3af; margin-bottom: 8px; display: block; }
+  .img-upload-text { font-size: 13.5px; color: #6b7280; }
+  .img-upload-text strong { color: #1a56db; }
+  .img-preview-wrap { margin-top: 14px; display: none; }
+  .img-preview-wrap img { max-height: 180px; border-radius: 8px; border: 1px solid #e8edf5; object-fit: cover; }
+
+  /* ── Current image ── */
+  .img-current-wrap { margin-bottom: 14px; }
+  .img-current-wrap img { max-height: 160px; border-radius: 8px; border: 1px solid #e8edf5; object-fit: cover; display: block; margin-bottom: 8px; }
+  .img-current-label { font-size: 12px; color: #6b7280; }
+  .img-current-label i { color: #1a56db; margin-right: 4px; }
+
+  /* ── Org checkboxes ── */
+  .org-check-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .org-check-item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #374151; }
+  .org-check-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: #1a56db; cursor: pointer; }
+
+  /* ── Toggle switch ── */
+  .sc-switch-wrap { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+  .sc-switch-wrap .form-check-input { width: 38px; height: 20px; cursor: pointer; }
+  .sc-switch-label { font-size: 13.5px; color: #374151; }
+
+  /* ── Actions ── */
+  .sc-actions { display: flex; gap: 10px; align-items: center; margin-bottom: 32px; }
+</style>
 
 <main id="main" class="main">
 
-  {% comment %}
-  {% if messages %}
-  <div class="container mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  <!-- Hero -->
+  <div class="sc-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="sc-hero-icon"><i class="bi bi-pencil-square"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
+          Authoring Tool
+        </div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Edit Scenario</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">{{ Scenario.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=Scenario.id %}">{{ Scenario.name }}</a></li>
+          <li class="breadcrumb-item active">Edit</li>
+        </ol></nav>
       </div>
-    {% endfor %}
+    </div>
   </div>
-  {% endif %}
-  {% endcomment %}
-
-  {% comment %} {% if messages %}
-  <div class="container mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %} {% endcomment %}
-
-  <div class="pagetitle">
-    <h1>Scenario Update</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item">Authoring Tool</li>
-        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
-        <li class="breadcrumb-item active">Updating Scenario</li>
-      </ol>
-    </nav>
-  </div><!-- End Page Title -->
 
   <section class="section">
-    <div class="row">
-      <div class="col-lg-8">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
 
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Updating Scenario</h5>
+        <form action="{% url 'updateScenarioData' id=Scenario.id %}" method="post" id="scenarioForm"
+              enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
 
-            <!-- General Form Elements -->
-            <form action="{% url 'updateScenarioData' id=Scenario.id %}" method="post" id="scenarioForm" enctype="multipart/form-data" novalidate>{% csrf_token %}
-              <div class="row mb-3">
-                <label for="inputName" class="col-sm-2 col-form-label">Name</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" name="name" value="{{Scenario.name}}" required>
+          <!-- ── Card 1: Basic Information ── -->
+          <div class="sc-card">
+            <div class="sc-card-header">
+              <i class="bi bi-card-text"></i> Basic Information
+            </div>
+            <div class="sc-card-body">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-fonts"></i>Scenario Name <span class="sc-required">*</span></label>
+                <input type="text" class="sc-input" name="name"
+                       value="{{ Scenario.name }}" placeholder="e.g. Pendulum Physics, Climate Change…" required autofocus>
+              </div>
+
+              <hr class="sc-divider">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-card-text"></i>Description <span class="sc-required">*</span></label>
+                <textarea class="sc-input" name="description"
+                          placeholder="A brief overview of this scenario and what it covers…" required>{{ Scenario.description }}</textarea>
+                <div class="sc-hint">Summarise the scenario topic for teachers and students.</div>
+              </div>
+
+              <hr class="sc-divider">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-bullseye"></i>Learning Goals <span class="sc-required">*</span></label>
+                <textarea class="sc-input" name="learning_goals"
+                          placeholder="What will students learn or be able to do after completing this scenario?" required>{{ Scenario.learning_goals }}</textarea>
+                <div class="sc-hint">List the key competencies and outcomes.</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Card 2: Audience & Curriculum ── -->
+          <div class="sc-card">
+            <div class="sc-card-header">
+              <i class="bi bi-people"></i> Audience &amp; Curriculum
+            </div>
+            <div class="sc-card-body">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-person-badge"></i>Student Age Range <span class="sc-required">*</span></label>
+                <div class="sc-pair">
+                  <div>
+                    <input type="number" class="sc-input" name="min_age" value="{{ min_age }}"
+                           min="0" max="100" placeholder="Min age" required>
+                    <div class="sc-hint">Minimum age</div>
+                  </div>
+                  <div>
+                    <input type="number" class="sc-input" name="max_age" value="{{ max_age }}"
+                           min="0" max="100" placeholder="Max age" required>
+                    <div class="sc-hint">Maximum age</div>
+                  </div>
                 </div>
               </div>
-              <div class="row mb-3">
-                <label for="inputLG" class="col-sm-2 col-form-label">Learning Goals</label>
-                <div class="col-sm-10">
-                  <textarea class="form-control" style="height: 100px" name="learning_goals" required>{{Scenario.learning_goals}}</textarea>
+
+              <hr class="sc-divider">
+
+              <div class="sc-pair">
+                <div class="sc-field">
+                  <label class="sc-label"><i class="bi bi-book"></i>Subject Domain <span class="sc-required">*</span></label>
+                  <input type="text" class="sc-input" name="subject"
+                         value="{{ Scenario.subject_domains }}" placeholder="e.g. Physics, Mathematics…" required>
                 </div>
-              </div>
-              <div class="row mb-3">
-                <label for="inputDesc" class="col-sm-2 col-form-label">Description</label>
-                <div class="col-sm-10">
-                  <textarea class="form-control" style="height: 100px" name="description" required>{{Scenario.description}}</textarea>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="age_of_students_start" class="col-sm-2 col-form-label">Min Age</label>
-                <div class="col-sm-4">
-                    <input type="number" class="form-control" id="age_of_students_start" min="0" max="100" name="min_age" value="{{min_age}}" required>
-                </div>
-                <label for="age_of_students_end" class="col-sm-2 col-form-label">Max Age</label>
-                <div class="col-sm-4">
-                    <input type="number" class="form-control" id="age_of_students_end" min="0" max="100" name="max_age" value="{{max_age}}"required>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="inputSubject" class="col-sm-2 col-form-label">Subject</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" name="subject" value="{{Scenario.subject_domains}}" required>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="inputLanguage" class="col-sm-2 col-form-label">Language</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" name="language" value="{{Scenario.language}}" required>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="inputSuggestedLearningTime" class="col-sm-2 col-form-label">Suggested Learning Time</label>
-                <div class="col-sm-10">
-                  <input type="number" class="form-control" name="suggested_learning_time" value="{{Scenario.suggested_learning_time}}" required>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
-                <div class="col-sm-10">
-                  <input class="form-control" type="file" id="formFile" name="image_upload" onchange="hideCurrentFileInfo()">
-                  <!-- Displaying the current file name -->
-                  {% if Scenario.image %}
-                  <p id="currentFileInfo">Current file: {{ Scenario.image.name }}</p>
-                  {% else %}
-                  <p id="currentFileInfo">No file currently uploaded.</p>
-                  {% endif %}
-                </div>
-                <!-- Checkbox to clear the current image
-                <div class="row mb-3">
-                    <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
-                          <label class="form-check-label" for="flexSwitchCheckDefault">Clear Image?</label>
-                        </div>
-                    </div>
-              </div> -->
-              <div class="row mb-3">
-                <label for="inputVideo" class="col-sm-2 col-form-label">Video URL</label>
-                <div class="col-sm-10">
-                  <input type="text" class="form-control" name="video_url" value="{{Scenario.video_url}}">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label for="visibility" class="col-sm-2 col-form-label">Visibility</label>
-                <div class="col-sm-10">
-                  <select class="form-control" name="visibility" id="visibility" onchange="toggleOrganizations()">
-                    <option value="private" {% if Scenario.visibility_status == 'private' %}selected{% endif %}>Private</option>
-                    <option value="org" {% if Scenario.visibility_status == 'org' %}selected{% endif %}>Organization</option>
-                    {% if not Scenario.is_personal %}
-                    <option value="public" {% if Scenario.visibility_status == 'public' %}selected{% endif %}>Public</option>
-                    {% endif %}
+                <div class="sc-field">
+                  <label class="sc-label"><i class="bi bi-translate"></i>Language <span class="sc-required">*</span></label>
+                  <select class="sc-input" name="language" required>
+                    <option value="">Select language…</option>
+                    {% for lang in languages %}
+                    <option value="{{ lang.name }}" {% if Scenario.language == lang.name %}selected{% endif %}>{{ lang.name }}</option>
+                    {% endfor %}
                   </select>
                 </div>
               </div>
-              <div class="row mb-3" id="org-selection" style="display:none;">
-                <label for="organizations" class="col-sm-2 col-form-label">Select Organizations</label>
-                <div class="col-sm-10">
-                  <!-- List organizations as checkboxes -->
-                  {% for org in user_organizations %}
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" id="orgCheck{{ org.id }}" name="organizations" value="{{ org.id }}" 
-                             {% if org in Scenario.organizations.all %}checked{% endif %}>
-                      <label class="form-check-label" for="orgCheck{{ org.id }}">{{ org.name }}</label>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-              <div class="row mb-3" id="org-edit" style="display:none;">
-                <label for="is_editable_by_org" class="col-sm-2 col-form-label">Editable by Org?</label>
-                <div class="col-sm-10">
-                  <input type="checkbox" class="form-check-input" name="is_editable_by_org" id="is_editable_by_org" 
-                         {% if Scenario.is_editable_by_org %}checked{% endif %}>
-                </div>
-              </div>         
-              
-              <div class="row mb-2">
-                <div class="col-sm-10">
-                  <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                  <button type="submit" class="btn btn-primary" id="submitBtn">Update Scenario</button>
-                </div>
-              </div>
-            </form><!-- End General Form Elements -->
 
+              <hr class="sc-divider">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-clock"></i>Suggested Learning Time <span class="sc-required">*</span></label>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <input type="number" class="sc-input" name="suggested_learning_time"
+                         value="{{ Scenario.suggested_learning_time }}" min="1" style="max-width:160px;" required>
+                  <span style="font-size:13.5px;color:#6b7280;">minutes</span>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
 
+          <!-- ── Card 3: Cover Image ── -->
+          <div class="sc-card">
+            <div class="sc-card-header">
+              <i class="bi bi-image"></i> Cover Image
+            </div>
+            <div class="sc-card-body">
+
+              {% if Scenario.image %}
+              <div class="img-current-wrap" id="currentImgWrap">
+                <img src="{{ Scenario.image.url }}" alt="Current cover">
+                <div class="img-current-label"><i class="bi bi-paperclip"></i>{{ Scenario.image.name }} — <span style="color:#1a56db;cursor:pointer;" onclick="document.getElementById('imgInput').click()">Replace image</span></div>
+              </div>
+              {% endif %}
+
+              <div class="img-upload-area" id="imgDropArea">
+                <input type="file" name="image_upload" id="imgInput" accept="image/*"
+                       onchange="handleImgPreview(this)">
+                <i class="bi bi-cloud-arrow-up img-upload-icon"></i>
+                <div class="img-upload-text">
+                  {% if Scenario.image %}
+                  <strong>Click to replace</strong> or drag &amp; drop<br>
+                  {% else %}
+                  <strong>Click to upload</strong> or drag &amp; drop<br>
+                  {% endif %}
+                  <span style="font-size:12px;color:#9ca3af;">PNG, JPG, GIF, WEBP — recommended 1200×630px</span>
+                </div>
+              </div>
+              <div class="img-preview-wrap" id="imgPreviewWrap">
+                <img id="imgPreview" src="" alt="Preview">
+                <div style="margin-top:6px;font-size:12px;color:#6b7280;" id="imgFileName"></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Card 4: Visibility & Sharing ── -->
+          <div class="sc-card">
+            <div class="sc-card-header">
+              <i class="bi bi-shield-lock"></i> Visibility &amp; Sharing
+            </div>
+            <div class="sc-card-body">
+
+              <div class="sc-field">
+                <label class="sc-label"><i class="bi bi-eye"></i>Visibility <span class="sc-required">*</span></label>
+                <select class="sc-input" name="visibility" id="visibility" onchange="toggleOrganizations()" required>
+                  <option value="private" {% if Scenario.visibility_status == 'private' %}selected{% endif %}>Private — only you</option>
+                  <option value="org" {% if Scenario.visibility_status == 'org' %}selected{% endif %}>Organization — selected orgs</option>
+                  {% if not Scenario.is_personal %}
+                  <option value="public" {% if Scenario.visibility_status == 'public' %}selected{% endif %}>Public — everyone</option>
+                  {% endif %}
+                </select>
+                <div class="sc-hint">Control who can see and use this scenario.</div>
+              </div>
+
+              <div id="org-selection" style="display:none;">
+                <hr class="sc-divider">
+                <div class="sc-field">
+                  <label class="sc-label"><i class="bi bi-building"></i>Select Organizations</label>
+                  <div class="org-check-list">
+                    {% for org in user_organizations %}
+                    <label class="org-check-item">
+                      <input type="checkbox" name="organizations" value="{{ org.id }}"
+                             {% if org in Scenario.organizations.all %}checked{% endif %}>
+                      {{ org.name }}
+                    </label>
+                    {% empty %}
+                    <div class="sc-hint">You are not a member of any organizations.</div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+
+              <div id="org-edit" style="display:none;">
+                <hr class="sc-divider">
+                <div class="sc-field">
+                  <label class="sc-label"><i class="bi bi-pencil"></i>Editable by Org?</label>
+                  <div class="sc-switch-wrap">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           name="is_editable_by_org" id="is_editable_by_org"
+                           {% if Scenario.is_editable_by_org %}checked{% endif %}>
+                    <span class="sc-switch-label">Allow organization members to edit this scenario</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Action Buttons ── -->
+          <div class="sc-actions">
+            <a href="{% url 'viewScenario' id=Scenario.id %}" class="btn btn-outline-secondary px-4">
+              <i class="bi bi-arrow-left me-1"></i> Back
+            </a>
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+              <i class="bi bi-check-circle me-1"></i> Save Changes
+            </button>
+          </div>
+
+        </form>
       </div>
     </div>
   </section>
-
-</main><!-- End #main -->
+</main>
 
 <script>
-  function hideCurrentFileInfo() {
-      // Check if the user has selected a file
-      var fileInput = document.getElementById('formFile');
-      if (fileInput.value) {
-          // Hide the current file info
-          document.getElementById('currentFileInfo').style.display = 'none';
-      }
+  function handleImgPreview(input) {
+    var wrap = document.getElementById('imgPreviewWrap');
+    var preview = document.getElementById('imgPreview');
+    var fileName = document.getElementById('imgFileName');
+    var currentWrap = document.getElementById('currentImgWrap');
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        preview.src = e.target.result;
+        wrap.style.display = 'block';
+        fileName.textContent = input.files[0].name;
+        if (currentWrap) currentWrap.style.display = 'none';
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
   }
 
-  document.getElementById('submitBtn').addEventListener('click', function(event) {
-    var button = this;
-    var form = document.getElementById('scenarioForm');
-
-    if (form.checkValidity() === false) {
-      event.preventDefault();
-      event.stopPropagation();
-	  form.classList.add('was-validated');
-      return;
-    }
-
-    // Use setTimeout to delay the spinner appearance and button disable
-    setTimeout(function() {
-        button.innerHTML = `
-            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-            <span>Creating...</span>
-        `;
-        button.disabled = true;
-    }, 100); // Delay in milliseconds
-
-    // The form will submit normally unless we explicitly stop it
+  // Drag-and-drop highlight
+  var dropArea = document.getElementById('imgDropArea');
+  ['dragenter','dragover'].forEach(function(evt) {
+    dropArea.addEventListener(evt, function(e) {
+      e.preventDefault(); dropArea.style.borderColor = '#1a56db'; dropArea.style.background = '#f0f5ff';
+    });
+  });
+  ['dragleave','drop'].forEach(function(evt) {
+    dropArea.addEventListener(evt, function(e) {
+      e.preventDefault(); dropArea.style.borderColor = ''; dropArea.style.background = '';
+    });
   });
 
   function toggleOrganizations() {
-    const visibility = document.getElementById('visibility').value;
-    const orgSelection = document.getElementById('org-selection');
-    const orgEdit = document.getElementById('org-edit');
+    var visibility = document.getElementById('visibility').value;
+    var orgSelection = document.getElementById('org-selection');
+    var orgEdit = document.getElementById('org-edit');
     if (visibility === 'org') {
       orgSelection.style.display = 'block';
       orgEdit.style.display = 'block';
@@ -216,8 +362,20 @@
     }
   }
 
-  // Run on page load to initialize
   toggleOrganizations();
+
+  document.getElementById('submitBtn').addEventListener('click', function (event) {
+    var btn  = this;
+    var form = document.getElementById('scenarioForm');
+    if (!form.checkValidity()) {
+      event.preventDefault(); event.stopPropagation();
+      form.classList.add('was-validated'); return;
+    }
+    setTimeout(function () {
+      btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2" role="status" aria-hidden="true"></span> Saving…';
+      btn.disabled = true;
+    }, 100);
+  });
 </script>
 
-{% endblock %}
+{% endblock atcontent %}

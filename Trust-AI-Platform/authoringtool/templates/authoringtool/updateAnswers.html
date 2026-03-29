@@ -1,195 +1,299 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Edit Answers</title>{% endblock %}
 {% block atcontent %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    let answerCount = {{ answers|length }};
-    var isEvaluatable = {% if activity.is_evaluatable %}true{% else %}false{% endif %};
-    let eligibleActivities = [
-    {% for activity in eligible_activities %}
-        { id: "{{ activity.id }}", name: "{{ activity.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-    ];
-  
-    function addMoreAnswers() {
-        var answerFieldsList = document.getElementById('answerFieldsList');
-        var newAnswerFields = document.createElement('div');
-        
-        newAnswerFields.classList.add('answerFields', 'mb-3');
-
-        let nextActivityOptions = eligibleActivities.map(activity =>
-        `<option value="${activity.id}">${activity.name}</option>`
-        ).join('');
-
-        let nextActivityDropdownHTML = isEvaluatable ? '' : `
-        <div class="mb-3">
-            <label class="form-label">Next Activity</label>
-            <select class="form-select" name="next_activity_${answerCount}">
-                <option value="">Select Next Activity (Optional)</option>
-                ${nextActivityOptions}
-                <option value="create_new">Create New Activity</option>
-            </select>
-        </div>`;
-
-        newAnswerFields.innerHTML = `
-            <hr class="rounded">
-            <div class="mb-3">
-                <label class="form-label">Answer Text</label>
-                <textarea class="form-control" name="answers[${answerCount}][text]" required></textarea>
-            </div>
-            <div class="mb-3">
-                <input class="form-check-input" type="checkbox" name="answers[${answerCount}][is_correct]">
-                <label class="form-check-label">Is Correct?</label>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Answer Weight</label>
-                <input type="number" class="form-control" name="answers[${answerCount}][answer_weight]" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Image Upload (optional)</label>
-                <input class="form-control" type="file" name="answers[${answerCount}][image]">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Video URL (optional)</label>
-                <input type="text" class="form-control" name="answers[${answerCount}][vid_url]">
-            </div>
-            ${nextActivityDropdownHTML}
-            <button type="button" class="removeAnswer btn btn-danger">Remove</button>
-        `;
-        answerFieldsList.appendChild(newAnswerFields);
-        answerCount++;
-    }
-
-    document.getElementById('addMoreAnswers').addEventListener('click', addMoreAnswers);
-
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('removeAnswer')) {
-            e.target.closest('.answerFields').remove();
-        }
-    });
-});
-
-    function hideCurrentFileInfo() {
-        // Check if the user has selected a file
-        var fileInput = document.getElementById('formFile');
-        if (fileInput.value) {
-            // Hide the current file info
-            document.getElementById('currentFileInfo').style.display = 'none';
-        }
-    }
-
-    document.getElementById('submitBtn').addEventListener('click', function(event) {
-        var button = this;
-    
-        // Use setTimeout to delay the spinner appearance and button disable
-        setTimeout(function() {
-            button.innerHTML = `
-                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-                <span>Loading...</span>
-            `;
-            button.disabled = true;
-        }, 100); // Delay in milliseconds
-    
-        // The form will submit normally unless we explicitly stop it
-      });
-</script>
 <style>
-    hr.rounded {
-        border-top: 8px solid #012970; /* Updated color value */
-        border-radius: 5px;
-    }
-</style>
-<main id="main" class="main">
-    <!-- Page title and breadcrumb -->
-    <div class="pagetitle">
-        <h1>Update Answers</h1>
-        <!-- Breadcrumb navigation -->
-    </div>
+  .answer-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+    border-radius: 14px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .answer-hero-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .answer-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
+  .answer-hero p  { margin: 0; font-size: 12.5px; color: rgba(255,255,255,0.8); }
 
-    <section class="section">
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Update Answers for "{{ activity.name }}"</h5>
-                        <form action="{% url 'updateAnswers' scenario_id=scenario phase_id=phase activity_id=activity.id %}" method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div id="answerFieldsList">
-                                {% for answer in answers %}
-                                <div class="answerFields mb-3">
-                                    <div class="mb-3">
-                                        <label class="form-label">Answer Text</label>
-                                        <textarea class="form-control" name="answers[{{ forloop.counter0 }}][text]" required>{{ answer.text }}</textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <input class="form-check-input" type="checkbox" name="answers[{{ forloop.counter0 }}][is_correct]" {% if answer.is_correct %}checked{% endif %}>
-                                        <label class="form-check-label">Is Correct?</label>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="answerWeight" class="form-label">Answer Weight</label>
-                                        <input type="number" class="form-control" name="answers[{{ forloop.counter0 }}][answer_weight]" value="{{answer.answer_weight}}" required>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <label for="inputImage" class="col-sm-2 col-form-label">Image Upload</label>
-                                        <div class="col-sm-10">
-                                            <input class="form-control" type="file" id="formFile" name="answers[{{ forloop.counter0 }}][image]" onchange="hideCurrentFileInfo()">
-                                            <!-- Displaying the current file name -->
-                                            {% if answer.image %}
-                                            <p id="currentFileInfo" name="currentFileInfo[{{ forloop.counter0 }}]">Current file: {{ answer.image.name }}</p>
-                                            {% else %}
-                                            <p id="currentFileInfo" name="currentFileInfo[{{ forloop.counter0 }}]">No file currently uploaded.</p>
-                                            {% endif %}
-                                        </div>
-                                        <!-- Checkbox to clear the current image -->
-                                        <div class="row mb-3">
-                                            <div class="col-sm-10">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault{{ forloop.counter0 }}" name="clear_image_{{ forloop.counter0 }}">
-                                                    <label class="form-check-label" for="flexSwitchCheckDefault{{ forloop.counter0 }}">Clear Image?</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="vidUrl" class="form-label">Video URL (optional)</label>
-                                        <input type="text" class="form-control" name="answers[{{ forloop.counter0 }}][vid_url]" value="{{answer.vid_url}}">
-                                    </div>
-                                    {% if not activity.is_evaluatable %}
-                                        <div class="mb-3">
-                                            <label for="next_activity_{{ forloop.counter0 }}" class="col-sm-2 col-form-label">Next Activity:</label>
-                                            <select name="next_activity_{{ forloop.counter0 }}" class="form-select">
-                                                <option value="">Select Next Activity</option>
-                                                <!-- <option value="{{ activity.id }}" {% if answer.next_activity and activity.id == answer.next_activity.id %}selected{% endif %}> -->
-                                                {% for activity in eligible_activities %}
-                                                    <option value="{{ activity.id }}" {% if answer.next_activity_id == activity.id %}selected{% endif %}>
-                                                        {{ activity.name }}
-                                                    </option>
-                                                {% endfor %}
-                                                <option value="create_new">Create New Activity</option>
-                                            </select>
-                                        </div>
-                                    {% endif %}
-                                    <input type="hidden" name="answers[{{ forloop.counter0 }}][id]" value="{{ answer.id }}">
-                                    {% if not forloop.first %}
-                                        <button type="button" class="removeAnswer btn btn-danger">Remove</button>
-                                    {% endif %}
-                                    {% if not forloop.last %}
-                                        <hr class="rounded">
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <button type="button" id="addMoreAnswers" class="btn btn-info">Add More Answers</button>
-                            <div class="mt-3">
-                                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                                <button type="submit" class="btn btn-primary" id="submitBtn">Update Answers</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+  .answer-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.18s;
+  }
+  .answer-card:hover { box-shadow: 0 4px 16px rgba(1,41,112,0.07); }
+
+  .answer-card-header {
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    padding: 11px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .answer-card-label {
+    font-size: 13px; font-weight: 700; color: #012970;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .answer-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #4154f1, #1a56db);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .answer-card-body { padding: 18px 20px; }
+
+  .correct-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #f8faff; border: 1px solid #e0e8ff;
+    border-radius: 10px; padding: 10px 16px;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    height: 100%;
+  }
+  .correct-row:hover { background: #eef2ff; border-color: #c5d0f0; }
+  .correct-row input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; accent-color: #4154f1; flex-shrink: 0; }
+  .correct-row-label { font-size: 13.5px; font-weight: 600; color: #012970; cursor: pointer; margin: 0; user-select: none; }
+
+  .btn-remove-answer {
+    background: none; border: 1px solid #fca5a5; color: #dc2626;
+    border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-remove-answer:hover { background: #fff5f5; }
+
+  .next-activity-section {
+    background: #f8faff;
+    border: 1px solid #e0e8ff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .next-activity-section label { font-size: 12.5px; font-weight: 700; color: #4154f1; margin-bottom: 6px; display: block; }
+</style>
+
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Edit Answers</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Home</a></li>
+        <li class="breadcrumb-item">Activity Details</li>
+        <li class="breadcrumb-item active">Edit Answers</li>
+      </ol>
+    </nav>
+  </div>
+
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-9">
+
+        <div class="answer-hero">
+          <div class="answer-hero-icon"><i class="bi bi-pencil-square"></i></div>
+          <div>
+            <h2>Edit Answers</h2>
+            <p>{{ activity.name }} — Exactly one answer must be marked as correct.</p>
+          </div>
         </div>
-    </section>
+
+        <form action="{% url 'updateAnswers' scenario_id=scenario phase_id=phase activity_id=activity.id %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div id="answerFieldsList">
+            {% for answer in answers %}
+            <div class="answerFields">
+              <div class="answer-card">
+                <div class="answer-card-header">
+                  <div class="answer-card-label">
+                    <div class="answer-num">{{ forloop.counter }}</div>
+                    Answer {{ forloop.counter }}
+                  </div>
+                  {% if not forloop.first %}
+                  <button type="button" class="removeAnswer btn-remove-answer">
+                    <i class="bi bi-trash3 me-1"></i>Remove
+                  </button>
+                  {% endif %}
+                </div>
+                <div class="answer-card-body">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="answers[{{ forloop.counter0 }}][text]" rows="3" required>{{ answer.text }}</textarea>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-sm-5">
+                      <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+                      <select class="form-select" name="answers[{{ forloop.counter0 }}][answer_weight]" required>
+                        <option value="1" {% if answer.answer_weight == 1 %}selected{% endif %}>1</option>
+                        <option value="2" {% if answer.answer_weight == 2 %}selected{% endif %}>2</option>
+                        <option value="3" {% if answer.answer_weight == 3 %}selected{% endif %}>3</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-7 d-flex flex-column justify-content-end">
+                      <label class="correct-row">
+                        <input type="checkbox" class="is-correct-check" name="answers[{{ forloop.counter0 }}][is_correct]" {% if answer.is_correct %}checked{% endif %}>
+                        <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+                      </label>
+                    </div>
+                  </div>
+                  {% if not activity.is_evaluatable %}
+                  <div class="next-activity-section">
+                    <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
+                    <select name="next_activity_{{ forloop.counter0 }}" class="form-select form-select-sm">
+                      <option value="">Select Next Activity (Optional)</option>
+                      {% for act in eligible_activities %}
+                        <option value="{{ act.id }}" {% if answer.next_activity_id == act.id %}selected{% endif %}>{{ act.name }}</option>
+                      {% endfor %}
+                      <option value="create_new">Create New Activity</option>
+                    </select>
+                  </div>
+                  {% endif %}
+                  <input type="hidden" name="answers[{{ forloop.counter0 }}][id]" value="{{ answer.id }}">
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4">
+            <button type="button" id="addMoreAnswers" class="btn btn-outline-primary">
+              <i class="bi bi-plus-circle me-1"></i>Add Another Answer
+            </button>
+          </div>
+
+          <div id="correct-answer-error" class="alert alert-danger d-none mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Exactly one answer must be marked as correct.
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
+              <i class="bi bi-arrow-left me-1"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary px-4" id="submitBtn">
+              <i class="bi bi-check2-circle me-1"></i>Update Answers
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </section>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  let answerCount = {{ answers|length }};
+  var isEvaluatable = {% if activity.is_evaluatable %}true{% else %}false{% endif %};
+  let eligibleActivities = [
+    {% for act in eligible_activities %}
+      { id: "{{ act.id }}", name: "{{ act.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function renumber() {
+    document.querySelectorAll('#answerFieldsList .answerFields').forEach(function (el, i) {
+      var label = el.querySelector('.answer-card-label');
+      if (label) label.innerHTML = `<div class="answer-num">${i + 1}</div> Answer ${i + 1}`;
+    });
+  }
+
+  // Radio-like: checking one unchecks all others
+  document.addEventListener('change', function (e) {
+    if (e.target.classList.contains('is-correct-check') && e.target.checked) {
+      document.querySelectorAll('.is-correct-check').forEach(function (cb) {
+        if (cb !== e.target) cb.checked = false;
+      });
+      document.getElementById('correct-answer-error').classList.add('d-none');
+    }
+  });
+
+  document.getElementById('addMoreAnswers').addEventListener('click', function () {
+    var nextActOptions = eligibleActivities.map(a =>
+      `<option value="${a.id}">${a.name}</option>`
+    ).join('');
+
+    var nextActHTML = isEvaluatable ? '' : `
+      <div class="next-activity-section">
+        <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
+        <select class="form-select form-select-sm" name="next_activity_${answerCount}">
+          <option value="">Select Next Activity (Optional)</option>
+          ${nextActOptions}
+          <option value="create_new">Create New Activity</option>
+        </select>
+      </div>`;
+
+    var div = document.createElement('div');
+    div.className = 'answerFields';
+    div.innerHTML = `
+      <div class="answer-card">
+        <div class="answer-card-header">
+          <div class="answer-card-label"></div>
+          <button type="button" class="removeAnswer btn-remove-answer">
+            <i class="bi bi-trash3 me-1"></i>Remove
+          </button>
+        </div>
+        <div class="answer-card-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="answers[${answerCount}][text]" rows="3" placeholder="Enter the answer option…" required></textarea>
+          </div>
+          <div class="row g-3">
+            <div class="col-sm-5">
+              <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+              <select class="form-select" name="answers[${answerCount}][answer_weight]" required>
+                <option value="" disabled selected>Select weight…</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <div class="col-sm-7 d-flex flex-column justify-content-end">
+              <label class="correct-row">
+                <input type="checkbox" class="is-correct-check" name="answers[${answerCount}][is_correct]">
+                <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+              </label>
+            </div>
+          </div>
+          ${nextActHTML}
+        </div>
+      </div>
+    `;
+    document.getElementById('answerFieldsList').appendChild(div);
+    answerCount++;
+    renumber();
+  });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.removeAnswer');
+    if (btn) {
+      btn.closest('.answerFields').remove();
+      renumber();
+    }
+  });
+
+  document.querySelector('form').addEventListener('submit', function (e) {
+    var checked = document.querySelectorAll('.is-correct-check:checked').length;
+    var errorEl = document.getElementById('correct-answer-error');
+    if (checked !== 1) {
+      e.preventDefault();
+      errorEl.classList.remove('d-none');
+      errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    errorEl.classList.add('d-none');
+    var btn = document.getElementById('submitBtn');
+    btn.innerHTML = `<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>Saving…`;
+    btn.disabled = true;
+  });
+});
+</script>
 
 {% endblock %}

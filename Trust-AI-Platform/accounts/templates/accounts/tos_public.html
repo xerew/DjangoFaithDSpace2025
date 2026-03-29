@@ -4,151 +4,199 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>fAith - Terms of Service</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
-  <!-- Favicons -->
+  <title>Trust AI Lab — Terms of Service</title>
   <link href="{% static 'img/logo.png' %}" rel="icon">
   <link href="{% static 'img/apple-touch-icon.png' %}" rel="apple-touch-icon">
-  <!-- Google Fonts -->
   <link href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-  <!-- Vendor CSS Files -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Nunito:300,400,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/boxicons/css/boxicons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/quill/quill.snow.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/quill/quill.bubble.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/remixicon/remixicon.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/simple-datatables/style.css' %}" rel="stylesheet">
-  <!-- Template Main CSS File -->
   <link href="{% static 'css/style.css' %}" rel="stylesheet">
   <style>
-    .tos-content {
-      max-width: 800px;
+    body { background: #f0f4ff; font-family: 'Nunito', sans-serif; }
+
+    .tos-page-wrap {
+      max-width: 860px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 40px 16px 60px;
     }
-    .tos-section {
-      margin-bottom: 30px;
+
+    /* Hero */
+    .tos-hero {
+      background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+      border-radius: 16px;
+      padding: 32px 36px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 24px rgba(26,86,219,0.25);
     }
-    .tos-section h2 {
-      color: #012970;
-      margin-bottom: 15px;
+    .tos-hero img { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; }
+    .tos-hero h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+    .tos-hero p  { margin: 0; font-size: 13px; color: rgba(255,255,255,0.8); }
+
+    /* Card */
+    .tos-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 16px rgba(1,41,112,0.08);
+      padding: 36px 40px;
+      margin-bottom: 20px;
     }
-    .tos-section p, .tos-section ul {
-      color: #444444;
-      line-height: 1.6;
-    }
-    .tos-section ul {
-      padding-left: 20px;
-    }
-    .tos-section li {
-      margin-bottom: 10px;
-    }
-    .tos-section{
+
+    .tos-intro {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.8;
       text-align: justify;
+      padding-bottom: 28px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #e8edf5;
+    }
+
+    /* Sections */
+    .tos-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid #f0f4ff; }
+    .tos-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .tos-section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .tos-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #4154f1, #1a56db);
+      color: #fff; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .tos-section h2 { font-size: 16px; font-weight: 700; color: #012970; margin: 0; }
+    .tos-section p, .tos-section ul { font-size: 13.5px; color: #444; line-height: 1.8; text-align: justify; margin: 0; }
+    .tos-section ul { padding-left: 20px; }
+    .tos-section li { margin-bottom: 7px; }
+
+    /* Contact */
+    .tos-contact {
+      background: #f8faff; border: 1px solid #e0e8ff;
+      border-radius: 10px; padding: 18px 22px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .tos-contact i { font-size: 26px; color: #4154f1; flex-shrink: 0; }
+    .tos-contact p { margin: 0; font-size: 13.5px; color: #444; }
+    .tos-contact a { color: #1a56db; font-weight: 600; }
+
+    /* EU */
+    .tos-eu { display: flex; gap: 16px; align-items: flex-start; }
+    .tos-eu img { width: 44px; flex-shrink: 0; margin-top: 2px; }
+    .tos-eu p { font-size: 13.5px; color: #444; line-height: 1.8; margin: 0 0 8px; text-align: justify; }
+    .tos-eu p:last-child { margin-bottom: 0; }
+
+    /* Footer buttons */
+    .tos-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
     }
   </style>
 </head>
 <body>
-<main>
-  <div class="container">
-    <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-lg-8 col-md-10 d-flex flex-column align-items-center justify-content-center">
-            <div class="d-flex justify-content-center py-4">
-              <a href="{% url 'login' %}" class="logo logo-login d-flex align-items-center w-auto">
-                <img src="{% static 'img/logo.png' %}" alt="" height="auto" width="auto">
-              </a>
-            </div>
 
-            <div class="card mb-3">
-              <div class="card-body">
-                <div class="pt-4 pb-2">
-                  <h5 class="card-title text-center pb-0 fs-4">Terms of Service</h5>
-                </div>
+<div class="tos-page-wrap">
 
-                <div class="tos-content">
-                  <div class="tos-section">
-                    <p>Welcome to our educational platform. These Terms of Service ("Terms") govern your access to and use of the platform, including any content, functionality, and services offered to you as a teacher or student user.</p>
-                  </div>
+  <!-- Hero -->
+  <div class="tos-hero">
+    <img src="{% static 'img/logo.png' %}" alt="Trust AI Lab">
+    <div>
+      <h1>Terms of Service</h1>
+      <p>Please read these terms carefully before creating an account.</p>
+    </div>
+  </div>
 
-                  <div class="tos-section">
-                    <h2>1. Description of the Platform</h2>
-                    <p>This platform allows teachers to create educational scenarios, including learning paths composed of explanations, questions, experiments, and activities. Students access these scenarios, engage with the material, and receive personalized guidance and feedback based on their performance.</p>
-                  </div>
+  <!-- Content card -->
+  <div class="tos-card">
 
-                  <div class="tos-section">
-                    <h2>2. Acceptance of Terms</h2>
-                    <p>By creating an account or using this platform in any way, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use the platform.</p>
-                  </div>
+    <p class="tos-intro">
+      Welcome to our educational platform. These Terms of Service ("Terms") govern your access to and use of the platform, including any content, functionality, and services offered to you as a teacher or student user.
+    </p>
 
-                  <div class="tos-section">
-                    <h2>3. User Responsibilities</h2>
-                    <ul>
-                        <li><strong>Teachers:</strong> You are responsible for the accuracy and appropriateness of the content you create. Do not upload or create materials that are unlawful, harmful, or misleading.</li>
-                        <li><strong>Teachers:</strong> You must inform your students that while their activity and performance on the platform are tracked to provide adaptive feedback and improve learning outcomes, no personal information is stored.</li>
-                    </ul>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">1</div><h2>Description of the Platform</h2></div>
+      <p>This platform allows teachers to create educational scenarios, including learning paths composed of explanations, questions, experiments, and activities. Students access these scenarios, engage with the material, and receive personalized guidance and feedback based on their performance.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>4. Data and Privacy</h2>
-                    <p>We do not collect or store personal data beyond what is necessary for platform functionality. Student responses and performance data are stored solely for educational purposes and are not shared with third parties. Teachers are responsible for ensuring the ethical use of student data within the platform.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">2</div><h2>Acceptance of Terms</h2></div>
+      <p>By creating an account or using this platform in any way, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use the platform.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>5. Intellectual Property</h2>
-                    <p>All content created on the platform, including scenarios and activities, remains the intellectual property of the creator. The platform maintains the right to use anonymized data to improve system performance and personalization algorithms.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">3</div><h2>User Responsibilities</h2></div>
+      <ul>
+        <li><strong>Teachers:</strong> You are responsible for the accuracy and appropriateness of the content you create. Do not upload or create materials that are unlawful, harmful, or misleading.</li>
+        <li><strong>Teachers:</strong> You must inform your students that while their activity and performance on the platform are tracked to provide adaptive feedback and improve learning outcomes, no personal information is stored.</li>
+      </ul>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>6. Platform Availability</h2>
-                    <p>We strive to keep the platform available and bug-free, but we cannot guarantee uninterrupted service. We reserve the right to suspend or modify the service at any time without prior notice.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">4</div><h2>Data and Privacy</h2></div>
+      <p>We do not collect or store personal data beyond what is necessary for platform functionality. Student responses and performance data are stored solely for educational purposes and are not shared with third parties. Teachers are responsible for ensuring the ethical use of student data within the platform.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>7. Termination</h2>
-                    <p>We reserve the right to terminate or suspend access to the platform for any user who violates these Terms or engages in any misuse of the service.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">5</div><h2>Intellectual Property</h2></div>
+      <p>All content created on the platform, including scenarios and activities, remains the intellectual property of the creator. The platform maintains the right to use anonymized data to improve system performance and personalization algorithms.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>8. Modifications to the Terms</h2>
-                    <p>We may update these Terms from time to time. Continued use of the platform after any changes constitutes acceptance of the new Terms.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">6</div><h2>Platform Availability</h2></div>
+      <p>We strive to keep the platform available and bug-free, but we cannot guarantee uninterrupted service. We reserve the right to suspend or modify the service at any time without prior notice.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>9. Communication and Consent</h2>
-                    <p>By registering on the platform, teachers agree that their provided email addresses may be used by the platform administrators to communicate project-related information, including optional participation in surveys, feedback forms, and research questionnaires. These communications aim to support the continuous improvement of the platform and its educational value.</p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">7</div><h2>Termination</h2></div>
+      <p>We reserve the right to terminate or suspend access to the platform for any user who violates these Terms or engages in any misuse of the service.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>10. Contact Us</h2>
-                    <p>If you have any questions about these Terms, please contact us at <a href="mailto:trust.ai.lab.eu@gmail.com">trust.ai.lab.eu@gmail.com.</a></p>
-                  </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">8</div><h2>Modifications to the Terms</h2></div>
+      <p>We may update these Terms from time to time. Continued use of the platform after any changes constitutes acceptance of the new Terms.</p>
+    </div>
 
-                  <div class="tos-section">
-                    <h2>11. EU Funding Acknowledgment</h2>
-                    <p>This platform has been developed as part of the FAITH and DSPACE projects, which received funding from the European Union under grant agreement No. 101135932 and No. 101086701.</p>
-                    <p>The views and opinions expressed on this platform are those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor the EACEA can be held responsible for them.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">9</div><h2>Communication and Consent</h2></div>
+      <p>By registering on the platform, teachers agree that their provided email addresses may be used by the platform administrators to communicate project-related information, including optional participation in surveys, feedback forms, and research questionnaires. These communications aim to support the continuous improvement of the platform and its educational value.</p>
+    </div>
 
-            <div class="col-12 mt-3 text-center">
-              <div class="d-flex justify-content-center gap-3">
-                <a href="{% url 'login' %}" class="btn btn-primary">Back to Login</a>
-                <a href="{% url 'register' %}" class="btn btn-outline-primary">Register</a>
-              </div>
-            </div>
-          </div>
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">10</div><h2>Contact Us</h2></div>
+      <div class="tos-contact">
+        <i class="bi bi-envelope-at-fill"></i>
+        <p>If you have any questions about these Terms, please contact us at <a href="mailto:trust.ai.lab.eu@gmail.com">trust.ai.lab.eu@gmail.com</a>.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <div class="tos-section-header"><div class="tos-num">11</div><h2>EU Funding Acknowledgment</h2></div>
+      <div class="tos-eu">
+        <img src="{% static 'img/eu_flag.png' %}" alt="EU Flag">
+        <div>
+          <p>This platform has been developed as part of the FAITH and DSPACE projects, which received funding from the European Union under grant agreement No. 101135932 and No. 101086701.</p>
+          <p>The views and opinions expressed on this platform are those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor the EACEA can be held responsible for them.</p>
         </div>
       </div>
-    </section>
+    </div>
+
   </div>
-</main>
+
+  <!-- Action buttons -->
+  <div class="tos-actions">
+    <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back to Login
+    </a>
+    <a href="{% url 'register' %}" class="btn btn-primary px-4">
+      <i class="bi bi-person-plus me-1"></i>Register
+    </a>
+  </div>
+
+</div>
 
 <footer id="login-footer" class="login-footer">
   <div class="eu-acknowledgement">
@@ -165,14 +213,6 @@
   </div>
 </footer>
 
-<!-- Vendor JS Files -->
-<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-<script src="{% static 'vendor/chart.js/chart.umd.js' %}"></script>
-<script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
-<script src="{% static 'vendor/quill/quill.min.js' %}"></script>
-<script src="{% static 'vendor/simple-datatables/simple-datatables.js' %}"></script>
-<script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
-<script src="{% static 'js/main.js' %}"></script>
 </body>
-</html> 
+</html>

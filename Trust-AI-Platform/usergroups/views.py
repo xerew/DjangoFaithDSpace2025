@@ -387,10 +387,12 @@ def list_student_groups(request):
     ]
 
 
-    return render(request, 'usergroups/list_with_imp.html', {'group_data': group_data, 'sort_by': sort_by, 'order': new_order, 
-                                                             #'total_scenario_implementations': dict(sorted(total_scenario_implementations.items(), key=lambda item: item[1], reverse=True)),
-                                                             'totals_rows': totals_rows,  # <-- use adjusted rows
-                                                            'grand_total_implementations': grand_total_implementations,})
+    total_scenarios_in_system = Scenario.objects.count()
+
+    return render(request, 'usergroups/list_with_imp.html', {'group_data': group_data, 'sort_by': sort_by, 'order': new_order,
+                                                             'totals_rows': totals_rows,
+                                                             'grand_total_implementations': grand_total_implementations,
+                                                             'total_scenarios_in_system': total_scenarios_in_system,})
 
 @group_required('teachers')
 def export_multilingual_answers_csv(request):

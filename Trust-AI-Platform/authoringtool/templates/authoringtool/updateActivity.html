@@ -1,409 +1,947 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Edit Activity</title>{% endblock %}
 {% block atcontent %}
 
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    handleVisibility();  // Initial call to set the correct display state
-    
-    const activityTypeSelect = document.getElementById('activityTypeSelect');
-    const isEvaluatableCheckbox = document.getElementById('gridCheck1');
-	const experimentTypeSelect = document.getElementById('experimentTypeSelect');
-    
-    // Add event listeners to select elements for simulation and remote labs
-    document.getElementById('simulationSelect').addEventListener('change', function () {
-        updateIframePreview('simulation');
-    });
-    document.getElementById('remoteLabSelect').addEventListener('change', function () {
-        updateIframePreview('remote_lab');
-    });
-    
-    activityTypeSelect.addEventListener('change', handleVisibility);
-    isEvaluatableCheckbox.addEventListener('change', handleVisibility);
-	experimentTypeSelect.addEventListener('change', function() {
-        toggleExperimentSection(this.value);
-    });
-	
-	// Initialize experiment sections based on current type
-    if (experimentTypeSelect.value) {
-        toggleExperimentSection(experimentTypeSelect.value);
-    }
-    
-    // Ensure submit button exists before adding event listener
-    const submitButton = document.getElementById('submitBtn');
-    if (submitButton) {
-        submitButton.addEventListener('click', function(event) {
-            var button = this;
+<style>
+  /* ── Hero ── */
+  .act-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px;
+    padding: 26px 30px 20px;
+    color: #fff;
+    margin-bottom: 26px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .act-hero-icon {
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px;
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .act-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .act-hero .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .act-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .act-hero .breadcrumb-item a:hover { color: #fff; }
+  .act-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
 
-            // Use setTimeout to delay the spinner appearance and button disable
-            setTimeout(function() {
-                button.innerHTML = `
-                    <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-                    <span>Updating...</span>
-                `;
-                button.disabled = true;
-            }, 100); // Delay in milliseconds
-        });
-    }
-	// Add event listener for VR/AR lab selection
-    const vrarSelect = document.getElementById('VRARLabSelect');
-    if (vrarSelect) {
-        vrarSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const qrCodeUrl = selectedOption.getAttribute('data-qrcode-url');
-            const qrCodeSection = document.getElementById('vrarQRCodeDisplay');
-            const qrCodeImage = document.getElementById('vrarQRCodeImage');
-            
-            if (qrCodeUrl) {
-                qrCodeImage.src = qrCodeUrl;
-                qrCodeSection.style.display = 'block';
-            } else {
-                qrCodeSection.style.display = 'none';
-            }
-        });
-    }
-  });
+  /* ── Section cards ── */
+  .act-card {
+    border-radius: 12px;
+    border: 1px solid #e8edf5;
+    margin-bottom: 20px;
+    overflow: visible;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .act-card-header {
+    padding: 13px 22px 11px;
+    border-bottom: 1px solid #eef1f6;
+    border-radius: 11px 11px 0 0;
+    background: #f8faff;
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 700; font-size: 13.5px; color: #1e3a8a;
+  }
+  .act-card-header i { font-size: 15px; color: #1a56db; }
+  .act-card-body { padding: 20px 22px 18px; }
 
-  function toggleMultiSelect() {
-    const checkBox = document.getElementById("gridCheck1");
-    const multiSelectSection = document.getElementById("multiSelectSection");
-    const nextActivityWrapper = document.getElementById('nextActivityWrapper');
+  /* ── Field rows ── */
+  .act-field-row { margin-bottom: 18px; }
+  .act-field-row:last-child { margin-bottom: 0; }
+  .act-field-label {
+    display: block; font-size: 12.5px; font-weight: 600;
+    color: #374151; margin-bottom: 6px;
+  }
+  .act-field-label i { color: #6b7280; margin-right: 4px; }
 
-    if (checkBox.checked) {
-        multiSelectSection.style.display = "block";  // Show the multi-select section
-        nextActivityWrapper.style.display = "none";
-    } else {
-        multiSelectSection.style.display = "none";  // Hide the multi-select section
-        nextActivityWrapper.style.display = "block";
-    }
+  /* ── Toggle wrap ── */
+  .act-toggle-wrap {
+    background: #f8faff; border: 1px solid #e8edf5;
+    border-radius: 10px; padding: 13px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .act-toggle-info { font-size: 12.5px; color: #6b7280; margin-top: 2px; }
+
+  /* ── Eval multi-picker ── */
+  .eval-picker-wrap { position: relative; }
+  .eval-picker-btn {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 10px 13px; background: #fff;
+    border: 2px solid #d1d9e0; border-radius: 8px;
+    font-size: 13.5px; color: #374151; cursor: pointer;
+    transition: border-color 0.15s; text-align: left;
+  }
+  .eval-picker-btn:hover { border-color: #1a56db; }
+  .eval-picker-btn .ep-arrow { margin-left: auto; transition: transform 0.15s; color: #6b7280; }
+  .eval-picker-btn.open .ep-arrow { transform: rotate(180deg); }
+  .eval-picker-btn.has-sel { border-color: #1a56db; background: #f0f5ff; }
+  .eval-picker-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 9999; background: #fff; border: 1px solid #cdd5e0;
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  }
+  .ep-search-wrap {
+    padding: 9px 11px; border-bottom: 1px solid #eef0f4;
+    position: sticky; top: 0; background: #fff; z-index: 1;
+    border-radius: 10px 10px 0 0;
+  }
+  .ep-search {
+    width: 100%; border: 1px solid #d1d9e0; border-radius: 6px;
+    padding: 6px 10px; font-size: 13px; outline: none;
+  }
+  .ep-search:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+  .ep-items { overflow-y: auto; max-height: 290px; padding: 4px 0; }
+  .ep-group-hdr {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+    font-weight: 700; color: #9ca3af; padding: 8px 13px 3px;
+  }
+  .ep-group-hdr.ep-cur { color: #1a56db; font-size: 10.5px; }
+  .ep-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 13px; cursor: pointer; transition: background 0.1s;
+    font-size: 13px; margin: 0;
+  }
+  .ep-item:hover { background: #f0f5ff; }
+  .ep-item input[type="checkbox"] {
+    width: 15px; height: 15px; cursor: pointer;
+    flex-shrink: 0; accent-color: #1a56db;
+  }
+  .ep-item-name { flex: 1; color: #374151; }
+  .ep-item-self { background: #f8faff; cursor: default; }
+  .ep-item-self:hover { background: #f8faff; }
+  .ep-self-tag {
+    font-size: 10.5px; background: #e0eaff; color: #1a56db;
+    border-radius: 4px; padding: 1px 7px; white-space: nowrap;
   }
 
-  // Update the iframe preview based on simulation or remote lab selection
-  function updateIframePreview(type) {
-    const iframe = document.getElementById('simulationPreview');
-    let selectedUrl = '';
-
-    if (type === 'simulation') {
-        const simulationSelect = document.getElementById('simulationSelect');
-        selectedUrl = simulationSelect.options[simulationSelect.selectedIndex].getAttribute('data-iframe-url');
-        document.getElementById('remoteLabSelect').value = ''; // Reset remote lab select
-        document.getElementById('VRARLabSelect').value = ''; // Reset VR/AR lab select
-    } else if (type === 'remote_lab') {
-        const remoteLabSelect = document.getElementById('remoteLabSelect');
-        selectedUrl = remoteLabSelect.options[remoteLabSelect.selectedIndex].getAttribute('data-iframe-url');
-        document.getElementById('simulationSelect').value = ''; // Reset simulation select
-        document.getElementById('VRARLabSelect').value = ''; // Reset VR/AR lab select
-    }
-
-    iframe.src = selectedUrl || '';
+  /* ── Next activity single-picker ── */
+  .next-picker-wrap { position: relative; }
+  .next-picker-btn {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 10px 13px; background: #fff;
+    border: 2px solid #d1d9e0; border-radius: 8px;
+    font-size: 13.5px; color: #9ca3af; cursor: pointer; text-align: left;
+    transition: border-color 0.15s;
   }
-
-  function handleVisibility() {
-    const activityTypeSelect = document.getElementById('activityTypeSelect');
-    const isEvaluatableCheckbox = document.getElementById('gridCheck1');
-
-    const experimentTypeSection = document.getElementById('experimentTypeSection');
-    const nextActivityWrapper = document.getElementById('nextActivityWrapper');
-    const multiSelectSection = document.getElementById("multiSelectSection");
-
-    // Get activity type from selected option (this updates when the user changes the dropdown)
-    const selectedActivityType = activityTypeSelect.options[activityTypeSelect.selectedIndex].text;
-
-    // Debugging: Check values in the console
-    console.log("Selected Activity Type from Dropdown:", selectedActivityType);
-    console.log("Is Evaluatable Checked?", isEvaluatableCheckbox.checked);
-
-    // 1. Check if the activity is "Question" and hide next activity
-    if (selectedActivityType === "Question") {
-        console.log("Hiding Next Activity (Because Type is Question)");
-        nextActivityWrapper.style.display = 'none';
-    } else {
-        console.log("Showing Next Activity");
-        nextActivityWrapper.style.display = 'block';
-    }
-
-    // 2. Show experiment type section if Experiment is selected
-    if (selectedActivityType === "Experiment") {
-        console.log("Showing Experiment Type Section");
-        experimentTypeSection.style.display = 'block';
-    } else {
-        console.log("Hiding Experiment Type Section");
-        experimentTypeSection.style.display = 'none';
-        resetExperimentFields(); // Reset fields if not Experiment
-    }
-
-    // 3. Show multiSelectSection if Evaluatable + Certain Activity Types
-    if (isEvaluatableCheckbox.checked) {
-        console.log("Showing Multi Select Section (Because Evaluatable is checked)");
-        multiSelectSection.style.display = "block";
-        nextActivityWrapper.style.display = "none"; // Hide next activity if evaluatable
-    } else {
-        console.log("Hiding Multi Select Section");
-        multiSelectSection.style.display = "none";
-    }
-
-    toggleExperimentSection(); // Ensure proper display of simulation/remote lab sections
+  .next-picker-btn:hover { border-color: #10b981; }
+  .next-picker-btn.filled { color: #374151; border-color: #10b981; background: #f0fdf4; }
+  .next-picker-btn .np-arrow { margin-left: auto; transition: transform 0.15s; color: #6b7280; }
+  .next-picker-btn.open .np-arrow { transform: rotate(180deg); }
+  .next-picker-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 9999; background: #fff; border: 1px solid #cdd5e0;
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13);
   }
-
-  function toggleExperimentSection(experimentType) {
-    const simulationSection = document.getElementById('simulationSection');
-    const remoteLabSection = document.getElementById('remoteLabSection');
-    const vrarSection = document.getElementById('vrarSection');
-    const iframeSection = document.getElementById('iframeSection');
-    const qrCodeSection = document.getElementById('vrarQRCodeDisplay');
-
-    // Hide all sections initially
-    simulationSection.style.display = 'none';
-    remoteLabSection.style.display = 'none';
-    vrarSection.style.display = 'none';
-    iframeSection.style.display = 'none';
-    qrCodeSection.style.display = 'none';
-
-    // Show the appropriate section based on experiment type
-    if (experimentType === 'simulation') {
-        simulationSection.style.display = 'block';
-        iframeSection.style.display = 'block';
-        updateIframePreview('simulation');
-    } else if (experimentType === 'remote_lab') {
-        remoteLabSection.style.display = 'block';
-        iframeSection.style.display = 'block';
-        updateIframePreview('remote_lab');
-    } else if (experimentType === 'vr_ar_exp') {
-        vrarSection.style.display = 'block';
-        const vrarSelect = document.getElementById('VRARLabSelect');
-        if (vrarSelect) {
-            const selectedOption = vrarSelect.options[vrarSelect.selectedIndex];
-            if (selectedOption) {
-                const qrCodeUrl = selectedOption.getAttribute('data-qrcode-url');
-                if (qrCodeUrl) {
-                    document.getElementById('vrarQRCodeImage').src = qrCodeUrl;
-                    qrCodeSection.style.display = 'block';
-                }
-            }
-        }
-    }
+  .np-search-wrap {
+    padding: 9px 11px; border-bottom: 1px solid #eef0f4;
+    position: sticky; top: 0; background: #fff; z-index: 1;
+    border-radius: 10px 10px 0 0;
   }
-
-  function resetExperimentFields() {
-    document.getElementById('experimentTypeSelect').value = "";
-    document.getElementById('simulationSelect').value = "";
-    document.getElementById('remoteLabSelect').value = "";
-    document.getElementById('VRARLabSelect').value = "";
-    document.getElementById('simulationPreview').src = "";
-    document.getElementById('vrarQRCodeImage').src = "";
+  .np-search {
+    width: 100%; border: 1px solid #d1d9e0; border-radius: 6px;
+    padding: 6px 10px; font-size: 13px; outline: none;
   }
-    
-</script>
+  .np-search:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+  .np-items { overflow-y: auto; max-height: 290px; padding: 4px 0; }
+  .np-group-hdr {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+    font-weight: 700; color: #9ca3af; padding: 8px 13px 3px;
+  }
+  .np-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 13px; cursor: pointer; transition: background 0.1s;
+    font-size: 13px; color: #374151;
+  }
+  .np-item:hover { background: #f0fdf4; }
+  .np-item.selected { background: #ecfdf5; color: #065f46; font-weight: 600; }
+  .np-item.create-new { color: #16a34a; font-weight: 600; border-top: 1px solid #e8edf5; }
+  .np-item.create-new:hover { background: #f0fdf4; }
+  .np-clear {
+    display: none; padding: 8px 13px; border-top: 1px solid #e8edf5;
+    color: #ef4444; font-size: 12px; cursor: pointer; border-radius: 0 0 10px 10px;
+  }
+  .np-clear:hover { background: #fef2f2; }
+
+  /* ── Custom Searchable Pickers (simulation / remote lab / VR-AR) ── */
+  .csp-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 1055; background: #fff;
+    border: 1px solid #dee2e6; border-radius: 8px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.13); overflow: hidden;
+  }
+  .csp-search-wrap { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+  .csp-list { max-height: 240px; overflow-y: auto; }
+  .csp-item {
+    padding: 8px 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13.5px; color: #333; border-bottom: 1px solid #f5f5f5;
+    transition: background 0.1s;
+  }
+  .csp-item:hover { background: #f0f4ff; }
+  .csp-item.csp-selected { background: #eef2ff; font-weight: 600; color: #1a56db; }
+  .csp-item.csp-selected:hover { background: #e0e7ff; }
+  .csp-item.csp-clear { color: #888; font-size: 12.5px; border-bottom: 1px solid #eee; }
+  .csp-item.csp-clear:hover { background: #fff5f5; color: #dc2626; }
+</style>
 
 <main id="main" class="main">
 
-    <div class="pagetitle">
-      <h1>Activity Editing</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">Authoring Tool</li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'scenarios' %}">Scenarios</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
-          </li>
-          <li class="breadcrumb-item active">Editing Activity</li>
-        </ol>
-      </nav>
-    </div><!-- End Page Title -->
-  
-    <section class="section">
-      <div class="row">
-        <div class="col-lg-8">
-  
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Editing Activity</h5>
-  
-              <!-- General Form Elements -->
-              <form action="{% url 'updateActivityData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=Activity.id %}" method="post">{% csrf_token %}
-                <div class="row mb-3">
-                    <label for="inputText" class="col-sm-2 col-form-label">Name</label>
-                    <div class="col-sm-10">
-                      <input type="text" class="form-control" name="activity_name" value="{{ Activity.name }}" required>
-                    </div>
-                  </div>
-                <!-- TinyMCE Editor -->
-                <div style="margin-bottom: 25px">
-                    <textarea class="tinymce-editor" name="activity_text">
-                        {{Activity.text}}
-                    </textarea><!-- End TinyMCE Editor -->
-                </div>
-                <div class="row mb-3">
-                    <legend class="col-form-label col-sm-2 pt-0">Is Evaluatable?</legend>
-                    <div class="col-sm-10">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="gridCheck1" name="is_evaluatable" onchange="toggleMultiSelect()" {% if Activity.is_evaluatable %}checked{% endif %}>
-                        <label class="form-check-label" for="gridCheck1">
-                          Check if activity is evaluating the student
-                        </label>
-                      </div>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <legend class="col-form-label col-sm-2 pt-0">Must Wait?</legend>
-                    <div class="col-sm-10">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="gridCheck2" name="must_wait" {% if activity.must_wait %}checked{% endif %}>
-                        <label class="form-check-label" for="gridCheck2">
-                          Check if the student must wait
-                        </label>
-                      </div>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <label class="col-sm-2 col-form-label">Select Type</label>
-                    <div class="col-sm-10">
-                      <select class="form-select" aria-label="Default select example" name="activity_type" id="activityTypeSelect" onchange="handleActivityTypeChange()">
-                        {% for option in activityTypes %}
-                        <option value="{{ option.id }}" {% if option.id == current_activity_type_id %}selected{% endif %}>{{ option.name }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                </div>
-                <!-- Experiment Type Section (Only show if Activity is of type 'Experiment') -->
-                <div id="experimentTypeSection" style="display: {% if current_activity_type_name == 'Experiment' %}block{% else %}none{% endif %};">
-                  <div class="row mb-3">
-                    <label class="col-sm-2 col-form-label">Experiment Type</label>
-                    <div class="col-sm-10">
-                      <select id="experimentTypeSelect" class="form-select" name="experiment_type" onchange="toggleExperimentSection(this.value)">
-                        <option value="">Select Experiment Type</option>
-                        <option value="simulation" {% if current_experiment_type == 'simulation' %}selected{% endif %}>Simulation</option>
-                        <option value="remote_lab" {% if current_experiment_type == 'remote_lab' %}selected{% endif %}>Remote Lab</option>
-                        <option value="vr_ar_exp" {% if current_experiment_type == 'vr_ar_exp' %}selected{% endif %}>VR/AR Lab</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div class="row mb-3">
-                  <label for="inputText" class="col-sm-2 col-form-label">Helping Quote</label>
-                  <div class="col-sm-10">
-                    <input type="text" class="form-control" name="helping_quote" value="{{ Activity.helper }}">
-                  </div>
-                </div>
-                <div id="nextActivityWrapper" style="display: {% if current_activity_type_name == 'Question' or Activity.is_evaluatable %}none{% else %}block{% endif %};">  <!-- Initially hidden -->
-                    <div class="row mb-3">
-                        <label class="col-sm-2 col-form-label">Next Activity</label>
-                        <div class="col-sm-10">
-                            <select class="form-select" name="next_activity_id" id="nextActivitySelect">
-                                <option value="">Select Next Activity (Optional)</option>
-                                <!-- Include the preselected next activity if it exists -->
-                                {% if nextActivity %}
-                                    <option value="{{ nextActivity.id }}" selected>{{ nextActivity.name }}</option>
-                                {% endif %}
-                                <!-- Loop through eligible activities -->
-                                {% for activity in eligible_activities %}
-                                    <!-- Ensure not to duplicate the preselected next activity in the options -->
-                                    {% if not nextActivity or activity.id != nextActivity.id %}
-                                        <option value="{{ activity.id }}">{{ activity.name }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                                <option value="create_new">Create New Activity</option>
-                            </select>
-                        </div>
-                    </div>         
-                  </div>
-                  <div id="multiSelectSection" style="display: {% if Activity.is_evaluatable %}block{% else %}none{% endif %};">
-                    <div class="row mb-3">
-                      <label class="col-sm-2 col-form-label">Multi Select for Evaluation</label>
-                      <div class="col-sm-10">
-                        <select class="form-select" multiple aria-label="multiple select example" id="nextActivityMultiSelect" name="selected_activities">
-                          <option selected>Select 1 or More</option>
-                          {% for activity in eligible_activities %}
-                            <option value="{{ activity.id }}" {% if activity.id in nextActivityIdsList %}selected{% endif %}>{{ activity.name }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                    </div>
+  <!-- ── Hero ── -->
+  <div class="act-hero">
+    <div class="d-flex align-items-center gap-3">
+      <div class="act-hero-icon"><i class="bi bi-pencil-square"></i></div>
+      <div>
+        <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
+          {{ myScenario.name }} &rsaquo; {{ myPhase.name }}
+        </div>
+        <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">Edit Activity</h2>
+        <div style="font-size:13px; opacity:0.82; margin-top:2px;">{{ Activity.name }}</div>
+      </div>
+    </div>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
+        <li class="breadcrumb-item active">Edit Activity</li>
+      </ol>
+    </nav>
+  </div>
 
-                    <div class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0">Primary Evaluation?</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="gridCheckPrimary" name="is_primary_ev" {% if Activity.is_primary_ev %}checked{% endif %}>
-                          <label class="form-check-label" for="gridCheckPrimary">Check if this is the primary evaluation of the phase</label>
-                        </div>
-                      </div>
-                    </div>
+  <section class="section">
+    <form id="activityForm"
+          action="{% url 'updateActivityData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=Activity.id %}"
+          method="post">
+      {% csrf_token %}
+      <input type="hidden" name="scenario_id" value="{{ myScenario.id }}">
+      <input type="hidden" name="phase_id" value="{{ myPhase.id }}">
 
-                  </div>
-                  <div id="simulationSection" style="display: none;">
-                    <div class="row mb-3">
-                      <label class="col-sm-2 col-form-label">Simulation</label>
-                      <div class="col-sm-10">
-                        <select id="simulationSelect" class="form-select" name="simulation" onchange="updateIframePreview()">
-                            <option value="">Select Simulation</option>
-                            {% for simulation in simulations %}
-                            <option value="{{ simulation.id }}" data-iframe-url="{{ simulation.iframe_url }}" {% if existing_sim is not None %}{% if existing_sim.id == simulation.id %}selected{% endif %}{% endif %}>
-                                {{ simulation.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div id="remoteLabSection" style="display: none;">
-                    <div class="row mb-3">
-                      <label class="col-sm-2 col-form-label">Remote Lab</label>
-                      <div class="col-sm-10">
-                        <select id="remoteLabSelect" class="form-select" name="remote_lab" onchange="updateIframePreview()">
-                          <option value="">Select Remote Lab</option>
-                          {% for lab in remote_labs %}
-                          <option value="{{ lab.id }}" data-iframe-url="{% url 'lti_integration_in' lab.id %}" {% if existingRemote and existingRemote.id == lab.id %}selected{% endif %}>
-                            {{ lab.name }}
-                          </option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-				  <!-- VR/AR Experiment Section -->
-                  <div id="vrarSection" style="display: none;">
-                    <div class="row mb-3">
-                        <label class="col-sm-2 col-form-label">VR/AR Lab</label>
-                        <div class="col-sm-10">
-                            <select id="VRARLabSelect" class="form-select" name="VRAR_lab">
-                                <option value="">Select VR/AR Lab</option>
-                                {% for lab in vr_ar_exp %}
-                                    <option value="{{ lab.id }}" data-qrcode-url="{% if lab.qr_code %}{{ lab.qr_code.url }}{% endif %}" {% if existingVR_AR and existingVR_AR.id == lab.id %}selected{% endif %}>{{ lab.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                  </div>
-                  <div id="iframeSection" style="display: none;">
-                    <iframe id="simulationPreview" width="100%" height="400" src="" frameborder="0" allowfullscreen></iframe>
-                  </div>   
-				<!-- VR/AR QR Code Section -->
-                  <div id="vrarQRCodeDisplay" style="display: none; text-align: center; margin-top: 15px;">
-                    <label class="col-form-label">QR Code:</label><br>
-                    <img id="vrarQRCodeImage" src="" alt="QR Code" width="300" height="300">
-                  </div>  				  
-                <input type="hidden" name="scenario_id" value="{{ myScenario.id }}">
-                <input type="hidden" name="phase_id" value="{{ myPhase.id }}">
-                <div class="row mb-2">
-                  <div class="col-sm-10">
-                    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Save Changes</button>
-                  </div>
-                </div>
-              </form><!-- End General Form Elements -->
-  
-            </div>
+      <!-- ── Card 1: Basic Information ── -->
+      <div class="act-card">
+        <div class="act-card-header">
+          <i class="bi bi-info-circle-fill"></i> Basic Information
+        </div>
+        <div class="act-card-body">
+          <div class="act-field-row">
+            <label class="act-field-label" for="activityNameInput">
+              <i class="bi bi-tag"></i> Activity Name
+            </label>
+            <input type="text" class="form-control" id="activityNameInput"
+                   name="activity_name" value="{{ Activity.name }}" required
+                   placeholder="Enter activity name…">
           </div>
-  
+          <div class="act-field-row">
+            <label class="act-field-label">
+              <i class="bi bi-body-text"></i> Content
+              <span style="font-weight:400; color:#9ca3af; font-size:11px; margin-left:6px;">
+                — supports rich text, images, links, tables
+              </span>
+            </label>
+            <textarea class="tinymce-editor" name="activity_text">{{ Activity.text }}</textarea>
+          </div>
         </div>
       </div>
-    </section>
-  
-  </main><!-- End #main -->
+
+      <!-- ── Card 2: Activity Settings ── -->
+      <div class="act-card">
+        <div class="act-card-header">
+          <i class="bi bi-sliders2"></i> Activity Settings
+        </div>
+        <div class="act-card-body">
+
+          <!-- Evaluatable toggle -->
+          <div class="act-field-row">
+            <label class="act-field-label"><i class="bi bi-patch-check"></i> Evaluation</label>
+            <div class="act-toggle-wrap">
+              <div>
+                <div style="font-size:13.5px; font-weight:600; color:#1e3a8a;">
+                  <i class="bi bi-bar-chart-steps me-1 text-primary"></i> Evaluatable Activity
+                </div>
+                <div class="act-toggle-info">Check if this activity evaluates the student's performance</div>
+              </div>
+              <div class="form-check form-switch" style="margin:0;">
+                <input class="form-check-input" type="checkbox" role="switch" id="gridCheck1"
+                       name="is_evaluatable" style="width:42px; height:22px; cursor:pointer;"
+                       {% if Activity.is_evaluatable %}checked{% endif %}>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Type -->
+          <div class="act-field-row">
+            <label class="act-field-label" for="activityTypeSelect">
+              <i class="bi bi-grid-3x3-gap"></i> Activity Type
+            </label>
+            <select class="form-select" name="activity_type" id="activityTypeSelect">
+              {% for option in activityTypes %}
+              <option value="{{ option.id }}" {% if option.id == current_activity_type_id %}selected{% endif %}>
+                {{ option.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Experiment Type (shown only when type = Experiment) -->
+          <div id="experimentTypeSection" class="act-field-row"
+               style="display:{% if current_activity_type_name == 'Experiment' %}block{% else %}none{% endif %};">
+            <label class="act-field-label" for="experimentTypeSelect">
+              <i class="bi bi-lightning-charge"></i> Experiment Type
+            </label>
+            <select id="experimentTypeSelect" class="form-select" name="experiment_type">
+              <option value="">Select Experiment Type…</option>
+              <option value="simulation" {% if current_experiment_type == 'simulation' %}selected{% endif %}>Simulation</option>
+              <option value="remote_lab" {% if current_experiment_type == 'remote_lab' %}selected{% endif %}>Remote Lab</option>
+              <option value="vr_ar_exp"  {% if current_experiment_type == 'vr_ar_exp'  %}selected{% endif %}>VR/AR Lab</option>
+            </select>
+          </div>
+
+          <!-- Helping Quote -->
+          <div class="act-field-row">
+            <label class="act-field-label" for="helpingQuote">
+              <i class="bi bi-chat-quote"></i> Helping Quote
+            </label>
+            <input type="text" class="form-control" id="helpingQuote"
+                   name="helping_quote" value="{{ Activity.helper }}"
+                   placeholder="Optional hint shown to the student…">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Experiment sub-sections ── -->
+      <div id="simulationSection" class="act-card"
+           style="display:{% if current_experiment_type == 'simulation' %}block{% else %}none{% endif %}; border-left:4px solid #7c3aed;">
+        <div class="act-card-header" style="background:#f5f3ff; border-bottom-color:#ede9fe;">
+          <i class="bi bi-cpu-fill" style="color:#7c3aed;"></i> Simulation
+        </div>
+        <div class="act-card-body">
+          <div class="act-field-row">
+            <label class="act-field-label"><i class="bi bi-display"></i> Select Simulation</label>
+            <div class="csp-wrapper" style="position:relative;">
+              <button type="button" id="simPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
+                <span id="simPickerLabel" class="{% if not existing_sim %}text-muted{% endif %}">{% if existing_sim %}{{ existing_sim.name }}{% else %}Select Simulation…{% endif %}</span>
+                <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
+              </button>
+              <div id="simPickerDropdown" class="csp-dropdown" style="display:none;">
+                <div class="csp-search-wrap">
+                  <input type="text" id="simSearchInput" class="form-control form-control-sm" placeholder="Search simulations…" autocomplete="off">
+                </div>
+                <div id="simPickerList" class="csp-list">
+                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  {% for sim in simulations %}
+                  <div class="csp-item{% if existing_sim and existing_sim.id == sim.id %} csp-selected{% endif %}" data-value="{{ sim.id }}" data-url="{{ sim.iframe_url }}">
+                    <span class="csp-item-name">{{ sim.name }}</span>
+                    {% if existing_sim and existing_sim.id == sim.id %}<i class="bi bi-check2 text-primary"></i>{% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <select id="simulationSelect" name="simulation" style="display:none;">
+                <option value=""></option>
+                {% for sim in simulations %}
+                <option value="{{ sim.id }}" data-iframe-url="{{ sim.iframe_url }}"
+                        {% if existing_sim and existing_sim.id == sim.id %}selected{% endif %}>{{ sim.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="remoteLabSection" class="act-card"
+           style="display:{% if current_experiment_type == 'remote_lab' %}block{% else %}none{% endif %}; border-left:4px solid #0891b2;">
+        <div class="act-card-header" style="background:#ecfeff; border-bottom-color:#cffafe;">
+          <i class="bi bi-broadcast-pin" style="color:#0891b2;"></i> Remote Lab
+        </div>
+        <div class="act-card-body">
+          <div class="act-field-row">
+            <label class="act-field-label"><i class="bi bi-wifi"></i> Select Remote Lab</label>
+            <div class="csp-wrapper" style="position:relative;">
+              <button type="button" id="labPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
+                <span id="labPickerLabel" class="{% if not existingRemote %}text-muted{% endif %}">{% if existingRemote %}{{ existingRemote.name }}{% else %}Select Remote Lab…{% endif %}</span>
+                <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
+              </button>
+              <div id="labPickerDropdown" class="csp-dropdown" style="display:none;">
+                <div class="csp-search-wrap">
+                  <input type="text" id="labSearchInput" class="form-control form-control-sm" placeholder="Search remote labs…" autocomplete="off">
+                </div>
+                <div id="labPickerList" class="csp-list">
+                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  {% for lab in remote_labs %}
+                  <div class="csp-item{% if existingRemote and existingRemote.id == lab.id %} csp-selected{% endif %}" data-value="{{ lab.id }}" data-url="{% url 'lti_integration_in' lab.id %}">
+                    <span class="csp-item-name">{{ lab.name }}</span>
+                    {% if existingRemote and existingRemote.id == lab.id %}<i class="bi bi-check2 text-primary"></i>{% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <select id="remoteLabSelect" name="remote_lab" style="display:none;">
+                <option value=""></option>
+                {% for lab in remote_labs %}
+                <option value="{{ lab.id }}" data-iframe-url="{% url 'lti_integration_in' lab.id %}"
+                        {% if existingRemote and existingRemote.id == lab.id %}selected{% endif %}>{{ lab.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared iframe preview for Simulation and Remote Lab -->
+      <div id="iframeSection" class="act-card"
+           style="display:{% if current_experiment_type == 'simulation' or current_experiment_type == 'remote_lab' %}block{% else %}none{% endif %}; border-left:4px solid #7c3aed; overflow:hidden;">
+        <div class="act-card-header" style="background:#f5f3ff; border-bottom-color:#ede9fe;">
+          <i class="bi bi-window" style="color:#7c3aed;"></i> Preview
+        </div>
+        <div class="act-card-body" style="padding:0;">
+          <iframe id="simulationPreview" width="100%" height="450" src=""
+                  frameborder="0" allowfullscreen style="display:block;"></iframe>
+        </div>
+      </div>
+
+      <div id="vrarSection" class="act-card"
+           style="display:{% if current_experiment_type == 'vr_ar_exp' %}block{% else %}none{% endif %}; border-left:4px solid #dc2626;">
+        <div class="act-card-header" style="background:#fef2f2; border-bottom-color:#fee2e2;">
+          <i class="bi bi-vr" style="color:#dc2626;"></i> VR/AR Lab
+        </div>
+        <div class="act-card-body">
+          <div class="act-field-row">
+            <label class="act-field-label"><i class="bi bi-headset"></i> Select VR/AR Lab</label>
+            <div class="csp-wrapper" style="position:relative;">
+              <button type="button" id="vrarPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
+                <span id="vrarPickerLabel" class="{% if not existingVR_AR %}text-muted{% endif %}">{% if existingVR_AR %}{{ existingVR_AR.name }}{% else %}Select VR/AR Lab…{% endif %}</span>
+                <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
+              </button>
+              <div id="vrarPickerDropdown" class="csp-dropdown" style="display:none;">
+                <div class="csp-search-wrap">
+                  <input type="text" id="vrarSearchInput" class="form-control form-control-sm" placeholder="Search VR/AR labs…" autocomplete="off">
+                </div>
+                <div id="vrarPickerList" class="csp-list">
+                  <div class="csp-item csp-clear" data-value="" data-qr=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  {% for lab in vr_ar_exp %}
+                  <div class="csp-item{% if existingVR_AR and existingVR_AR.id == lab.id %} csp-selected{% endif %}" data-value="{{ lab.id }}" data-qr="{% if lab.qr_code %}{{ lab.qr_code.url }}{% endif %}">
+                    <span class="csp-item-name">{{ lab.name }}</span>
+                    {% if existingVR_AR and existingVR_AR.id == lab.id %}<i class="bi bi-check2 text-primary"></i>{% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <select id="VRARLabSelect" name="VRAR_lab" style="display:none;">
+                <option value=""></option>
+                {% for lab in vr_ar_exp %}
+                <option value="{{ lab.id }}"
+                        data-qrcode-url="{% if lab.qr_code %}{{ lab.qr_code.url }}{% endif %}"
+                        {% if existingVR_AR and existingVR_AR.id == lab.id %}selected{% endif %}>{{ lab.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div id="vrarQRCodeDisplay" style="display:none; text-align:center; margin-top:16px;">
+            <img id="vrarQRCodeImage" src="" alt="QR Code"
+                 style="max-width:260px; border-radius:10px; box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card 3: Evaluation Activities (shown when evaluatable) ── -->
+      <div id="evalCard" class="act-card"
+           style="display:{% if Activity.is_evaluatable %}block{% else %}none{% endif %}; border-left:4px solid #1a56db;">
+        <div class="act-card-header" style="background:#f0f5ff; border-bottom-color:#dce8ff;">
+          <i class="bi bi-journals" style="color:#1a56db;"></i> Activities Being Evaluated
+        </div>
+        <div class="act-card-body">
+          <p style="font-size:12.5px; color:#6b7280; margin-bottom:14px;">
+            Select all activities whose answers are scored together in this evaluation.
+            <strong>This activity</strong> is always included automatically by the system.
+          </p>
+
+          <div class="act-field-row">
+            <label class="act-field-label">
+              <i class="bi bi-check2-square"></i> Activities to Evaluate
+            </label>
+            <div class="eval-picker-wrap">
+              <!-- Trigger button -->
+              <button type="button" class="eval-picker-btn" id="evalPickerBtn">
+                <i class="bi bi-journals" style="color:#1a56db; flex-shrink:0;"></i>
+                <span id="evalPickerLabel">Select activities…</span>
+                <span id="evalPickerBadge" class="badge"
+                      style="background:#1a56db; font-size:11px; display:none; margin-left:4px;">0</span>
+                <i class="bi bi-chevron-down ep-arrow"></i>
+              </button>
+
+              <!-- Dropdown -->
+              <div class="eval-picker-dropdown" id="evalDropdown">
+                <div class="ep-search-wrap">
+                  <input type="text" class="ep-search" id="evalSearchInput" placeholder="Search activities…">
+                </div>
+                <div class="ep-items" id="evalItemsContainer">
+
+                  <!-- Current phase header -->
+                  <div class="ep-group-hdr ep-cur">
+                    <i class="bi bi-geo-alt-fill me-1"></i>{{ myPhase.name }} — Current Phase
+                  </div>
+                  <!-- This activity (always included) -->
+                  <label class="ep-item ep-item-self">
+                    <input type="checkbox" checked disabled style="accent-color:#1a56db;">
+                    <span class="ep-item-name">{{ Activity.name }}</span>
+                    <span class="ep-self-tag">always included</span>
+                  </label>
+                  <!-- Other activities in current phase -->
+                  {% for act in eval_activities %}{% if act.phase.id == myPhase.id %}
+                  <label class="ep-item">
+                    <input type="checkbox" class="ep-check" value="{{ act.id }}"
+                           {% if act.id in nextActivityIdsList %}checked{% endif %}>
+                    <span class="ep-item-name">{{ act.name }}</span>
+                  </label>
+                  {% endif %}{% endfor %}
+
+                  <!-- Later phases via regroup -->
+                  {% regroup eval_activities by phase as eval_phase_groups %}
+                  {% for pg in eval_phase_groups %}{% if pg.grouper.id != myPhase.id %}
+                  <div class="ep-group-hdr">{{ pg.grouper.name }}</div>
+                  {% for act in pg.list %}
+                  <label class="ep-item">
+                    <input type="checkbox" class="ep-check" value="{{ act.id }}"
+                           {% if act.id in nextActivityIdsList %}checked{% endif %}>
+                    <span class="ep-item-name">{{ act.name }}</span>
+                  </label>
+                  {% endfor %}
+                  {% endif %}{% endfor %}
+
+                </div>
+              </div>
+
+              <!-- Hidden select synced by JS -->
+              <select name="selected_activities" multiple id="evalHiddenSelect"
+                      style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;overflow:hidden;" tabindex="-1">
+                {% for act in eval_activities %}
+                <option value="{{ act.id }}" {% if act.id in nextActivityIdsList %}selected{% endif %}>{{ act.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Primary Evaluation toggle -->
+          <div class="act-field-row" style="margin-top:18px;">
+            <div class="act-toggle-wrap" style="border-left:3px solid #f59e0b;">
+              <div>
+                <div style="font-size:13.5px; font-weight:600; color:#92400e;">
+                  <i class="bi bi-star-fill me-1 text-warning"></i> Primary Evaluation
+                </div>
+                <div class="act-toggle-info">Mark this as the main evaluation activity for this phase</div>
+              </div>
+              <div class="form-check form-switch" style="margin:0;">
+                <input class="form-check-input" type="checkbox" role="switch" id="gridCheckPrimary"
+                       name="is_primary_ev" style="width:42px; height:22px; cursor:pointer;"
+                       {% if Activity.is_primary_ev %}checked{% endif %}>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card 4: Next Activity (hidden when evaluatable or Question type) ── -->
+      <div id="nextActivityCard" class="act-card"
+           style="display:{% if current_activity_type_name == 'Question' or Activity.is_evaluatable %}none{% else %}block{% endif %}; border-left:4px solid #10b981;">
+        <div class="act-card-header" style="background:#f0fdf4; border-bottom-color:#d1fae5;">
+          <i class="bi bi-arrow-right-circle-fill" style="color:#10b981;"></i> Next Activity
+        </div>
+        <div class="act-card-body">
+          <p style="font-size:12.5px; color:#6b7280; margin-bottom:14px;">
+            Choose the activity that follows this one in the scenario flow, or create a new placeholder.
+          </p>
+          <div class="act-field-row">
+            <label class="act-field-label">
+              <i class="bi bi-link-45deg"></i> Following Activity
+            </label>
+            <div class="next-picker-wrap">
+              <button type="button"
+                      class="next-picker-btn {% if nextActivity %}filled{% endif %}"
+                      id="nextPickerBtn">
+                <i class="bi bi-box-arrow-right" style="color:#10b981; flex-shrink:0;"></i>
+                <span id="nextPickerLabel">
+                  {% if nextActivity %}{{ nextActivity.name }}{% else %}Select Next Activity (Optional)…{% endif %}
+                </span>
+                <i class="bi bi-chevron-down np-arrow"></i>
+              </button>
+
+              <div class="next-picker-dropdown" id="nextDropdown">
+                <div class="np-search-wrap">
+                  <input type="text" class="np-search" id="nextSearchInput" placeholder="Search activities…">
+                </div>
+                <div class="np-items" id="nextItemsContainer">
+                  {% regroup eligible_activities by phase as next_phase_groups %}
+                  {% for pg in next_phase_groups %}
+                  <div class="np-group-hdr">
+                    {% if pg.grouper.id == myPhase.id %}<i class="bi bi-geo-alt-fill me-1" style="color:#1a56db;font-size:9px;"></i>{% endif %}
+                    {{ pg.grouper.name }}{% if pg.grouper.id == myPhase.id %} (Current){% endif %}
+                  </div>
+                  {% for act in pg.list %}
+                  <div class="np-item {% if nextActivity and act.id == nextActivity.id %}selected{% endif %}"
+                       data-val="{{ act.id }}" data-name="{{ act.name }}">
+                    <i class="bi bi-activity" style="color:#9ca3af; font-size:11px;"></i>
+                    <span>{{ act.name }}</span>
+                    {% if nextActivity and act.id == nextActivity.id %}
+                    <i class="bi bi-check-circle-fill ms-auto" style="color:#10b981;"></i>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                  {% endfor %}
+                  <div class="np-item create-new" data-val="create_new" data-name="+ Create New Activity">
+                    <i class="bi bi-plus-circle-fill"></i> Create New Activity
+                  </div>
+                </div>
+                <div class="np-clear" id="nextPickerClear">
+                  <i class="bi bi-x-circle me-1"></i> Clear — no next activity
+                </div>
+              </div>
+
+              <!-- Hidden input for form submission -->
+              <input type="hidden" name="next_activity_id" id="nextHiddenInput"
+                     value="{{ nextActivity.id|default:'' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Action Buttons ── -->
+      <div class="d-flex gap-2 mt-2 mb-4">
+        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
+          <i class="bi bi-x-lg me-1"></i> Cancel
+        </button>
+        <button type="submit" class="btn btn-primary px-4" id="submitBtn">
+          <i class="bi bi-check-lg me-1"></i> Save Changes
+        </button>
+      </div>
+
+    </form>
+  </section>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Visibility Logic ────────────────────────────────────────────
+  function handleVisibility() {
+    var typeSelect = document.getElementById('activityTypeSelect');
+    var evalCheck = document.getElementById('gridCheck1');
+    var evalCard = document.getElementById('evalCard');
+    var nextCard = document.getElementById('nextActivityCard');
+    var expSection = document.getElementById('experimentTypeSection');
+    var typeName = typeSelect.options[typeSelect.selectedIndex].text;
+    var isEval = evalCheck.checked;
+    var isQuestion = typeName === 'Question';
+    var isExperiment = typeName === 'Experiment';
+
+    evalCard.style.display = isEval ? 'block' : 'none';
+    nextCard.style.display = (!isEval && !isQuestion) ? 'block' : 'none';
+    expSection.style.display = isExperiment ? 'block' : 'none';
+    if (!isExperiment) resetExperimentFields();
+  }
+  document.getElementById('gridCheck1').addEventListener('change', handleVisibility);
+  document.getElementById('activityTypeSelect').addEventListener('change', handleVisibility);
+  handleVisibility();
+
+  // ── Experiment Type ─────────────────────────────────────────────
+  document.getElementById('experimentTypeSelect').addEventListener('change', function () {
+    toggleExperimentSection(this.value);
+  });
+  var initExpType = document.getElementById('experimentTypeSelect').value;
+  if (initExpType) toggleExperimentSection(initExpType);
+
+  document.getElementById('simulationSelect').addEventListener('change', function () {
+    var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-iframe-url') || '') : '';
+    document.getElementById('simulationPreview').src = url;
+    document.getElementById('iframeSection').style.display = url ? 'block' : 'none';
+  });
+  document.getElementById('remoteLabSelect').addEventListener('change', function () {
+    var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-iframe-url') || '') : '';
+    document.getElementById('simulationPreview').src = url;
+    document.getElementById('iframeSection').style.display = url ? 'block' : 'none';
+  });
+  document.getElementById('VRARLabSelect').addEventListener('change', function () {
+    var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-qrcode-url') || '') : '';
+    var disp = document.getElementById('vrarQRCodeDisplay');
+    if (url.trim()) {
+      document.getElementById('vrarQRCodeImage').src = url;
+      disp.style.display = 'block';
+    } else {
+      disp.style.display = 'none';
+    }
+  });
+
+  // ── Searchable Pickers ──────────────────────────────────────────
+  initSearchablePicker('simPickerBtn',  'simPickerDropdown',  'simSearchInput',  'simPickerList',  'simulationSelect', 'Select Simulation…');
+  initSearchablePicker('labPickerBtn',  'labPickerDropdown',  'labSearchInput',  'labPickerList',  'remoteLabSelect',  'Select Remote Lab…');
+  initSearchablePicker('vrarPickerBtn', 'vrarPickerDropdown', 'vrarSearchInput', 'vrarPickerList', 'VRARLabSelect',    'Select VR/AR Lab…');
+
+  // ── Submit Spinner ──────────────────────────────────────────────
+  document.getElementById('submitBtn').addEventListener('click', function () {
+    if (typeof tinymce !== 'undefined') tinymce.triggerSave();
+    var btn = this;
+    setTimeout(function () {
+      btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2" role="status"></span> Updating…';
+      btn.disabled = true;
+    }, 100);
+  });
+
+  // ── Eval Multi-Picker ───────────────────────────────────────────
+  (function () {
+    var btn      = document.getElementById('evalPickerBtn');
+    var dropdown = document.getElementById('evalDropdown');
+    var search   = document.getElementById('evalSearchInput');
+    var hSel     = document.getElementById('evalHiddenSelect');
+    var badge    = document.getElementById('evalPickerBadge');
+    var lbl      = document.getElementById('evalPickerLabel');
+    if (!btn) return;
+
+    function openEval() {
+      dropdown.style.display = 'block';
+      btn.classList.add('open');
+      search.focus();
+    }
+    function closeEval() {
+      dropdown.style.display = 'none';
+      btn.classList.remove('open');
+      search.value = '';
+      filterEval('');
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.style.display !== 'none' ? closeEval() : openEval();
+    });
+    document.addEventListener('click', closeEval);
+    dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    function filterEval(q) {
+      var ql = q.toLowerCase();
+      document.querySelectorAll('#evalItemsContainer .ep-item:not(.ep-item-self)').forEach(function (item) {
+        var n = item.querySelector('.ep-item-name');
+        item.style.display = (n && n.textContent.toLowerCase().includes(ql)) ? '' : 'none';
+      });
+      document.querySelectorAll('#evalItemsContainer .ep-group-hdr').forEach(function (hdr) {
+        var sib = hdr.nextElementSibling, vis = false;
+        while (sib && !sib.classList.contains('ep-group-hdr')) {
+          if (!sib.classList.contains('ep-item-self') && sib.style.display !== 'none') vis = true;
+          sib = sib.nextElementSibling;
+        }
+        hdr.style.display = vis ? '' : 'none';
+      });
+    }
+    search.addEventListener('input', function () { filterEval(this.value); });
+
+    function syncEval() {
+      var checks = document.querySelectorAll('#evalItemsContainer .ep-check');
+      var count = 0;
+      checks.forEach(function (cb) {
+        var opt = hSel ? hSel.querySelector('option[value="' + cb.value + '"]') : null;
+        if (cb.checked) { count++; if (opt) opt.selected = true; }
+        else { if (opt) opt.selected = false; }
+      });
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'inline-block' : 'none';
+      lbl.textContent = count === 0 ? 'Select activities…'
+                      : count === 1 ? '1 activity selected'
+                      : count + ' activities selected';
+      btn.classList.toggle('has-sel', count > 0);
+    }
+    document.querySelectorAll('#evalItemsContainer .ep-check').forEach(function (cb) {
+      cb.addEventListener('change', syncEval);
+    });
+    syncEval();
+  }());
+
+  // ── Next Activity Single-Picker ─────────────────────────────────
+  (function () {
+    var btn      = document.getElementById('nextPickerBtn');
+    var dropdown = document.getElementById('nextDropdown');
+    var search   = document.getElementById('nextSearchInput');
+    var hInput   = document.getElementById('nextHiddenInput');
+    var lbl      = document.getElementById('nextPickerLabel');
+    var clearBtn = document.getElementById('nextPickerClear');
+    if (!btn) return;
+
+    function openNext() {
+      dropdown.style.display = 'block';
+      btn.classList.add('open');
+      search.focus();
+    }
+    function closeNext() {
+      dropdown.style.display = 'none';
+      btn.classList.remove('open');
+      search.value = '';
+      filterNext('');
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.style.display !== 'none' ? closeNext() : openNext();
+    });
+    document.addEventListener('click', closeNext);
+    dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    function filterNext(q) {
+      var ql = q.toLowerCase();
+      document.querySelectorAll('#nextItemsContainer .np-item:not(.create-new)').forEach(function (item) {
+        item.style.display = item.textContent.trim().toLowerCase().includes(ql) ? '' : 'none';
+      });
+      document.querySelectorAll('#nextItemsContainer .np-group-hdr').forEach(function (hdr) {
+        var sib = hdr.nextElementSibling, vis = false;
+        while (sib && !sib.classList.contains('np-group-hdr') && !sib.classList.contains('create-new')) {
+          if (sib.style.display !== 'none') vis = true;
+          sib = sib.nextElementSibling;
+        }
+        hdr.style.display = vis ? '' : 'none';
+      });
+    }
+    search.addEventListener('input', function () { filterNext(this.value); });
+
+    document.querySelectorAll('#nextItemsContainer .np-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        hInput.value = this.dataset.val;
+        lbl.textContent = this.dataset.name;
+        btn.classList.add('filled');
+        clearBtn.style.display = 'block';
+        document.querySelectorAll('#nextItemsContainer .np-item').forEach(function (i) { i.classList.remove('selected'); });
+        this.classList.add('selected');
+        closeNext();
+      });
+    });
+
+    clearBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      hInput.value = '';
+      lbl.textContent = 'Select Next Activity (Optional)…';
+      btn.classList.remove('filled');
+      clearBtn.style.display = 'none';
+      document.querySelectorAll('#nextItemsContainer .np-item').forEach(function (i) { i.classList.remove('selected'); });
+      closeNext();
+    });
+
+    // Show clear button if preselected
+    if (btn.classList.contains('filled')) clearBtn.style.display = 'block';
+  }());
+
+  // Initial iframe state for simulation/remote_lab on page load
+  (function () {
+    var simSel = document.getElementById('simulationSelect');
+    var labSel = document.getElementById('remoteLabSelect');
+    var url = '';
+    if (simSel && simSel.value) {
+      url = simSel.options[simSel.selectedIndex].getAttribute('data-iframe-url') || '';
+    } else if (labSel && labSel.value) {
+      url = labSel.options[labSel.selectedIndex].getAttribute('data-iframe-url') || '';
+    }
+    if (url) {
+      document.getElementById('simulationPreview').src = url;
+      document.getElementById('iframeSection').style.display = 'block';
+    }
+  }());
+
+  // Initial VR/AR QR code on load
+  var initVR = document.getElementById('VRARLabSelect');
+  if (initVR && initVR.value) {
+    var qrUrl = initVR.options[initVR.selectedIndex].getAttribute('data-qrcode-url') || '';
+    if (qrUrl.trim()) {
+      document.getElementById('vrarQRCodeImage').src = qrUrl;
+      document.getElementById('vrarQRCodeDisplay').style.display = 'block';
+    }
+  }
+
+});
+
+function toggleExperimentSection(type) {
+  document.getElementById('simulationSection').style.display = type === 'simulation' ? 'block' : 'none';
+  document.getElementById('remoteLabSection').style.display  = type === 'remote_lab'  ? 'block' : 'none';
+  document.getElementById('vrarSection').style.display       = type === 'vr_ar_exp'   ? 'block' : 'none';
+  // Always close the preview on type change; it reopens when user selects a specific sim/lab
+  document.getElementById('iframeSection').style.display = 'none';
+  document.getElementById('simulationPreview').src = '';
+  if (type !== 'simulation') { document.getElementById('simulationSelect').value = ''; resetPickerLabel('simPickerBtn',  'Select Simulation…'); }
+  if (type !== 'remote_lab') { document.getElementById('remoteLabSelect').value  = ''; resetPickerLabel('labPickerBtn',  'Select Remote Lab…'); }
+  if (type !== 'vr_ar_exp')  { document.getElementById('VRARLabSelect').value    = ''; resetPickerLabel('vrarPickerBtn', 'Select VR/AR Lab…');  }
+}
+
+function resetPickerLabel(btnId, placeholder) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  var lbl = btn.querySelector('span');
+  if (lbl) { lbl.textContent = placeholder; lbl.classList.add('text-muted'); }
+}
+
+function resetExperimentFields() {
+  document.getElementById('experimentTypeSelect').value      = '';
+  document.getElementById('simulationSelect').value          = '';
+  document.getElementById('remoteLabSelect').value           = '';
+  document.getElementById('VRARLabSelect').value             = '';
+  document.getElementById('simulationPreview').src           = '';
+  document.getElementById('iframeSection').style.display     = 'none';
+  document.getElementById('vrarQRCodeDisplay').style.display = 'none';
+  resetPickerLabel('simPickerBtn',  'Select Simulation…');
+  resetPickerLabel('labPickerBtn',  'Select Remote Lab…');
+  resetPickerLabel('vrarPickerBtn', 'Select VR/AR Lab…');
+  toggleExperimentSection('');
+}
+
+function initSearchablePicker(btnId, dropdownId, searchId, listId, selectId, placeholder) {
+  var btn = document.getElementById(btnId);
+  var dropdown = document.getElementById(dropdownId);
+  var searchInput = document.getElementById(searchId);
+  var list = document.getElementById(listId);
+  var hiddenSelect = document.getElementById(selectId);
+  var labelSpan = btn.querySelector('span');
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var isOpen = dropdown.style.display === 'block';
+    document.querySelectorAll('.csp-dropdown').forEach(function (d) { d.style.display = 'none'; });
+    dropdown.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) { searchInput.value = ''; filterItems(''); searchInput.focus(); }
+  });
+
+  searchInput.addEventListener('input', function () {
+    filterItems(this.value.toLowerCase().trim());
+  });
+
+  list.addEventListener('click', function (e) {
+    var item = e.target.closest('.csp-item');
+    if (!item) return;
+    var val = item.getAttribute('data-value') || '';
+    var nameEl = item.querySelector('.csp-item-name');
+    var name = nameEl ? nameEl.textContent.trim() : '';
+
+    labelSpan.textContent = val ? name : placeholder;
+    if (val) labelSpan.classList.remove('text-muted');
+    else labelSpan.classList.add('text-muted');
+
+    list.querySelectorAll('.csp-item').forEach(function (i) {
+      i.classList.remove('csp-selected');
+      var chk = i.querySelector('.bi-check2');
+      if (chk) chk.remove();
+    });
+    if (val) {
+      item.classList.add('csp-selected');
+      var check = document.createElement('i');
+      check.className = 'bi bi-check2 text-primary';
+      item.appendChild(check);
+    }
+
+    hiddenSelect.value = val;
+    dropdown.style.display = 'none';
+    hiddenSelect.dispatchEvent(new Event('change'));
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  function filterItems(query) {
+    list.querySelectorAll('.csp-item:not(.csp-clear)').forEach(function (item) {
+      var text = (item.querySelector('.csp-item-name') || item).textContent.toLowerCase();
+      item.style.display = text.includes(query) ? '' : 'none';
+    });
+  }
+}
+</script>
 
 {% endblock atcontent %}

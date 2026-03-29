@@ -1,159 +1,490 @@
 {% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Create Evaluation</title>{% endblock %}
 {% block atcontent %}
 
-<script>
-	document.addEventListener('DOMContentLoaded', function() {
-		var highPerformersSelect = document.getElementById('highPerformersSelect');
-		var lowPerformersSelect = document.getElementById('lowPerformersSelect');
-		var midPerformersSelect = document.getElementById('midPerformersSelect');
-		var submitBtn = document.getElementById('submitBtn');
+<style>
+  /* Hero */
+  .crit-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
+    border-radius: 14px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .crit-hero-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .crit-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
+  .crit-hero p  { margin: 0; font-size: 12.5px; color: rgba(255,255,255,0.8); }
 
-		function checkSelection() {
-			// Check if any of the selects has a valid (non-default) option selected
-			if (highPerformersSelect.value !== '' || lowPerformersSelect.value !== '' || midPerformersSelect.value !== '') {
-				submitBtn.disabled = false; // Enable the submit button
-			} else {
-				submitBtn.disabled = true; // Keep the submit button disabled
-			}
-		}
+  /* Performer cards */
+  .perf-card {
+    border-radius: 12px;
+    border: 1px solid #e8edf5;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    transition: box-shadow 0.18s;
+  }
+  .perf-card:hover { box-shadow: 0 4px 16px rgba(1,41,112,0.08); }
 
-		highPerformersSelect.addEventListener('change', checkSelection);
-		lowPerformersSelect.addEventListener('change', checkSelection);
-		midPerformersSelect.addEventListener('change', checkSelection);
-		
-		// Initial check in case there are preselected values when the page loads
-		checkSelection();
-	});
+  .perf-header {
+    padding: 13px 20px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 11px 11px 0 0;
+  }
+  .perf-header-high { background: linear-gradient(135deg, #16a34a, #15803d); }
+  .perf-header-mid  { background: linear-gradient(135deg, #d97706, #b45309); }
+  .perf-header-low  { background: linear-gradient(135deg, #dc2626, #b91c1c); }
 
-    document.getElementById('formSubmitButton').addEventListener('click', function(event) {
-        var button = this;
-    
-        // Use setTimeout to delay the spinner appearance and button disable
-        setTimeout(function() {
-            button.innerHTML = `
-                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-                <span>Creating...</span>
-            `;
-            button.disabled = true;
-        }, 100); // Delay in milliseconds
-    
-        // The form will submit normally unless we explicitly stop it
-      });
-</script>
+  .perf-body { padding: 20px 22px; background: #fff; border-radius: 0 0 11px 11px; }
+
+  /* Score limit */
+  .score-label {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #6b7280; margin-bottom: 6px;
+  }
+  .score-help { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+  /* Activity Picker */
+  .activity-picker { position: relative; }
+
+  .picker-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+    min-height: 42px;
+  }
+  .picker-btn:hover  { border-color: #4154f1; }
+  .picker-btn.open   { border-color: #4154f1; box-shadow: 0 0 0 3px rgba(65,84,241,0.12); }
+  .picker-btn.filled { border-color: #16a34a; background: #f0fdf4; }
+  .picker-btn.filled .picker-selected-text { color: #15803d; font-weight: 600; }
+
+  .picker-selected-text { font-size: 13.5px; color: #6b7280; flex: 1; }
+  .picker-chevron { font-size: 12px; color: #9ca3af; transition: transform 0.2s; flex-shrink: 0; }
+  .picker-btn.open .picker-chevron { transform: rotate(180deg); }
+
+  .picker-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    z-index: 200;
+    background: #fff;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(1,41,112,0.14);
+    overflow: hidden;
+  }
+
+  .picker-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e8edf5;
+    background: #f8faff;
+  }
+  .picker-search-box i { color: #9ca3af; font-size: 13px; flex-shrink: 0; }
+  .picker-search-input {
+    border: none; outline: none; background: transparent;
+    font-size: 13.5px; flex: 1; color: #374151;
+  }
+
+  .picker-items { max-height: 260px; overflow-y: auto; }
+
+  .picker-group-header {
+    padding: 8px 14px 5px;
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #4154f1;
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    border-top: 1px solid #e8edf5;
+    margin-top: 2px;
+  }
+  .picker-group-header:first-child { margin-top: 0; border-top: none; }
+
+  .picker-item {
+    padding: 9px 18px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.12s;
+  }
+  .picker-item:hover    { background: #f0f4ff; color: #1a56db; }
+  .picker-item.selected { background: #e8f0fe; color: #1a56db; font-weight: 600; }
+
+  .picker-empty {
+    padding: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af;
+  }
+
+  /* Picker label */
+  .field-label {
+    font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 7px;
+  }
+</style>
 
 <main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Create Evaluation</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">Authoring Tool</li>
+        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">{{ myActivity.name }}</a></li>
+        <li class="breadcrumb-item active">Create Evaluation</li>
+      </ol>
+    </nav>
+  </div>
 
-    <div class="pagetitle">
-      <h1>Activity Details</h1>
-      <nav>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              Authoring Tool
-            </li>
-            <li class="breadcrumb-item">
-              <a href="{% url 'scenarios' %}">Scenarios</a>
-            </li>
-            <li class="breadcrumb-item">
-              <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
-            </li>
-            <li class="breadcrumb-item">
-              <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">{{ myActivity.name }}</a>
-            </li>
-            <li class="breadcrumb-item active">Creating Criterion</li>
-        </ol>
-      </nav>
-    </div><!-- End Page Title -->
-    <section class="section">
-        <div class="row mb-2">
-            <div class="col-sm-10">
-              <a type="button" class="btn btn-secondary" href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">Back To Activity</a>
+  <section class="section">
+
+    <!-- Hero -->
+    <div class="crit-hero">
+      <div class="crit-hero-icon"><i class="bi bi-diagram-3-fill"></i></div>
+      <div>
+        <h2>Create Evaluation Criterion</h2>
+        <p>{{ myActivity.name }} — Route students to different activities based on their performance score.</p>
+      </div>
+    </div>
+
+    <!-- Back button -->
+    <div class="mb-4">
+      <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Activity
+      </a>
+    </div>
+
+    <form id="performanceForm" method="post" action="{% url 'createCriterionData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">
+      {% csrf_token %}
+
+      <div class="row g-4">
+        <div class="col-lg-8">
+
+          <!-- High Performers -->
+          <div class="perf-card">
+            <div class="perf-header perf-header-high">
+              <i class="bi bi-arrow-up-circle-fill"></i> High Performers
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Best scoring students</span>
+            </div>
+            <div class="perf-body">
+              <div class="row g-3 align-items-start">
+                <div class="col-sm-8">
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-success"></i>Next Activity</div>
+                  <div class="activity-picker" id="picker-high">
+                    <div class="picker-btn" role="button" tabindex="0" id="btn-high">
+                      <span class="picker-selected-text">Select Activity…</span>
+                      <i class="bi bi-chevron-down picker-chevron"></i>
+                    </div>
+                    <div class="picker-dropdown" id="drop-high" style="display:none;">
+                      <div class="picker-search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="picker-search-input" id="search-high" placeholder="Search activities…" autocomplete="off">
+                      </div>
+                      <div class="picker-items" id="items-high">
+                        {% regroup eligible_activities by phase as phase_list %}
+                        {% for group in phase_list %}
+                          <div class="picker-group-header"><i class="bi bi-layers me-1"></i>{{ group.grouper }}</div>
+                          {% for act in group.list %}
+                            <div class="picker-item" data-val="{{ act.id }}" data-name="{{ act.name|escapejs }}">
+                              <i class="bi bi-activity text-muted" style="font-size:11px;"></i>{{ act.name }}
+                            </div>
+                          {% endfor %}
+                        {% empty %}
+                          <div class="picker-empty">No activities available</div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <select name="highPerformersSelect" id="highPerformersSelect"
+                            style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
+                      <option value="">Select Activity...</option>
+                      {% for act in eligible_activities %}
+                        <option value="{{ act.id }}">{{ act.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-success"></i>Performance Threshold</div>
+                  <input type="number" class="form-control" name="high_score_limit" step="0.01" value="2.5" required>
+                  <div class="score-help">Min. avg weight to reach this group (1–3)</div>
+                </div>
+              </div>
             </div>
           </div>
-        <div class="row">
-            <!-- Column for the card -->
-            <div class="col-lg-6">
-                <form id="performanceForm" method="post" action="{% url 'createCriterionData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">
-                    {% csrf_token %}
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">High Performers</h5>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Next Activity</label>
-                            <div class="col-sm-5">
-                                <select class="form-select" aria-label="Default select example" id="highPerformersSelect" name="highPerformersSelect" onchange="updateDropdowns('high')" required>
-                                    <option value="" selected>Select Activity...</option>
-                                    {% for activity in eligible_activities %}
-                                        <option value="{{ activity.id }}">{{ activity.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Score Limit</label>
-                            <div class="col-sm-5">
-                                <input type="number" class="form-control" name="high_score_limit" step="0.01" value="2.5" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Moderate Performers</h5>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Next Activity</label>
-                            <div class="col-sm-5">
-                                <select class="form-select" aria-label="Default select example" id="midPerformersSelect" name="midPerformersSelect" onchange="updateDropdowns('mid')" required>
-                                    <option value="" selected>Select Activity...</option>
-                                    {% for activity in eligible_activities %}
-                                        <option value="{{ activity.id }}">{{ activity.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Score Limit</label>
-                            <div class="col-sm-5">
-                                <input type="number" class="form-control" name="mid_score_limit" step="0.01" value="1.5" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Low Performers</h5>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Next Activity</label>
-                            <div class="col-sm-5">
-                                <select class="form-select" aria-label="Default select example" id="lowPerformersSelect" name="lowPerformersSelect" onchange="updateDropdowns('low')" required>
-                                    <option value="" selected>Select Activity...</option>
-                                    {% for activity in eligible_activities %}
-                                        <option value="{{ activity.id }}">{{ activity.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <label class="col-sm-2 col-form-label">Score Limit</label>
-                            <div class="col-sm-5">
-                                <input type="number" class="form-control" name="low_score_limit" step="0.01" value="1" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-10">
-                        <button type="submit" class="btn btn-primary" id="formSubmitButton">Create Evaluation</button>
-                    </div>
-                </div>
-            </form>
-            </div>
-        </div>
-    </section>
-    
 
-  </main><!-- End #main -->
+          <!-- Moderate Performers -->
+          <div class="perf-card">
+            <div class="perf-header perf-header-mid">
+              <i class="bi bi-dash-circle-fill"></i> Moderate Performers
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Average scoring students</span>
+            </div>
+            <div class="perf-body">
+              <div class="row g-3 align-items-start">
+                <div class="col-sm-8">
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-warning"></i>Next Activity</div>
+                  <div class="activity-picker" id="picker-mid">
+                    <div class="picker-btn" role="button" tabindex="0" id="btn-mid">
+                      <span class="picker-selected-text">Select Activity…</span>
+                      <i class="bi bi-chevron-down picker-chevron"></i>
+                    </div>
+                    <div class="picker-dropdown" id="drop-mid" style="display:none;">
+                      <div class="picker-search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="picker-search-input" id="search-mid" placeholder="Search activities…" autocomplete="off">
+                      </div>
+                      <div class="picker-items" id="items-mid">
+                        {% regroup eligible_activities by phase as phase_list %}
+                        {% for group in phase_list %}
+                          <div class="picker-group-header"><i class="bi bi-layers me-1"></i>{{ group.grouper }}</div>
+                          {% for act in group.list %}
+                            <div class="picker-item" data-val="{{ act.id }}" data-name="{{ act.name|escapejs }}">
+                              <i class="bi bi-activity text-muted" style="font-size:11px;"></i>{{ act.name }}
+                            </div>
+                          {% endfor %}
+                        {% empty %}
+                          <div class="picker-empty">No activities available</div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <select name="midPerformersSelect" id="midPerformersSelect"
+                            style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
+                      <option value="">Select Activity...</option>
+                      {% for act in eligible_activities %}
+                        <option value="{{ act.id }}">{{ act.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-warning"></i>Performance Threshold</div>
+                  <input type="number" class="form-control" name="mid_score_limit" step="0.01" value="1.5" required>
+                  <div class="score-help">Min. avg weight to reach this group (1–3)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Low Performers -->
+          <div class="perf-card">
+            <div class="perf-header perf-header-low">
+              <i class="bi bi-arrow-down-circle-fill"></i> Low Performers
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Lowest scoring students</span>
+            </div>
+            <div class="perf-body">
+              <div class="row g-3 align-items-start">
+                <div class="col-sm-8">
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-danger"></i>Next Activity</div>
+                  <div class="activity-picker" id="picker-low">
+                    <div class="picker-btn" role="button" tabindex="0" id="btn-low">
+                      <span class="picker-selected-text">Select Activity…</span>
+                      <i class="bi bi-chevron-down picker-chevron"></i>
+                    </div>
+                    <div class="picker-dropdown" id="drop-low" style="display:none;">
+                      <div class="picker-search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="picker-search-input" id="search-low" placeholder="Search activities…" autocomplete="off">
+                      </div>
+                      <div class="picker-items" id="items-low">
+                        {% regroup eligible_activities by phase as phase_list %}
+                        {% for group in phase_list %}
+                          <div class="picker-group-header"><i class="bi bi-layers me-1"></i>{{ group.grouper }}</div>
+                          {% for act in group.list %}
+                            <div class="picker-item" data-val="{{ act.id }}" data-name="{{ act.name|escapejs }}">
+                              <i class="bi bi-activity text-muted" style="font-size:11px;"></i>{{ act.name }}
+                            </div>
+                          {% endfor %}
+                        {% empty %}
+                          <div class="picker-empty">No activities available</div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <select name="lowPerformersSelect" id="lowPerformersSelect"
+                            style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
+                      <option value="">Select Activity...</option>
+                      {% for act in eligible_activities %}
+                        <option value="{{ act.id }}">{{ act.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-danger"></i>Performance Threshold</div>
+                  <input type="number" class="form-control" name="low_score_limit" step="0.01" value="1" required>
+                  <div class="score-help">Fallback — students below Moderate go here</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation error -->
+          <div id="criterion-error" class="alert alert-danger d-none mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Please select a next activity for at least one performer group.
+          </div>
+
+          <!-- Submit -->
+          <div class="d-flex gap-2 mt-2">
+            <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle me-1"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-primary px-4" id="formSubmitButton">
+              <i class="bi bi-check2-circle me-1"></i>Create Evaluation
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Right: help panel -->
+        <div class="col-lg-4">
+          <div class="card border-0" style="background:#f8faff; border-radius:12px; border:1px solid #e0e8ff !important;">
+            <div class="card-body p-4">
+              <div class="fw-bold mb-3" style="color:#012970; font-size:13px;">
+                <i class="bi bi-info-circle-fill me-2 text-primary"></i>How it works
+              </div>
+              <div class="small text-muted" style="line-height:1.7;">
+                <p>After students complete the evaluation, their <strong>average answer weight</strong> (1–3) across all activities in the group is compared against your thresholds:</p>
+                <ul class="ps-3 mb-3">
+                  <li><span class="fw-semibold text-success">High</span> — avg weight ≥ High threshold</li>
+                  <li><span class="fw-semibold text-warning">Moderate</span> — avg weight ≥ Moderate threshold</li>
+                  <li><span class="fw-semibold text-danger">Low</span> — everyone else (fallback, threshold not used)</li>
+                </ul>
+                <p class="mb-0">Recommended defaults: High = <strong>2.5</strong>, Moderate = <strong>1.5</strong>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+  </section>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  var pickers = [
+    { btnId: 'btn-high', dropId: 'drop-high', searchId: 'search-high', itemsId: 'items-high', selectId: 'highPerformersSelect' },
+    { btnId: 'btn-mid',  dropId: 'drop-mid',  searchId: 'search-mid',  itemsId: 'items-mid',  selectId: 'midPerformersSelect'  },
+    { btnId: 'btn-low',  dropId: 'drop-low',  searchId: 'search-low',  itemsId: 'items-low',  selectId: 'lowPerformersSelect'  },
+  ];
+
+  function closeAll() {
+    pickers.forEach(function (p) {
+      document.getElementById(p.dropId).style.display = 'none';
+      document.getElementById(p.btnId).classList.remove('open');
+    });
+  }
+
+  function checkSubmit() {
+    var h = document.getElementById('highPerformersSelect').value;
+    var m = document.getElementById('midPerformersSelect').value;
+    var l = document.getElementById('lowPerformersSelect').value;
+    document.getElementById('formSubmitButton').disabled = !(h || m || l);
+  }
+
+  pickers.forEach(function (p) {
+    var btn    = document.getElementById(p.btnId);
+    var drop   = document.getElementById(p.dropId);
+    var search = document.getElementById(p.searchId);
+    var items  = document.getElementById(p.itemsId);
+    var sel    = document.getElementById(p.selectId);
+    var text   = btn.querySelector('.picker-selected-text');
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var wasOpen = drop.style.display !== 'none';
+      closeAll();
+      if (!wasOpen) {
+        drop.style.display = 'block';
+        btn.classList.add('open');
+        search.focus();
+      }
+    });
+
+    drop.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    search.addEventListener('input', function () {
+      var q = this.value.toLowerCase();
+      var itemEls = items.querySelectorAll('.picker-item');
+      itemEls.forEach(function (item) {
+        item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+      items.querySelectorAll('.picker-group-header').forEach(function (header) {
+        var sib = header.nextElementSibling;
+        var hasVisible = false;
+        while (sib && !sib.classList.contains('picker-group-header')) {
+          if (sib.style.display !== 'none') hasVisible = true;
+          sib = sib.nextElementSibling;
+        }
+        header.style.display = hasVisible ? '' : 'none';
+      });
+    });
+
+    items.addEventListener('click', function (e) {
+      var item = e.target.closest('.picker-item');
+      if (!item) return;
+      var val  = item.dataset.val;
+      var name = item.dataset.name;
+      sel.value = val;
+      text.textContent = name;
+      btn.classList.add('filled');
+      items.querySelectorAll('.picker-item').forEach(function (i) { i.classList.remove('selected'); });
+      item.classList.add('selected');
+      drop.style.display = 'none';
+      btn.classList.remove('open');
+      search.value = '';
+      items.querySelectorAll('.picker-item').forEach(function (i) { i.style.display = ''; });
+      items.querySelectorAll('.picker-group-header').forEach(function (h) { h.style.display = ''; });
+      document.getElementById('criterion-error').classList.add('d-none');
+      checkSubmit();
+    });
+  });
+
+  document.addEventListener('click', closeAll);
+
+  checkSubmit();
+
+  document.getElementById('performanceForm').addEventListener('submit', function (e) {
+    var h = document.getElementById('highPerformersSelect').value;
+    var m = document.getElementById('midPerformersSelect').value;
+    var l = document.getElementById('lowPerformersSelect').value;
+    if (!h && !m && !l) {
+      e.preventDefault();
+      var err = document.getElementById('criterion-error');
+      err.classList.remove('d-none');
+      err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    var btn = document.getElementById('formSubmitButton');
+    btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>Creating…';
+    btn.disabled = true;
+  });
+});
+</script>
 
 {% endblock atcontent %}

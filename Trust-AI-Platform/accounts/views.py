@@ -155,3 +155,88 @@ def tos_view(request):
         return render(request, 'accounts/tos.html')
     else:
         return render(request, 'accounts/tos_public.html')
+
+@group_required('teachers')
+def profile_view(request):
+    from organization.models import Organization
+
+    user = request.user
+
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        action = request.POST.get('action')
+
+        if action == 'update_info':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+
+            errors = {}
+            if not first_name:
+                errors['first_name'] = 'First name is required.'
+            if not last_name:
+                errors['last_name'] = 'Last name is required.'
+            if not email:
+                errors['email'] = 'Email is required.'
+            elif User.objects.filter(email=email).exclude(pk=user.pk).exists():
+                errors['email'] = 'This email is already in use by another account.'
+
+            if errors:
+                return JsonResponse({'success': False, 'errors': errors})
+
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.save(update_fields=['first_name', 'last_name', 'email'])
+            return JsonResponse({'success': True, 'message': 'Profile updated successfully.'})
+
+        elif action == 'change_password':
+            current_password = request.POST.get('current_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            errors = {}
+            if not user.check_password(current_password):
+                errors['current_password'] = 'Current password is incorrect.'
+            if new_password != confirm_password:
+                errors['confirm_password'] = 'Passwords do not match.'
+            if new_password:
+                try:
+                    validate_password(new_password, user)
+                except ValidationError as e:
+                    errors['new_password'] = list(e.messages)
+
+            if errors:
+                return JsonResponse({'success': False, 'errors': errors})
+
+            user.set_password(new_password)
+            user.save()
+            # Re-authenticate to keep the session alive
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, user)
+            return JsonResponse({'success': True, 'message': 'Password changed successfully.'})
+
+        return JsonResponse({'success': False, 'error': 'Unknown action.'}, status=400)
+
+    admin_orgs = Organization.objects.filter(admins=user).values('id', 'name', 'short_name', 'country')
+    member_orgs = Organization.objects.filter(members=user).exclude(admins=user).values('id', 'name', 'short_name', 'country')
+
+    # Build role badges
+    BADGE_MAP = {
+        'teachers':       ('Teacher',        'primary'),
+        'dspace_partners':('DSpace Partner',  'info'),
+    }
+    roles = []
+    if user.is_superuser:
+        roles.append({'label': 'Superuser', 'color': 'danger'})
+    if user.is_staff and not user.is_superuser:
+        roles.append({'label': 'Admin', 'color': 'warning'})
+    for group in user.groups.all():
+        badge = BADGE_MAP.get(group.name, (group.name.replace('_', ' ').title(), 'secondary'))
+        roles.append({'label': badge[0], 'color': badge[1]})
+
+    context = {
+        'admin_orgs': list(admin_orgs),
+        'member_orgs': list(member_orgs),
+        'roles': roles,
+    }
+    return render(request, 'accounts/profile.html', context)
