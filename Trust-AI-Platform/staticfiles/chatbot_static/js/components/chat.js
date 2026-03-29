@@ -32,7 +32,7 @@ function setUserResponse(message) {
  *
  */
 function getBotResponse(text) {
-  botResponse = `<img class="botAvatar" src="/static/chatbot_static/img/sara_avatar.png"/><span class="botMsg">${text}</span><div class="clearfix"></div>`;
+  botResponse = `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/><span class="botMsg">${text}</span><div class="clearfix"></div>`;
   return botResponse;
 }
 
@@ -50,7 +50,7 @@ function setBotResponse(response) {
       // if there is no response from Rasa, send  fallback message to the user
       const fallbackMsg = "I am facing some issues, please try again later!!!";
 
-      const BotResponse = `<img class="botAvatar" src="/static/chatbot_static/img/sara_avatar.png"/><p class="botMsg">${fallbackMsg}</p><div class="clearfix"></div>`;
+      const BotResponse = `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/><p class="botMsg">${fallbackMsg}</p><div class="clearfix"></div>`;
 
       $(BotResponse).appendTo(".chats").hide().fadeIn(1000);
       scrollToBottomOfResults();
@@ -97,7 +97,7 @@ function setBotResponse(response) {
             } else {
               // if no markdown formatting found, render the text as it is.
               if (!botResponse) {
-                botResponse = `<img class="botAvatar" src="/static/chatbot_static/img/sara_avatar.png"/><p class="botMsg">${response[i].text}</p><div class="clearfix"></div>`;
+                botResponse = `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/><p class="botMsg">${response[i].text}</p><div class="clearfix"></div>`;
               }
             }
             // append the bot response on to the chat screen

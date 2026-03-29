@@ -35,7 +35,7 @@ function setUserResponse(message) {
 // Build a single bot bubble
 // ---------------------------------------------------------------------------
 function getBotResponse(html) {
-  return `<img class="botAvatar" src="/static/chatbot_static/img/plato_avatar.svg"/>
+  return `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/>
           <span class="botMsg">${html}</span>
           <div class="clearfix"></div>`;
 }
@@ -48,7 +48,7 @@ function setBotResponse(response) {
     hideBotTyping();
 
     if (!response || response.length < 1) {
-      const fallback = `<img class="botAvatar" src="/static/chatbot_static/img/plato_avatar.svg"/>
+      const fallback = `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/>
                         <p class="botMsg">I'm having some trouble right now. Please try again in a moment.</p>
                         <div class="clearfix"></div>`;
       $(fallback).appendTo('.chats').hide().fadeIn(1000);
@@ -78,7 +78,7 @@ function setBotResponse(response) {
         } else if (html.includes('<pre') || html.includes('<code>')) {
           botBubble = getBotResponse(html);
         } else {
-          botBubble = `<img class="botAvatar" src="/static/chatbot_static/img/plato_avatar.svg"/>
+          botBubble = `<img class="botAvatar" src="/static/chatbot_static/img/PlatoV2.png"/>
                        <p class="botMsg">${msg.text}</p>
                        <div class="clearfix"></div>`;
         }

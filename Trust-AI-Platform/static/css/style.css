@@ -1437,3 +1437,8 @@ h6 {
 .text-justify-doc {
   text-align: justify;
 }
+
+/* ── Sidebar nav-link font size ─────────────────────────────── */
+.sidebar-nav .nav-link span {
+  font-size: 15px !important;
+}

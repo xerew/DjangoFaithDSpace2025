@@ -18,6 +18,122 @@
     <link rel="stylesheet" type="text/css" href="{% static 'chatbot_static/css/materialize.min.css' %}" />
     <!-- Chatbot styles -->
     <link rel="stylesheet" type="text/css" href="{% static 'chatbot_static/css/style.css' %}" />
+
+    <style>
+      /* ── Brand colour override: purple → hero blue ── */
+      :root { --brand: #1a56db; --brand-dark: #1e3a8a; }
+
+      body { background: #f0f4ff; }
+
+      .chat_header {
+        height: auto !important;
+        background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%) !important;
+        border-radius: 10px 10px 0 0 !important;
+        padding: 10px 14px !important;
+      }
+
+      /* Bot message bubbles */
+      .botMsg {
+        background: #f0f4ff !important;
+        color: #1a2e58 !important;
+        border-radius: 4px 18px 18px 18px !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
+        font-size: 13.5px !important;
+        line-height: 1.55 !important;
+        padding: 10px 14px !important;
+      }
+
+      /* User message bubbles */
+      .userMsg {
+        background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%) !important;
+        border-radius: 18px 4px 18px 18px !important;
+        box-shadow: 0 2px 8px rgba(26,86,219,0.2) !important;
+        font-size: 13.5px !important;
+        line-height: 1.55 !important;
+        padding: 10px 14px !important;
+      }
+
+      /* Typing indicator dots */
+      .botTyping { background: #f0f4ff !important; border-radius: 4px 18px 18px 18px !important; }
+      .botTyping > div { background: var(--brand) !important; }
+
+      /* Quick reply chips */
+      .chip {
+        border: 1.5px solid var(--brand) !important;
+        color: var(--brand) !important;
+        border-radius: 20px !important;
+        font-weight: 600 !important;
+        font-size: 12.5px !important;
+        transition: background 0.15s, color 0.15s !important;
+      }
+      .chip:hover {
+        background: var(--brand) !important;
+        color: #fff !important;
+      }
+
+      /* Suggestion / menu buttons */
+      .menuChips {
+        background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%) !important;
+        border-radius: 12px !important;
+        font-size: 13.5px !important;
+        padding: 10px 14px !important;
+        margin-bottom: 6px !important;
+        transition: opacity 0.15s !important;
+        box-shadow: 0 2px 8px rgba(26,86,219,0.18) !important;
+      }
+      .menuChips:hover { opacity: 0.88 !important; }
+
+      /* Send button */
+      #sendButton { color: var(--brand) !important; }
+      #sendButton:hover { color: var(--brand-dark) !important; }
+
+      /* Collapsible */
+      .collapsible-header { color: var(--brand) !important; }
+
+      /* Dropdown links */
+      .dropdown-content li > a,
+      .dropdown-content li > span { color: var(--brand) !important; }
+
+      /* PDF icon */
+      .pdf_icon { background-color: var(--brand) !important; }
+      .pdf_link a { color: var(--brand) !important; }
+
+      /* ── Welcome banner (replaces tap-target) ── */
+      #welcomeBanner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+        color: #fff;
+        font-size: 13px;
+        animation: bannerSlideIn 0.4s ease forwards;
+        overflow: hidden;
+      }
+      #welcomeBanner .wb-avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0;
+      }
+      #welcomeBanner .wb-text > strong { font-size: 13.5px; display: block; }
+      #welcomeBanner .wb-text span     { font-size: 12px; opacity: 0.82; }
+      #welcomeBanner .wb-text span strong { display: inline; font-size: inherit; }
+      #welcomeBanner .wb-close {
+        margin-left: auto; cursor: pointer; opacity: 0.7; font-size: 18px;
+        line-height: 1; flex-shrink: 0;
+      }
+      #welcomeBanner .wb-close:hover { opacity: 1; }
+      @keyframes bannerSlideIn {
+        from { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
+        to   { max-height: 80px; padding-top: 10px; padding-bottom: 10px; opacity: 1; }
+      }
+      @keyframes bannerSlideOut {
+        from { max-height: 80px; padding-top: 10px; padding-bottom: 10px; opacity: 1; }
+        to   { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
+      }
+      #welcomeBanner.hiding {
+        animation: bannerSlideOut 0.35s ease forwards;
+      }
+    </style>
   </head>
 
   <body>
@@ -29,16 +145,37 @@
 
       <!-- Chatbot widget -->
       <div class="widget">
-        <div class="chat_header">
-          <span class="chat_header_title">Plato</span>
-          <span class="dropdown-trigger" href="#" data-target="dropdown1">
-            <i class="material-icons">more_vert</i>
+        <div class="chat_header" style="display:flex; align-items:center; gap:10px; padding:10px 14px;">
+          <!-- Avatar -->
+          <img src="{% static 'chatbot_static/img/PlatoV2.png' %}" alt="Plato"
+               style="width:38px; height:38px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); flex-shrink:0;">
+          <!-- Name + status -->
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:14px; color:#fff; line-height:1.2;">Plato</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.72); line-height:1.3; display:flex; align-items:center; gap:4px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block; flex-shrink:0;"></span>
+              AI Learning Companion
+            </div>
+          </div>
+          <!-- Dropdown -->
+          <span class="dropdown-trigger" href="#" data-target="dropdown1" style="cursor:pointer; flex-shrink:0;">
+            <i class="material-icons" style="color:rgba(255,255,255,0.8); line-height:1;">more_vert</i>
           </span>
           <ul id="dropdown1" class="dropdown-content">
             <li><a href="#" id="clear">Clear</a></li>
             <li><a href="#" id="restart">Restart</a></li>
             <li><a href="#" id="close">Close</a></li>
           </ul>
+        </div>
+
+        <!-- Welcome banner (replaces Materialize tap-target) -->
+        <div id="welcomeBanner">
+          <img src="{% static 'chatbot_static/img/PlatoV2.png' %}" alt="Plato" class="wb-avatar">
+          <div class="wb-text">
+            <strong>Hi, I'm Plato! 👋</strong>
+            <span>Press <strong>Start</strong> to begin the scenario.</span>
+          </div>
+          <span class="wb-close" id="closeBanner">&times;</span>
         </div>
 
         <div class="chats" id="chats">
@@ -55,15 +192,7 @@
 
       <!-- Bot profile avatar (tap-target toggle) -->
       <div class="profile_div" id="profile_div">
-        <img class="imgProfile" src="{% static 'chatbot_static/img/botAvatar.png' %}" alt="Plato" />
-      </div>
-
-      <!-- Bot pop-up intro -->
-      <div class="tap-target" data-target="profile_div">
-        <div class="tap-target-content">
-          <h5 class="white-text">Hi, I'm Plato! 👋</h5>
-          <p class="white-text">Press <strong>Start Scenario</strong> whenever you are ready!</p>
-        </div>
+        <img class="imgProfile" src="{% static 'chatbot_static/img/PlatoV2.png' %}" alt="Plato" />
       </div>
     </div>
 
@@ -93,14 +222,35 @@
       // Materialize init
       // ---------------------------------------------------------------------------
       document.addEventListener('DOMContentLoaded', function() {
-        const tapTarget = document.querySelector('.tap-target');
-        const tapInst   = M.TapTarget.init(tapTarget, {});
-        tapInst.open();
-        setTimeout(() => tapInst.close(), 4000);
-
-        $('div').removeClass('tap-target-origin');
         $('.dropdown-trigger').dropdown();
         $('.modal').modal();
+
+        // Welcome banner: auto-dismiss after 5s, on ×, or when scenario starts/restarts
+        function dismissBanner() {
+          const b = document.getElementById('welcomeBanner');
+          if (!b) return;
+          b.classList.add('hiding');
+          setTimeout(() => b.remove(), 380);
+        }
+        setTimeout(dismissBanner, 5000);
+        document.getElementById('closeBanner').addEventListener('click', dismissBanner);
+
+        // Handle messages from parent page
+        window.addEventListener('message', function(e) {
+          const d = e.data;
+          if (!d) return;
+
+          // sendReadyMessage: dismiss banner only — existing handler sends to Rasa
+          if (d.type === 'sendReadyMessage') {
+            dismissBanner();
+          }
+
+          // sendSilentMessage: send to Rasa silently — no user bubble shown
+          if (d.type === 'sendSilentMessage' && d.message) {
+            showBotTyping();
+            send(d.message);
+          }
+        });
       });
 
       // ---------------------------------------------------------------------------

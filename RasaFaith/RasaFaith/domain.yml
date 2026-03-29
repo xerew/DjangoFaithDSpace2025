@@ -87,6 +87,7 @@ actions:
   - action_receive_user_id
   - action_confirm_read
   - action_end_scenario
+  - action_deny_restart
 
 session_config:
   session_expiration_time: 60

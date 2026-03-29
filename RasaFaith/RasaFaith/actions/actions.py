@@ -48,7 +48,8 @@ def release_connection(conn):
 def _is_greek(locale: str) -> bool:
     if not locale:
         return False
-    return locale.lower() in ('greek', 'ελληνικά', 'el')
+    # Canonical value is 'Greek'; keep legacy variants for backwards compat
+    return locale.strip().lower() in ('greek', 'ελληνικά', 'ελληνικα', 'gr', 'el')
 
 def _end_message(dispatcher, locale):
     if _is_greek(locale):
@@ -499,7 +500,18 @@ class DeleteDatabaseData(Action):
             cursor.close()
             release_connection(conn)
 
-        dispatcher.utter_message(text="Your progress data has been cleared.")
+        locale = tracker.get_slot("locale") or \
+                 tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
+        if _is_greek(locale):
+            dispatcher.utter_message(
+                text="Έγινε! Η πρόοδός σου έχει διαγραφεί. "
+                     "Πάτησε το κουμπί **Start** για να ξεκινήσεις το σενάριο ξανά."
+            )
+        else:
+            dispatcher.utter_message(
+                text="All set! Your progress has been cleared. "
+                     "Press the **Start** button to begin the scenario again."
+            )
         return [SlotSet("user_id", user_id), SlotSet("last_question_id", None)]
 
 
@@ -509,8 +521,42 @@ class ActionConfirm(Action):
         return "action_confirm"
 
     def run(self, dispatcher, tracker, domain):
-        dispatcher.utter_message(text="Are you sure you want to proceed?")
+        locale = tracker.get_slot("locale") or \
+                 tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
+        if _is_greek(locale):
+            dispatcher.utter_message(
+                text="Αυτό θα διαγράψει όλες τις απαντήσεις σου για αυτό το σενάριο. "
+                     "Είσαι έτοιμος/η να ξεκινήσεις από την αρχή;",
+                buttons=[
+                    {"title": "✅ Ναι, επανεκκίνηση", "payload": "/affirm"},
+                    {"title": "❌ Άκυρο",              "payload": "/deny"},
+                ]
+            )
+        else:
+            dispatcher.utter_message(
+                text="This will clear all your answers for this scenario. "
+                     "Ready to start fresh?",
+                buttons=[
+                    {"title": "✅ Yes, restart", "payload": "/affirm"},
+                    {"title": "❌ Cancel",        "payload": "/deny"},
+                ]
+            )
         return [SlotSet("last_question_id", None), SlotSet("next_question_id", None)]
+
+
+class ActionDenyRestart(Action):
+
+    def name(self):
+        return "action_deny_restart"
+
+    def run(self, dispatcher, tracker, domain):
+        locale = tracker.get_slot("locale") or \
+                 tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
+        if _is_greek(locale):
+            dispatcher.utter_message(text="Εντάξει! Η πρόοδός σου παραμένει ανέπαφη.")
+        else:
+            dispatcher.utter_message(text="No problem! Your progress has been kept.")
+        return []
 
 
 class ActionConfirmRead(Action):

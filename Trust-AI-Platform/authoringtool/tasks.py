@@ -1386,64 +1386,100 @@ from datetime import datetime, time
 @shared_task
 def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    phases = Phase.objects.filter(scenario=scenario).order_by('id')
-    
-    # Define the weights for each phase in the order they come
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
+
     phase_weights = [0.2, 0.2, 0.45, 0.15]
     if len(phases) > 4:
         phase_weights = [0.2, 0.2, 0.3, 0.15, 0.15]
 
-    # Get the last answers (only the latest answer for each user/activity combination)
-    last_answers = get_last_answers(scenario_id)
-    # first_answers = get_first_answers(scenario_id)
+    # Parse dates
     start_dt = end_dt = None
     if start_date:
         d = parse_date(start_date)
         if d:
-            start_dt = timezone.make_aware(datetime.combine(d, time.min))
+            start_dt = _date_to_aware(d)
     if end_date:
         d = parse_date(end_date)
         if d:
-            end_dt = timezone.make_aware(datetime.combine(d, time.max))
+            end_dt = _date_to_aware(d + timedelta(days=1))
 
+    # Get users
     if group_ids:
-        users = User.objects.filter(
+        users = list(User.objects.filter(
             id__in=UserGroupMembership.objects.filter(group_id__in=group_ids).values_list('user_id', flat=True)
-        ).distinct()# .exclude(groups__name='teachers')
+        ).distinct().exclude(groups__name='teachers'))
     else:
-        users = User.objects.filter(
-            Q(userscenarioscore__scenario=scenario) & 
+        users = list(User.objects.filter(
+            Q(userscenarioscore__scenario=scenario) &
             (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
-            ).distinct()
-    
-    users = users.exclude(groups__name='teachers')
+        ).distinct().exclude(groups__name='teachers'))
 
-    # Get the minimum activity ID in the scenario
+    # Get min activity
     min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
-
     if not min_activity:
         return {"error": "No activities found for this scenario", "status": 400}
 
-    valid_users = []  # List of users who started with the minimum activity
+    # Build date-filtered answer base first, then derive valid users from it
+    last_answers_base = get_last_answers(scenario_id)
+    date_filtered_base = last_answers_base
+    if start_dt:
+        date_filtered_base = date_filtered_base.filter(created_on__gte=start_dt)
+    if end_dt:
+        date_filtered_base = date_filtered_base.filter(created_on__lte=end_dt)
 
-    for user in users:
-        # Check if user has answered the minimum activity
-        if last_answers.filter(user=user, activity=min_activity).exists():
-            valid_users.append(user)
+    # Only include users who have at least one answer within the date range
+    users_who_started = set(
+        date_filtered_base.values_list('user_id', flat=True)
+    )
+    valid_users = [u for u in users if u.id in users_who_started]
+    valid_user_ids = {u.id for u in valid_users}
 
-    # Apply start_date and end_date filters
-    if start_date:
-        start_date = parse_date(start_date)
-        if start_date:
-            last_answers = last_answers.filter(created_on__gte=_date_to_aware(start_date))
-            # first_answers = first_answers.filter(created_on__gte=_date_to_aware(start_date))
-    
-    if end_date:
-        end_date = parse_date(end_date)
-        if end_date:
-            last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
-            # first_answers = first_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
+    # Materialise date-filtered answers into a dict for O(1) lookup
+    filtered_qs = date_filtered_base.filter(user_id__in=valid_user_ids)
+    last_answers_dict = {
+        (ua.user_id, ua.activity_id): ua
+        for ua in filtered_qs.select_related('answer', 'activity')
+    }
 
+    # Pre-fetch all activities for this scenario grouped by phase
+    all_acts = list(Activity.objects.filter(phase__scenario=scenario).select_related('phase'))
+    phase_activities_map = defaultdict(list)
+    phase_primary_map = defaultdict(list)
+    for act in all_acts:
+        phase_activities_map[act.phase_id].append(act)
+        if act.is_evaluatable and act.is_primary_ev:
+            phase_primary_map[act.phase_id].append(act)
+
+    # Pre-fetch QuestionBunches and resolve their activity lists
+    primary_ids = [act.id for acts in phase_primary_map.values() for act in acts]
+    bunches = {b.activity_primary_id: b.activity_ids
+               for b in QuestionBunch.objects.filter(activity_primary_id__in=primary_ids)}
+    all_bunch_act_ids = {aid for ids in bunches.values() for aid in ids}
+    bunch_activity_objs = {a.id: a for a in Activity.objects.filter(id__in=all_bunch_act_ids)}
+
+    # Pre-fetch max answer weight per activity (single query)
+    max_weight_map = {
+        row['activity_id']: row['max_w']
+        for row in Answer.objects.filter(
+            activity__phase__scenario=scenario
+        ).values('activity_id').annotate(max_w=Max('answer_weight'))
+    }
+
+    # Pre-fetch phase start times in one aggregated query
+    phase_start_qs = UserAnswer.objects.filter(
+        user_id__in=valid_user_ids,
+        activity__phase__in=phases,
+    )
+    if start_dt:
+        phase_start_qs = phase_start_qs.filter(created_on__gte=start_dt)
+    if end_dt:
+        phase_start_qs = phase_start_qs.filter(created_on__lte=end_dt)
+    phase_start_map = {
+        (row['user_id'], row['activity__phase_id']): row['first_ts']
+        for row in phase_start_qs.values('user_id', 'activity__phase_id').annotate(first_ts=Min('created_on'))
+    }
+
+    # Main loop -- no DB queries inside
     csv_data = []
     for user in valid_users:
         row = [user.id, user.username, scenario.name]
@@ -1456,76 +1492,34 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             phase_max_score = 0
             processed_activities = set()
 
-            phase_answers_qs = UserAnswer.objects.filter(
-                user=user,
-                activity__phase=phase,
-                activity__phase__scenario=scenario,
-            )
-            if start_dt:
-                phase_answers_qs = phase_answers_qs.filter(created_on__gte=start_dt)
-            if end_dt:
-                phase_answers_qs = phase_answers_qs.filter(created_on__lte=end_dt)
+            phase_start_time = phase_start_map.get((user.id, phase.id))
 
-            first_phase_answer = phase_answers_qs.order_by('created_on', 'id').first()
-            phase_start_time = first_phase_answer.created_on if first_phase_answer else None
+            for activity in phase_activities_map[phase.id]:
+                ua = last_answers_dict.get((user.id, activity.id))
+                if ua and ua.timing:
+                    phase_total_time += ua.timing
 
-            # ✅ If you want to completely skip phases the user never touched:
-            if not first_phase_answer:
-                # Option A: skip this phase for this user
-                # continue
+            for primary_activity in phase_primary_map[phase.id]:
+                if primary_activity.id in bunches:
+                    bunch_acts = [bunch_activity_objs[aid]
+                                  for aid in bunches[primary_activity.id]
+                                  if aid in bunch_activity_objs]
+                else:
+                    bunch_acts = [primary_activity]
 
-                # Option B (if you want empty cells): just leave phase_start_time = None
-                pass
-
-            # first_phase_answer = first_answers.filter(
-            #     user=user,
-            #     activity__phase=phase
-            # ).order_by('created_on').first()
-
-            # if first_phase_answer:
-            #     phase_start_time = first_phase_answer.created_on
-            # else:
-            #     phase_start_time = None
-
-            # Fetch all activities in the phase
-            all_activities = Activity.objects.filter(phase=phase)
-            for activity in all_activities:
-                # Sum up the timings for all activities
-                user_last_answer = last_answers.filter(user=user, activity=activity).first()
-                if user_last_answer and user_last_answer.timing:
-                    phase_total_time += user_last_answer.timing
-
-            # Handle primary evaluatable activities
-            primary_evaluatable_activities = Activity.objects.filter(phase=phase, is_evaluatable=True, is_primary_ev=True)
-            for primary_activity in primary_evaluatable_activities:
-                try:
-                    question_bunch = QuestionBunch.objects.get(activity_primary=primary_activity)
-                    bunch_activities = Activity.objects.filter(id__in=question_bunch.activity_ids)
-                except QuestionBunch.DoesNotExist:
-                    bunch_activities = [primary_activity]
-
-                for bunch_activity in bunch_activities:
+                for bunch_activity in bunch_acts:
                     if bunch_activity.id not in processed_activities:
-                        user_last_answer = last_answers.filter(user=user, activity=bunch_activity).first()
-                        if user_last_answer and user_last_answer.answer:
-                            phase_total_score += user_last_answer.answer.answer_weight
-
-                        # Calculate max score for the activity
-                        highest_answer_weight = Answer.objects.filter(activity=bunch_activity).order_by('-answer_weight').first()
-                        if highest_answer_weight:
-                            phase_max_score += highest_answer_weight.answer_weight
-
+                        ua = last_answers_dict.get((user.id, bunch_activity.id))
+                        if ua and ua.answer:
+                            phase_total_score += ua.answer.answer_weight
+                        phase_max_score += max_weight_map.get(bunch_activity.id, 0)
                         processed_activities.add(bunch_activity.id)
 
-            # Calculate weighted scores for the phase
             if phase_max_score > 0:
-                weight = phase_weights[index]
-                weighted_score = (phase_total_score / phase_max_score) * weight
-                max_weighted_score = weight
-                total_weighted_score += weighted_score
-                total_max_weighted_score += max_weighted_score
+                weight = phase_weights[index] if index < len(phase_weights) else 0
+                total_weighted_score += (phase_total_score / phase_max_score) * weight
+                total_max_weighted_score += weight
 
-            # Categorize phase performance
             phase_percentage = (phase_total_score / phase_max_score) * 100 if phase_max_score > 0 else 0
             if phase_percentage >= 83.3:
                 phase_categorization = 'High'
@@ -1534,16 +1528,13 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             else:
                 phase_categorization = 'Low'
 
-            # Add phase data to row
-            # row.extend([phase_categorization, phase_total_time, phase_total_score])
             row.extend([
                 phase_categorization,
                 phase_start_time.strftime('%Y-%m-%d %H:%M:%S') if phase_start_time else '',
                 phase_total_time,
-                phase_total_score
+                phase_total_score,
             ])
 
-        # Final categorization
         final_percentage = (total_weighted_score / total_max_weighted_score) * 100 if total_max_weighted_score > 0 else 0
         if final_percentage >= 83.3:
             final_categorization = 'High'
@@ -1552,25 +1543,24 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
         else:
             final_categorization = 'Low'
 
-        # Add final categorization to row
         row.append(final_categorization)
         csv_data.append(row)
 
-    # Generate CSV content
     csv_buffer = io.StringIO()
     csv_writer = csv.writer(csv_buffer)
     header = ['User ID', 'Username', 'Scenario Name']
     for phase in phases:
-        header.extend([f"{phase.name} Categorization", f"{phase.name} Start Time", f"{phase.name} Time", f"{phase.name} Score"])
+        header.extend([phase.name + ' Categorization', phase.name + ' Start Time', phase.name + ' Time', phase.name + ' Score'])
     header.append('Final Categorization')
     csv_writer.writerow(header)
     csv_writer.writerows(csv_data)
     csv_buffer.seek(0)
 
     return {
-        "csv_content": csv_buffer.getvalue(),  # Include CSV content as a string
+        "csv_content": csv_buffer.getvalue(),
         "message": "Student performance metrics computed successfully."
     }
+
 
 @shared_task
 def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, start_date=None, end_date=None):

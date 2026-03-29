@@ -42,8 +42,9 @@ stories:
   - intent: affirm
   - action: action_delete_db_data
 
-- story: delete database data happy path
+- story: delete database data cancel path
   steps:
   - intent: delete_data
   - action: action_confirm
   - intent: deny
+  - action: action_deny_restart
