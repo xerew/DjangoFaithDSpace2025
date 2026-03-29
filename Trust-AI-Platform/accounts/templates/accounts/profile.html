@@ -1,0 +1,399 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — My Profile</title>{% endblock %}
+{% load static %}
+{% block atcontent %}
+
+<style>
+  .profile-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .profile-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .profile-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .profile-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .profile-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .profile-hero .breadcrumb-item a:hover { color: #fff; }
+  .profile-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+</style>
+
+<main id="main" class="main">
+
+  <div class="profile-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="profile-hero-icon"><i class="bi bi-person-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Account</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">My Profile</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ user.get_full_name|default:user.username }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item active">Account Settings</li>
+        </ol></nav>
+      </div>
+    </div>
+  </div>
+
+  <section class="section profile">
+    <div class="row">
+
+      <!-- Left column: account overview -->
+      <div class="col-xl-4">
+        <div class="card">
+          <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
+            <div class="profile-avatar mb-3">
+              <i class="bi bi-person-circle" style="font-size: 5rem; color: #012970;"></i>
+            </div>
+            <h5 class="card-title">{{ user.first_name }} {{ user.last_name }}</h5>
+            <h6 class="text-muted small">@{{ user.username }}</h6>
+            <div class="d-flex flex-wrap gap-1 justify-content-center mt-1 mb-3">
+              {% for role in roles %}
+              <span class="badge bg-{{ role.color }}">{{ role.label }}</span>
+              {% empty %}
+              <span class="badge bg-secondary">User</span>
+              {% endfor %}
+            </div>
+
+            <div class="w-100 mt-2">
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span class="text-muted small">Username</span>
+                <span class="fw-semibold small">{{ user.username }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span class="text-muted small">Member since</span>
+                <span class="fw-semibold small">{{ user.date_joined|date:"d M Y" }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-2">
+                <span class="text-muted small">Last login</span>
+                <span class="fw-semibold small">
+                  {% if user.last_login %}{{ user.last_login|date:"d M Y, H:i" }}{% else %}—{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Organizations card -->
+        {% if admin_orgs or member_orgs %}
+        <div class="card mt-3">
+          <div class="card-body">
+            <h5 class="card-title">Organizations</h5>
+            {% if admin_orgs %}
+            <p class="text-muted small mb-1 fw-semibold">Admin of</p>
+            <ul class="list-group list-group-flush mb-3">
+              {% for org in admin_orgs %}
+              <li class="list-group-item px-0 py-1 small">
+                <a href="{% url 'organization_detail' org.id %}" class="text-decoration-none">
+                  <i class="bi bi-building me-1 text-primary"></i>
+                  <strong>{{ org.short_name }}</strong> — {{ org.name }}
+                  {% if org.country %}<span class="text-muted">({{ org.country }})</span>{% endif %}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            {% if member_orgs %}
+            <p class="text-muted small mb-1 fw-semibold">Member of</p>
+            <ul class="list-group list-group-flush">
+              {% for org in member_orgs %}
+              <li class="list-group-item px-0 py-1 small">
+                <a href="{% url 'organization_detail' org.id %}" class="text-decoration-none text-secondary">
+                  <i class="bi bi-people me-1"></i>
+                  <strong>{{ org.short_name }}</strong> — {{ org.name }}
+                  {% if org.country %}<span class="text-muted">({{ org.country }})</span>{% endif %}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div><!-- End Left Column -->
+
+      <!-- Right column: forms -->
+      <div class="col-xl-8">
+
+        <!-- Personal info form -->
+        <div class="card">
+          <div class="card-body pt-3">
+            <ul class="nav nav-tabs nav-tabs-bordered" id="profileTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
+                  <i class="bi bi-person me-1"></i>Personal Info
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-change" type="button" role="tab">
+                  <i class="bi bi-key me-1"></i>Change Password
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content pt-3" id="profileTabsContent">
+
+              <!-- Personal Info Tab -->
+              <div class="tab-pane fade show active" id="info" role="tabpanel">
+                <div id="info-alert" class="alert d-none" role="alert"></div>
+                <form id="infoForm" novalidate>
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="update_info">
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">First Name</label>
+                    <div class="col-md-8">
+                      <input type="text" class="form-control" name="first_name" id="first_name" value="{{ user.first_name }}" required>
+                      <div class="invalid-feedback" id="first_name-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Last Name</label>
+                    <div class="col-md-8">
+                      <input type="text" class="form-control" name="last_name" id="last_name" value="{{ user.last_name }}" required>
+                      <div class="invalid-feedback" id="last_name-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Email</label>
+                    <div class="col-md-8">
+                      <input type="email" class="form-control" name="email" id="email" value="{{ user.email }}" required>
+                      <div class="invalid-feedback" id="email-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Username</label>
+                    <div class="col-md-8">
+                      <input type="text" class="form-control bg-light" value="{{ user.username }}" disabled>
+                      <div class="form-text text-muted">Username cannot be changed.</div>
+                    </div>
+                  </div>
+
+                  <div class="text-end">
+                    <button type="submit" class="btn btn-primary" id="saveInfoBtn">
+                      <span id="saveInfoSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              </div><!-- End Personal Info Tab -->
+
+              <!-- Change Password Tab -->
+              <div class="tab-pane fade" id="password-change" role="tabpanel">
+                <div id="pw-alert" class="alert d-none" role="alert"></div>
+                <form id="passwordForm" novalidate>
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="change_password">
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Current Password</label>
+                    <div class="col-md-8">
+                      <div class="input-group">
+                        <input type="password" class="form-control" name="current_password" id="current_password" required>
+                        <button class="btn btn-outline-secondary toggle-pw" type="button" data-target="current_password">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                      <div class="text-danger small mt-1 d-none" id="current_password-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">New Password</label>
+                    <div class="col-md-8">
+                      <div class="input-group">
+                        <input type="password" class="form-control" name="new_password" id="new_password" required>
+                        <button class="btn btn-outline-secondary toggle-pw" type="button" data-target="new_password">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                      <div class="mt-1">
+                        <div class="progress" style="height: 4px;">
+                          <div id="pw-strength-bar" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                        <small id="pw-strength-label" class="text-muted"></small>
+                      </div>
+                      <div class="text-danger small mt-1 d-none" id="new_password-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Confirm New Password</label>
+                    <div class="col-md-8">
+                      <div class="input-group">
+                        <input type="password" class="form-control" name="confirm_password" id="confirm_password" required>
+                        <button class="btn btn-outline-secondary toggle-pw" type="button" data-target="confirm_password">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                      <div class="text-danger small mt-1 d-none" id="confirm_password-error"></div>
+                    </div>
+                  </div>
+
+                  <div class="text-end">
+                    <button type="submit" class="btn btn-primary" id="savePwBtn">
+                      <span id="savePwSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                      Update Password
+                    </button>
+                  </div>
+                </form>
+              </div><!-- End Change Password Tab -->
+
+            </div><!-- End Tab Content -->
+          </div>
+        </div><!-- End Forms Card -->
+
+      </div><!-- End Right Column -->
+    </div>
+  </section>
+</main>
+
+<script>
+// --- Toggle password visibility ---
+document.querySelectorAll('.toggle-pw').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const input = document.getElementById(this.dataset.target);
+    const icon = this.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  });
+});
+
+// --- Password strength indicator ---
+document.getElementById('new_password').addEventListener('input', function () {
+  const val = this.value;
+  const bar = document.getElementById('pw-strength-bar');
+  const label = document.getElementById('pw-strength-label');
+  let strength = 0;
+  if (val.length >= 8) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+  const levels = [
+    { pct: '0%',   cls: '',          text: '' },
+    { pct: '25%',  cls: 'bg-danger', text: 'Weak' },
+    { pct: '50%',  cls: 'bg-warning',text: 'Fair' },
+    { pct: '75%',  cls: 'bg-info',   text: 'Good' },
+    { pct: '100%', cls: 'bg-success',text: 'Strong' },
+  ];
+  const lvl = val.length === 0 ? levels[0] : levels[strength] || levels[1];
+  bar.style.width = lvl.pct;
+  bar.className = 'progress-bar ' + lvl.cls;
+  label.textContent = lvl.text;
+});
+
+// --- Helper: show/clear field errors ---
+function clearErrors(fieldIds) {
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id + '-error');
+    if (el) { el.textContent = ''; el.classList.add('d-none'); }
+    const input = document.getElementById(id);
+    if (input) input.classList.remove('is-invalid');
+  });
+}
+
+function showFieldError(fieldId, msg) {
+  const el = document.getElementById(fieldId + '-error');
+  const input = document.getElementById(fieldId);
+  if (el) { el.textContent = msg; el.classList.remove('d-none'); }
+  if (input) input.classList.add('is-invalid');
+}
+
+function showAlert(alertId, success, message) {
+  const el = document.getElementById(alertId);
+  el.className = 'alert ' + (success ? 'alert-success' : 'alert-danger');
+  el.textContent = message;
+  el.classList.remove('d-none');
+  setTimeout(() => el.classList.add('d-none'), 5000);
+}
+
+// --- Personal info form ---
+document.getElementById('infoForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  clearErrors(['first_name', 'last_name', 'email']);
+  const btn = document.getElementById('saveInfoBtn');
+  const spinner = document.getElementById('saveInfoSpinner');
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+
+  const data = new FormData(this);
+  fetch('{% url "profile" %}', {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': data.get('csrfmiddlewaretoken') },
+    body: data,
+  })
+  .then(r => r.json())
+  .then(res => {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+    if (res.success) {
+      showAlert('info-alert', true, res.message);
+      // Update the displayed name in the left panel
+      const fn = document.getElementById('first_name').value.trim();
+      const ln = document.getElementById('last_name').value.trim();
+      document.querySelector('.profile-card h5.card-title').textContent = fn + ' ' + ln;
+    } else {
+      showAlert('info-alert', false, 'Please fix the errors below.');
+      if (res.errors) {
+        Object.entries(res.errors).forEach(([k, v]) => showFieldError(k, Array.isArray(v) ? v.join(' ') : v));
+      }
+    }
+  })
+  .catch(() => {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+    showAlert('info-alert', false, 'Network error. Please try again.');
+  });
+});
+
+// --- Change password form ---
+document.getElementById('passwordForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  clearErrors(['current_password', 'new_password', 'confirm_password']);
+  const btn = document.getElementById('savePwBtn');
+  const spinner = document.getElementById('savePwSpinner');
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+
+  const data = new FormData(this);
+  fetch('{% url "profile" %}', {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': data.get('csrfmiddlewaretoken') },
+    body: data,
+  })
+  .then(r => r.json())
+  .then(res => {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+    if (res.success) {
+      showAlert('pw-alert', true, res.message);
+      document.getElementById('passwordForm').reset();
+      // Reset strength bar
+      document.getElementById('pw-strength-bar').style.width = '0%';
+      document.getElementById('pw-strength-label').textContent = '';
+    } else {
+      showAlert('pw-alert', false, 'Please fix the errors below.');
+      if (res.errors) {
+        Object.entries(res.errors).forEach(([k, v]) => showFieldError(k, Array.isArray(v) ? v.join(' ') : v));
+      }
+    }
+  })
+  .catch(() => {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+    showAlert('pw-alert', false, 'Network error. Please try again.');
+  });
+});
+</script>
+{% endblock %}
