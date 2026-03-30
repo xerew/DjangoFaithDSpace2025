@@ -41,6 +41,15 @@
   .ug-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .ug-hero .breadcrumb-item a:hover { color: #fff; }
   .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .ug-hero { padding: 14px 16px 12px; }
+    .ug-hero > .d-flex { flex-wrap: wrap; }
+    .ug-hero-icon { display: none; }
+    .ug-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .ug-hero h2 { font-size: 15px !important; }
+    .ug-hero .breadcrumb-item a,
+    .ug-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; display: inline-block; }
+  }
   .hero-btn-ghost {
     background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
     font-weight: 600; font-size: 13.5px; border-radius: 8px;
@@ -86,7 +95,7 @@
       <div class="row g-4">
 
         <!-- Left: Group details -->
-        <div class="col-lg-5">
+        <div class="col-12 col-md-5 col-lg-5">
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-4">
@@ -126,7 +135,7 @@
         </div>
 
         <!-- Right: Scenario selection -->
-        <div class="col-lg-7">
+        <div class="col-12 col-md-7 col-lg-7">
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-1">

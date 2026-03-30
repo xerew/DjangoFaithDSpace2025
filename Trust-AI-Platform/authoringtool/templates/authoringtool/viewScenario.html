@@ -32,6 +32,17 @@
   .hero-btn-outline:hover { background: rgba(255,255,255,0.18); color: #fff; }
   .hero-btn-amber   { background: rgba(251,191,36,0.25); color: #fde68a; border: 1px solid rgba(251,191,36,0.4); }
   .hero-btn-amber:hover   { background: rgba(251,191,36,0.38); color: #fef3c7; }
+  @media (max-width: 575.98px) {
+    .sc-hero { padding: 14px 16px 12px; }
+    .sc-hero > .d-flex { flex-wrap: wrap; }
+    .sc-hero-icon { display: none; }
+    .sc-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .sc-hero h2 { font-size: 15px !important; }
+    .sc-hero .breadcrumb-item.active {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 55vw; display: inline-block;
+    }
+  }
 
   /* ── Section cards ── */
   .sc-card {
@@ -217,7 +228,7 @@
     <div class="row g-3">
 
       <!-- ── Left column: Scenario info + PDFs ── -->
-      <div class="col-lg-4">
+      <div class="col-12 col-md-5 col-lg-4">
 
         <!-- Scenario image -->
         {% if myScenario.image %}
@@ -317,7 +328,7 @@
                     </div>
                     <div class="modal-body p-0">
                       <iframe src="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
-                              width="100%" height="700px" style="border:none; display:block;"></iframe>
+                              width="100%" style="height:min(700px,80vh);border:none;display:block;"></iframe>
                     </div>
                     <div class="modal-footer">
                       <a href="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
@@ -361,7 +372,7 @@
       </div>
 
       <!-- ── Right column: Phases ── -->
-      <div class="col-lg-8">
+      <div class="col-12 col-md-7 col-lg-8">
 
         <div class="sc-card">
           <div class="sc-card-header">

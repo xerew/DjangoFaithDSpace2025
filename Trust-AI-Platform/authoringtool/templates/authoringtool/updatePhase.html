@@ -24,6 +24,18 @@
   .ph-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .ph-hero .breadcrumb-item a:hover { color: #fff; }
   .ph-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .ph-hero { padding: 14px 16px 12px; }
+    .ph-hero > .d-flex { flex-wrap: wrap; }
+    .ph-hero-icon { display: none; }
+    .ph-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .ph-hero h2 { font-size: 15px !important; }
+    .ph-hero .breadcrumb-item a,
+    .ph-hero .breadcrumb-item.active {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 40vw; display: inline-block;
+    }
+  }
 
   /* ── Form card ── */
   .ph-card {
@@ -68,6 +80,10 @@
 
   /* ── Action buttons ── */
   .ph-actions { display: flex; gap: 10px; align-items: center; }
+  @media (max-width: 575.98px) {
+    .ph-actions { flex-wrap: wrap; }
+    .ph-actions .btn { flex: 1 1 auto; justify-content: center; }
+  }
 </style>
 
 <main id="main" class="main">
@@ -96,7 +112,7 @@
 
   <section class="section">
     <div class="row justify-content-center">
-      <div class="col-lg-8">
+      <div class="col-12 col-lg-8">
 
         <form action="{% url 'updatePhaseData' scenario_id=scenario_id phase_id=Phase.id %}"
               method="post" id="phaseForm" enctype="multipart/form-data">

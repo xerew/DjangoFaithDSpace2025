@@ -19,6 +19,14 @@
   .sc-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
   .sc-hero .breadcrumb-item a:hover { color:#fff; }
   .sc-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .sc-hero { padding: 14px 16px 12px; }
+    .sc-hero > .d-flex { flex-wrap: wrap; }
+    .sc-hero-icon { display: none; }
+    .sc-hero h2 { font-size: 15px !important; }
+    .sc-hero .breadcrumb-item a,
+    .sc-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; display: inline-block; }
+  }
 
   /* ── Cards ── */
   .sc-card {
@@ -76,7 +84,7 @@
   .img-preview-wrap img { max-height: 180px; border-radius: 8px; border: 1px solid #e8edf5; object-fit: cover; }
 
   /* ── Actions ── */
-  .sc-actions { display: flex; gap: 10px; align-items: center; margin-bottom: 32px; }
+  .sc-actions { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 32px; }
 </style>
 
 <main id="main" class="main">
@@ -101,7 +109,7 @@
 
   <section class="section">
     <div class="row justify-content-center">
-      <div class="col-lg-9">
+      <div class="col-12 col-lg-9">
 
         <form action="createScenarioData/" method="post" id="scenarioForm"
               enctype="multipart/form-data" novalidate>

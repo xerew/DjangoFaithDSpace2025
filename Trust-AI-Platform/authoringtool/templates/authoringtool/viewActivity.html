@@ -20,6 +20,11 @@
   }
   .act-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
   .act-hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .act-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .act-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .act-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .act-hero .breadcrumb-item a:hover { color: #fff; }
+  .act-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
   .act-type-badge {
     font-size: 11px; font-weight: 700; padding: 4px 12px;
     border-radius: 20px; background: rgba(255,255,255,0.2);
@@ -32,6 +37,18 @@
   .hero-btn-solid:hover  { background: #e8f0fe; color: #1a56db; }
   .hero-btn-outline { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
   .hero-btn-outline:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  @media (max-width: 575.98px) {
+    .act-hero { padding: 14px 16px 12px; }
+    .act-hero > .d-flex { flex-wrap: wrap; }
+    .act-hero-icon { display: none; }
+    .act-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .act-hero h2 { font-size: 15px !important; }
+    .act-hero .breadcrumb-item a,
+    .act-hero .breadcrumb-item.active {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 32vw; display: inline-block;
+    }
+  }
 
   /* ── Info card ────────────────────────────────────────── */
   .info-card {
@@ -156,18 +173,6 @@
 </style>
 
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Activity Details</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item">Authoring Tool</li>
-        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
-        <li class="breadcrumb-item active">{{ activity.name }}</li>
-      </ol>
-    </nav>
-  </div>
 
   <section class="section">
 
@@ -199,6 +204,12 @@
               </span>
             {% endif %}
           </div>
+          <nav><ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
+            <li class="breadcrumb-item active">{{ activity.name }}</li>
+          </ol></nav>
         </div>
         <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
           <a class="btn btn-sm hero-btn-ghost" href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">
@@ -226,7 +237,7 @@
     <div class="row g-3">
 
       <!-- ── Left: activity info ── -->
-      <div class="col-lg-6">
+      <div class="col-12 col-lg-6">
 
         <!-- Basic info -->
         <div class="info-card">
@@ -323,25 +334,25 @@
 
       <!-- ── Right: experiment preview ── -->
       {% if activity.activity_type.name == 'Experiment' %}
-      <div class="col-lg-6">
+      <div class="col-12 col-lg-6">
         <div class="info-card">
           <div class="info-card-header"><i class="bi bi-eyedropper"></i> Experiment Preview</div>
           <div class="content-body">
             {% if existingSim and not existingRemote and not existingVR_AR %}
               <p style="font-size:13px; margin-bottom:10px;"><strong>Simulation:</strong> {{ existingSim.name }}</p>
               <div class="experiment-frame">
-                <iframe width="100%" height="420" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                <iframe width="100%" style="height:min(420px,75vw);display:block;" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
               </div>
             {% elif existingRemote and not existingVR_AR %}
               <p style="font-size:13px; margin-bottom:10px;"><strong>Remote Lab:</strong> {{ existingRemote.name }}</p>
               <div class="experiment-frame">
-                <iframe width="100%" height="420" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
+                <iframe width="100%" style="height:min(420px,75vw);display:block;" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
               </div>
             {% elif existingVR_AR %}
               <p style="font-size:13px; margin-bottom:10px;"><strong>VR/AR Experiment:</strong> {{ existingVR_AR.name }}</p>
               {% if existingVR_AR.qr_code %}
                 <div class="qr-wrap">
-                  <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code" width="240" height="240">
+                  <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code" style="width:min(240px,100%);height:auto;">
                   <p style="font-size:12px; color:#888; margin-top:8px;">Scan with a VR/AR-enabled device</p>
                 </div>
               {% else %}
@@ -357,7 +368,7 @@
 
       <!-- ── Right: answers ── -->
       {% if activity.activity_type.name == 'Question' %}
-      <div class="col-lg-6">
+      <div class="col-12 col-lg-6">
         <div class="info-card">
           <div class="info-card-header"><i class="bi bi-list-check"></i> Answers</div>
           <div style="padding: 14px 14px 6px;">

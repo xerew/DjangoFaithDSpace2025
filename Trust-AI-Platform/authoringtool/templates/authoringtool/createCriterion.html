@@ -7,21 +7,34 @@
   .crit-hero {
     background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
     border-radius: 14px;
-    padding: 28px 32px;
+    padding: 26px 30px 20px;
     color: #fff;
     margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
   }
   .crit-hero-icon {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: rgba(255,255,255,0.15);
+    width: 50px; height: 50px; border-radius: 10px;
+    background: rgba(255,255,255,0.18);
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; flex-shrink: 0;
   }
-  .crit-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
-  .crit-hero p  { margin: 0; font-size: 12.5px; color: rgba(255,255,255,0.8); }
+  .crit-hero h2 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .crit-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .crit-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .crit-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .crit-hero .breadcrumb-item a:hover { color: #fff; }
+  .crit-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 600; font-size: 13.5px; border-radius: 8px; padding: 7px 18px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: background 0.15s; white-space: nowrap; }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  @media (max-width: 575.98px) {
+    .crit-hero { padding: 14px 16px 12px; }
+    .crit-hero > .d-flex { flex-wrap: wrap; }
+    .crit-hero-icon { display: none; }
+    .crit-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .crit-hero h2 { font-size: 15px !important; }
+    .crit-hero .breadcrumb-item a,
+    .crit-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 28vw; display: inline-block; }
+  }
 
   /* Performer cards */
   .perf-card {
@@ -148,43 +161,37 @@
 </style>
 
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Create Evaluation</h1>
-    <nav>
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item">Authoring Tool</li>
-        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">{{ myActivity.name }}</a></li>
-        <li class="breadcrumb-item active">Create Evaluation</li>
-      </ol>
-    </nav>
+
+  <div class="crit-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="crit-hero-icon"><i class="bi bi-diagram-3-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Authoring Tool</div>
+        <h2>Create Evaluation Criterion</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{{ myActivity.name }} — Route students to different activities based on their performance score.</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">{{ myActivity.name }}</a></li>
+          <li class="breadcrumb-item active">Create Evaluation</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
   </div>
 
   <section class="section">
-
-    <!-- Hero -->
-    <div class="crit-hero">
-      <div class="crit-hero-icon"><i class="bi bi-diagram-3-fill"></i></div>
-      <div>
-        <h2>Create Evaluation Criterion</h2>
-        <p>{{ myActivity.name }} — Route students to different activities based on their performance score.</p>
-      </div>
-    </div>
-
-    <!-- Back button -->
-    <div class="mb-4">
-      <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to Activity
-      </a>
-    </div>
 
     <form id="performanceForm" method="post" action="{% url 'createCriterionData' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">
       {% csrf_token %}
 
       <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="col-12 col-md-8 col-lg-8">
 
           <!-- High Performers -->
           <div class="perf-card">
@@ -360,7 +367,7 @@
         </div>
 
         <!-- Right: help panel -->
-        <div class="col-lg-4">
+        <div class="col-12 col-md-4 col-lg-4">
           <div class="card border-0" style="background:#f8faff; border-radius:12px; border:1px solid #e0e8ff !important;">
             <div class="card-body p-4">
               <div class="fw-bold mb-3" style="color:#012970; font-size:13px;">

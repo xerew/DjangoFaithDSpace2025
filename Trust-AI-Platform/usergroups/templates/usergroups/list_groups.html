@@ -18,6 +18,15 @@
   .ug-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
   .ug-hero .breadcrumb-item { color: rgba(255,255,255,0.72); }
   .ug-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .ug-hero { padding: 14px 16px 12px; }
+    .ug-hero > .d-flex { flex-wrap: wrap; }
+    .ug-hero-icon { display: none; }
+    .ug-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .ug-hero h2 { font-size: 15px !important; }
+    .ug-hero .breadcrumb-item a,
+    .ug-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; display: inline-block; }
+  }
 
   /* ── Hero buttons ── */
   .hero-btn-solid {
@@ -103,7 +112,7 @@
             <div class="row align-items-center g-3">
 
               <!-- Name + scenarios -->
-              <div class="col-lg-5">
+              <div class="col-12 col-md-5 col-lg-5">
                 <a href="{% url 'view_group' group.id %}" class="group-name">
                   <i class="bi bi-people-fill me-2 text-primary"></i>{{ group.name }}
                 </a>
@@ -119,7 +128,7 @@
               </div>
 
               <!-- Stats -->
-              <div class="col-lg-4">
+              <div class="col-12 col-md-4 col-lg-4">
                 <div class="d-flex gap-4">
                   <div>
                     <div class="meta-label">Students</div>
@@ -137,7 +146,7 @@
               </div>
 
               <!-- Actions -->
-              <div class="col-lg-3 d-flex justify-content-lg-end gap-2 flex-wrap">
+              <div class="col-12 col-md-3 d-flex justify-content-md-end gap-2 flex-wrap">
                 <a href="{% url 'view_group' group.id %}" class="btn btn-sm btn-outline-primary">
                   <i class="bi bi-eye me-1"></i> View
                 </a>

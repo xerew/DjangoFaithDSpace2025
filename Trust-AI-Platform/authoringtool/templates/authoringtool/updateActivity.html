@@ -24,6 +24,18 @@
   .act-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .act-hero .breadcrumb-item a:hover { color: #fff; }
   .act-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .act-hero { padding: 14px 16px 12px; }
+    .act-hero > .d-flex { flex-wrap: wrap; }
+    .act-hero-icon { display: none; }
+    .act-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .act-hero h2 { font-size: 15px !important; }
+    .act-hero .breadcrumb-item a,
+    .act-hero .breadcrumb-item.active {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 32vw; display: inline-block;
+    }
+  }
 
   /* ── Section cards ── */
   .act-card {
@@ -604,7 +616,7 @@
       </div>
 
       <!-- ── Action Buttons ── -->
-      <div class="d-flex gap-2 mt-2 mb-4">
+      <div class="d-flex gap-2 mt-2 mb-4 justify-content-center">
         <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
           <i class="bi bi-x-lg me-1"></i> Cancel
         </button>

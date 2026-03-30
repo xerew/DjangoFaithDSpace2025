@@ -18,6 +18,15 @@
   .org-hero .breadcrumb-item { color: rgba(255,255,255,0.72); }
   .org-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
   .org-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  @media (max-width: 575.98px) {
+    .org-hero { padding: 14px 16px 12px; }
+    .org-hero > .d-flex { flex-wrap: wrap; }
+    .org-hero-icon { display: none; }
+    .org-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .org-hero h2 { font-size: 15px !important; }
+    .org-hero .breadcrumb-item a,
+    .org-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; display: inline-block; }
+  }
   .hero-btn-solid {
     background: #fff; color: #1a56db; border: none;
     font-weight: 600; font-size: 13.5px; border-radius: 8px;
@@ -91,16 +100,14 @@
       <div class="org-hero-icon"><i class="bi bi-building"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
-          Platform
+          Organizations
         </div>
         <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">All Organizations</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
           Browse and manage organizations
-          {% with total=my_orgs|length|add:other_orgs|length %}
-            &mdash; {{ total }} organization{{ total|pluralize }} found
-          {% endwith %}
         </div>
         <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">Dashboard</a></li>
           <li class="breadcrumb-item active">Organizations</li>
         </ol></nav>
       </div>
@@ -166,7 +173,7 @@
       </div>
       <div class="row g-3">
         {% for org in my_orgs %}
-        <div class="col-md-6 col-xl-4">
+        <div class="col-12 col-md-6 col-xl-4">
           <div class="org-card">
             <div class="org-card-header">
               {% if org.picture %}
@@ -212,7 +219,7 @@
       </div>
       <div class="row g-3">
         {% for org in other_orgs %}
-        <div class="col-md-6 col-xl-4">
+        <div class="col-12 col-md-6 col-xl-4">
           <div class="org-card" style="opacity:0.85;">
             <div class="org-card-header" style="background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);">
               {% if org.picture %}

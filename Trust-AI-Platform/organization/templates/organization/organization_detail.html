@@ -15,6 +15,15 @@
   .org-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .org-hero .breadcrumb-item a:hover { color: #fff; }
   .org-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .org-hero { padding: 14px 16px 12px; }
+    .org-hero > .d-flex { flex-wrap: wrap; }
+    .org-hero-logo, .org-hero-initials { display: none; }
+    .org-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .org-hero h2 { font-size: 15px !important; }
+    .org-hero .breadcrumb-item a,
+    .org-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; display: inline-block; }
+  }
   .org-meta-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 2px 10px; margin-right: 4px; }
   .hero-btn-ghost {
     background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
@@ -112,7 +121,7 @@
     <div class="row g-3">
 
       <!-- Left: Details -->
-      <div class="col-lg-5">
+      <div class="col-12 col-md-5 col-lg-5">
         <div class="card h-100" style="border-radius:12px;">
           <div class="card-body p-4">
             <h5 class="card-title" style="color:#012970; font-weight:700; margin-bottom:20px;">
@@ -150,7 +159,7 @@
       </div>
 
       <!-- Right: Members -->
-      <div class="col-lg-7">
+      <div class="col-12 col-md-7 col-lg-7">
         <div class="card h-100" style="border-radius:12px;">
           <div class="card-body p-0">
             <div class="d-flex align-items-center justify-content-between px-4 pt-4 pb-3 border-bottom">

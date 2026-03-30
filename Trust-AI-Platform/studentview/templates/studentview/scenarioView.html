@@ -186,6 +186,12 @@
         position: sticky;
         top: 80px;
       }
+      /* On phones/tablets: don't stick the chatbot — it stacks below */
+      @media (max-width: 767.98px) {
+        .chatbot-card { position: static; }
+        .chatbot-container iframe { height: 75vw !important; min-height: 300px; max-height: 480px; }
+        #simulationPreview { height: min(400px, 80vw) !important; }
+      }
       .chatbot-card-header {
         background: linear-gradient(135deg, #1a56db 0%, #0e3fa8 100%);
         padding: 13px 18px;
@@ -229,6 +235,17 @@
         text-decoration: none; transition: background 0.15s; white-space: nowrap;
       }
       .sv-hero-btn-ghost:hover { background: rgba(255,255,255,0.25); color: #fff; }
+      @media (max-width: 575.98px) {
+        .sv-hero { padding: 14px 16px 12px; }
+        .sv-hero > .d-flex { flex-wrap: wrap; }
+        .sv-hero-icon { display: none; }
+        .sv-hero .flex-shrink-0.d-flex { flex-shrink: 1 !important; width: 100%; padding-top: 10px !important; }
+        .sv-hero .breadcrumb-item.active {
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          max-width: 55vw; display: inline-block;
+        }
+        .sv-hero h2 { font-size: 15px !important; }
+      }
     </style>
 
     <main id="main" class="main">
@@ -243,7 +260,7 @@
                 <li class="breadcrumb-item active">{{ myScenario.name }}</li>
               </ol></nav>
             </div>
-            <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+            <div class="flex-shrink-0 d-flex flex-wrap gap-2 align-items-start" style="padding-top:4px;">
               {% if is_teacher %}
               <button onclick="sendRestartAndYes()" class="sv-hero-btn-ghost">
                 <i class="bi bi-arrow-counterclockwise"></i> Restart
@@ -260,7 +277,7 @@
             <div class="row g-4" style="min-height: 70vh;">
 
                 <!-- Activity area -->
-                <div class="col-md-8" id="activityContainer" data-activity-id="{{ activity.id }}">
+                <div class="col-12 col-md-8" id="activityContainer" data-activity-id="{{ activity.id }}">
 
                   <!-- Welcome card (hidden when activity loads) -->
                   <div id="welcomeCard" class="welcome-card">
@@ -276,12 +293,12 @@
                   <div id="activityContent"></div>
 
                   {% if activity_type_name == 'Experiment' %}
-                  <iframe id="simulationPreview" width="100%" height="600" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                  <iframe id="simulationPreview" width="100%" style="height:min(600px,80vh);display:block;" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
                   {% endif %}
                 </div>
 
                 <!-- Chatbot -->
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                   <div class="chatbot-card">
                     <div class="chatbot-container">
                       <iframe src="{% url 'chat_interface' %}" style="width:100%; height:60vh; border:none;"></iframe>
@@ -384,7 +401,7 @@
 								}
 								const iframe = document.createElement('iframe');
 								iframe.style.width = '100%';
-								iframe.style.height = '600px';
+								iframe.style.height = 'min(600px, 80vh)';
 
 								function _localiseUrl(url) {
 									if (!url) return url;

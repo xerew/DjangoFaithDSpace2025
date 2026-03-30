@@ -18,6 +18,15 @@
   .org-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .org-hero .breadcrumb-item a:hover { color: #fff; }
   .org-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+  @media (max-width: 575.98px) {
+    .org-hero { padding: 14px 16px 12px; }
+    .org-hero > .d-flex { flex-wrap: wrap; }
+    .org-hero-icon { display: none; }
+    .org-hero .d-flex.flex-shrink-0 { flex-shrink: 1 !important; width: 100%; justify-content: flex-start !important; margin-top: 10px; }
+    .org-hero h2 { font-size: 15px !important; }
+    .org-hero .breadcrumb-item a,
+    .org-hero .breadcrumb-item.active { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; display: inline-block; }
+  }
   .hero-btn-ghost {
     background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
     font-weight: 600; font-size: 13.5px; border-radius: 8px;

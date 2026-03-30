@@ -43,6 +43,17 @@
    * Sidebar toggle
    */
   if (select('.toggle-sidebar-btn')) {
+    // Create backdrop for mobile sidebar dismiss
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
+    const closeSidebar = () => {
+      document.body.classList.remove('toggle-sidebar');
+    };
+
+    backdrop.addEventListener('click', closeSidebar);
+
     on('click', '.toggle-sidebar-btn', function(e) {
       select('body').classList.toggle('toggle-sidebar')
     })

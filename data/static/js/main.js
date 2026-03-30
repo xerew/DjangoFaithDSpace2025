@@ -43,6 +43,17 @@
    * Sidebar toggle
    */
   if (select('.toggle-sidebar-btn')) {
+    // Create backdrop for mobile sidebar dismiss
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
+    const closeSidebar = () => {
+      document.body.classList.remove('toggle-sidebar');
+    };
+
+    backdrop.addEventListener('click', closeSidebar);
+
     on('click', '.toggle-sidebar-btn', function(e) {
       select('body').classList.toggle('toggle-sidebar')
     })
@@ -188,10 +199,10 @@
 
   tinymce.init({
     selector: 'textarea.tinymce-editor',
-    plugins: 'eqneditor preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
+    plugins: 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
     editimage_cors_hosts: ['picsum.photos'],
     menubar: 'file edit view insert format tools table help',
-    toolbar: 'eqneditor undo redo | bold italic underline strikethrough | fontfamily fontsize blocks | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
+    toolbar: 'undo redo | bold italic underline strikethrough | fontfamily fontsize blocks | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media template link anchor codesample | ltr rtl',
     toolbar_sticky: true,
     toolbar_sticky_offset: isSmallScreen ? 102 : 108,
     autosave_ask_before_unload: true,
@@ -329,11 +340,8 @@
     setTimeout(() => {
       new ResizeObserver(function() {
         select('.echart', true).forEach(getEchart => {
-          const echartInstance = echarts.getInstanceByDom(getEchart);
-          if (echartInstance) {
-            echartInstance.resize();
-          }
-        });
+          echarts.getInstanceByDom(getEchart).resize();
+        })
       }).observe(mainContainer);
     }, 200);
   }
