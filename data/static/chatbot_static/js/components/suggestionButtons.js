@@ -4,18 +4,20 @@
  */
 function addSuggestion(suggestions) {
     setTimeout(() => {
+        $('.suggestions').remove();
         const suggLength = suggestions.length;
-        $(
+        const card = $(
             ' <div class="singleCard"> <div class="suggestions"><div class="menu"></div></div></diV>',
         )
             .appendTo(".chats")
             .hide()
             .fadeIn(1000);
+        const menu = card.find(".menu");
         // Loop through suggestions
         for (let i = 0; i < suggLength; i += 1) {
             $(
                 `<div class="menuChips" data-payload='${suggestions[i].payload}'>${suggestions[i].title}</div>`,
-            ).appendTo(".menu");
+            ).appendTo(menu);
         }
         scrollToBottomOfResults();
     }, 1000);

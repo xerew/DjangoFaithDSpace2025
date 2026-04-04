@@ -1,303 +1,569 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — AI Metrics</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab — {{ myScenario.name }} — Metrics &amp; AI</title>{% endblock %}
 {% block atcontent %}
-  <main id="main" class="main">
-    <div class="pagetitle">
-      <h1>{{ myScenario.name }} — Metrics &amp; AI</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">Authoring Tool</li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'scenarios' %}">Scenarios</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a>
-          </li>
+
+<style>
+  /* ── Hero ── */
+  .am-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .am-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .am-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .am-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .am-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .am-hero .breadcrumb-item a:hover { color:#fff; }
+  .am-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); }
+  .hero-btn-ghost:hover { background:rgba(255,255,255,0.25); color:#fff; }
+  .hero-btn-solid { background:#fff; color:#1a56db; font-weight:600; border:none; }
+  .hero-btn-solid:hover { background:#e8f0fe; color:#1a56db; }
+  @media (max-width:575.98px) {
+    .am-hero { padding:14px 16px 12px; }
+    .am-hero > .d-flex { flex-wrap:wrap; }
+    .am-hero-icon { display:none; }
+    .am-hero h2 { font-size:15px !important; }
+  }
+
+  /* ── Section cards ── */
+  .am-card {
+    border-radius: 12px; border: 1px solid #e8edf5;
+    margin-bottom: 20px; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: hidden;
+  }
+  .am-card-header {
+    padding: 13px 20px 11px; border-bottom: 1px solid #eef1f6;
+    background: #f8faff; display:flex; align-items:center; justify-content:space-between;
+    font-weight: 700; font-size: 13.5px; color: #1e3a8a; gap: 10px;
+  }
+  .am-card-body { padding: 18px 20px; }
+
+  /* ── Action cards (top row) ── */
+  .action-card {
+    border-radius: 12px; border: 1px solid #e8edf5; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); padding: 18px 20px;
+    display:flex; flex-direction:column; gap: 8px; height: 100%;
+  }
+  .action-card-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; margin-bottom:2px; }
+  .action-card-desc  { font-size:12.5px; color:#6b7280; line-height:1.5; flex-grow:1; }
+
+  /* ── Tables ── */
+  .am-table-wrap { overflow-x: auto; }
+
+  /* Scrollable results containers */
+  #category-metrics-results,
+  #risk-flags-results {
+    max-height: 480px;
+    overflow-y: auto;
+  }
+  .am-table {
+    width: 100%; border-collapse: collapse; font-size: 12px; color: #374151;
+  }
+  .am-table thead th {
+    background: #f0f4ff; color: #1e3a8a; font-weight: 700; font-size: 11.5px;
+    padding: 6px 10px; text-align: left; border-bottom: 2px solid #dbeafe;
+    white-space: nowrap;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .am-table tbody td {
+    padding: 5px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle;
+  }
+  .am-table tbody tr:last-child td { border-bottom: none; }
+  .am-table tbody tr:hover td { background: #f8faff; }
+
+  /* ── Risk table ── */
+  .am-table-risk thead th { background: #fff5f5; color: #991b1b; border-bottom: 2px solid #fecaca; }
+  .am-table-risk tbody tr:hover td { background: #fff8f8; }
+
+  /* ── Activity group heading ── */
+  .act-group-hdr {
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 14px; margin: 0 0 0;
+    background: linear-gradient(90deg, #eff6ff 0%, #fff 100%);
+    border-left: 4px solid #1a56db; border-radius: 0;
+    font-size: 13.5px; font-weight: 700; color: #1e3a8a;
+  }
+  .act-group-hdr.risk { border-left-color: #dc2626; background: linear-gradient(90deg, #fff5f5 0%, #fff 100%); color: #991b1b; }
+  .act-group-type { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#dbeafe; color:#1d4ed8; }
+
+  /* ── Category badges ── */
+  .cat-high     { background:#fef9c3; color:#854d0e; font-weight:700; border-radius:6px; padding:2px 8px; font-size:12px; }
+  .cat-moderate { background:#dbeafe; color:#1d4ed8; font-weight:700; border-radius:6px; padding:2px 8px; font-size:12px; }
+  .cat-low      { background:#dcfce7; color:#166534; font-weight:700; border-radius:6px; padding:2px 8px; font-size:12px; }
+
+  /* ── Risk category badge ── */
+  .risk-cat { background:#fef2f2; color:#dc2626; font-weight:700; border-radius:6px; padding:2px 8px; font-size:12px; }
+
+  /* ── Stat pill ── */
+  .stat-correct { color:#16a34a; font-weight:700; }
+  .stat-wrong   { color:#dc2626; font-weight:700; }
+
+  /* ── LLM status area ── */
+  .llm-status {
+    padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight:500; margin-top:8px;
+    display:none;
+  }
+  .llm-status.running { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; display:block; }
+  .llm-status.success { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; display:block; }
+  .llm-status.error   { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; display:block; }
+
+  /* ── Empty state ── */
+  .am-empty { text-align:center; padding:36px 20px; color:#9ca3af; }
+  .am-empty i { font-size:36px; display:block; margin-bottom:10px; }
+  .am-empty p { font-size:13px; margin:0; }
+
+  /* ── Tooltip icon ── */
+  .tt-icon { color:#9ca3af; font-size:14px; cursor:help; vertical-align:middle; }
+  .tt-icon:hover { color:#1a56db; }
+</style>
+
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="am-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="am-hero-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Metrics &amp; AI</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ myScenario.name }}</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Performance analysis, risk detection &amp; AI recommendation context</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
           <li class="breadcrumb-item active">Metrics &amp; AI</li>
-        </ol>
-      </nav>
+        </ol></nav>
+      </div>
+      <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end" style="padding-top:4px;">
+        <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
+          <i class="bi bi-arrow-left me-1"></i> Back to Scenario
+        </a>
+        <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
+          <i class="bi bi-lightbulb me-1"></i> Proposals
+        </a>
+      </div>
     </div>
-    <!-- End Page Title -->
+  </div>
 
-    <section class="section">
-        <div class="row mb-3">
-            <div class="col-sm-10">
-                <a class="btn btn-secondary"
-                    href="{% url 'viewScenario' id=myScenario.id %}">
-                    ← Back to Scenario
-                </a>
-            </div>
-        </div>
+  <section class="section">
 
-        <div class="row">
-            <div class="col-lg-12">
-                <button id="btn-load-category-metrics"
-                        data-scenario-id="{{ myScenario.id }}"
-                        class="btn btn-success">
-                    Show Metrics by Performance Category
-                </button>
-                <div id="category-metrics-results" class="mt-4">
-                    <!-- Metrics table will be rendered here -->
-                </div>
-            </div>
-        </div>
+    <!-- ── Action cards row ── -->
+    <div class="row g-3 mb-4">
 
-        <div class="row">
-            <div class="col-lg-12">
-                <button id="btn-load-risk-flags"
-                        data-scenario-id="{{ myScenario.id }}"
-                        class="btn btn-danger">
-                    Show Activities in Risk
-                </button>
-                <div id="risk-flags-results" class="mt-4">
-                    <!-- Flags table will be rendered here -->
-                </div>
-            </div>
+      <!-- Metrics by Category -->
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="action-card">
+          <div class="action-card-title"><i class="bi bi-table me-1"></i> Performance Metrics</div>
+          <div class="action-card-desc">Compute correct/wrong rates and average response times grouped by activity and student performance category.</div>
+          <button id="btn-load-category-metrics" data-scenario-id="{{ myScenario.id }}"
+                  class="btn btn-sm btn-primary mt-auto">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            {% if has_metrics %}Refresh{% else %}Compute{% endif %}
+          </button>
         </div>
-        {% if can_edit or request.user.is_superuser %}
-        <div class="row">
-            <div class="col-lg-12">
-                <button id="btn-generate-context" class="btn btn-primary" data-scenario-id="{{ myScenario.id }}" data-force="false">Generate LLM Context</button>
-                <span data-bs-toggle="tooltip" data-bs-placement="top"
-                      title="Runs LLM evaluation on activities that have not yet been processed. Reuses the existing PDF index and skips activities that already have cached context. Use this for regular runs after new student data is collected."
-                      style="cursor:help; color:#0d6efd; font-size:0.85rem; vertical-align:middle;">&#9432;</span>
-                <button id="btn-generate-context-force" class="btn btn-warning ms-2" data-scenario-id="{{ myScenario.id }}" data-force="true">Force Rebuild</button>
-                <span data-bs-toggle="tooltip" data-bs-placement="top"
-                      title="Deletes the Chroma PDF index and all cached activity/phase/scenario context from the database, then regenerates everything from scratch. Use this after uploading new PDFs or if a previous generation produced incorrect results."
-                      style="cursor:help; color:#ffc107; font-size:0.85rem; vertical-align:middle;">&#9432;</span>
-                <form style="display:none;">{% csrf_token %}</form>
-                <div id="context-status" style="margin-top: 10px;"></div>
-            </div>
+      </div>
+
+      <!-- Activities in Risk -->
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="action-card">
+          <div class="action-card-title"><i class="bi bi-exclamation-triangle me-1"></i> Activities in Risk</div>
+          <div class="action-card-desc">Detect activities where student performance flags indicate learning difficulties or anomalies requiring attention.</div>
+          <button id="btn-load-risk-flags" data-scenario-id="{{ myScenario.id }}"
+                  class="btn btn-sm btn-danger mt-auto">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            {% if has_flags %}Refresh{% else %}Detect{% endif %}
+          </button>
         </div>
+      </div>
+
+      {% if can_edit or request.user.is_superuser %}
+      <!-- Generate LLM Context -->
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="action-card">
+          <div class="action-card-title">
+            <i class="bi bi-robot me-1"></i> LLM Context
+            <i class="bi bi-info-circle tt-icon ms-1"
+               data-bs-toggle="tooltip" data-bs-placement="top"
+               title="Processes unanalysed activities using the LLM. Reuses the existing PDF index and skips already-cached activities. Use after new student data is collected."></i>
+          </div>
+          <div class="action-card-desc">Generate AI evaluation context for activities that have not yet been processed by the language model.</div>
+          <button id="btn-generate-context" data-scenario-id="{{ myScenario.id }}" data-force="false"
+                  class="btn btn-sm btn-primary mt-auto">
+            <i class="bi bi-cpu me-1"></i> Generate LLM Context
+          </button>
+        </div>
+      </div>
+
+      <!-- Force Rebuild -->
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="action-card" style="border-color:#fde68a;">
+          <div class="action-card-title" style="color:#92400e;">
+            <i class="bi bi-arrow-repeat me-1"></i> Force Rebuild
+            <i class="bi bi-info-circle tt-icon ms-1"
+               data-bs-toggle="tooltip" data-bs-placement="top"
+               title="Deletes the Chroma PDF index and all cached context, then regenerates everything from scratch. Use after uploading new PDFs or if a previous run produced incorrect results."></i>
+          </div>
+          <div class="action-card-desc">Wipe all cached AI context and rebuild from scratch. Use only when PDFs have changed or results are incorrect.</div>
+          <button id="btn-generate-context-force" data-scenario-id="{{ myScenario.id }}" data-force="true"
+                  class="btn btn-sm btn-warning mt-auto">
+            <i class="bi bi-trash me-1"></i> Force Rebuild
+          </button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── LLM status (shared) ── -->
+    {% if can_edit or request.user.is_superuser %}
+    <div id="context-status" class="llm-status"></div>
+    <form style="display:none;">{% csrf_token %}</form>
+    {% endif %}
+
+    <!-- ── Performance Metrics table ── -->
+    <div class="am-card" id="metrics-card">
+      <div class="am-card-header">
+        <span><i class="bi bi-table me-2" style="color:#1a56db;"></i>Performance Metrics by Category</span>
+        <div id="metrics-spinner" style="display:none;">
+          <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+          <span style="font-size:12px;color:#6b7280;margin-left:6px;">Computing…</span>
+        </div>
+      </div>
+      <div class="am-card-body p-0" id="category-metrics-results">
+        {% if has_metrics %}
+          {% for group in metrics_grouped %}
+          <div class="act-group-hdr">
+            <span>{{ group.phase }}</span>
+            <i class="bi bi-chevron-right text-muted" style="font-size:11px;"></i>
+            <span>{{ group.activity }}</span>
+            {% if group.type %}<span class="act-group-type">{{ group.type }}</span>{% endif %}
+          </div>
+          <div class="am-table-wrap" style="margin-bottom:{% if not forloop.last %}0{% else %}0{% endif %};">
+            <table class="am-table">
+              <thead>
+                <tr>
+                  <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
+                  <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
+                  <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in group.rows %}
+                <tr>
+                  <td>
+                    {% if row.Category == "High" %}<span class="cat-high">{{ row.Category }}</span>
+                    {% elif row.Category == "Moderate" %}<span class="cat-moderate">{{ row.Category }}</span>
+                    {% elif row.Category == "Low" %}<span class="cat-low">{{ row.Category }}</span>
+                    {% else %}{{ row.Category }}{% endif %}
+                  </td>
+                  <td>{{ row.Total }}</td>
+                  <td class="stat-correct">{{ row.Correct }}</td>
+                  <td class="stat-wrong">{{ row.Wrong }}</td>
+                  <td>{{ row.PctCorrect }}</td>
+                  <td>{{ row.PctWrong }}</td>
+                  <td>{{ row.AvgTime }}</td>
+                  <td style="font-size:12px;color:#6b7280;">{{ row.NextLow|default:"—" }}</td>
+                  <td style="font-size:12px;color:#6b7280;">{{ row.NextModerate|default:"—" }}</td>
+                  <td style="font-size:12px;color:#6b7280;">{{ row.NextHigh|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if not forloop.last %}<div style="height:1px;background:#eef1f6;margin:0;"></div>{% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="am-empty">
+            <i class="bi bi-bar-chart text-muted"></i>
+            <p>No cached metrics yet. Click <strong>Compute</strong> above to generate.</p>
+          </div>
         {% endif %}
-        <div class="row mb-3">
-            <div class="col-sm-10">
-                <a class="btn btn-secondary"
-                    href="{% url 'proposal_list' scenario_id=myScenario.id %}">
-                    Proposals
-                </a>
-            </div>
+      </div>
+    </div>
+
+    <!-- ── Risk Flags table ── -->
+    <div class="am-card" id="flags-card">
+      <div class="am-card-header">
+        <span><i class="bi bi-exclamation-triangle me-2" style="color:#dc2626;"></i>Activities in Risk</span>
+        <div id="flags-spinner" style="display:none;">
+          <span class="spinner-border spinner-border-sm text-danger" role="status"></span>
+          <span style="font-size:12px;color:#6b7280;margin-left:6px;">Analysing…</span>
         </div>
+      </div>
+      <div class="am-card-body p-0" id="risk-flags-results">
+        {% if has_flags %}
+          {% for group in flags_grouped %}
+          <div class="act-group-hdr risk">
+            <i class="bi bi-exclamation-triangle-fill" style="font-size:13px;"></i>
+            <span>{{ group.activity }}</span>
+          </div>
+          <div class="am-table-wrap">
+            <table class="am-table am-table-risk">
+              <thead>
+                <tr>
+                  <th>Category At Risk</th><th>Flag Type</th><th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in group.rows %}
+                <tr>
+                  <td><span class="risk-cat">{{ row.Category }}</span></td>
+                  <td style="font-weight:600;">{{ row.Flag }}</td>
+                  <td style="color:#6b7280;">{{ row.Reason }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if not forloop.last %}<div style="height:1px;background:#eef1f6;"></div>{% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="am-empty">
+            <i class="bi bi-shield-check text-muted"></i>
+            <p>No risk flags cached yet. Click <strong>Detect</strong> above to analyse.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
 
-    </section>
-  </main>
+  </section>
+</main>
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+// ── Metrics ──────────────────────────────────────────────────────────────────
+document.getElementById('btn-load-category-metrics').addEventListener('click', () => {
+  const sid     = document.getElementById('btn-load-category-metrics').dataset.scenarioId;
+  const spinner = document.getElementById('metrics-spinner');
+  spinner.style.display = 'flex';
 
-  <script>
-    document.getElementById('btn-load-category-metrics')
-        .addEventListener('click', () => {
-            const sid = document.getElementById('btn-load-category-metrics').dataset.scenarioId;
-            const target = document.getElementById('category-metrics-results');
-            target.innerHTML = '<p>⏳ Computing metrics by performance category…</p>';
+  fetch(`/authoringtool/category_metrics/${sid}/`)
+    .then(r => r.json())
+    .then(({ task_id }) => pollCategoryStatus(task_id, spinner));
+});
 
-            fetch(`/authoringtool/category_metrics/${sid}/`)
-            .then(r => r.json())
-            .then(({ task_id }) => pollCategoryStatus(task_id));
-        });
+function pollCategoryStatus(taskId, spinner) {
+  fetch(`/authoringtool/category_metrics_status/${taskId}/`)
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.status === 'done') {
+        spinner.style.display = 'none';
+        renderCategoryTable(resp.data);
+        document.getElementById('btn-load-category-metrics').innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh';
+      } else {
+        setTimeout(() => pollCategoryStatus(taskId, spinner), 1000);
+      }
+    });
+}
 
-        function pollCategoryStatus(taskId) {
-            fetch(`/authoringtool/category_metrics_status/${taskId}/`)
-                .then(r => r.json())
-                .then(resp => {
-                    console.log("Raw response:", resp);
-                    if (resp.status === 'done') {
-                        renderCategoryTable(resp.data);
-                    } else {
-                        setTimeout(() => pollCategoryStatus(taskId), 1000);
-                    }
-                });
-        }
+function renderCategoryTable(dataRows) {
+  const container = document.getElementById('category-metrics-results');
+  const grouped   = {};
+  const order     = [];
 
-        function renderCategoryTable(dataRows) {
-        const container = document.getElementById('category-metrics-results');
-        const grouped = {};
+  for (const row of dataRows) {
+    const key = `${row.Phase}|||${row.Activity}`;
+    if (!grouped[key]) { grouped[key] = []; order.push(key); }
+    grouped[key].push(row);
+  }
 
-        for (const row of dataRows) {
-            const key = `${row.Phase}|||${row.Activity}`;
-            if (!grouped[key]) grouped[key] = [];
-            grouped[key].push(row);
-        }
+  function catBadge(cat) {
+    if (cat === 'High')     return `<span class="cat-high">${cat}</span>`;
+    if (cat === 'Moderate') return `<span class="cat-moderate">${cat}</span>`;
+    if (cat === 'Low')      return `<span class="cat-low">${cat}</span>`;
+    return cat;
+  }
 
-        let html = '';
-        for (const [key, rows] of Object.entries(grouped)) {
-            const [phase, activity] = key.split('|||');
-            html += `<h5 class="mt-4">${phase} — <span class="text-info">${activity}</span> (${rows[0].Type})</h5>`;
-
-            html += `
-            <div class="table-responsive">
-            <table class="table table-bordered table-sm">
-                <thead class="table-light">
-                    <tr>
-                        <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
-                        <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
-                        <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-
-            for (const row of rows) {
-                html += `<tr>
-                    <td>${row.Category}</td>
-                    <td>${row.Total}</td>
-                    <td>${row.Correct}</td>
-                    <td>${row.Wrong}</td>
-                    <td>${row['% Correct']}</td>
-                    <td>${row['% Wrong']}</td>
-                    <td>${row['Avg Time']}</td>
-                    <td>${row["Next Low"]}</td>
-                    <td>${row["Next Moderate"]}</td>
-                    <td>${row["Next High"]}</td>
-                </tr>`;
-            }
-
-            html += `</tbody></table></div>`;
-        }
-
-        container.innerHTML = html;
-        }
-        // Metric Analysis
-        document.getElementById('btn-load-risk-flags')
-            .addEventListener('click', () => {
-                const sid = document.getElementById('btn-load-risk-flags').dataset.scenarioId;
-                const target = document.getElementById('risk-flags-results');
-                target.innerHTML = '<p>⏳ Computing risk flags…</p>';
-
-                fetch(`/authoringtool/risk_flags/${sid}/`)
-                .then(r => r.json())
-                .then(({ task_id }) => pollRiskFlagsStatus(task_id));
-            });
-
-        function pollRiskFlagsStatus(taskId) {
-            fetch(`/authoringtool/risk_flags_status/${taskId}/`)
-                .then(r => r.json())
-                .then(resp => {
-                    if (resp.status === 'done') {
-                        renderRiskFlagsTable(resp.data);
-                    } else if (resp.status === 'error') {
-                        document.getElementById('risk-flags-results').innerHTML =
-                            `<div class="alert alert-danger">${resp.error}</div>`;
-                    } else {
-                        setTimeout(() => pollRiskFlagsStatus(taskId), 1000);
-                    }
-                });
-        }
-
-        function renderRiskFlagsTable(dataRows) {
-            const container = document.getElementById('risk-flags-results');
-            if (!dataRows || !dataRows.length) {
-                container.innerHTML = '<div class="alert alert-info">No activities flagged as risky.</div>';
-                return;
-            }
-
-            // Optionally group by Activity
-            let grouped = {};
-            for (const row of dataRows) {
-                const key = `${row.Activity}`;
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(row);
-            }
-
-            let html = '';
-            for (const [activity, rows] of Object.entries(grouped)) {
-                html += `<h5 class="mt-4 text-danger">${activity}</h5>`;
-                html += `<div class="table-responsive"><table class="table table-bordered table-sm">
-                    <thead class="table-danger">
-                        <tr>
-                            <th>Category At Risk</th>
-                            <th>Flag Type</th>
-                            <th>Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-                for (const row of rows) {
-                    html += `<tr>
-                        <td>${row.Category}</td>
-                        <td>${row.Flag}</td>
-                        <td>${row.Reason}</td>
-                    </tr>`;
-                }
-                html += `</tbody></table></div>`;
-            }
-            container.innerHTML = html;
-        }
-
-    ///////////////// LLM /////////////////
-    function startLlmGeneration(button, force) {
-        const scenarioId = button.dataset.scenarioId;
-        const statusDiv = document.getElementById("context-status");
-        const forceBtn = document.getElementById("btn-generate-context-force");
-        const normalBtn = document.getElementById("btn-generate-context");
-        const originalText = button.innerText;
-
-        normalBtn.disabled = true;
-        forceBtn.disabled = true;
-        button.innerText = "Calculating... ⏳";
-        statusDiv.innerHTML = force
-            ? "⏳ Force rebuild started — all cached context will be regenerated..."
-            : "⏳ LLM context generation started. This may take a few minutes...";
-
-        fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/?force=${force}`, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "started") {
-                const taskId = data.task_id;
-
-                const interval = setInterval(() => {
-                    fetch(`/authoringtool/scenarios/llm_context_status/${taskId}/`)
-                        .then(res => res.json())
-                        .then(status => {
-                            if (status.state === "SUCCESS") {
-                                clearInterval(interval);
-                                normalBtn.disabled = false;
-                                forceBtn.disabled = false;
-                                button.innerText = originalText;
-                                statusDiv.innerHTML = "✅ Context generation completed!";
-                            } else if (status.state === "FAILURE") {
-                                clearInterval(interval);
-                                normalBtn.disabled = false;
-                                forceBtn.disabled = false;
-                                button.innerText = originalText;
-                                statusDiv.innerHTML = "❌ An error occurred during generation.";
-                            } else {
-                                statusDiv.innerHTML = `⏳ Still generating... [${status.state}]`;
-                            }
-                        });
-                }, 5000);
-            } else {
-                normalBtn.disabled = false;
-                forceBtn.disabled = false;
-                button.innerText = originalText;
-                statusDiv.innerHTML = "❌ Error starting the task.";
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            normalBtn.disabled = false;
-            forceBtn.disabled = false;
-            button.innerText = originalText;
-            statusDiv.innerHTML = "❌ Request failed.";
-        });
+  let html = '';
+  for (let i = 0; i < order.length; i++) {
+    const key  = order[i];
+    const rows = grouped[key];
+    const [phase, activity] = key.split('|||');
+    const type = rows[0].Type || '';
+    html += `<div class="act-group-hdr">
+      <span>${phase}</span>
+      <i class="bi bi-chevron-right text-muted" style="font-size:11px;"></i>
+      <span>${activity}</span>
+      ${type ? `<span class="act-group-type">${type}</span>` : ''}
+    </div>
+    <div class="am-table-wrap">
+    <table class="am-table">
+      <thead><tr>
+        <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
+        <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
+        <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
+      </tr></thead>
+      <tbody>`;
+    for (const row of rows) {
+      html += `<tr>
+        <td>${catBadge(row.Category)}</td>
+        <td>${row.Total}</td>
+        <td class="stat-correct">${row.Correct}</td>
+        <td class="stat-wrong">${row.Wrong}</td>
+        <td>${row['% Correct']}</td>
+        <td>${row['% Wrong']}</td>
+        <td>${row['Avg Time']}</td>
+        <td style="font-size:12px;color:#6b7280;">${row['Next Low']}</td>
+        <td style="font-size:12px;color:#6b7280;">${row['Next Moderate']}</td>
+        <td style="font-size:12px;color:#6b7280;">${row['Next High']}</td>
+      </tr>`;
     }
+    html += `</tbody></table></div>`;
+    if (i < order.length - 1) html += `<div style="height:1px;background:#eef1f6;"></div>`;
+  }
+  container.innerHTML = html;
+}
 
-    document.getElementById("btn-generate-context").addEventListener("click", function() {
-        startLlmGeneration(this, false);
-    });
-    document.getElementById("btn-generate-context-force").addEventListener("click", function() {
-        if (confirm("Force rebuild will regenerate all activity/phase/scenario context from scratch and delete existing Chroma indexes. Continue?")) {
-            startLlmGeneration(this, true);
-        }
-    });
+// ── Risk Flags ────────────────────────────────────────────────────────────────
+document.getElementById('btn-load-risk-flags').addEventListener('click', () => {
+  const sid     = document.getElementById('btn-load-risk-flags').dataset.scenarioId;
+  const spinner = document.getElementById('flags-spinner');
+  spinner.style.display = 'flex';
 
-    // Initialise Bootstrap tooltips on this page
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
-        new bootstrap.Tooltip(el);
+  fetch(`/authoringtool/risk_flags/${sid}/`)
+    .then(r => r.json())
+    .then(({ task_id }) => pollRiskFlagsStatus(task_id, spinner));
+});
+
+function pollRiskFlagsStatus(taskId, spinner) {
+  fetch(`/authoringtool/risk_flags_status/${taskId}/`)
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.status === 'done') {
+        spinner.style.display = 'none';
+        renderRiskFlagsTable(resp.data);
+        document.getElementById('btn-load-risk-flags').innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh';
+      } else if (resp.status === 'error') {
+        spinner.style.display = 'none';
+        document.getElementById('risk-flags-results').innerHTML =
+          `<div class="p-4"><div class="alert alert-danger mb-0">${resp.error}</div></div>`;
+      } else {
+        setTimeout(() => pollRiskFlagsStatus(taskId, spinner), 1000);
+      }
     });
-  </script>
+}
+
+function renderRiskFlagsTable(dataRows) {
+  const container = document.getElementById('risk-flags-results');
+  if (!dataRows || !dataRows.length) {
+    container.innerHTML = `<div class="am-empty">
+      <i class="bi bi-shield-check text-success"></i>
+      <p style="color:#16a34a;font-weight:600;">No activities flagged as risky.</p>
+    </div>`;
+    return;
+  }
+
+  const grouped = {};
+  const order   = [];
+  for (const row of dataRows) {
+    const act = row.Activity;
+    if (!grouped[act]) { grouped[act] = []; order.push(act); }
+    grouped[act].push(row);
+  }
+
+  let html = '';
+  for (let i = 0; i < order.length; i++) {
+    const act  = order[i];
+    const rows = grouped[act];
+    html += `<div class="act-group-hdr risk">
+      <i class="bi bi-exclamation-triangle-fill" style="font-size:13px;"></i>
+      <span>${act}</span>
+    </div>
+    <div class="am-table-wrap">
+    <table class="am-table am-table-risk">
+      <thead><tr><th>Category At Risk</th><th>Flag Type</th><th>Reason</th></tr></thead>
+      <tbody>`;
+    for (const row of rows) {
+      html += `<tr>
+        <td><span class="risk-cat">${row.Category}</span></td>
+        <td style="font-weight:600;">${row.Flag}</td>
+        <td style="color:#6b7280;">${row.Reason}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    if (i < order.length - 1) html += `<div style="height:1px;background:#eef1f6;"></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── LLM Context ───────────────────────────────────────────────────────────────
+{% if can_edit or request.user.is_superuser %}
+function setLlmStatus(cls, msg) {
+  const el = document.getElementById('context-status');
+  el.className = `llm-status ${cls}`;
+  el.innerHTML = msg;
+}
+
+function startLlmGeneration(button, force) {
+  const scenarioId = button.dataset.scenarioId;
+  const normalBtn  = document.getElementById('btn-generate-context');
+  const forceBtn   = document.getElementById('btn-generate-context-force');
+  const origHtml   = button.innerHTML;
+
+  normalBtn.disabled = true;
+  forceBtn.disabled  = true;
+  button.innerHTML   = '<span class="spinner-border spinner-border-sm me-1"></span> Working…';
+  setLlmStatus('running', force
+    ? '<i class="bi bi-arrow-repeat me-2"></i>Force rebuild started — regenerating all cached context…'
+    : '<i class="bi bi-cpu me-2"></i>LLM context generation started. This may take several minutes…');
+
+  fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/?force=${force}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'started') {
+      const interval = setInterval(() => {
+        fetch(`/authoringtool/scenarios/llm_context_status/${data.task_id}/`)
+          .then(r => r.json())
+          .then(status => {
+            if (status.state === 'SUCCESS') {
+              clearInterval(interval);
+              normalBtn.disabled = false;
+              forceBtn.disabled  = false;
+              button.innerHTML   = origHtml;
+              setLlmStatus('success', '<i class="bi bi-check-circle me-2"></i>Context generation completed successfully.');
+            } else if (status.state === 'FAILURE') {
+              clearInterval(interval);
+              normalBtn.disabled = false;
+              forceBtn.disabled  = false;
+              button.innerHTML   = origHtml;
+              setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>An error occurred during generation.');
+            } else {
+              setLlmStatus('running', `<span class="spinner-border spinner-border-sm me-2"></span>Still generating… [${status.state}]`);
+            }
+          });
+      }, 5000);
+    } else {
+      normalBtn.disabled = false;
+      forceBtn.disabled  = false;
+      button.innerHTML   = origHtml;
+      setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>Error starting the task.');
+    }
+  })
+  .catch(() => {
+    normalBtn.disabled = false;
+    forceBtn.disabled  = false;
+    button.innerHTML   = origHtml;
+    setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>Request failed.');
+  });
+}
+
+document.getElementById('btn-generate-context').addEventListener('click', function () {
+  startLlmGeneration(this, false);
+});
+document.getElementById('btn-generate-context-force').addEventListener('click', function () {
+  if (confirm('Force rebuild will delete all cached context and Chroma indexes, then regenerate everything from scratch.\n\nContinue?')) {
+    startLlmGeneration(this, true);
+  }
+});
+{% endif %}
+
+// Bootstrap tooltips
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+</script>
+
 {% endblock atcontent %}

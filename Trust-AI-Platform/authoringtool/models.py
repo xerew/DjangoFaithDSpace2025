@@ -604,7 +604,7 @@ class UserProposalReview(models.Model):
     status = models.CharField(
         max_length=16,
         choices=[
-            ('new', 'New'),
+            ('new', 'Pending'),
             ('accepted', 'Accepted'),
             ('rejected', 'Rejected')
         ],
@@ -617,18 +617,14 @@ class UserProposalReview(models.Model):
         unique_together = ('proposal', 'user')  # one review per user per proposal
 
     def accept(self):
-        """
-        Transition NEW -> ACCEPTED once; updates Q-values (+1) for each attached flag.
-        No-op if already accepted/rejected.
-        """
-        if self.status in ('accepted', 'rejected'):
+        """Transition any status -> ACCEPTED; updates Q-values (+1) for each attached flag."""
+        if self.status == 'accepted':
             return
         self.status = 'accepted'
         self.save(update_fields=['status', 'reviewed_at'])
 
         prop = self.proposal
         if not prop.flag.exists():
-            print(f"No flags for proposal {prop.id}; Q update skipped.")
             return
 
         def _on_commit():
@@ -637,18 +633,14 @@ class UserProposalReview(models.Model):
         transaction.on_commit(_on_commit)
 
     def reject(self):
-        """
-        Transition NEW -> REJECTED once; updates Q-values (−1) for each attached flag.
-        No-op if already accepted/rejected.
-        """
-        if self.status in ('accepted', 'rejected'):
+        """Transition any status -> REJECTED; updates Q-values (−1) for each attached flag."""
+        if self.status == 'rejected':
             return
         self.status = 'rejected'
         self.save(update_fields=['status', 'reviewed_at'])
 
         prop = self.proposal
         if not prop.flag.exists():
-            print(f"No flags for proposal {prop.id}; Q update skipped.")
             return
 
         def _on_commit():
@@ -673,12 +665,13 @@ def _cache_old_status(sender, instance, **kwargs):
 
 @receiver(post_save, sender=UserProposalReview)
 def _reward_on_review_status_change(sender, instance, created, **kwargs):
-    # Only react to updates from NEW -> {accepted,rejected}
+    # Fire Q-updates on any status transition that lands on accepted or rejected.
+    # Covers: new→accepted, new→rejected, accepted→rejected, rejected→accepted.
     if created:
         return
     old = getattr(instance, '_old_status', None)
     new = instance.status
-    if old != 'new' or new not in ('accepted', 'rejected'):
+    if old == new or new not in ('accepted', 'rejected'):
         return
 
     prop = instance.proposal

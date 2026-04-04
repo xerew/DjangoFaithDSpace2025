@@ -1739,40 +1739,68 @@ def calculate_activities_in_risk(scenario_id):
 
     # ====== 2. Function for Engagement (Timing Outlier) Analysis ======
     def flag_timing_outliers(activity_df, activity, activity_type):
-        """Flags categories whose Avg Time is > 1 std from mean, with reason."""
+        """
+        Flags categories whose Avg Time is an outlier relative to other categories.
+        Works with any 2+ categories present (does not require all three).
+        Uses coefficient of variation (CV) instead of a fixed-second threshold so
+        the check is scale-independent (short activities vs long ones).
+        """
         results = []
-        cats_present = set(activity_df['Category'])
-        if cats_present == {'High', 'Moderate', 'Low'}:
-            times = [activity_df[activity_df['Category'] == c]['Avg Time'].values[0] for c in ['High', 'Moderate', 'Low']]
-            mean_time = np.mean(times)
-            std_time = np.std(times, ddof=0)
-            if std_time > 5:
-                upper = mean_time + std_time
-                lower = mean_time - std_time
-                for idx, cat in enumerate(['High', 'Moderate', 'Low']):
-                    t = times[idx]
-                    if t > upper:
-                        reason = (
-                            f"Engagement risk: {cat} group's Avg Time ({t}s) is > 1 std above mean "
-                            f"({mean_time:.2f} ± {std_time:.2f})."
-                        )
-                        results.append({
-                            "Activity": activity,
-                            "Category": cat,
-                            "Flag": f"Engagement risk (too slow, {activity_type})",
-                            "Reason": reason
-                        })
-                    elif t < lower:
-                        reason = (
-                            f"Engagement risk: {cat} group's Avg Time ({t}s) is > 1 std below mean "
-                            f"({mean_time:.2f} ± {std_time:.2f})."
-                        )
-                        results.append({
-                            "Activity": activity,
-                            "Category": cat,
-                            "Flag": f"Engagement risk (too fast, {activity_type})",
-                            "Reason": reason
-                        })
+        # Collect whichever categories have valid timing data
+        ordered_cats = [
+            c for c in ['High', 'Moderate', 'Low']
+            if not activity_df[activity_df['Category'] == c].empty
+            and pd.notna(activity_df[activity_df['Category'] == c]['Avg Time'].values[0])
+            and activity_df[activity_df['Category'] == c]['Avg Time'].values[0] != ''
+        ]
+        if len(ordered_cats) < 2:
+            return results
+
+        times = {
+            c: float(activity_df[activity_df['Category'] == c]['Avg Time'].values[0])
+            for c in ordered_cats
+        }
+        time_vals = list(times.values())
+        mean_time = np.mean(time_vals)
+        std_time  = np.std(time_vals, ddof=0)
+
+        if mean_time == 0:
+            return results
+
+        # CV (coefficient of variation) makes the threshold scale-independent.
+        # Require >25% relative spread AND >5s absolute spread to avoid noise
+        # on very short activities where a few seconds look like a lot.
+        # 5s floor is sufficient: genuine signals (e.g. 16s vs 31s, σ=6s) pass,
+        # while true noise (e.g. 8s vs 9s, σ<1s) is suppressed.
+        cv = std_time / mean_time
+        if cv < 0.25 or std_time < 5:
+            return results
+
+        upper = mean_time + std_time
+        lower = mean_time - std_time
+        for cat, t in times.items():
+            if t > upper:
+                results.append({
+                    "Activity": activity,
+                    "Category": cat,
+                    "Flag": f"Engagement risk (too slow, {activity_type})",
+                    "Reason": (
+                        f"Engagement risk: {cat} group's Avg Time ({t:.1f}s) is above mean+std "
+                        f"({mean_time:.1f}s ± {std_time:.1f}s, CV={cv:.2f}). "
+                        f"Significantly slower than the other groups — possible confusion or disengagement."
+                    )
+                })
+            elif t < lower:
+                results.append({
+                    "Activity": activity,
+                    "Category": cat,
+                    "Flag": f"Engagement risk (too fast, {activity_type})",
+                    "Reason": (
+                        f"Engagement risk: {cat} group's Avg Time ({t:.1f}s) is below mean-std "
+                        f"({mean_time:.1f}s ± {std_time:.1f}s, CV={cv:.2f}). "
+                        f"Suspiciously fast relative to other groups — may indicate guessing or skipping."
+                    )
+                })
         return results
 
     # ====== 3. Part 1: Question Activities Risk Analysis ======
@@ -1780,6 +1808,11 @@ def calculate_activities_in_risk(scenario_id):
 
     for activity in question_df['Activity'].unique():
         act_df = question_df[question_df['Activity'] == activity]
+
+        # Timing outlier check runs for any 2+ categories present (moved before the guard)
+        flags.extend(flag_timing_outliers(act_df, activity, activity_type="question"))
+
+        # Checks 1–3 compare H vs M vs L directly — require all three
         if set(act_df['Category']) != {'High', 'Moderate', 'Low'}:
             continue
 
@@ -1787,59 +1820,155 @@ def calculate_activities_in_risk(scenario_id):
         M = act_df[act_df['Category'] == 'Moderate'].iloc[0]
         L = act_df[act_df['Category'] == 'Low'].iloc[0]
         wrongs = {'High': H['% Wrong'], 'Moderate': M['% Wrong'], 'Low': L['% Wrong']}
-        times = {'High': H['Avg Time'], 'Moderate': M['Avg Time'], 'Low': L['Avg Time']}
+        times  = {'High': H['Avg Time'],  'Moderate': M['Avg Time'],  'Low': L['Avg Time']}
 
-        # --- 1. Extreme Correctness Patterns ---
-        if ((0 < H['% Wrong'] < 100 or 0 < L['% Wrong'] < 100) and (M['% Wrong'] > 60)):
-            flag_reason = (
-                f"Extreme correctness pattern: "
-                f"High ({wrongs['High']}%) or Low ({wrongs['Low']}%) group not at extremes, "
-                f"Moderate wrong is high ({wrongs['Moderate']}%)."
-            )
+        # --- 1. Non-monotonic performance distribution ---
+        # Expected natural order: High wrong% ≤ Moderate wrong% ≤ Low wrong%
+        # (High-category students should make the fewest mistakes.)
+        # Any significant violation of this order is a calibration/design signal.
+        MARGIN = 12  # percentage-point gap required before flagging (avoids noise)
+
+        # Case A: Moderate is the worst of all three (unexpected V-shape)
+        if (M['% Wrong'] > H['% Wrong'] + MARGIN and M['% Wrong'] > L['% Wrong'] + MARGIN):
             flags.append({
                 "Activity": activity,
                 "Category": "Moderate",
-                "Flag": "Extreme correctness pattern",
-                "Reason": flag_reason
-            })
-
-        # --- 2. Timing Discrepancy Under Extreme Correctness ---
-        for cat, wrong in wrongs.items():
-            others = [c for c in ['High', 'Moderate', 'Low'] if c != cat]
-            if wrong in [0.0, 100.0]:
-                if all(times[cat] >= 1.5 * times[other] for other in others):
-                    flag_reason = (
-                        f"Timing discrepancy: {cat} group spent {times[cat]}s which is >=1.5x the other groups "
-                        f"({times[others[0]]}s, {times[others[1]]}s) with {cat} group having {wrong}% wrong."
-                    )
-                    flags.append({
-                        "Activity": activity,
-                        "Category": cat,
-                        "Flag": "Timing discrepancy under extreme correctness",
-                        "Reason": flag_reason
-                    })
-
-        # --- 3. Dynamic Cutoff for Correctness ---
-        wrong_arr = np.array([H['% Wrong'], M['% Wrong'], L['% Wrong']])
-        mean_wrong = wrong_arr.mean()
-        std_wrong = wrong_arr.std(ddof=0)
-        threshold = mean_wrong + std_wrong
-        for cat, wrong in wrongs.items():
-            if cat == "Low" and wrong == 100.0:
-                continue  # Skip Low category
-            if wrong > threshold:
-                flag_reason = (
-                    f"Dynamic correctness: {cat} group's %Wrong ({wrong}%) exceeds mean+std threshold ({threshold:.2f}%)."
+                "Flag": "Non-monotonic performance (Moderate worst)",
+                "Reason": (
+                    f"Unexpected V-shape: Moderate group ({wrongs['Moderate']}% wrong) performs worse than "
+                    f"both High ({wrongs['High']}%) and Low ({wrongs['Low']}%) groups. "
+                    f"Activity may be poorly calibrated for mid-range learners."
                 )
+            })
+        else:
+            # Case B: Low outperforms Moderate (Low has fewer errors than Moderate)
+            if L['% Wrong'] < M['% Wrong'] - MARGIN and M['% Wrong'] > 40:
                 flags.append({
                     "Activity": activity,
-                    "Category": cat,
-                    "Flag": "Dynamic correctness threshold",
-                    "Reason": flag_reason
+                    "Category": "Moderate",
+                    "Flag": "Non-monotonic performance (Low beats Moderate)",
+                    "Reason": (
+                        f"Low group ({wrongs['Low']}% wrong) outperforms Moderate ({wrongs['Moderate']}% wrong) "
+                        f"— unexpected reversal in performance order. "
+                        f"Activity content or answer choices may not align with the expected difficulty level."
+                    )
+                })
+            # Case C: High underperforms Moderate
+            if H['% Wrong'] > M['% Wrong'] + MARGIN and H['% Wrong'] > 40:
+                flags.append({
+                    "Activity": activity,
+                    "Category": "High",
+                    "Flag": "Non-monotonic performance (High underperforms Moderate)",
+                    "Reason": (
+                        f"High group ({wrongs['High']}% wrong) performs worse than Moderate ({wrongs['Moderate']}% wrong). "
+                        f"High-category students should outperform Moderate — this reversal may indicate "
+                        f"activity miscalibration or a mismatch between the activity and the scoring rubric."
+                    )
                 })
 
-        # --- 4. Engagement Analysis for Question Activities ---
-        flags.extend(flag_timing_outliers(act_df, activity, activity_type="question"))
+        # --- 2. Timing Discrepancy Under Extreme Correctness ---
+        # Flags categories that scored at a performance extreme (0% or 100% wrong)
+        # yet spent disproportionately more time than every other category.
+        # The two extremes carry different pedagogical meanings and produce
+        # distinct flag types. A minimum absolute gap (TAU_ABS_GAP) prevents
+        # spurious flags when all groups respond quickly and the 1.5x ratio
+        # is met trivially (e.g. 9s vs 6s).
+        TAU_RATIO   = 1.5   # flagged category must spend >= 1.5x each other group
+        TAU_ABS_GAP = 10.0  # AND must spend >= 10s more than each other group
+
+        for cat, wrong in wrongs.items():
+            others = [c for c in ['High', 'Moderate', 'Low'] if c != cat]
+            if wrong not in [0.0, 100.0]:
+                continue
+            # Both the ratio and the absolute gap must hold for every comparison group
+            ratio_holds = all(times[cat] >= TAU_RATIO * times[other] for other in others)
+            gap_holds   = all(times[cat] - times[other] >= TAU_ABS_GAP for other in others)
+            if not (ratio_holds and gap_holds):
+                continue
+
+            if wrong == 100.0:
+                flag_type = "Confusion under total failure"
+                interpretation = (
+                    f"{cat} group answered everything incorrectly (100% wrong) yet spent "
+                    f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
+                    f"({times[others[0]]}s, {times[others[1]]}s). "
+                    f"Prolonged time with total failure indicates active confusion or cognitive overload, "
+                    f"not disengagement."
+                )
+            else:  # wrong == 0.0
+                flag_type = "Unexpected deliberation under perfect performance"
+                interpretation = (
+                    f"{cat} group answered everything correctly (0% wrong) yet spent "
+                    f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
+                    f"({times[others[0]]}s, {times[others[1]]}s). "
+                    f"Perfect outcome with excessive time may indicate effortful retrieval at the boundary "
+                    f"of the group's ability range, rather than confident mastery."
+                )
+
+            flags.append({
+                "Activity": activity,
+                "Category": cat,
+                "Flag": flag_type,
+                "Reason": interpretation,
+            })
+
+        # --- 3. Dynamic Cutoff for Correctness (with systemic failure detection) ---
+        wrong_arr  = np.array([H['% Wrong'], M['% Wrong'], L['% Wrong']])
+        mean_wrong = wrong_arr.mean()
+        std_wrong  = wrong_arr.std(ddof=0)
+        spread     = wrong_arr.max() - wrong_arr.min()
+
+        # Thresholds (all in percentage points)
+        TAU_BASE       = 55.0   # all-individual systemic failure gate
+        TAU_SPREAD     = 15.0   # minimum spread for a per-category flag to be meaningful
+        TAU_ABS_FLAG   = 45.0   # minimum absolute error rate for the flagged category
+        TAU_LOW_EXEMPT = 40.0   # Low=100% exemption only when High is performing well
+
+        # Systemic failure: all three categories individually exceed TAU_BASE.
+        # Using individual checks (not mean) avoids the cliff-edge of a single cutoff:
+        # an activity where all groups are above the baseline is universally too hard,
+        # regardless of whether one group is slightly worse than the others.
+        if H['% Wrong'] > TAU_BASE and M['% Wrong'] > TAU_BASE and L['% Wrong'] > TAU_BASE:
+            flags.append({
+                "Activity": activity,
+                "Category": "All",
+                "Flag": "Systemic failure — activity too difficult",
+                "Reason": (
+                    f"All categories individually exceed the baseline threshold ({TAU_BASE}%): "
+                    f"High {wrongs['High']}%, Moderate {wrongs['Moderate']}%, Low {wrongs['Low']}% wrong. "
+                    f"The activity appears too difficult for all student groups — "
+                    f"review the question wording, answer options, or prerequisite content."
+                )
+            })
+        else:
+            # Per-category outlier: one group is notably worse than the others.
+            # Guard 1 — minimum spread: if the max-min range is too small, the
+            # mean+std threshold is unreliable (self-referential with n=3) and
+            # any "outlier" is likely within statistical noise.
+            if spread >= TAU_SPREAD:
+                threshold = mean_wrong + std_wrong
+                for cat, wrong in wrongs.items():
+                    # Guard 2 — Low=100% exemption: only suppress when High is
+                    # performing well, confirming this is an expected lower bound
+                    # rather than part of a wider problem.
+                    if cat == "Low" and wrong == 100.0 and H['% Wrong'] < TAU_LOW_EXEMPT:
+                        continue
+                    # Guard 3 — minimum absolute error: prevents flagging a category
+                    # that technically exceeds mean+std but is still performing
+                    # acceptably in absolute terms.
+                    if wrong < TAU_ABS_FLAG:
+                        continue
+                    if wrong > threshold:
+                        flags.append({
+                            "Activity": activity,
+                            "Category": cat,
+                            "Flag": "Dynamic correctness threshold",
+                            "Reason": (
+                                f"Dynamic correctness: {cat} group's %Wrong ({wrong}%) exceeds "
+                                f"mean+std threshold ({threshold:.2f}%) with a category spread of {spread:.1f}pp. "
+                                f"This group is struggling significantly more than the others on this activity."
+                            )
+                        })
 
     # ====== 4. Part 2: Non-Question Activities Engagement Analysis ======
     nonq_df = df[df['Type'].str.lower() != 'question']

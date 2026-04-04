@@ -1,196 +1,474 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Proposals</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab — Proposals — {{ myScenario.name }}</title>{% endblock %}
 {% block atcontent %}
 {% load group_tags %}
+
+<style>
+  /* ── Hero ── */
+  .pr-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .pr-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .pr-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .pr-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .pr-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .pr-hero .breadcrumb-item a:hover { color:#fff; }
+  .pr-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); }
+  .hero-btn-ghost:hover { background:rgba(255,255,255,0.25); color:#fff; }
+  .hero-btn-solid { background:#fff; color:#1a56db; font-weight:600; border:none; }
+  .hero-btn-solid:hover { background:#e8f0fe; color:#1a56db; }
+  .hero-btn-green { background:rgba(22,163,74,0.2); color:#bbf7d0; border:1px solid rgba(34,197,94,0.4); font-weight:600; }
+  .hero-btn-green:hover { background:rgba(22,163,74,0.35); color:#fff; }
+  @media (max-width:575.98px) {
+    .pr-hero { padding:14px 16px 12px; }
+    .pr-hero > .d-flex { flex-wrap:wrap; }
+    .pr-hero-icon { display:none; }
+    .pr-hero h2 { font-size:15px !important; }
+  }
+
+  /* ── Stat pills in hero ── */
+  .hero-stats { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .hero-stat {
+    display:flex; flex-direction:column; align-items:center;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+    border-radius:10px; padding:8px 18px; min-width:80px;
+  }
+  .hero-stat-num { font-size:20px; font-weight:700; line-height:1.1; }
+  .hero-stat-lbl { font-size:11px; opacity:0.78; margin-top:2px; text-transform:uppercase; letter-spacing:.5px; }
+  .hero-stat.accepted { background:rgba(34,197,94,0.18); border-color:rgba(34,197,94,0.35); }
+  .hero-stat.rejected { background:rgba(239,68,68,0.18); border-color:rgba(239,68,68,0.35); }
+  .hero-stat.pending  { background:rgba(251,191,36,0.18); border-color:rgba(251,191,36,0.35); }
+
+  /* ── Filter tabs ── */
+  .filter-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .filter-tab {
+    display:inline-flex; align-items:center; gap:5px; padding:6px 14px;
+    border-radius:20px; font-size:13px; font-weight:600; text-decoration:none;
+    border:1.5px solid #d1d5db; color:#6b7280; background:#fff;
+    transition:all .12s; cursor:pointer;
+  }
+  .filter-tab:hover { border-color:#1a56db; color:#1a56db; background:#eff6ff; }
+  .filter-tab.active { background:#1a56db; color:#fff; border-color:#1a56db; }
+  .filter-tab .badge-pill {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; border-radius:9px; font-size:11px;
+    padding:0 5px; font-weight:700;
+  }
+  .filter-tab.active .badge-pill { background:rgba(255,255,255,0.25); color:#fff; }
+  .filter-tab:not(.active) .badge-pill { background:#e5e7eb; color:#374151; }
+  .filter-tab.f-accepted.active { background:#16a34a; border-color:#16a34a; }
+  .filter-tab.f-accepted:not(.active):hover { border-color:#16a34a; color:#16a34a; background:#f0fdf4; }
+  .filter-tab.f-rejected.active { background:#dc2626; border-color:#dc2626; }
+  .filter-tab.f-rejected:not(.active):hover { border-color:#dc2626; color:#dc2626; background:#fff5f5; }
+  .filter-tab.f-pending.active { background:#b45309; border-color:#b45309; }
+  .filter-tab.f-pending:not(.active):hover { border-color:#b45309; color:#b45309; background:#fffbeb; }
+
+  /* ── Proposal card ── */
+  .proposal-card {
+    border-radius:12px; border:1px solid #e8edf5; background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:12px;
+    overflow:hidden; transition:box-shadow .15s;
+  }
+  .proposal-card:hover { box-shadow:0 4px 16px rgba(26,86,219,0.09); border-color:#c5d0f0; }
+  .proposal-card[data-status="accepted"] { border-left:4px solid #16a34a; }
+  .proposal-card[data-status="rejected"] { border-left:4px solid #dc2626; }
+  .proposal-card[data-status="new"]      { border-left:4px solid #d97706; }
+
+  .proposal-card-header {
+    padding:14px 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+
+  /* ── Breadcrumb trail ── */
+  .prop-trail { display:flex; align-items:center; gap:5px; flex-grow:1; min-width:0; flex-wrap:wrap; }
+  .prop-trail-phase { font-size:12px; color:#6b7280; white-space:nowrap; }
+  .prop-trail-sep { color:#d1d5db; font-size:11px; }
+  .prop-trail-activity { font-size:14px; font-weight:700; color:#1e3a8a; }
+
+  /* ── Type badge ── */
+  .type-badge {
+    font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+  }
+  .type-create  { background:#dbeafe; color:#1d4ed8; }
+  .type-revise  { background:#ede9fe; color:#6d28d9; }
+  .type-skip    { background:#f3f4f6; color:#374151; }
+
+  /* ── Status badge ── */
+  .status-badge {
+    font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+  }
+  .status-new      { background:#fef9c3; color:#854d0e; }
+  .status-accepted { background:#dcfce7; color:#15803d; }
+  .status-rejected { background:#fee2e2; color:#b91c1c; }
+
+  /* ── Action buttons ── */
+  .prop-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  .btn-accept {
+    display:inline-flex; align-items:center; gap:5px; padding:5px 14px;
+    border-radius:8px; font-size:12.5px; font-weight:600; border:none;
+    background:#dcfce7; color:#15803d; cursor:pointer; transition:background .12s;
+  }
+  .btn-accept:hover { background:#bbf7d0; }
+  .btn-reject {
+    display:inline-flex; align-items:center; gap:5px; padding:5px 14px;
+    border-radius:8px; font-size:12.5px; font-weight:600; border:none;
+    background:#fee2e2; color:#b91c1c; cursor:pointer; transition:background .12s;
+  }
+  .btn-reject:hover { background:#fecaca; }
+
+  /* ── Expand toggle ── */
+  .prop-expand-btn {
+    display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
+    border-radius:8px; font-size:12px; font-weight:600;
+    background:#f3f4f6; color:#374151; border:none; cursor:pointer; transition:background .12s;
+  }
+  .prop-expand-btn:hover { background:#e5e7eb; }
+  .prop-expand-btn[aria-expanded="true"] { background:#eff6ff; color:#1a56db; }
+
+  /* ── Edit panel ── */
+  .proposal-edit-panel {
+    border-top:1px solid #eef1f6; background:#f8faff; padding:20px 22px;
+  }
+  .edit-section-title {
+    font-size:12px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; color:#6b7280; margin-bottom:8px;
+  }
+  .form-label { font-size:13px; font-weight:600; color:#374151; margin-bottom:4px; }
+  .form-control { font-size:13.5px; border-radius:8px; border:1px solid #d1d5db; }
+  .form-control:focus { border-color:#1a56db; box-shadow:0 0 0 3px rgba(26,86,219,0.12); }
+  .btn-save-edit {
+    display:inline-flex; align-items:center; gap:6px; padding:7px 18px;
+    border-radius:8px; font-size:13px; font-weight:600; border:none;
+    background:#1a56db; color:#fff; cursor:pointer; transition:background .12s;
+  }
+  .btn-save-edit:hover { background:#1e3a8a; }
+
+  /* ── Create scenario CTA ── */
+  .create-cta {
+    border-radius:12px; border:2px solid #16a34a; background:#f0fdf4;
+    padding:20px 24px; display:flex; align-items:center; gap:16px;
+    margin-bottom:20px; flex-wrap:wrap;
+  }
+  .create-cta i { font-size:28px; color:#16a34a; flex-shrink:0; }
+  .create-cta-text h6 { font-size:14px; font-weight:700; color:#15803d; margin:0 0 3px; }
+  .create-cta-text p  { font-size:13px; color:#166534; margin:0; }
+  .btn-create-scenario {
+    margin-left:auto; display:inline-flex; align-items:center; gap:6px; padding:9px 22px;
+    border-radius:10px; font-size:13.5px; font-weight:700; border:none;
+    background:#16a34a; color:#fff; cursor:pointer; transition:background .12s; white-space:nowrap;
+  }
+  .btn-create-scenario:hover { background:#15803d; }
+
+  /* ── Empty state ── */
+  .pr-empty { text-align:center; padding:60px 20px; color:#9ca3af; }
+  .pr-empty i { font-size:40px; display:block; margin-bottom:12px; }
+</style>
+
 <main id="main" class="main">
-  <div class="pagetitle">
-    <h1>Activity Proposals</h1>
-    <nav>
-        <ol class="breadcrumb">
+
+  <!-- ── Hero ── -->
+  <div class="pr-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="pr-hero-icon"><i class="bi bi-lightbulb"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">AI Proposals</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Activity Proposals</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:3px;">{{ myScenario.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'ai_metrics' scenario_id=myScenario.id %}">Metrics &amp; AI</a></li>
           <li class="breadcrumb-item active">Proposals</li>
-        </ol>
-    </nav>
-  </div>
-
-  <section class="section">
-    <div class="row mb-3">
-      <div class="col-sm-10">
-        <a class="btn btn-secondary" href="{% url 'ai_metrics' scenario_id=myScenario.id %}">← Back to AI Metrics</a>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Review Suggested Activity Improvements</h5>
-            <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Scenario</th>
-                  <th>Phase</th>
-                  <th>Activity</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for proposal in proposals %}
-                <tr>
-                  <td>{{ proposal.scenario.name }}</td>
-                  <td>{{ proposal.phase.name }}</td>
-                  <td>{{ proposal.activity.name }}</td>
-                  <td>{{ proposal.get_proposal_type_display }}</td>
-                  <td>
-                    {% if proposal.status == "new" %}<span class="badge bg-warning text-dark">New</span>
-                    {% elif proposal.status == "accepted" %}<span class="badge bg-success">Accepted</span>
-                    {% elif proposal.status == "rejected" %}<span class="badge bg-danger">Rejected</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% with user_review=user_reviews|dict_get:proposal.id %}
-                      {% if user_review.status == "new" %}
-                        <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-success">Accept</button>
-                        </form>
-                        <form method="post" action="{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                        </form>
-                      {% elif user_review.status == "accepted" %}
-                        <span class="badge bg-success">Accepted</span>
-                      {% elif user_review.status == "rejected" %}
-                        <span class="badge bg-danger">Rejected</span>
-                      {% endif %}
-                    {% endwith %}
-                  </td>
-                </tr>
-                <tr class="table-light">
-                  <td colspan="6">
-                    <div class="accordion" id="accordion-{{ proposal.id }}">
-                      <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading-{{ proposal.id }}">
-                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ proposal.id }}" aria-expanded="false" aria-controls="collapse-{{ proposal.id }}">
-                            View Suggested Action
-                          </button>
-                        </h2>
-                        <div id="collapse-{{ proposal.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ proposal.id }}" data-bs-parent="#accordion-{{ proposal.id }}">
-                          <div class="accordion-body">
-                            <div class="p-3 bg-light border rounded shadow-sm">
-                              <h6 class="fw-bold mb-2 text-primary">Edit Suggested Action</h6>
-                              <form method="post" action="{% url 'edit_proposal_json' pk=proposal.pk scenario_id=myScenario.id %}">
-                                {% csrf_token %}
-                                {% with user_review=user_reviews|dict_get:proposal.id %}
-                                  {% if user_review.teacher_edited_json %}
-                                    <script id="json-parsed-{{ proposal.id }}" type="application/json">
-                                      {{ user_review.teacher_edited_json|safe }}
-                                    </script>
-                                  {% else %}
-                                    <script id="json-parsed-{{ proposal.id }}" type="application/json">
-                                      {{ proposal.json_translated_action|safe }}
-                                    </script>
-                                  {% endif %}
-                                {% endwith %}
-                                <script>
-                                  document.addEventListener("DOMContentLoaded", () => {
-                                    const allAccordions = document.querySelectorAll(".accordion-collapse");
-                                    allAccordions.forEach((collapseEl) => {
-                                      const idMatch = collapseEl.id.match(/collapse-(\d+)/);
-                                      if (!idMatch) return;
-                                      const proposalId = idMatch[1];
-
-                                      collapseEl.addEventListener("show.bs.collapse", () => {
-                                        console.log("🟢 Expanding proposal:", proposalId);
-                                        const scriptEl = document.getElementById(`json-parsed-${proposalId}`);
-                                        if (!scriptEl) {
-                                          console.warn(`❌ Script element not found for proposal ${proposalId}`);
-                                          return;
-                                        }
-
-                                        try {
-                                          const parsed = JSON.parse(scriptEl.textContent);
-                                          console.log("✅ Parsed JSON for proposal", proposalId, parsed);
-
-                                          const form = collapseEl.querySelector("form");
-                                          if (!form) {
-                                            console.warn("❌ No form found inside accordion for proposal", proposalId);
-                                            return;
-                                          }
-
-                                          form.querySelector(`[name='activity_name']`).value = parsed.activity_name || '';
-                                          form.querySelector(`[name='content']`).value = parsed.content || '';
-                                          form.querySelector(`[name='explanation']`).value = parsed.explanation || '';
-
-                                          const answers = parsed.answers || [];
-                                          const answerContainer = form.querySelector(`#answer-fields-${proposalId}`);
-                                          answerContainer.innerHTML = "";
-                                          answers.forEach((ans, idx) => {
-                                            const input = document.createElement("input");
-                                            input.type = "text";
-                                            input.name = `answer_text_${idx + 1}`;
-                                            input.className = "form-control mb-1";
-                                            input.value = ans.text || '';
-                                            answerContainer.appendChild(input);
-                                          });
-                                        } catch (e) {
-                                          console.error(`❌ Failed to parse JSON for proposal ${proposalId}:`, e);
-                                          console.error("Raw data:", scriptEl?.textContent);
-                                        }
-                                      });
-                                    });
-                                  });
-                                </script>
-                                <div class="mb-2">
-                                  <label class="form-label">Activity Name</label>
-                                  <input name="activity_name" class="form-control">
-                                </div>
-                                <div class="mb-2">
-                                  <label class="form-label">Content</label>
-                                  <textarea name="content" class="form-control"></textarea>
-                                </div>
-                                <div class="mb-2">
-                                  <label class="form-label">Answers</label>
-                                  <div id="answer-fields-{{ proposal.id }}"></div>
-                                </div>
-                                <div class="mb-2">
-                                  <label class="form-label">Explanation</label>
-                                  <textarea name="explanation" class="form-control"></textarea>
-                                </div>
-                                <div class="mt-2">
-                                  <button type="submit" class="btn btn-sm btn-warning">📂 Save Edit</button>
-                                </div>
-                              </form>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="6">No proposals available.</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            </div><!-- /.table-responsive -->
-            {% if show_create_button %}
-              <div class="mb-3">
-                <form method="post" action="{% url 'create_personal_scenario' scenario_id=myScenario.id %}">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-primary">
-                    ✅ Create My Personalized Scenario with Accepted Proposals
-                  </button>
-                </form>
-              </div>
-            {% endif %}
+        </ol></nav>
+        <!-- Stats -->
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num">{{ total_count }}</span>
+            <span class="hero-stat-lbl">Total</span>
+          </div>
+          <div class="hero-stat pending">
+            <span class="hero-stat-num">{{ pending_count }}</span>
+            <span class="hero-stat-lbl">Pending</span>
+          </div>
+          <div class="hero-stat accepted">
+            <span class="hero-stat-num">{{ accepted_count }}</span>
+            <span class="hero-stat-lbl">Accepted</span>
+          </div>
+          <div class="hero-stat rejected">
+            <span class="hero-stat-num">{{ rejected_count }}</span>
+            <span class="hero-stat-lbl">Rejected</span>
           </div>
         </div>
       </div>
+      <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end" style="padding-top:4px;">
+        <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
+          <i class="bi bi-arrow-left me-1"></i> Metrics &amp; AI
+        </a>
+      </div>
     </div>
+  </div>
+
+  <section class="section">
+
+    {% if proposals %}
+
+    <!-- ── Create Personalised Scenario CTA ── -->
+    {% if show_create_button %}
+    <div class="create-cta">
+      <i class="bi bi-check-circle-fill"></i>
+      <div class="create-cta-text">
+        <h6>All proposals reviewed!</h6>
+        <p>You can now create a personalised scenario incorporating your accepted proposals.</p>
+      </div>
+      <form method="post" action="{% url 'create_personal_scenario' scenario_id=myScenario.id %}" style="margin-left:auto;">
+        {% csrf_token %}
+        <button type="submit" class="btn-create-scenario">
+          <i class="bi bi-stars"></i> Create Personalised Scenario
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- ── Filter tabs ── -->
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-filter="all">
+        All <span class="badge-pill">{{ total_count }}</span>
+      </button>
+      <button class="filter-tab f-pending" data-filter="new">
+        Pending <span class="badge-pill">{{ pending_count }}</span>
+      </button>
+      <button class="filter-tab f-accepted" data-filter="accepted">
+        <i class="bi bi-check-circle" style="font-size:12px;"></i> Accepted <span class="badge-pill">{{ accepted_count }}</span>
+      </button>
+      <button class="filter-tab f-rejected" data-filter="rejected">
+        <i class="bi bi-x-circle" style="font-size:12px;"></i> Rejected <span class="badge-pill">{{ rejected_count }}</span>
+      </button>
+    </div>
+
+    <!-- ── Proposal cards ── -->
+    <div id="proposalList">
+      {% for proposal in proposals %}
+      {% with review=user_reviews|dict_get:proposal.id %}
+      <div class="proposal-card" data-status="{{ review.status }}" id="proposal-card-{{ proposal.id }}">
+
+        <!-- Card header row -->
+        <div class="proposal-card-header">
+
+          <!-- Phase → Activity trail -->
+          <div class="prop-trail">
+            <span class="prop-trail-phase">{{ proposal.phase.name }}</span>
+            <i class="bi bi-chevron-right prop-trail-sep"></i>
+            <span class="prop-trail-activity">{{ proposal.activity.name }}</span>
+          </div>
+
+          <!-- Type badge -->
+          {% if proposal.proposal_type == "create" %}
+            <span class="type-badge type-create"><i class="bi bi-plus-circle me-1"></i>Create New Activity</span>
+          {% elif proposal.proposal_type == "revise" %}
+            <span class="type-badge type-revise"><i class="bi bi-pencil me-1"></i>Revise Activity</span>
+          {% else %}
+            <span class="type-badge type-skip"><i class="bi bi-skip-forward me-1"></i>{{ proposal.get_proposal_type_display }}</span>
+          {% endif %}
+
+          <!-- Status badge -->
+          {% if review.status == "new" %}
+            <span class="status-badge status-new"><i class="bi bi-clock me-1"></i>Pending</span>
+          {% elif review.status == "accepted" %}
+            <span class="status-badge status-accepted"><i class="bi bi-check me-1"></i>Accepted</span>
+          {% elif review.status == "rejected" %}
+            <span class="status-badge status-rejected"><i class="bi bi-x me-1"></i>Rejected</span>
+          {% endif %}
+
+          <!-- Actions -->
+          <div class="prop-actions">
+            {% if review.status == "new" %}
+            <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-accept"><i class="bi bi-check-lg"></i> Accept</button>
+            </form>
+            <form method="post" action="{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-reject"><i class="bi bi-x-lg"></i> Reject</button>
+            </form>
+            {% elif review.status == "accepted" %}
+            <form method="post" action="{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-reject"><i class="bi bi-x-lg"></i> Undo Accept</button>
+            </form>
+            {% elif review.status == "rejected" %}
+            <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-accept"><i class="bi bi-check-lg"></i> Undo Reject</button>
+            </form>
+            {% endif %}
+
+            <!-- Expand toggle -->
+            <button class="prop-expand-btn" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#panel-{{ proposal.id }}"
+                    aria-expanded="false"
+                    aria-controls="panel-{{ proposal.id }}"
+                    onclick="initProposalForm({{ proposal.id }})">
+              <i class="bi bi-pencil-square"></i> Edit
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible edit panel -->
+        <div class="collapse" id="panel-{{ proposal.id }}">
+          <div class="proposal-edit-panel">
+            <div class="edit-section-title"><i class="bi bi-pencil me-1"></i>Suggested Action</div>
+
+            <!-- Hidden JSON source -->
+            <script id="json-parsed-{{ proposal.id }}" type="application/json">
+              {% if review.teacher_edited_json_str %}{{ review.teacher_edited_json_str|safe }}{% else %}{{ proposal.json_translated_action|safe }}{% endif %}
+            </script>
+
+            <form method="post" action="{% url 'edit_proposal_json' pk=proposal.pk scenario_id=myScenario.id %}">
+              {% csrf_token %}
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Activity Name</label>
+                  <input name="activity_name" class="form-control" placeholder="Activity name…">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Content</label>
+                  <textarea name="content" class="form-control" rows="4" placeholder="Activity content…"></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Answers</label>
+                  <div id="answer-fields-{{ proposal.id }}" class="d-flex flex-column gap-2"></div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Explanation</label>
+                  <textarea name="explanation" class="form-control" rows="3" placeholder="Explanation…"></textarea>
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="btn-save-edit">
+                    <i class="bi bi-floppy"></i> Save Changes
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+
+    <!-- ── No-results within filter ── -->
+    <div id="filterEmpty" style="display:none;" class="pr-empty">
+      <i class="bi bi-funnel text-muted"></i>
+      <p>No proposals match this filter.</p>
+    </div>
+
+    {% else %}
+    <div class="card">
+      <div class="card-body pr-empty">
+        <i class="bi bi-lightbulb text-muted"></i>
+        <h5 class="text-muted">No proposals yet</h5>
+        <p class="text-muted small">Run the LLM context generation from Metrics &amp; AI to generate activity proposals.</p>
+        <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Go to Metrics &amp; AI
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
   </section>
 </main>
+
+<script>
+// ── Filter tabs ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', function () {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+
+    const filter = this.dataset.filter;
+    let visible = 0;
+    document.querySelectorAll('.proposal-card').forEach(card => {
+      const match = filter === 'all' || card.dataset.status === filter;
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    document.getElementById('filterEmpty').style.display = (visible === 0) ? 'block' : 'none';
+  });
+});
+
+// ── Populate edit form when panel opens ───────────────────────────────────────
+function initProposalForm(proposalId) {
+  // Wait one tick for collapse to start rendering
+  setTimeout(() => {
+    const scriptEl = document.getElementById(`json-parsed-${proposalId}`);
+    if (!scriptEl) return;
+
+    let parsed;
+    try { parsed = JSON.parse(scriptEl.textContent); }
+    catch (e) { console.error('JSON parse error for proposal', proposalId, e); return; }
+
+    const panel = document.getElementById(`panel-${proposalId}`);
+    if (!panel) return;
+
+    const form = panel.querySelector('form');
+    if (!form) return;
+
+    const nameInput = form.querySelector('[name="activity_name"]');
+    const contentTA = form.querySelector('[name="content"]');
+    const explTA    = form.querySelector('[name="explanation"]');
+    if (nameInput) nameInput.value = parsed.activity_name || '';
+    if (contentTA) contentTA.value = parsed.content || '';
+    if (explTA)    explTA.value    = parsed.explanation || '';
+
+    const answerContainer = form.querySelector(`#answer-fields-${proposalId}`);
+    if (answerContainer) {
+      answerContainer.innerHTML = '';
+      (parsed.answers || []).forEach((ans, idx) => {
+        const wrap  = document.createElement('div');
+        wrap.className = 'd-flex align-items-center gap-2';
+        const label = document.createElement('span');
+        label.style.cssText = 'font-size:12px;font-weight:700;color:#6b7280;min-width:22px;';
+        label.textContent = String.fromCharCode(65 + idx) + '.';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = `answer_text_${idx + 1}`;
+        input.className = 'form-control';
+        input.value = ans.text || '';
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        answerContainer.appendChild(wrap);
+      });
+    }
+  }, 50);
+}
+
+// Also fire on Bootstrap collapse show event (covers keyboard/programmatic open)
+document.querySelectorAll('.collapse').forEach(el => {
+  el.addEventListener('show.bs.collapse', function () {
+    const m = this.id.match(/panel-(\d+)/);
+    if (m) initProposalForm(parseInt(m[1]));
+  });
+});
+
+// ── Chevron toggle on expand button ───────────────────────────────────────────
+document.querySelectorAll('.collapse').forEach(el => {
+  el.addEventListener('shown.bs.collapse', function () {
+    const btn = document.querySelector(`[data-bs-target="#${this.id}"]`);
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  });
+  el.addEventListener('hidden.bs.collapse', function () {
+    const btn = document.querySelector(`[data-bs-target="#${this.id}"]`);
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+});
+</script>
+
 {% endblock %}

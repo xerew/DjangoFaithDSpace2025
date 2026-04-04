@@ -63,6 +63,43 @@
   .meta-value { font-size: 14px; color: #444; }
   .empty-state { text-align: center; padding: 60px 20px; color: #aaa; }
   .empty-state i { font-size: 48px; margin-bottom: 16px; display: block; }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    background: #fff; border: 1px solid #e8edf5; border-radius: 12px;
+    padding: 14px 18px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .filter-bar .form-control, .filter-bar .form-select {
+    font-size: 13.5px; border-radius: 8px; border: 1px solid #d1d5db;
+    height: 36px; padding: 0 12px;
+  }
+  .filter-bar .form-control:focus, .filter-bar .form-select:focus {
+    border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.12);
+  }
+  .filter-bar .btn { height: 36px; font-size: 13px; border-radius: 8px; }
+
+  /* ── Sort pills ── */
+  .sort-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .sort-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600;
+    text-decoration: none; border: 1.5px solid #d1d5db; color: #555; background: #fff;
+    transition: all 0.12s; white-space: nowrap;
+  }
+  .sort-pill:hover { border-color: #1a56db; color: #1a56db; background: #eff6ff; }
+  .sort-pill.active { background: #1a56db; color: #fff; border-color: #1a56db; }
+  .sort-pill .bi { font-size: 11px; }
+
+  /* ── Active filter chips ── */
+  .active-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+    background: #dbeafe; color: #1e3a8a; border-radius: 20px;
+    font-size: 12px; font-weight: 600; text-decoration: none;
+  }
+  .filter-chip .bi { font-size: 10px; }
+  .result-count { font-size: 12.5px; color: #9ca3af; font-weight: 500; }
 </style>
 
 <main id="main" class="main">
@@ -101,6 +138,142 @@
   </div>
 
   <section class="section">
+
+    <!-- ── Filter bar ── -->
+    <form method="get" class="filter-bar" id="filterForm">
+      <div class="row g-2 align-items-end">
+
+        <!-- Group name search -->
+        <div class="col-12 col-sm-6 col-lg-4">
+          <label class="form-label mb-1" style="font-size:11.5px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">
+            <i class="bi bi-search me-1"></i>Group Name
+          </label>
+          <input type="text" name="q" value="{{ q }}" class="form-control"
+                 placeholder="Search groups…" autocomplete="off">
+        </div>
+
+        <!-- Scenario filter -->
+        <div class="col-12 col-sm-6 col-lg-4">
+          <label class="form-label mb-1" style="font-size:11.5px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">
+            <i class="bi bi-journal-richtext me-1"></i>Scenario Assigned
+          </label>
+          <select name="scenario" class="form-select">
+            <option value="">All scenarios</option>
+            {% for sc in filter_scenarios %}
+            <option value="{{ sc.id }}" {% if active_scenario == sc.id|stringformat:"s" %}selected{% endif %}>
+              {{ sc.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-12 col-lg-4 d-flex gap-2 align-items-end">
+          <button type="submit" class="btn btn-primary flex-grow-1">
+            <i class="bi bi-funnel me-1"></i> Apply
+          </button>
+          {% if q or active_scenario %}
+          <a href="{% url 'list_groups' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg"></i> Clear
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ── Sort pills ── -->
+      <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
+        <span style="font-size:11.5px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;">Sort by</span>
+        <div class="sort-pills">
+          {% with base_url="?q="|add:q|add:"&scenario="|add:active_scenario %}
+
+          {% if sort == 'name' %}
+            {% if order == 'asc' %}
+            <a href="{{ base_url }}&sort=name&order=desc" class="sort-pill active">
+              Name <i class="bi bi-sort-alpha-down-alt"></i>
+            </a>
+            {% else %}
+            <a href="{{ base_url }}&sort=name&order=asc" class="sort-pill active">
+              Name <i class="bi bi-sort-alpha-down"></i>
+            </a>
+            {% endif %}
+          {% else %}
+          <a href="{{ base_url }}&sort=name&order=asc" class="sort-pill">
+            Name <i class="bi bi-sort-alpha-down"></i>
+          </a>
+          {% endif %}
+
+          {% if sort == 'students' %}
+            {% if order == 'desc' %}
+            <a href="{{ base_url }}&sort=students&order=asc" class="sort-pill active">
+              Students <i class="bi bi-sort-numeric-down-alt"></i>
+            </a>
+            {% else %}
+            <a href="{{ base_url }}&sort=students&order=desc" class="sort-pill active">
+              Students <i class="bi bi-sort-numeric-down"></i>
+            </a>
+            {% endif %}
+          {% else %}
+          <a href="{{ base_url }}&sort=students&order=desc" class="sort-pill">
+            Students <i class="bi bi-sort-numeric-down-alt"></i>
+          </a>
+          {% endif %}
+
+          {% if sort == 'scenarios' %}
+            {% if order == 'desc' %}
+            <a href="{{ base_url }}&sort=scenarios&order=asc" class="sort-pill active">
+              Scenarios <i class="bi bi-sort-numeric-down-alt"></i>
+            </a>
+            {% else %}
+            <a href="{{ base_url }}&sort=scenarios&order=desc" class="sort-pill active">
+              Scenarios <i class="bi bi-sort-numeric-down"></i>
+            </a>
+            {% endif %}
+          {% else %}
+          <a href="{{ base_url }}&sort=scenarios&order=desc" class="sort-pill">
+            Scenarios <i class="bi bi-sort-numeric-down-alt"></i>
+          </a>
+          {% endif %}
+
+          {% if sort == 'created' %}
+            {% if order == 'desc' %}
+            <a href="{{ base_url }}&sort=created&order=asc" class="sort-pill active">
+              Created <i class="bi bi-sort-down-alt"></i>
+            </a>
+            {% else %}
+            <a href="{{ base_url }}&sort=created&order=desc" class="sort-pill active">
+              Created <i class="bi bi-sort-down"></i>
+            </a>
+            {% endif %}
+          {% else %}
+          <a href="{{ base_url }}&sort=created&order=desc" class="sort-pill">
+            Created <i class="bi bi-sort-down-alt"></i>
+          </a>
+          {% endif %}
+
+          {% endwith %}
+        </div>
+
+        <span class="result-count ms-auto">{{ total_count }} group{{ total_count|pluralize }}</span>
+      </div>
+    </form>
+
+    <!-- ── Active filter chips ── -->
+    {% if q or active_scenario %}
+    <div class="active-filters mb-2">
+      {% if q %}
+      <a href="?{% if active_scenario %}scenario={{ active_scenario }}&{% endif %}sort={{ sort }}&order={{ order }}" class="filter-chip">
+        <i class="bi bi-x-circle"></i> Name: "{{ q }}"
+      </a>
+      {% endif %}
+      {% if active_scenario %}
+      {% for sc in filter_scenarios %}{% if sc.id|stringformat:"s" == active_scenario %}
+      <a href="?{% if q %}q={{ q }}&{% endif %}sort={{ sort }}&order={{ order }}" class="filter-chip">
+        <i class="bi bi-x-circle"></i> Scenario: {{ sc.name }}
+      </a>
+      {% endif %}{% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
 
     <!-- Groups -->
     {% if groups %}
@@ -199,12 +372,21 @@
     {% else %}
     <div class="card">
       <div class="card-body empty-state">
+        {% if q or active_scenario %}
+        <i class="bi bi-funnel text-muted"></i>
+        <h5 class="text-muted">No groups match your filters</h5>
+        <p class="text-muted small mb-3">Try adjusting your search or scenario filter.</p>
+        <a href="{% url 'list_groups' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-lg me-1"></i> Clear Filters
+        </a>
+        {% else %}
         <i class="bi bi-people text-muted"></i>
         <h5 class="text-muted">No groups yet</h5>
         <p class="text-muted small mb-3">Create your first group to start assigning students to scenarios.</p>
         <a href="{% url 'create_group' %}" class="btn btn-primary">
           <i class="bi bi-plus-circle me-1"></i> Create New Group
         </a>
+        {% endif %}
       </div>
     </div>
     {% endif %}

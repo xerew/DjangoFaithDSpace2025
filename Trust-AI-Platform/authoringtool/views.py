@@ -1758,7 +1758,8 @@ def duplicate_scenario(request, scenario_id):
             image=original_scenario.image,
             video_url=original_scenario.video_url,
             created_by=user,
-            updated_by=user
+            updated_by=user,
+            origin_scenario=original_scenario,
         )
 
         # Map for original activities to their duplicates
@@ -2133,7 +2134,13 @@ def get_teacher_groups(request, scenario_id):
 def ai_metrics(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
 
-    # Build a list of phases, each with its primary activities
+    can_edit = False
+    if is_admin_user(request.user) or scenario.created_by == request.user:
+        can_edit = True
+    elif getattr(scenario, 'visibility_status', None) == 'org' and getattr(scenario, 'is_editable_by_org', False):
+        if scenario.organizations.filter(members=request.user).exists():
+            can_edit = True
+
     phases_data = []
     for phase in Phase.objects.filter(scenario=scenario).order_by('id'):
         primaries = Activity.objects.filter(
@@ -2142,14 +2149,68 @@ def ai_metrics(request, scenario_id):
             is_primary_ev=True
         ).values('id', 'name')
         phases_data.append({
-            'id':   phase.id,
-            'name': phase.name,
+            'id':         phase.id,
+            'name':       phase.name,
             'activities': list(primaries),
         })
 
+    # Pre-load cached CSVs so tables render immediately on page load
+    from collections import defaultdict as _dd
+    metrics_csv = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_combined_activity_metrics.csv")
+    flags_csv   = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_flagged_activities_with_reasons.csv")
+
+    metrics_grouped = []
+    flags_grouped   = []
+
+    if os.path.exists(metrics_csv):
+        raw = []
+        with open(metrics_csv, newline='', encoding='utf-8') as f:
+            raw = list(csv.DictReader(f))
+        seen = {}
+        for row in raw:
+            # Normalise keys that contain spaces / % signs for Django templates
+            safe_row = {
+                'Phase':        row.get('Phase', ''),
+                'Activity':     row.get('Activity', ''),
+                'Type':         row.get('Type', ''),
+                'Category':     row.get('Category', ''),
+                'Total':        row.get('Total', ''),
+                'Correct':      row.get('Correct', ''),
+                'Wrong':        row.get('Wrong', ''),
+                'PctCorrect':   row.get('% Correct', ''),
+                'PctWrong':     row.get('% Wrong', ''),
+                'AvgTime':      row.get('Avg Time', ''),
+                'NextLow':      row.get('Next Low', ''),
+                'NextModerate': row.get('Next Moderate', ''),
+                'NextHigh':     row.get('Next High', ''),
+            }
+            key = f"{safe_row['Phase']}|||{safe_row['Activity']}"
+            if key not in seen:
+                seen[key] = {'phase': safe_row['Phase'], 'activity': safe_row['Activity'],
+                             'type': safe_row['Type'], 'rows': []}
+                metrics_grouped.append(seen[key])
+            seen[key]['rows'].append(safe_row)
+
+    if os.path.exists(flags_csv):
+        raw = []
+        with open(flags_csv, newline='', encoding='utf-8') as f:
+            raw = list(csv.DictReader(f))
+        seen = {}
+        for row in raw:
+            act = row.get('Activity', '')
+            if act not in seen:
+                seen[act] = {'activity': act, 'rows': []}
+                flags_grouped.append(seen[act])
+            seen[act]['rows'].append(row)
+
     return render(request, 'authoringtool/ai_metrics_scenario.html', {
-        'myScenario': scenario,
-        'PhasesData': phases_data,
+        'myScenario':      scenario,
+        'PhasesData':      phases_data,
+        'can_edit':        can_edit,
+        'metrics_grouped': metrics_grouped,
+        'flags_grouped':   flags_grouped,
+        'has_metrics':     bool(metrics_grouped),
+        'has_flags':       bool(flags_grouped),
     })
 
 def category_metrics_view(request, scenario_id):
@@ -2274,11 +2335,30 @@ def proposal_list_view(request, scenario_id):
                 user=request.user
             )
 
+    accepted_count = sum(1 for r in user_reviews.values() if r.status == "accepted")
+    rejected_count = sum(1 for r in user_reviews.values() if r.status == "rejected")
+    pending_count  = total - accepted_count - rejected_count
+
+    # JSONField returns a dict — serialise to a proper JSON string so the
+    # template can embed it safely inside a <script type="application/json">.
+    import json as _json
+    for review in user_reviews.values():
+        if review.teacher_edited_json:
+            review.teacher_edited_json_str = _json.dumps(
+                review.teacher_edited_json, ensure_ascii=False
+            )
+        else:
+            review.teacher_edited_json_str = None
+
     return render(request, 'authoringtool/proposal_list.html', {
-        'proposals': proposals,
-        'myScenario': myScenario,
-        'user_reviews': user_reviews,
-        'show_create_button': show_create_button
+        'proposals':         proposals,
+        'myScenario':        myScenario,
+        'user_reviews':      user_reviews,
+        'show_create_button': show_create_button,
+        'total_count':       total,
+        'accepted_count':    accepted_count,
+        'rejected_count':    rejected_count,
+        'pending_count':     pending_count,
     })
 
 # @login_required

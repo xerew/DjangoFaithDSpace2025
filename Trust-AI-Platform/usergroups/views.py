@@ -98,10 +98,51 @@ def create_user_group(request):
 
 @group_required('teachers')
 def list_groups(request):
-    groups = UserGroup.objects.filter(created_by=request.user)
+    q           = request.GET.get('q', '').strip()
+    scenario_id = request.GET.get('scenario', '').strip()
+    sort        = request.GET.get('sort', 'created')
+    order       = request.GET.get('order', 'desc')
+
+    groups = (
+        UserGroup.objects
+        .filter(created_by=request.user)
+        .annotate(scenario_count=Count('assigned_scenarios', distinct=True))
+    )
+
+    if q:
+        groups = groups.filter(name__icontains=q)
+    if scenario_id:
+        groups = groups.filter(assigned_scenarios__id=scenario_id)
+
+    sort_field_map = {
+        'name':      'name',
+        'students':  'number_of_users',
+        'scenarios': 'scenario_count',
+        'created':   'created_on',
+    }
+    db_field = sort_field_map.get(sort, 'created_on')
+    groups = groups.order_by(db_field if order == 'asc' else f'-{db_field}')
+
     is_dspace_partner = request.user.groups.filter(name="dspace_partners").exists()
 
-    return render(request, 'usergroups/list_groups.html', {'groups': groups, 'is_dspace_partner': is_dspace_partner})
+    # Only scenarios already assigned to this teacher's groups (useful filter options)
+    filter_scenarios = (
+        Scenario.objects
+        .filter(assigned_groups__created_by=request.user)
+        .distinct()
+        .order_by('name')
+    )
+
+    return render(request, 'usergroups/list_groups.html', {
+        'groups':           groups,
+        'is_dspace_partner': is_dspace_partner,
+        'filter_scenarios': filter_scenarios,
+        'q':                q,
+        'active_scenario':  scenario_id,
+        'sort':             sort,
+        'order':            order,
+        'total_count':      groups.count(),
+    })
 
 @group_required('teachers')
 def download_credentials(request, group_id):
