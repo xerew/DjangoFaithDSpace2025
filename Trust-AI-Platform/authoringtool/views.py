@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
-from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, UserProposalReview, Language
+from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, UserProposalReview, Language, Subject
 from psycopg2.extras import NumericRange
 from django.urls import reverse
 from django.utils.html import strip_tags
@@ -236,6 +236,7 @@ def scenarios(request):
     language = request.GET.get('language')
     show_mine = request.GET.get('show_mine') == 'on'
     visibility_filter = request.GET.get('visibility', 'all')  # Visibility filter
+    selected_subject_ids = [int(x) for x in request.GET.getlist('subject') if x.isdigit()]
 
     filters = Q()
 
@@ -252,6 +253,10 @@ def scenarios(request):
     # Language filter
     if language:
         filters &= Q(language=language)
+
+    # Subject filter
+    if selected_subject_ids:
+        filters &= Q(subjects__id__in=selected_subject_ids)
 
     # Show only the current user's scenarios if 'Show Mine' is selected
     if show_mine:
@@ -322,13 +327,18 @@ def scenarios(request):
         'selected_language': language,
         'show_mine': show_mine,
         'visibility_filter': visibility_filter,
+        'all_subjects': Subject.objects.all(),
+        'selected_subject_ids': selected_subject_ids,
     }
     return HttpResponse(template.render(context, request))
 
 @group_required('teachers')
 def createScenario(request):
     template = loader.get_template('authoringtool/createScenario.html')
-    return HttpResponse(template.render({'languages': Language.objects.all()}, request))
+    return HttpResponse(template.render({
+        'languages': Language.objects.all(),
+        'all_subjects': Subject.objects.all(),
+    }, request))
 
 @group_required('teachers')
 def createScenarioData(request):
@@ -343,7 +353,7 @@ def createScenarioData(request):
     age_of_students_start = request.POST.get('min_age')
     age_of_students_end = request.POST.get('max_age')
     age_of_students_range = NumericRange(int(age_of_students_start), int(age_of_students_end))
-    subject_domains = request.POST.get('subject')
+    subject_domains = request.POST.get('subject', '')
     language = request.POST.get('language')
     suggested_learning_time = request.POST.get('suggested_learning_time')
     image = request.FILES.get('image_upload')
@@ -358,6 +368,9 @@ def createScenarioData(request):
                            image=image, visibility_status='private',
                            is_editable_by_org=False, created_by=created_by)
     newScenario.save()
+    selected_subject_ids = request.POST.getlist('subjects')
+    if selected_subject_ids:
+        newScenario.subjects.set(selected_subject_ids)
     messages.success(request, f"Scenario '{newScenario.name}' created successfully.")
     return HttpResponseRedirect(reverse('scenarios'))
 
@@ -377,6 +390,8 @@ def updateScenario(request, id):
         'max_age': scenario_max_age,
         'user_organizations': user_organizations,
         'languages': Language.objects.all(),
+        'all_subjects': Subject.objects.all(),
+        'selected_subject_ids': list(updateScenario.subjects.values_list('id', flat=True)),
     }
     return HttpResponse(template.render(context, request))
 
@@ -406,7 +421,7 @@ def updateScenarioData(request, id):
     age_of_students_end = request.POST.get('max_age')
     print(age_of_students_end)
     age_of_students_range = NumericRange(int(age_of_students_start), int(age_of_students_end))
-    subject_domains = request.POST.get('subject')
+    subject_domains = request.POST.get('subject', '')
     language = request.POST.get('language')
     suggested_learning_time = request.POST.get('suggested_learning_time')
     image = request.FILES.get('image_upload')
@@ -425,12 +440,14 @@ def updateScenarioData(request, id):
     if image is not None:
         updateScenario.image = image
     updateScenario.save()
+    # Handle subjects
+    updateScenario.subjects.set(request.POST.getlist('subjects'))
     # Handle organization visibility
     if visibility == 'org':
-        selected_organizations = request.POST.getlist('organizations')  # Get selected organizations as a list
-        updateScenario.organizations.set(selected_organizations)  # Update organizations
+        selected_organizations = request.POST.getlist('organizations')
+        updateScenario.organizations.set(selected_organizations)
     else:
-        updateScenario.organizations.clear()  # Clear organizations if the visibility is not "org"
+        updateScenario.organizations.clear()
     return HttpResponseRedirect(reverse('scenarios'))
 
 @group_required('teachers')

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from authoringtool.models import Scenario, Activity, NextQuestionLogic, Answer, Simulation, ExperimentLL, RemoteLabSession, Phase, Scenario, VRARExperiment, MultilingualAnswer, MultilingualQuestion
+from authoringtool.models import Subject
 from usergroups.models import UserGroupMembership
 import json
 import logging
@@ -203,6 +204,7 @@ def scenarios_view(request):
     is_teacher = user.groups.filter(name='teachers').exists()
     query = request.GET.get('q', '').strip()
     language = request.GET.get('language', '')
+    selected_subject_ids = [int(x) for x in request.GET.getlist('subject') if x.isdigit()]
 
     if is_teacher:
         org_ids = user.member_of_organizations.values_list('id', flat=True)
@@ -220,6 +222,8 @@ def scenarios_view(request):
 
     if query:
         base_qs = base_qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
+    if selected_subject_ids:
+        base_qs = base_qs.filter(subjects__id__in=selected_subject_ids)
     if language:
         base_qs = base_qs.filter(language=language)
 
@@ -279,6 +283,8 @@ def scenarios_view(request):
         'query': query,
         'selected_language': language,
         'languages': languages,
+        'all_subjects': Subject.objects.all(),
+        'selected_subject_ids': selected_subject_ids,
     }
     return HttpResponse(template.render(context, request))
     

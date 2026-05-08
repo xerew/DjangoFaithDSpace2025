@@ -114,7 +114,12 @@
                         groupSelect.innerHTML = '';
                         groupSelect.style.display = '';
                         groupMsg.style.display = 'none';
-                        if (!scenarioId) return;
+                        if (!scenarioId) {
+        groupSelect.innerHTML = '';
+        groupSelect.style.display = 'none';
+        groupMsg.style.display = 'none';
+        return;
+      }
                         (window.dashboardNativeFetch || fetch)(`/authoringtool/get_teacher_groups/${scenarioId}/`)
                           .then(r => r.json())
                           .then(data => {
@@ -2299,11 +2304,29 @@
 	  }
 
 	  document.getElementById('reset-button').addEventListener('click', () => {
+      // Reset hidden native select and trigger group clear
       scenarioSelect.value = '';
+      scenarioSelect.dispatchEvent(new Event('change'));
+      // Reset custom picker label
+      const pickerLabel = document.getElementById('scenarioPickerLabel');
+      if (pickerLabel) {
+        pickerLabel.textContent = 'Select Scenario\u2026';
+        pickerLabel.classList.add('text-muted');
+      }
+      document.querySelectorAll('#scenarioPickerList .csp-item').forEach(function(item) {
+        item.classList.remove('selected');
+      });
+      // Reset date inputs
       startDateInput.value = '';
       endDateInput.value = '';
+      // Clear active preset button state
+      document.querySelectorAll('.date-preset').forEach(function(b) {
+        b.classList.remove('btn-secondary', 'active');
+        b.classList.add('btn-outline-secondary');
+      });
+      // Abort in-flight requests and show empty state — do NOT submit the form
+      window.dashboardBeginRequest();
       showEmptyState();
-      filterForm.dispatchEvent(new Event('submit'));
 	  });
 
       showEmptyState();

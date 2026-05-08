@@ -88,6 +88,19 @@
   }
   .sc-empty i { font-size: 48px; margin-bottom: 12px; display: block; color: #d1d9e0; }
   .sc-empty p { font-size: 14px; margin: 0; }
+
+  /* ── Subject filter chips ── */
+  .subject-filter-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+  .sf-chip input[type="checkbox"] { display: none; }
+  .sf-chip-inner {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 11px; border-radius: 20px; font-size: 12.5px; font-weight: 500;
+    border: 1.8px solid var(--chip-color); color: var(--chip-color);
+    background: transparent; cursor: pointer; transition: all .15s ease;
+    user-select: none;
+  }
+  .sf-chip input:checked + .sf-chip-inner { background: var(--chip-color); color: #fff; }
+  .sf-chip-inner:hover { opacity: .8; }
 </style>
 
 <main id="main" class="main">
@@ -140,6 +153,23 @@
               <i class="bi bi-arrow-counterclockwise"></i> Reset
             </button>
           </div>
+
+          {% if all_subjects %}
+          <div class="col-12">
+            <label class="f-label"><i class="bi bi-journals"></i>Subject</label>
+            <div class="subject-filter-chips">
+              {% for subject in all_subjects %}
+              <label class="sf-chip">
+                <input type="checkbox" name="subject" value="{{ subject.id }}"
+                       {% if subject.id in selected_subject_ids %}checked{% endif %}>
+                <span class="sf-chip-inner" style="--chip-color:{{ subject.color }};">
+                  <i class="bi {{ subject.icon }}"></i> {{ subject.name }}
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
 
         </div>
       </form>
@@ -274,9 +304,15 @@
     });
     document.getElementById('language-select').addEventListener('change', fetchResults);
 
+    // Subject chips auto-submit on toggle
+    document.querySelectorAll('.sf-chip input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', fetchResults);
+    });
+
     document.getElementById('reset-button').addEventListener('click', function () {
       document.getElementById('search-input').value = '';
       document.getElementById('language-select').value = '';
+      document.querySelectorAll('.sf-chip input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
       fetchResults();
     });
   })();

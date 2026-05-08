@@ -1833,7 +1833,7 @@ def calculate_activities_in_risk(scenario_id):
             flags.append({
                 "Activity": activity,
                 "Category": "Moderate",
-                "Flag": "Non-monotonic performance (Moderate worst)",
+                "Flag": "Extreme correctness pattern",
                 "Reason": (
                     f"Unexpected V-shape: Moderate group ({wrongs['Moderate']}% wrong) performs worse than "
                     f"both High ({wrongs['High']}%) and Low ({wrongs['Low']}%) groups. "
@@ -1846,7 +1846,7 @@ def calculate_activities_in_risk(scenario_id):
                 flags.append({
                     "Activity": activity,
                     "Category": "Moderate",
-                    "Flag": "Non-monotonic performance (Low beats Moderate)",
+                    "Flag": "Extreme correctness pattern",
                     "Reason": (
                         f"Low group ({wrongs['Low']}% wrong) outperforms Moderate ({wrongs['Moderate']}% wrong) "
                         f"— unexpected reversal in performance order. "
@@ -1858,7 +1858,7 @@ def calculate_activities_in_risk(scenario_id):
                 flags.append({
                     "Activity": activity,
                     "Category": "High",
-                    "Flag": "Non-monotonic performance (High underperforms Moderate)",
+                    "Flag": "Extreme correctness pattern",
                     "Reason": (
                         f"High group ({wrongs['High']}% wrong) performs worse than Moderate ({wrongs['Moderate']}% wrong). "
                         f"High-category students should outperform Moderate — this reversal may indicate "
@@ -1887,7 +1887,7 @@ def calculate_activities_in_risk(scenario_id):
                 continue
 
             if wrong == 100.0:
-                flag_type = "Confusion under total failure"
+                flag_type = "Timing discrepancy under extreme correctness"
                 interpretation = (
                     f"{cat} group answered everything incorrectly (100% wrong) yet spent "
                     f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
@@ -1896,7 +1896,7 @@ def calculate_activities_in_risk(scenario_id):
                     f"not disengagement."
                 )
             else:  # wrong == 0.0
-                flag_type = "Unexpected deliberation under perfect performance"
+                flag_type = "Timing discrepancy under extreme correctness"
                 interpretation = (
                     f"{cat} group answered everything correctly (0% wrong) yet spent "
                     f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
@@ -1919,7 +1919,11 @@ def calculate_activities_in_risk(scenario_id):
         spread     = wrong_arr.max() - wrong_arr.min()
 
         # Thresholds (all in percentage points)
-        TAU_BASE       = 55.0   # all-individual systemic failure gate
+        # TAU_BASE is grounded in the paper's PISA-aligned Low-performance boundary:
+        # S_u,Pi < 0.497 correct ≡ > 50.3% wrong. If all three groups fall below
+        # this threshold on a single activity, they are all performing at Low level
+        # regardless of their overall scenario category — a content-level failure.
+        TAU_BASE       = 50.3   # all-individual systemic failure gate (PISA Low boundary)
         TAU_SPREAD     = 15.0   # minimum spread for a per-category flag to be meaningful
         TAU_ABS_FLAG   = 45.0   # minimum absolute error rate for the flagged category
         TAU_LOW_EXEMPT = 40.0   # Low=100% exemption only when High is performing well
@@ -1932,11 +1936,13 @@ def calculate_activities_in_risk(scenario_id):
             flags.append({
                 "Activity": activity,
                 "Category": "All",
-                "Flag": "Systemic failure — activity too difficult",
+                "Flag": "Systemic failure",
                 "Reason": (
-                    f"All categories individually exceed the baseline threshold ({TAU_BASE}%): "
+                    f"All performance categories individually exceed the PISA Low-performance boundary "
+                    f"({TAU_BASE}% wrong): "
                     f"High {wrongs['High']}%, Moderate {wrongs['Moderate']}%, Low {wrongs['Low']}% wrong. "
-                    f"The activity appears too difficult for all student groups — "
+                    f"All groups score below the Low-performance threshold on this activity, indicating a "
+                    f"content-level failure independent of learner category — "
                     f"review the question wording, answer options, or prerequisite content."
                 )
             })
@@ -2088,11 +2094,45 @@ def get_data_insight(flag):
 
     # --- Timing Discrepancy Under Extreme Correctness ---
     if flag_type == "Timing discrepancy under extreme correctness":
+        if "100% wrong" in reason:
+            # Confusion under total failure sub-case
+            insights.append(
+                f"{category} group answered everything incorrectly yet spent disproportionately long on "
+                f"this activity. Prolonged time with total failure indicates active confusion or cognitive "
+                f"overload, not disengagement."
+            )
+            resolutions.append(
+                "Add a **worked example** or **conceptual video** before this activity to reduce cognitive "
+                "load, and consider breaking it into smaller steps."
+            )
+        elif "0% wrong" in reason:
+            # Unexpected deliberation under perfect performance sub-case
+            insights.append(
+                f"{category} group answered everything correctly yet spent disproportionately long. "
+                f"Perfect outcome with excessive time may indicate effortful retrieval at the boundary "
+                f"of the group's ability range, rather than confident mastery."
+            )
+            resolutions.append(
+                "Consider **revising** the activity to streamline decision points, or **creating** a "
+                "faster-paced variant to build fluency for this group."
+            )
+        else:
+            insights.append(
+                f"{category} group's timing anomaly suggests flow or clarity issues despite correctness extremes."
+            )
+            resolutions.append(
+                "Consider **revising** instructions to clarify decision points, or **creating** a quick formative check-in slide."
+            )
+
+    # --- Systemic Failure ---
+    if flag_type == "Systemic failure":
         insights.append(
-            f"{category} group's timing anomaly suggests flow or clarity issues despite correctness extremes."
+            "All performance groups exceed the PISA Low-performance boundary on this activity, "
+            "indicating a content-level failure independent of learner category."
         )
         resolutions.append(
-            "Consider **revising** instructions to clarify decision points, or **creating** a quick formative check-in slide."
+            "**Revise** the question wording, answer options, or prerequisite content — "
+            "this activity is too difficult for all groups in the current instructional sequence."
         )
 
     # --- Disconnected Activity ---

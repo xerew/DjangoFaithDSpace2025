@@ -20,6 +20,29 @@ class Language(models.Model):
         return self.name
 
 
+class Subject(models.Model):
+    CATEGORY_CHOICES = [
+        ('STEM', 'STEM'),
+        ('Humanities', 'Humanities'),
+        ('Social Sciences', 'Social Sciences'),
+        ('Arts', 'Arts'),
+        ('Other', 'Other'),
+    ]
+    name = models.CharField(max_length=100, unique=True)
+    icon = models.CharField(max_length=60, default='bi-book')
+    color = models.CharField(max_length=20, default='#1a56db')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='STEM')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = 'Subject'
+        verbose_name_plural = 'Subjects'
+
+    def __str__(self):
+        return self.name
+
+
 class Scenario(models.Model):
     VISIBILITY_CHOICES = [
         ('private', 'Private (In-Progress)'),
@@ -58,6 +81,8 @@ class Scenario(models.Model):
 
     # Editable by organization's members
     is_editable_by_org = models.BooleanField(default=False, help_text="If checked, members of the selected organization(s) can edit this scenario.")
+
+    subjects = models.ManyToManyField('Subject', blank=True, related_name='scenarios')
 
     # Minimum implementations before Scenario Metrics & AI button is shown
     ai_metrics_min_implementations = models.PositiveIntegerField(
@@ -573,7 +598,7 @@ class QValue(models.Model):
         ("Engagement risk (too slow, non-question)", "Engagement risk (too slow, non-question)"),
         ("Engagement risk (too fast, non-question)", "Engagement risk (too fast, non-question)"),
         ("Timing discrepancy under extreme correctness", "Timing discrepancy under extreme correctness"),
-        # If more added, add here
+        ("Systemic failure", "Systemic failure"),
     ]
     CATEGORIES = [
         ("High", "High"),

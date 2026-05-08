@@ -101,6 +101,21 @@
 
   /* ── Actions ── */
   .sc-actions { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 32px; }
+
+  /* ── Subject Picker ── */
+  .subject-picker { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+  .subject-chip input[type="checkbox"] { display: none; }
+  .subject-chip-inner {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    border: 2px solid var(--chip-color); color: var(--chip-color);
+    background: transparent; cursor: pointer; transition: all .18s ease;
+    user-select: none;
+  }
+  .subject-chip input:checked + .subject-chip-inner {
+    background: var(--chip-color); color: #fff;
+  }
+  .subject-chip-inner:hover { opacity: .82; }
 </style>
 
 <main id="main" class="main">
@@ -193,9 +208,18 @@
 
               <div class="sc-pair">
                 <div class="sc-field">
-                  <label class="sc-label"><i class="bi bi-book"></i>Subject Domain <span class="sc-required">*</span></label>
-                  <input type="text" class="sc-input" name="subject"
-                         value="{{ Scenario.subject_domains }}" placeholder="e.g. Physics, Mathematics…" required>
+                  <label class="sc-label"><i class="bi bi-journals"></i>Subjects</label>
+                  <div class="subject-picker">
+                    {% for subject in all_subjects %}
+                    <label class="subject-chip">
+                      <input type="checkbox" name="subjects" value="{{ subject.id }}"
+                             {% if subject.id in selected_subject_ids %}checked{% endif %}>
+                      <span class="subject-chip-inner" style="--chip-color:{{ subject.color }};">
+                        <i class="bi {{ subject.icon }}"></i> {{ subject.name }}
+                      </span>
+                    </label>
+                    {% endfor %}
+                  </div>
                 </div>
                 <div class="sc-field">
                   <label class="sc-label"><i class="bi bi-translate"></i>Language <span class="sc-required">*</span></label>
