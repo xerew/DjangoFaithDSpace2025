@@ -207,11 +207,11 @@ def generate_flowchart(scenario_id):
 
         # ── Link colours for High / Moderate / Low branches ──────────
         for i in high_edges:
-            graph_definition += f"linkStyle {i} stroke:#ef4444,stroke-width:2.5px\n"
+            graph_definition += f"linkStyle {i} stroke:green,stroke-width:2.5px\n"
         for i in mid_edges:
-            graph_definition += f"linkStyle {i} stroke:#f59e0b,stroke-width:2.5px\n"
+            graph_definition += f"linkStyle {i} stroke:orange,stroke-width:2.5px\n"
         for i in low_edges:
-            graph_definition += f"linkStyle {i} stroke:#22c55e,stroke-width:2.5px\n"
+            graph_definition += f"linkStyle {i} stroke:red,stroke-width:2.5px\n"
 
         print("========== MERMAID OUTPUT ==========")
         print(graph_definition)
