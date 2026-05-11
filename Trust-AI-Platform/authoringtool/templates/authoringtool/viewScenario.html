@@ -495,6 +495,27 @@
         <div class="mermaid-wrap">
           <div class="mermaid">{{ mermaid_graph_definition|safe }}</div>
         </div>
+        <!-- Legend -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px 20px;padding:10px 18px 14px;border-top:1px solid #f3f4f6;font-size:12px;color:#6b7280;">
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;border:1.5px solid #1a56db;display:inline-block;"></span> Activity
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#ede9fe;border:1.5px solid #7c3aed;display:inline-block;"></span> Evaluatable Activity
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #94a3b8;display:inline-block;"></span> End
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:28px;height:3px;border-radius:2px;background:#ef4444;display:inline-block;"></span> High branch
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:28px;height:3px;border-radius:2px;background:#f59e0b;display:inline-block;"></span> Moderate branch
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:28px;height:3px;border-radius:2px;background:#22c55e;display:inline-block;"></span> Low branch
+          </span>
+        </div>
       </div>
     </div>
 
@@ -534,28 +555,20 @@
     startOnLoad: true,
     theme: 'base',
     themeVariables: {
-      /* Node fill / border */
-      primaryColor:       '#dbeafe',
-      primaryTextColor:   '#1e3a8a',
-      primaryBorderColor: '#1a56db',
-      /* Subgraph cluster */
-      clusterBkg:         '#eff6ff',
-      clusterBorder:      '#93c5fd',
-      titleColor:         '#1e3a8a',
-      /* Edges */
-      lineColor:          '#3b82f6',
-      edgeLabelBackground:'#eff6ff',
-      /* Secondary (END nodes) */
-      secondaryColor:     '#f0fdf4',
-      secondaryTextColor: '#065f46',
-      secondaryBorderColor:'#34d399',
-      /* Tertiary */
-      tertiaryColor:      '#fef3c7',
-      tertiaryTextColor:  '#92400e',
-      tertiaryBorderColor:'#fbbf24',
+      /* Default node (fallback for any unstyled nodes) */
+      primaryColor:        '#dbeafe',
+      primaryTextColor:    '#1e3a8a',
+      primaryBorderColor:  '#1a56db',
+      /* Phase subgraph clusters — soft indigo background */
+      clusterBkg:          '#f5f3ff',
+      clusterBorder:       '#a78bfa',
+      titleColor:          '#4c1d95',
+      /* Default edge colour */
+      lineColor:           '#64748b',
+      edgeLabelBackground: '#f8fafc',
       /* Typography */
-      fontFamily:         'Inter, system-ui, -apple-system, sans-serif',
-      fontSize:           '13px',
+      fontFamily:          'Inter, system-ui, -apple-system, sans-serif',
+      fontSize:            '13px',
     }
   });
 

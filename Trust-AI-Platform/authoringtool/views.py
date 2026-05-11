@@ -87,11 +87,22 @@ def generate_flowchart(scenario_id):
 
         graph_definition = "graph TD\n"
 
+        # Track node categories for classDef styling
+        act_nodes = []   # regular activities
+        ev_nodes  = []   # evaluatable/branching activities
+        end_nodes = []   # END terminal nodes
+
+        # Track edge insertion order for linkStyle colouring
+        edge_idx    = 0
+        high_edges  = []
+        mid_edges   = []
+        low_edges   = []
+
+        # ── Phase subgraphs + node definitions ──────────────────────
         for phase in phases:
             safe_phase_name = sanitize_mermaid_text(phase.name)
-            # Use a safe ID for subgraph (no spaces/accents)
             graph_definition += f"subgraph phase_{phase.id}[\"{safe_phase_name}\"]\n"
-            
+
             for activity in phase.activities.all():
                 safe_act_name = sanitize_mermaid_text(activity.name)
                 print(f"   • Activity: {activity.name} (ID {activity.id})")
@@ -100,17 +111,22 @@ def generate_flowchart(scenario_id):
                     f"click A{activity.id} href "
                     f"\"/authoringtool/scenarios/{scenario_id}/viewPhase/{phase.id}/viewActivity/{activity.id}/\"\n"
                 )
+                if activity.is_evaluatable:
+                    ev_nodes.append(f"A{activity.id}")
+                else:
+                    act_nodes.append(f"A{activity.id}")
 
             graph_definition += "end\n"
-        
+
+        # ── Edges: branching + answer-based + direct ─────────────────
         for activity in Activity.objects.filter(scenario_id=scenario_id).prefetch_related('answers'):
             branching = branching_logic.filter(activity=activity).first()
 
             if branching:
                 for branch, label in [
                     (branching.next_question_on_high, 'High'),
-                    (branching.next_question_on_mid, 'Moderate'),
-                    (branching.next_question_on_low, 'Low')
+                    (branching.next_question_on_mid,  'Moderate'),
+                    (branching.next_question_on_low,  'Low'),
                 ]:
                     if branch:
                         safe_branch_name = sanitize_mermaid_text(branch.name)
@@ -118,7 +134,14 @@ def generate_flowchart(scenario_id):
                             f"A{activity.id} -->|{label}| "
                             f"A{branch.id}[\"{safe_branch_name}\"]\n"
                         )
-            
+                        if label == 'High':
+                            high_edges.append(edge_idx)
+                        elif label == 'Moderate':
+                            mid_edges.append(edge_idx)
+                        elif label == 'Low':
+                            low_edges.append(edge_idx)
+                        edge_idx += 1
+
             if activity.activity_type and activity.activity_type.name == 'Question':
                 for answer in activity.answers.all():
                     answer_next_activity = next_activity_logic.filter(
@@ -133,6 +156,7 @@ def generate_flowchart(scenario_id):
                             f"A{activity.id} -->|{safe_label}| "
                             f"A{answer_next_activity.next_activity.id}[\"{safe_next_name}\"]\n"
                         )
+                        edge_idx += 1
             else:
                 direct_next_activity = next_activity_logic.filter(
                     activity=activity, answer__isnull=True
@@ -143,7 +167,9 @@ def generate_flowchart(scenario_id):
                         f"A{activity.id} --> "
                         f"A{direct_next_activity.next_activity.id}[\"{safe_next_name}\"]\n"
                     )
+                    edge_idx += 1
 
+        # ── END terminal nodes ────────────────────────────────────────
         for activity in Activity.objects.filter(scenario_id=scenario_id):
             has_next = False
             if branching_logic.filter(activity=activity).exists():
@@ -162,7 +188,30 @@ def generate_flowchart(scenario_id):
 
             if not has_next:
                 safe_end_label = sanitize_mermaid_text("END")
-                graph_definition += f"A{activity.id} --> END{activity.id}[\"{safe_end_label}\"]\n"
+                graph_definition += f"A{activity.id} --> END{activity.id}([\"{safe_end_label}\"])\n"
+                end_nodes.append(f"END{activity.id}")
+                edge_idx += 1
+
+        # ── Class definitions ─────────────────────────────────────────
+        graph_definition += (
+            "classDef actClass fill:#dbeafe,stroke:#1a56db,stroke-width:1.5px,color:#1e3a8a\n"
+            "classDef evClass  fill:#ede9fe,stroke:#7c3aed,stroke-width:1.5px,color:#4c1d95\n"
+            "classDef endClass fill:#f1f5f9,stroke:#94a3b8,stroke-width:1.5px,color:#475569\n"
+        )
+        if act_nodes:
+            graph_definition += f"class {','.join(act_nodes)} actClass\n"
+        if ev_nodes:
+            graph_definition += f"class {','.join(ev_nodes)} evClass\n"
+        if end_nodes:
+            graph_definition += f"class {','.join(end_nodes)} endClass\n"
+
+        # ── Link colours for High / Moderate / Low branches ──────────
+        for i in high_edges:
+            graph_definition += f"linkStyle {i} stroke:#ef4444,stroke-width:2.5px\n"
+        for i in mid_edges:
+            graph_definition += f"linkStyle {i} stroke:#f59e0b,stroke-width:2.5px\n"
+        for i in low_edges:
+            graph_definition += f"linkStyle {i} stroke:#22c55e,stroke-width:2.5px\n"
 
         print("========== MERMAID OUTPUT ==========")
         print(graph_definition)
