@@ -38,7 +38,16 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-jg#w2d@#dd9#(c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['13.51.155.65', 'trust-ai-lab.eu', '127.0.0.1']
+_allowed = os.environ.get('ALLOWED_HOSTS', '13.51.155.65,trust-ai-lab.eu,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://trust-ai-lab.eu').split(',')
+    if o.strip()
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allows framing of your site by the same origin sites
 
