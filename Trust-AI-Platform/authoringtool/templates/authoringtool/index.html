@@ -286,7 +286,11 @@
                   <button type="button" id="reset-button" style="background:none;border:1.5px solid #d1d9e0;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
                   </button>
-				  <button type="button" id="generateDownloadButton" style="background:none;border:1.5px solid #16a34a;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+				  <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#374151;cursor:pointer;user-select:none;">
+                    <input type="checkbox" id="includeActivityDetail" style="width:15px;height:15px;cursor:pointer;">
+                    Include per-activity scores &amp; timing
+                  </label>
+                  <button type="button" id="generateDownloadButton" style="background:none;border:1.5px solid #16a34a;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
                     <i class="bi bi-download"></i> Generate &amp; Download CSV
                   </button>
                   <script>
@@ -296,7 +300,8 @@
                         const startDateInput = document.getElementById("start-date-input");
                         const endDateInput = document.getElementById("end-date-input");
 						const groupSelect = document.getElementById("groupSelect"); // Multi-select dropdown
-            
+                        const includeActivityDetail = document.getElementById("includeActivityDetail");
+
                         generateDownloadButton.addEventListener("click", () => {
                             const scenarioId = scenarioSelect.value;
                             const startDate = startDateInput.value;
@@ -313,7 +318,8 @@
                             generateDownloadButton.textContent = "Generating CSV...";
             
                             // Start the Celery task
-                            const url = `/authoringtool/student_performance_metrics/${scenarioId}/?start_date=${startDate}&end_date=${endDate}&group_ids=${selectedGroups.join(",")}`;
+                            const activityDetail = includeActivityDetail.checked ? '1' : '0';
+                            const url = `/authoringtool/student_performance_metrics/${scenarioId}/?start_date=${startDate}&end_date=${endDate}&group_ids=${selectedGroups.join(",")}&include_activity_detail=${activityDetail}`;
                             fetch(url)
                                 .then(response => response.json())
                                 .then(data => {
