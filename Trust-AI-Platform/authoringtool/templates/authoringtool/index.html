@@ -2330,6 +2330,8 @@
         b.classList.remove('btn-secondary', 'active');
         b.classList.add('btn-outline-secondary');
       });
+      // Clear per-activity detail checkbox
+      document.getElementById('includeActivityDetail').checked = false;
       // Abort in-flight requests and show empty state — do NOT submit the form
       window.dashboardBeginRequest();
       showEmptyState();
