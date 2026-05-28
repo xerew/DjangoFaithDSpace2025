@@ -2169,16 +2169,15 @@ def student_performance_metrics(request, scenario_id):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
+    include_activity_detail = request.GET.get('include_activity_detail', '0') == '1'
     if group_ids:
         group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
     else:
-        group_ids = []  # Ensure it's an empty list, not None
+        group_ids = []
 
-    # Trigger Celery task
-    result = compute_student_performance_metrics.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
+    result = compute_student_performance_metrics.delay(
+        scenario_id, group_ids, start_date, end_date, include_activity_detail
+    )
     return JsonResponse({'task_id': result.id})
 
 def get_student_performance_metrics_task_status(request, task_id):
