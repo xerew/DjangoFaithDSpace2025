@@ -1384,7 +1384,7 @@ from django.utils import timezone
 from datetime import datetime, time
 
 @shared_task
-def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date):
+def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date, include_activity_detail=False):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
 
@@ -1442,7 +1442,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     }
 
     # Pre-fetch all activities for this scenario grouped by phase
-    all_acts = list(Activity.objects.filter(phase__scenario=scenario).select_related('phase'))
+    all_acts = list(Activity.objects.filter(phase__scenario=scenario).select_related('phase', 'activity_type').order_by('id'))
     phase_activities_map = defaultdict(list)
     phase_primary_map = defaultdict(list)
     for act in all_acts:
@@ -1544,6 +1544,19 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             final_categorization = 'Low'
 
         row.append(final_categorization)
+
+        if include_activity_detail:
+            for phase in phases:
+                for activity in sorted(phase_activities_map[phase.id], key=lambda a: a.id):
+                    act_type = activity.activity_type.name if activity.activity_type else ''
+                    ua = last_answers_dict.get((user.id, activity.id))
+                    timing = ua.timing if ua and ua.timing is not None else ''
+                    if activity.is_evaluatable and ua and ua.answer:
+                        score = ua.answer.answer_weight
+                    else:
+                        score = ''
+                    row.extend([act_type, timing, score])
+
         csv_data.append(row)
 
     csv_buffer = io.StringIO()
@@ -1552,6 +1565,13 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     for phase in phases:
         header.extend([phase.name + ' Categorization', phase.name + ' Start Time', phase.name + ' Time', phase.name + ' Score'])
     header.append('Final Categorization')
+
+    if include_activity_detail:
+        for phase in phases:
+            for activity in sorted(phase_activities_map[phase.id], key=lambda a: a.id):
+                prefix = f"{phase.name} > {activity.name}"
+                header.extend([f"{prefix} Type", f"{prefix} Time (s)", f"{prefix} Score"])
+
     csv_writer.writerow(header)
     csv_writer.writerows(csv_data)
     csv_buffer.seek(0)
