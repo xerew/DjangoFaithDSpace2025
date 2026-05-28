@@ -25,10 +25,8 @@ class PerActivityCSVColumnTest(TestCase):
     """
 
     def setUp(self):
-        # --- Admin / default user (pk=1) required by SET_DEFAULT FKs ---
-        self.admin = User.objects.create_user(
-            pk=1, username="admin", password="admin"
-        )
+        # --- Admin / default user required by SET_DEFAULT FKs ---
+        self.admin = User.objects.create_user(username="admin", password="admin")
 
         # --- School department so the user passes the empty-group_ids filter ---
         dept = SchoolDepartment.objects.create(name="Test Dept")
@@ -178,3 +176,7 @@ class PerActivityCSVColumnTest(TestCase):
                 f"Header: {header}\nData: {data_row}"
             ),
         )
+
+        # --- Assert Quiz Score cell value ---
+        quiz_score_idx = header.index("Phase 1 > Quiz Score")
+        self.assertEqual(data_row[quiz_score_idx], "10", "Quiz score should equal the correct answer weight")
