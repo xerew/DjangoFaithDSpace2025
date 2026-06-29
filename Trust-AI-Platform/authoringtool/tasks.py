@@ -2457,7 +2457,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen2.5:32b",
+                "model":  "qwen3.6:35b",
                 "prompt": prompt,
                 "stream": False
             })
@@ -2474,7 +2474,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen2.5:32b",
+                "model":  "qwen3.6:35b",
                 "prompt": sum_prompt,
                 "stream": False
             })
@@ -2501,7 +2501,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen2.5:32b",
+                "model":  "qwen3.6:35b",
                 "prompt": big_prompt,
                 "stream": False
             })
@@ -2527,7 +2527,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen2.5:32b",
+                "model":  "qwen3.6:35b",
                 "prompt": prompt,
                 "stream": False
             })
@@ -2556,7 +2556,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
             )
             try:
                 resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                    "model":  "qwen2.5:32b",
+                    "model":  "qwen3.6:35b",
                     "prompt": prompt,
                     "stream": False
                 })
@@ -2686,7 +2686,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen2.5:32b",
+                "model":  "qwen3.6:35b",
                 "prompt": prompt,
                 "stream": False
             })
