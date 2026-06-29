@@ -144,13 +144,16 @@
 
   /* ── View panel ── */
   .proposal-view-body {
-    border-top:1px solid #eef1f6; background:#fafbff; padding:18px 22px;
+    border-top:1px solid #eef1f6; background:#f2f4f8; padding:14px 18px;
+    display:flex; flex-direction:column; gap:10px;
   }
-  .view-field { margin-bottom:14px; }
-  .view-field:last-child { margin-bottom:0; }
+  .view-field {
+    background:#fff; border:1px solid #e4e8f0; border-radius:9px;
+    padding:12px 16px;
+  }
   .view-field-label {
     font-size:11px; font-weight:700; text-transform:uppercase;
-    letter-spacing:.5px; color:#6b7280; margin-bottom:5px;
+    letter-spacing:.5px; color:#6b7280; margin-bottom:6px;
   }
   .view-field-value { font-size:13.5px; color:#1e293b; line-height:1.6; white-space:pre-wrap; }
   .cat-tag {
@@ -360,6 +363,10 @@
         <script id="json-parsed-{{ proposal.id }}" type="application/json">
           {% if review.teacher_edited_json_str %}{{ review.teacher_edited_json_str|safe }}{% else %}{{ proposal.json_translated_action|safe }}{% endif %}
         </script>
+        <!-- Activity's actual answers (fallback for edit panel) -->
+        <script id="activity-answers-{{ proposal.id }}" type="application/json">
+          [{% for ans in proposal.activity.answers.all %}{"text": "{{ ans.text|escapejs }}", "is_correct": {{ ans.is_correct|yesno:"true,false" }}, "weight": {{ ans.answer_weight }}}{% if not forloop.last %},{% endif %}{% endfor %}]
+        </script>
 
         <!-- ── View panel (read-only) ── -->
         <div class="collapse" id="view-panel-{{ proposal.id }}"
@@ -538,7 +545,12 @@ function initProposalForm(proposalId) {
     const answerContainer = form.querySelector(`#answer-fields-${proposalId}`);
     if (answerContainer) {
       answerContainer.innerHTML = '';
-      (parsed.answers || []).forEach((ans, idx) => {
+      let editAnswers = parsed.answers || [];
+      if (editAnswers.length === 0) {
+        const actEl = document.getElementById(`activity-answers-${proposalId}`);
+        if (actEl) { try { editAnswers = JSON.parse(actEl.textContent) || []; } catch(e) {} }
+      }
+      editAnswers.forEach((ans, idx) => {
         const wrap  = document.createElement('div');
         wrap.className = 'd-flex align-items-center gap-2';
         const label = document.createElement('span');
