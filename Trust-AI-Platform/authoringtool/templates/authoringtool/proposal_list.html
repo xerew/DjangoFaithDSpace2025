@@ -83,6 +83,17 @@
 
   .proposal-card-header {
     padding:14px 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    cursor:pointer; user-select:none; transition:background .12s;
+  }
+  .proposal-card-header:hover { background:#f8faff; }
+
+  /* ── Expand chevron ── */
+  .prop-chevron {
+    font-size:11px; color:#9ca3af; flex-shrink:0;
+    transition:transform .2s, color .2s;
+  }
+  .proposal-card-header[aria-expanded="true"] .prop-chevron {
+    transform:rotate(90deg); color:#1a56db;
   }
 
   /* ── Breadcrumb trail ── */
@@ -122,7 +133,7 @@
   }
   .btn-reject:hover { background:#fecaca; }
 
-  /* ── Expand toggle ── */
+  /* ── Expand toggle (Edit button) ── */
   .prop-expand-btn {
     display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
     border-radius:8px; font-size:12px; font-weight:600;
@@ -130,6 +141,25 @@
   }
   .prop-expand-btn:hover { background:#e5e7eb; }
   .prop-expand-btn[aria-expanded="true"] { background:#eff6ff; color:#1a56db; }
+
+  /* ── View panel ── */
+  .proposal-view-body {
+    border-top:1px solid #eef1f6; background:#fafbff; padding:18px 22px;
+  }
+  .view-field { margin-bottom:14px; }
+  .view-field:last-child { margin-bottom:0; }
+  .view-field-label {
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; color:#6b7280; margin-bottom:5px;
+  }
+  .view-field-value { font-size:13.5px; color:#1e293b; line-height:1.6; white-space:pre-wrap; }
+  .cat-tag {
+    display:inline-block; background:#ede9fe; color:#6d28d9;
+    border-radius:12px; font-size:12px; font-weight:600;
+    padding:2px 10px; margin:2px 4px 2px 0;
+  }
+  .answer-view-row { display:flex; gap:8px; margin-bottom:3px; font-size:13.5px; color:#374151; }
+  .answer-view-letter { font-weight:700; color:#6b7280; min-width:20px; flex-shrink:0; }
 
   /* ── Edit panel ── */
   .proposal-edit-panel {
@@ -186,7 +216,6 @@
           <li class="breadcrumb-item"><a href="{% url 'ai_metrics' scenario_id=myScenario.id %}">Metrics &amp; AI</a></li>
           <li class="breadcrumb-item active">Proposals</li>
         </ol></nav>
-        <!-- Stats -->
         <div class="hero-stats">
           <div class="hero-stat">
             <span class="hero-stat-num">{{ total_count }}</span>
@@ -255,10 +284,17 @@
     <div id="proposalList">
       {% for proposal in proposals %}
       {% with review=user_reviews|dict_get:proposal.id %}
-      <div class="proposal-card" data-status="{{ review.status }}" id="proposal-card-{{ proposal.id }}">
+      <div class="proposal-card" data-status="{{ review.status }}" id="accordion-{{ proposal.id }}">
 
-        <!-- Card header row -->
-        <div class="proposal-card-header">
+        <!-- Card header — click to view details -->
+        <div class="proposal-card-header"
+             data-bs-toggle="collapse"
+             data-bs-target="#view-panel-{{ proposal.id }}"
+             aria-expanded="false"
+             aria-controls="view-panel-{{ proposal.id }}"
+             onclick="initViewPanel({{ proposal.id }})">
+
+          <i class="bi bi-chevron-right prop-chevron"></i>
 
           <!-- Phase → Activity trail -->
           <div class="prop-trail">
@@ -285,8 +321,8 @@
             <span class="status-badge status-rejected"><i class="bi bi-x me-1"></i>Rejected</span>
           {% endif %}
 
-          <!-- Actions -->
-          <div class="prop-actions">
+          <!-- Actions — stop propagation so clicks don't toggle view panel -->
+          <div class="prop-actions" onclick="event.stopPropagation()">
             {% if review.status == "new" %}
             <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
               {% csrf_token %}
@@ -308,28 +344,64 @@
             </form>
             {% endif %}
 
-            <!-- Expand toggle -->
+            <!-- Edit button — opens edit panel, closes view panel -->
             <button class="prop-expand-btn" type="button"
                     data-bs-toggle="collapse"
-                    data-bs-target="#panel-{{ proposal.id }}"
+                    data-bs-target="#edit-panel-{{ proposal.id }}"
                     aria-expanded="false"
-                    aria-controls="panel-{{ proposal.id }}"
+                    aria-controls="edit-panel-{{ proposal.id }}"
                     onclick="initProposalForm({{ proposal.id }})">
               <i class="bi bi-pencil-square"></i> Edit
             </button>
           </div>
         </div>
 
-        <!-- Collapsible edit panel -->
-        <div class="collapse" id="panel-{{ proposal.id }}">
+        <!-- Hidden JSON source (shared by view & edit panels) -->
+        <script id="json-parsed-{{ proposal.id }}" type="application/json">
+          {% if review.teacher_edited_json_str %}{{ review.teacher_edited_json_str|safe }}{% else %}{{ proposal.json_translated_action|safe }}{% endif %}
+        </script>
+
+        <!-- ── View panel (read-only) ── -->
+        <div class="collapse" id="view-panel-{{ proposal.id }}"
+             data-bs-parent="#accordion-{{ proposal.id }}">
+          <div class="proposal-view-body">
+
+            {% if proposal.categories_in_risk.all %}
+            <div class="view-field">
+              <div class="view-field-label">Categories at Risk</div>
+              <div class="view-field-value">
+                {% for cat in proposal.categories_in_risk.all %}
+                  <span class="cat-tag">{{ cat.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="view-field">
+              <div class="view-field-label">Activity Name</div>
+              <div class="view-field-value" id="v-name-{{ proposal.id }}">—</div>
+            </div>
+            <div class="view-field">
+              <div class="view-field-label">Content</div>
+              <div class="view-field-value" id="v-content-{{ proposal.id }}">—</div>
+            </div>
+            <div class="view-field">
+              <div class="view-field-label">Answers</div>
+              <div class="view-field-value" id="v-answers-{{ proposal.id }}"></div>
+            </div>
+            <div class="view-field">
+              <div class="view-field-label">Explanation</div>
+              <div class="view-field-value" id="v-explanation-{{ proposal.id }}">—</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Edit panel (no explanation field) ── -->
+        <div class="collapse" id="edit-panel-{{ proposal.id }}"
+             data-bs-parent="#accordion-{{ proposal.id }}">
           <div class="proposal-edit-panel">
             <div class="edit-section-title"><i class="bi bi-pencil me-1"></i>Suggested Action</div>
-
-            <!-- Hidden JSON source -->
-            <script id="json-parsed-{{ proposal.id }}" type="application/json">
-              {% if review.teacher_edited_json_str %}{{ review.teacher_edited_json_str|safe }}{% else %}{{ proposal.json_translated_action|safe }}{% endif %}
-            </script>
-
             <form method="post" action="{% url 'edit_proposal_json' pk=proposal.pk scenario_id=myScenario.id %}">
               {% csrf_token %}
               <div class="row g-3">
@@ -344,10 +416,6 @@
                 <div class="col-12">
                   <label class="form-label">Answers</label>
                   <div id="answer-fields-{{ proposal.id }}" class="d-flex flex-column gap-2"></div>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Explanation</label>
-                  <textarea name="explanation" class="form-control" rows="3" placeholder="Explanation…"></textarea>
                 </div>
                 <div class="col-12">
                   <button type="submit" class="btn-save-edit">
@@ -392,7 +460,6 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
   tab.addEventListener('click', function () {
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     this.classList.add('active');
-
     const filter = this.dataset.filter;
     let visible = 0;
     document.querySelectorAll('.proposal-card').forEach(card => {
@@ -404,29 +471,53 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
   });
 });
 
-// ── Populate edit form when panel opens ───────────────────────────────────────
-function initProposalForm(proposalId) {
-  // Wait one tick for collapse to start rendering
+// ── Populate VIEW panel from JSON ─────────────────────────────────────────────
+function initViewPanel(proposalId) {
   setTimeout(() => {
     const scriptEl = document.getElementById(`json-parsed-${proposalId}`);
     if (!scriptEl) return;
+    let parsed;
+    try { parsed = JSON.parse(scriptEl.textContent); }
+    catch (e) { return; }
 
+    const setText = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val || '—';
+    };
+    setText(`v-name-${proposalId}`, parsed.activity_name);
+    setText(`v-content-${proposalId}`, parsed.content);
+    setText(`v-explanation-${proposalId}`, parsed.explanation);
+
+    const answersEl = document.getElementById(`v-answers-${proposalId}`);
+    if (answersEl) {
+      answersEl.innerHTML = (parsed.answers || []).map((a, i) =>
+        `<div class="answer-view-row">
+          <span class="answer-view-letter">${String.fromCharCode(65 + i)}.</span>
+          <span>${a.text || ''}</span>
+        </div>`
+      ).join('') || '<span style="color:#9ca3af">—</span>';
+    }
+  }, 50);
+}
+
+// ── Populate EDIT form from JSON ───────────────────────────────────────────────
+function initProposalForm(proposalId) {
+  setTimeout(() => {
+    const scriptEl = document.getElementById(`json-parsed-${proposalId}`);
+    if (!scriptEl) return;
     let parsed;
     try { parsed = JSON.parse(scriptEl.textContent); }
     catch (e) { console.error('JSON parse error for proposal', proposalId, e); return; }
 
-    const panel = document.getElementById(`panel-${proposalId}`);
+    const panel = document.getElementById(`edit-panel-${proposalId}`);
     if (!panel) return;
-
     const form = panel.querySelector('form');
     if (!form) return;
 
     const nameInput = form.querySelector('[name="activity_name"]');
     const contentTA = form.querySelector('[name="content"]');
-    const explTA    = form.querySelector('[name="explanation"]');
     if (nameInput) nameInput.value = parsed.activity_name || '';
     if (contentTA) contentTA.value = parsed.content || '';
-    if (explTA)    explTA.value    = parsed.explanation || '';
 
     const answerContainer = form.querySelector(`#answer-fields-${proposalId}`);
     if (answerContainer) {
@@ -450,15 +541,17 @@ function initProposalForm(proposalId) {
   }, 50);
 }
 
-// Also fire on Bootstrap collapse show event (covers keyboard/programmatic open)
+// ── Fire init functions on Bootstrap collapse show events ─────────────────────
 document.querySelectorAll('.collapse').forEach(el => {
   el.addEventListener('show.bs.collapse', function () {
-    const m = this.id.match(/panel-(\d+)/);
-    if (m) initProposalForm(parseInt(m[1]));
+    const editMatch = this.id.match(/^edit-panel-(\d+)$/);
+    if (editMatch) initProposalForm(parseInt(editMatch[1]));
+    const viewMatch = this.id.match(/^view-panel-(\d+)$/);
+    if (viewMatch) initViewPanel(parseInt(viewMatch[1]));
   });
 });
 
-// ── Chevron toggle on expand button ───────────────────────────────────────────
+// ── Sync aria-expanded on header and Edit button ───────────────────────────────
 document.querySelectorAll('.collapse').forEach(el => {
   el.addEventListener('shown.bs.collapse', function () {
     const btn = document.querySelector(`[data-bs-target="#${this.id}"]`);
