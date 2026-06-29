@@ -387,7 +387,21 @@
             </div>
             <div class="view-field">
               <div class="view-field-label">Answers</div>
-              <div class="view-field-value" id="v-answers-{{ proposal.id }}"></div>
+              <div class="view-field-value" id="v-answers-{{ proposal.id }}">
+                {% if proposal.activity.activity_type.name == "Question" %}
+                  {% for ans in proposal.activity.answers.all %}
+                    <div class="answer-view-row">
+                      <span class="answer-view-letter">{{ forloop.counter }}.</span>
+                      <span {% if ans.is_correct %}style="font-weight:600;color:#15803d;"{% endif %}>{{ ans.text }}</span>
+                      {% if ans.is_correct %}<span style="font-size:11px;color:#15803d;margin-left:6px;">✓</span>{% endif %}
+                    </div>
+                  {% empty %}
+                    <span style="color:#9ca3af">—</span>
+                  {% endfor %}
+                {% else %}
+                  <span style="color:#9ca3af">—</span>
+                {% endif %}
+              </div>
             </div>
             <div class="view-field">
               <div class="view-field-label">Explanation</div>
@@ -489,13 +503,15 @@ function initViewPanel(proposalId) {
     setText(`v-explanation-${proposalId}`, parsed.explanation);
 
     const answersEl = document.getElementById(`v-answers-${proposalId}`);
-    if (answersEl) {
-      answersEl.innerHTML = (parsed.answers || []).map((a, i) =>
-        `<div class="answer-view-row">
-          <span class="answer-view-letter">${String.fromCharCode(65 + i)}.</span>
-          <span>${a.text || ''}</span>
-        </div>`
-      ).join('') || '<span style="color:#9ca3af">—</span>';
+    if (answersEl && parsed.answers && parsed.answers.length > 0) {
+      answersEl.innerHTML = parsed.answers.map(a => {
+        const text = typeof a === 'string' ? a : (a.text || '');
+        const correct = typeof a === 'object' && a.is_correct;
+        return `<div class="answer-view-row">
+          <span style="${correct ? 'font-weight:600;color:#15803d;' : ''}">${text}</span>
+          ${correct ? '<span style="font-size:11px;color:#15803d;margin-left:6px;">✓</span>' : ''}
+        </div>`;
+      }).join('');
     }
   }, 50);
 }
