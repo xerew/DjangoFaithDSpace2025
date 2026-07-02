@@ -407,7 +407,7 @@
 									if (!url) return url;
 									try {
 										const u = new URL(url);
-										if (u.hostname !== window.location.hostname) {
+										if (u.hostname === window.location.hostname) {
 											return window.location.origin + u.pathname + u.search + u.hash;
 										}
 									} catch (e) {}
