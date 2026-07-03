@@ -101,7 +101,7 @@
         <a href="{% url 'list_organizations' %}" class="hero-btn-ghost">
           <i class="bi bi-arrow-left"></i> Back
         </a>
-        {% if request.user in organization.admins.all or request.user.is_staff or request.user.is_superuser %}
+        {% if is_admin %}
         <a href="{% url 'add_member_to_org' organization.id %}" class="hero-btn-ghost">
           <i class="bi bi-person-plus"></i> Add Member
         </a>
@@ -111,6 +111,20 @@
         <button class="hero-btn-danger" data-bs-toggle="modal" data-bs-target="#deleteOrgModal">
           <i class="bi bi-trash"></i> Delete
         </button>
+        {% elif not is_member %}
+          {% if not join_request or join_request.status == 'rejected' %}
+          <form method="post" action="{% url 'request_to_join' organization.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="hero-btn-solid">
+              <i class="bi bi-person-check"></i>
+              {% if join_request and join_request.status == 'rejected' %}Re-request to Join{% else %}Request to Join{% endif %}
+            </button>
+          </form>
+          {% else %}
+          <span class="hero-btn-ghost" style="opacity:0.75;cursor:default;">
+            <i class="bi bi-clock"></i> Request Pending
+          </span>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -248,6 +262,59 @@
       </div>
 
     </div><!-- /row -->
+
+    {% if is_admin and pending_requests %}
+    <div class="row g-3 mt-2">
+      <div class="col-12">
+        <div class="card" style="border-radius:12px;">
+          <div class="card-body p-0">
+            <div class="d-flex align-items-center gap-2 px-4 pt-4 pb-3 border-bottom">
+              <h5 style="color:#012970; font-weight:700; margin:0;">
+                <i class="bi bi-person-lines-fill me-2"></i>Pending Join Requests
+              </h5>
+              <span class="badge rounded-pill" style="background:#f59e0b;color:#fff;font-size:12px;">{{ pending_requests|length }}</span>
+            </div>
+            {% for req in pending_requests %}
+            <div class="member-row">
+              <div class="member-avatar">
+                {{ req.user.first_name|default:req.user.username|slice:":1"|upper }}{{ req.user.last_name|slice:":1"|upper }}
+              </div>
+              <div class="flex-grow-1 min-width-0">
+                <div class="member-name">
+                  {% if req.user.get_full_name %}
+                    {{ req.user.get_full_name }}
+                    <span class="member-meta ms-1">@{{ req.user.username }}</span>
+                  {% else %}
+                    {{ req.user.username }}
+                  {% endif %}
+                </div>
+                {% if req.user.email %}
+                  <div class="member-meta"><i class="bi bi-envelope me-1"></i>{{ req.user.email }}</div>
+                {% endif %}
+                <div class="member-meta"><i class="bi bi-clock me-1"></i>Requested {{ req.created_at|date:"d M Y" }}</div>
+              </div>
+              <div class="d-flex gap-2 flex-shrink-0">
+                <form method="post" action="{% url 'approve_join_request' req.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                  </button>
+                </form>
+                <form method="post" action="{% url 'reject_join_request' req.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
   </section>
 </main>
 

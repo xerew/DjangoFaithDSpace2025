@@ -13,4 +13,7 @@ urlpatterns = [
     path('demote_admin/<int:org_id>/<int:user_id>/', views.demote_admin, name='demote_admin'),
     path('remove_member/<int:org_id>/<int:user_id>/', views.remove_member, name='remove_member'),
     path('edit_organization/<int:org_id>/', views.edit_organization, name='edit_organization'),
+    path('organization/<int:org_id>/request_to_join/', views.request_to_join, name='request_to_join'),
+    path('join_request/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
+    path('join_request/<int:request_id>/reject/', views.reject_join_request, name='reject_join_request'),
 ]

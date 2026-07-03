@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from functools import wraps
-from .models import Organization
+from .models import Organization, JoinRequest
 from django.contrib.auth.models import User
 from .forms import OrganizationForm
 from authoringtool.models import Language
@@ -48,9 +48,88 @@ def create_organization(request):
 def organization_detail(request, org_id):
     organization = get_object_or_404(Organization, id=org_id)
     is_site_admin = request.user.is_staff or request.user.is_superuser
-    if not organization.members.filter(id=request.user.id).exists() and not is_site_admin:
-        return HttpResponseForbidden("You are not a member of this organization.")
-    return render(request, 'organization/organization_detail.html', {'organization': organization})
+    is_member = organization.members.filter(id=request.user.id).exists()
+    is_admin = organization.admins.filter(id=request.user.id).exists() or is_site_admin
+
+    join_request = None
+    if not is_member:
+        join_request = JoinRequest.objects.filter(user=request.user, organization=organization).first()
+
+    pending_requests = None
+    if is_admin:
+        pending_requests = JoinRequest.objects.filter(
+            organization=organization, status='pending'
+        ).select_related('user')
+
+    return render(request, 'organization/organization_detail.html', {
+        'organization': organization,
+        'is_member': is_member,
+        'is_admin': is_admin,
+        'join_request': join_request,
+        'pending_requests': pending_requests,
+    })
+
+
+@require_POST
+@login_required
+def request_to_join(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    if organization.members.filter(id=request.user.id).exists():
+        return redirect('organization_detail', org_id=org_id)
+
+    join_request, created = JoinRequest.objects.get_or_create(
+        user=request.user,
+        organization=organization,
+        defaults={'status': 'pending'}
+    )
+    if not created and join_request.status == 'rejected':
+        join_request.status = 'pending'
+        join_request.reviewed_by = None
+        join_request.reviewed_at = None
+        join_request.save()
+        messages.success(request, "Your join request has been re-submitted.")
+    elif created:
+        messages.success(request, "Your request to join has been submitted.")
+    return redirect('organization_detail', org_id=org_id)
+
+
+@require_POST
+@login_required
+def approve_join_request(request, request_id):
+    from django.utils import timezone
+    join_req = get_object_or_404(JoinRequest, id=request_id)
+    organization = join_req.organization
+
+    is_site_admin = request.user.is_staff or request.user.is_superuser
+    if request.user not in organization.admins.all() and not is_site_admin:
+        return redirect('organization_detail', org_id=organization.id)
+
+    join_req.status = 'approved'
+    join_req.reviewed_by = request.user
+    join_req.reviewed_at = timezone.now()
+    join_req.save()
+    organization.members.add(join_req.user)
+    messages.success(request, f"{join_req.user.get_full_name() or join_req.user.username} has been added to {organization.name}.")
+    return redirect('organization_detail', org_id=organization.id)
+
+
+@require_POST
+@login_required
+def reject_join_request(request, request_id):
+    from django.utils import timezone
+    join_req = get_object_or_404(JoinRequest, id=request_id)
+    organization = join_req.organization
+
+    is_site_admin = request.user.is_staff or request.user.is_superuser
+    if request.user not in organization.admins.all() and not is_site_admin:
+        return redirect('organization_detail', org_id=organization.id)
+
+    join_req.status = 'rejected'
+    join_req.reviewed_by = request.user
+    join_req.reviewed_at = timezone.now()
+    join_req.save()
+    messages.info(request, f"Request from {join_req.user.get_full_name() or join_req.user.username} has been rejected.")
+    return redirect('organization_detail', org_id=organization.id)
 
 @login_required
 def add_member_to_org(request, org_id):

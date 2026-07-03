@@ -1,6 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
+class JoinRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='join_requests')
+    organization = models.ForeignKey('Organization', on_delete=models.CASCADE, related_name='join_requests')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_join_requests')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'organization'], name='unique_join_request'),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} → {self.organization.name} ({self.status})"
+
+
 class Organization(models.Model):
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=50, unique=True)
