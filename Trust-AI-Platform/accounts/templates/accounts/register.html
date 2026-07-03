@@ -196,6 +196,16 @@
 
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   <script>
+    // --- Pre-fill access code from ?code= query param (for QR code links) ---
+    (function() {
+      const code = new URLSearchParams(window.location.search).get('code');
+      if (code) {
+        const field = document.getElementById('access_code');
+        field.value = code;
+        field.closest('.col-12').style.display = 'none';
+      }
+    })();
+
     // --- Show/hide password toggle ---
     document.querySelectorAll('.password-toggle').forEach(function(btn) {
       btn.addEventListener('click', function() {
