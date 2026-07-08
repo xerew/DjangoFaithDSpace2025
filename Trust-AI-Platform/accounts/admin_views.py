@@ -84,6 +84,8 @@ def admin_toggle_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user == request.user:
         return JsonResponse({'success': False, 'error': 'Cannot suspend your own account.'})
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Cannot suspend a superuser account.'})
     user.is_active = not user.is_active
     user.save(update_fields=['is_active'])
     return JsonResponse({'success': True, 'is_active': user.is_active})
@@ -141,6 +143,7 @@ def admin_impersonate(request, user_id):
 
 
 @require_POST
+@login_required
 def admin_impersonate_exit(request):
     impersonator_id = request.session.get('impersonator_id')
     if not impersonator_id:
