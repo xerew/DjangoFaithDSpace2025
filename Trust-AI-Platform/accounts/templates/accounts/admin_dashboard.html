@@ -177,7 +177,7 @@
                     <div class="d-flex align-items-center gap-2">
                       <div class="user-avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
                       <div>
-                        <div style="font-weight:600;font-size:13px;color:#012970;">{{ u.get_full_name|default:u.username }}</div>
+                        <div class="user-display-name" style="font-weight:600;font-size:13px;color:#012970;">{{ u.get_full_name|default:u.username }}</div>
                         <div style="font-size:11px;color:#888;">@{{ u.username }}</div>
                       </div>
                     </div>
@@ -502,8 +502,8 @@ function saveUser() {
         row.dataset.email = email;
         row.dataset.search = (row.dataset.userId + ' ' + fn + ' ' + ln + ' ' + email).toLowerCase();
         // Update displayed name cell (first td, second div inside flex)
-        const nameDiv = row.querySelector('.fw-semibold');
-        if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || row.dataset.username || '';
+        const nameDiv = row.querySelector('.user-display-name');
+        if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || nameDiv.textContent;
         // Update email cell (second td)
         const cells = row.querySelectorAll('td');
         if (cells[1]) cells[1].textContent = email || '—';
