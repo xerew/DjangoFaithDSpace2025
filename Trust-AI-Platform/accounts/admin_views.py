@@ -57,9 +57,11 @@ def admin_edit_user(request, user_id):
     user.last_name = last_name
     user.email = email
     user.is_staff = is_staff
+    update_fields = ['first_name', 'last_name', 'email', 'is_staff']
     if request.user.is_superuser:
         user.is_superuser = is_superuser
-    user.save(update_fields=['first_name', 'last_name', 'email', 'is_staff', 'is_superuser'])
+        update_fields.append('is_superuser')
+    user.save(update_fields=update_fields)
     user.groups.set(Group.objects.filter(id__in=group_ids))
     return JsonResponse({'success': True})
 
