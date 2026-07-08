@@ -163,6 +163,7 @@
                 <tr class="user-row {% if not u.is_active %}inactive-row{% endif %}"
                     data-user-id="{{ u.id }}"
                     data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }}"
+                    data-username="{{ u.username }}"
                     data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}"
                     data-has-role="{% if u.groups.exists or u.is_staff or u.is_superuser %}yes{% else %}no{% endif %}"
                     data-is-active="{{ u.is_active|yesno:'true,false' }}"
@@ -254,18 +255,18 @@
                         title="Click to rename"
                         onclick="startRenameRole({{ group.id }}, this)">{{ group.name }}</span>
                   <div class="d-flex gap-1 align-items-center">
-                    <span class="badge bg-secondary">{{ group.user_set.count }}</span>
+                    <span class="badge bg-secondary">{{ group.member_count }}</span>
                     <button class="btn btn-sm btn-outline-danger"
-                            {% if group.user_set.exists %}disabled title="Remove all members first"{% else %}onclick="deleteRole({{ group.id }})"{% endif %}>
+                            {% if group.member_count %}disabled title="Remove all members first"{% else %}onclick="deleteRole({{ group.id }})"{% endif %}>
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
-                {% if group.user_set.exists %}
+                {% if group.member_count %}
                 <div>
                   <button class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
                           data-bs-toggle="collapse" data-bs-target="#role-members-{{ group.id }}">
-                    <i class="bi bi-chevron-right"></i> {{ group.user_set.count }} member{{ group.user_set.count|pluralize }}
+                    <i class="bi bi-chevron-right"></i> {{ group.member_count }} member{{ group.member_count|pluralize }}
                   </button>
                   <div class="collapse" id="role-members-{{ group.id }}">
                     <div class="mt-2 d-flex flex-column gap-1">
@@ -500,7 +501,7 @@ function saveUser() {
         row.dataset.first = fn;
         row.dataset.last = ln;
         row.dataset.email = email;
-        row.dataset.search = (row.dataset.userId + ' ' + fn + ' ' + ln + ' ' + email).toLowerCase();
+        row.dataset.search = (row.dataset.username + ' ' + fn + ' ' + ln + ' ' + email).toLowerCase();
         // Update displayed name cell (first td, second div inside flex)
         const nameDiv = row.querySelector('.user-display-name');
         if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || nameDiv.textContent;

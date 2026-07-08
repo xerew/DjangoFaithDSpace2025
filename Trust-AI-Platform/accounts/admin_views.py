@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login as auth_login
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
+from django.db.models import Count, Q
 from functools import wraps
 
 
@@ -20,12 +21,17 @@ def staff_required(view_func):
 @staff_required
 def admin_dashboard(request):
     users = User.objects.all().prefetch_related('groups').order_by('username')
-    groups = Group.objects.all().prefetch_related('user_set').order_by('name')
+    groups = Group.objects.annotate(member_count=Count('user')).order_by('name')
+    agg = User.objects.aggregate(
+        total=Count('id'),
+        active=Count('id', filter=Q(is_active=True)),
+        staff=Count('id', filter=Q(is_staff=True)),
+    )
     stats = {
-        'total': users.count(),
-        'active': users.filter(is_active=True).count(),
-        'staff': users.filter(is_staff=True).count(),
-        'inactive': users.filter(is_active=False).count(),
+        'total': agg['total'],
+        'active': agg['active'],
+        'staff': agg['staff'],
+        'inactive': agg['total'] - agg['active'],
     }
     is_superuser = request.user.is_superuser
     return render(request, 'accounts/admin_dashboard.html', {
