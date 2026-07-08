@@ -1,0 +1,634 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — User Management</title>{% endblock %}
+{% load static %}
+{% block atcontent %}
+
+<style>
+  .admin-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .admin-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .admin-hero .breadcrumb { background: none; margin: 10px 0 0; padding: 0; font-size: 12px; }
+  .admin-hero .breadcrumb-item+.breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+  .admin-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
+  .admin-hero .breadcrumb-item a:hover { color: #fff; }
+  .admin-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  .stat-card { border-radius: 10px; padding: 18px 20px; text-align: center; border: 1px solid #e8edf5; background:#fff; }
+  .stat-card .stat-num { font-size: 28px; font-weight: 700; color: #012970; line-height: 1; }
+  .stat-card .stat-label { font-size: 12px; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #4154f1, #1a56db);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .user-row td { vertical-align: middle; font-size: 13px; }
+  .user-row.inactive-row { opacity: 0.5; }
+
+  /* Edit slide panel */
+  .edit-panel {
+    position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
+    background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+    z-index: 1055; transition: right 0.25s ease; overflow-y: auto;
+  }
+  .edit-panel.open { right: 0; }
+  .edit-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 16px; border-bottom: 1px solid #e8edf5; position: sticky; top: 0; background: #fff; z-index:1;
+  }
+  .edit-panel-header h5 { margin: 0; font-size: 15px; font-weight: 700; color: #012970; }
+  .edit-panel-body { padding: 20px 24px; }
+  .edit-panel-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1054;
+  }
+  .edit-panel-overlay.open { display: block; }
+
+  /* Role cards */
+  .role-name-display:hover { color: #1a56db; text-decoration: underline; }
+</style>
+
+<main id="main" class="main">
+
+  <div class="admin-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="admin-hero-icon"><i class="bi bi-shield-lock-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">User Management</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ stats.total }} user{{ stats.total|pluralize }} · {{ stats.active }} active</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item active">User Management</li>
+        </ol></nav>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+
+    <!-- Stats bar -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-num">{{ stats.total }}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#16a34a;">{{ stats.active }}</div>
+          <div class="stat-label">Active</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#d97706;">{{ stats.staff }}</div>
+          <div class="stat-label">Staff / Admins</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#6b7280;">{{ stats.inactive }}</div>
+          <div class="stat-label">Inactive</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-0" id="adminTabs" role="tablist" style="border-bottom:2px solid #e8edf5;">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-users-btn" data-bs-toggle="tab" data-bs-target="#tab-users" type="button" role="tab">
+          <i class="bi bi-people me-1"></i> Users
+          <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ stats.total }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-roles-btn" data-bs-toggle="tab" data-bs-target="#tab-roles" type="button" role="tab">
+          <i class="bi bi-tag me-1"></i> Roles
+          <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ groups|length }}</span>
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content pt-4">
+
+      <!-- Users Tab -->
+      <div class="tab-pane fade show active" id="tab-users" role="tabpanel">
+
+        <!-- Search + filter row -->
+        <div class="row g-2 mb-3 align-items-center">
+          <div class="col-12 col-md-5">
+            <input type="text" id="userSearch" class="form-control" placeholder="Search name, username or email…">
+          </div>
+          <div class="col-12 col-md-4">
+            <select id="roleFilter" class="form-select">
+              <option value="">All Roles</option>
+              {% for group in groups %}
+              <option value="{{ group.name|lower }}">{{ group.name }}</option>
+              {% endfor %}
+              <option value="__none__">No Role</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="form-check form-switch ms-1 mt-1">
+              <input class="form-check-input" type="checkbox" id="showInactive">
+              <label class="form-check-label" for="showInactive" style="font-size:13px;">Show inactive</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- User table -->
+        <div class="card" style="border-radius:12px; overflow:hidden;">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="userTable">
+              <thead style="background:#f8faff;">
+                <tr>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">User</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Email</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Roles</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Last Login</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in all_users %}
+                <tr class="user-row {% if not u.is_active %}inactive-row{% endif %}"
+                    data-user-id="{{ u.id }}"
+                    data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }}"
+                    data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}"
+                    data-has-role="{% if u.groups.exists or u.is_staff or u.is_superuser %}yes{% else %}no{% endif %}"
+                    data-is-active="{{ u.is_active|yesno:'true,false' }}"
+                    data-first="{{ u.first_name|escapejs }}"
+                    data-last="{{ u.last_name|escapejs }}"
+                    data-email="{{ u.email|escapejs }}"
+                    data-is-staff="{{ u.is_staff|yesno:'true,false' }}"
+                    data-is-superuser="{{ u.is_superuser|yesno:'true,false' }}"
+                    data-group-ids="{% for g in u.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                    {% if not u.is_active %}style="display:none;"{% endif %}>
+                  <td style="padding:12px 16px;">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="user-avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
+                      <div>
+                        <div style="font-weight:600;font-size:13px;color:#012970;">{{ u.get_full_name|default:u.username }}</div>
+                        <div style="font-size:11px;color:#888;">@{{ u.username }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ u.email|default:"—" }}</td>
+                  <td>
+                    {% if u.is_superuser %}<span class="badge bg-danger me-1">Superuser</span>{% endif %}
+                    {% if u.is_staff and not u.is_superuser %}<span class="badge bg-warning text-dark me-1">Staff</span>{% endif %}
+                    {% for g in u.groups.all %}<span class="badge bg-primary me-1">{{ g.name }}</span>{% endfor %}
+                    {% if not u.groups.exists and not u.is_staff and not u.is_superuser %}<span style="font-size:12px;color:#aaa;">—</span>{% endif %}
+                  </td>
+                  <td>{% if u.last_login %}{{ u.last_login|date:"d M Y" }}{% else %}<span style="color:#aaa;">Never</span>{% endif %}</td>
+                  <td>
+                    {% if u.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td style="white-space:nowrap;">
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-primary" title="Edit"
+                              onclick="openEditPanelFromRow(this.closest('tr'))">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      {% if u.id != request.user.id %}
+                      <button class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                              title="{% if u.is_active %}Suspend{% else %}Activate{% endif %}"
+                              id="toggle-btn-{{ u.id }}"
+                              onclick="toggleUser({{ u.id }})">
+                        <i class="bi {% if u.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                      </button>
+                      {% if not u.is_superuser %}
+                      <button class="btn btn-sm btn-outline-secondary" title="Impersonate"
+                              onclick="impersonateUser({{ u.id }})">
+                        <i class="bi bi-person-badge"></i>
+                      </button>
+                      {% endif %}
+                      <button class="btn btn-sm btn-outline-danger" title="Delete"
+                              onclick="openDeleteModal({{ u.id }}, '{{ u.get_full_name|default:u.username|escapejs }}')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /tab-users -->
+
+      <!-- Roles Tab -->
+      <div class="tab-pane fade" id="tab-roles" role="tabpanel">
+
+        <div class="d-flex gap-2 mb-4 align-items-center">
+          <input type="text" id="newRoleName" class="form-control" placeholder="New role name…" style="max-width:280px;"
+                 onkeydown="if(event.key==='Enter') createRole()">
+          <button class="btn btn-primary" onclick="createRole()">
+            <i class="bi bi-plus-lg me-1"></i>Add Role
+          </button>
+        </div>
+
+        <div class="row g-3" id="roleCards">
+          {% for group in groups %}
+          <div class="col-12 col-md-6 col-lg-4" id="role-card-{{ group.id }}">
+            <div class="card h-100" style="border-radius:12px;">
+              <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                  <span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;"
+                        title="Click to rename"
+                        onclick="startRenameRole({{ group.id }}, this)">{{ group.name }}</span>
+                  <div class="d-flex gap-1 align-items-center">
+                    <span class="badge bg-secondary">{{ group.user_set.count }}</span>
+                    <button class="btn btn-sm btn-outline-danger"
+                            {% if group.user_set.exists %}disabled title="Remove all members first"{% else %}onclick="deleteRole({{ group.id }})"{% endif %}>
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                {% if group.user_set.exists %}
+                <div>
+                  <button class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
+                          data-bs-toggle="collapse" data-bs-target="#role-members-{{ group.id }}">
+                    <i class="bi bi-chevron-right"></i> {{ group.user_set.count }} member{{ group.user_set.count|pluralize }}
+                  </button>
+                  <div class="collapse" id="role-members-{{ group.id }}">
+                    <div class="mt-2 d-flex flex-column gap-1">
+                      {% for member in group.user_set.all %}
+                      <div style="font-size:12px;">
+                        <a href="#" class="text-decoration-none"
+                           data-member-id="{{ member.id }}"
+                           onclick="switchToUserRow(this); return false;">
+                          {{ member.get_full_name|default:member.username }}
+                        </a>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div><!-- /tab-roles -->
+
+    </div><!-- /tab-content -->
+
+  </section>
+
+</main>
+
+<!-- Edit slide panel -->
+<div id="editPanel" class="edit-panel">
+  <div class="edit-panel-header">
+    <h5 id="editPanelTitle">Edit User</h5>
+    <button type="button" class="btn-close" onclick="closeEditPanel()"></button>
+  </div>
+  <div class="edit-panel-body">
+    <input type="hidden" id="editUserId">
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:13px;">First Name</label>
+      <input type="text" id="editFirstName" class="form-control form-control-sm">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:13px;">Last Name</label>
+      <input type="text" id="editLastName" class="form-control form-control-sm">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:13px;">Email</label>
+      <input type="email" id="editEmail" class="form-control form-control-sm">
+    </div>
+
+    <hr>
+
+    <div class="mb-2">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="editIsStaff">
+        <label class="form-check-label" for="editIsStaff" style="font-size:13px;">Staff (can access admin)</label>
+      </div>
+    </div>
+    {% if is_superuser %}
+    <div class="mb-3">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="editIsSuperuser">
+        <label class="form-check-label" for="editIsSuperuser" style="font-size:13px;">Superuser</label>
+      </div>
+    </div>
+    {% endif %}
+
+    <hr>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold" style="font-size:13px;">Roles</label>
+      <div id="editGroupsContainer">
+        {% for group in groups %}
+        <div class="form-check">
+          <input class="form-check-input edit-group-check" type="checkbox"
+                 value="{{ group.id }}" id="editGroup{{ group.id }}">
+          <label class="form-check-label" for="editGroup{{ group.id }}" style="font-size:13px;">{{ group.name }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-100" onclick="saveUser()">
+      <i class="bi bi-check-lg me-1"></i>Save Changes
+    </button>
+    <div id="editPanelError" class="text-danger mt-2" style="display:none;font-size:13px;"></div>
+  </div>
+</div>
+<div id="editPanelOverlay" class="edit-panel-overlay" onclick="closeEditPanel()"></div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+      <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
+        <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
+          <i class="bi bi-exclamation-triangle me-2"></i>Delete User
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="font-size:14px;padding:20px 24px;">
+        Delete <strong id="deleteUserName"></strong>? This cannot be undone.
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="deleteConfirmBtn">
+          <i class="bi bi-trash me-1"></i>Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden form for impersonate exit (returns redirect, not JSON) -->
+<form id="impersonateExitForm" method="post" action="{% url 'admin_impersonate_exit' %}" style="display:none;">
+  {% csrf_token %}
+</form>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+  <div id="adminToast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="adminToastMsg" style="font-size:13px;"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+// Toast helper
+function showToast(msg, isError) {
+  const t = document.getElementById('adminToast');
+  t.className = 'toast align-items-center text-white border-0 ' + (isError ? 'bg-danger' : 'bg-success');
+  document.getElementById('adminToastMsg').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(t, {delay: 3000}).show();
+}
+
+function postJSON(url, data) {
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  for (const [k, v] of Object.entries(data)) {
+    if (Array.isArray(v)) v.forEach(i => fd.append(k, i));
+    else fd.append(k, v);
+  }
+  return fetch(url, {method: 'POST', headers: {'X-CSRFToken': CSRF}, body: fd}).then(r => r.json());
+}
+
+// Client-side search / filter
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  const showInactive = document.getElementById('showInactive').checked;
+
+  document.querySelectorAll('#userTable .user-row').forEach(function(row) {
+    const isActive = row.dataset.isActive === 'true';
+    if (!isActive && !showInactive) { row.style.display = 'none'; return; }
+
+    const matchSearch = !q || row.dataset.search.includes(q);
+    let matchRole = true;
+    if (role === '__none__') matchRole = row.dataset.hasRole === 'no';
+    else if (role) matchRole = row.dataset.groups.includes(role);
+
+    row.style.display = (matchSearch && matchRole) ? '' : 'none';
+  });
+}
+document.getElementById('userSearch').addEventListener('input', filterUsers);
+document.getElementById('roleFilter').addEventListener('change', filterUsers);
+document.getElementById('showInactive').addEventListener('change', filterUsers);
+
+// Edit panel — open from data attributes on the row
+function openEditPanelFromRow(row) {
+  const groupIds = row.dataset.groupIds ? row.dataset.groupIds.split(',').map(Number).filter(Boolean) : [];
+  openEditPanel(
+    row.dataset.userId,
+    row.dataset.first,
+    row.dataset.last,
+    row.dataset.email,
+    row.dataset.isStaff === 'true',
+    row.dataset.isSuperuser === 'true',
+    groupIds
+  );
+}
+
+function openEditPanel(id, firstName, lastName, email, isStaff, isSuperuser, groupIds) {
+  document.getElementById('editUserId').value = id;
+  document.getElementById('editFirstName').value = firstName || '';
+  document.getElementById('editLastName').value = lastName || '';
+  document.getElementById('editEmail').value = email || '';
+  document.getElementById('editIsStaff').checked = isStaff;
+  const superEl = document.getElementById('editIsSuperuser');
+  if (superEl) superEl.checked = isSuperuser;
+  document.querySelectorAll('.edit-group-check').forEach(function(cb) {
+    cb.checked = groupIds.includes(parseInt(cb.value));
+  });
+  document.getElementById('editPanelError').style.display = 'none';
+  document.getElementById('editPanel').classList.add('open');
+  document.getElementById('editPanelOverlay').classList.add('open');
+}
+
+function closeEditPanel() {
+  document.getElementById('editPanel').classList.remove('open');
+  document.getElementById('editPanelOverlay').classList.remove('open');
+}
+
+function saveUser() {
+  const id = document.getElementById('editUserId').value;
+  const groupIds = [...document.querySelectorAll('.edit-group-check:checked')].map(c => c.value);
+  const superEl = document.getElementById('editIsSuperuser');
+
+  postJSON('/accounts/admin/edit_user/' + id + '/', {
+    first_name: document.getElementById('editFirstName').value,
+    last_name: document.getElementById('editLastName').value,
+    email: document.getElementById('editEmail').value,
+    is_staff: document.getElementById('editIsStaff').checked ? 'true' : 'false',
+    is_superuser: (superEl && superEl.checked) ? 'true' : 'false',
+    groups: groupIds,
+  }).then(function(data) {
+    if (data.success) {
+      showToast('User saved.', false);
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      const el = document.getElementById('editPanelError');
+      el.textContent = data.error;
+      el.style.display = 'block';
+    }
+  });
+}
+
+// Toggle active
+function toggleUser(id) {
+  postJSON('/accounts/admin/toggle_user/' + id + '/', {}).then(function(data) {
+    if (data.success) {
+      showToast(data.is_active ? 'User activated.' : 'User suspended.', false);
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      showToast(data.error, true);
+    }
+  });
+}
+
+// Delete
+let _deleteId = null;
+function openDeleteModal(id, name) {
+  _deleteId = id;
+  document.getElementById('deleteUserName').textContent = name;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteUserModal')).show();
+}
+document.getElementById('deleteConfirmBtn').addEventListener('click', function() {
+  if (!_deleteId) return;
+  postJSON('/accounts/admin/delete_user/' + _deleteId + '/', {}).then(function(data) {
+    bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+    if (data.success) {
+      showToast('User deleted.', false);
+      const row = document.querySelector('[data-user-id="' + _deleteId + '"]');
+      if (row) row.remove();
+    } else {
+      showToast(data.error, true);
+    }
+    _deleteId = null;
+  });
+});
+
+// Impersonate (start — returns JSON)
+function impersonateUser(id) {
+  if (!confirm('You will be logged in as this user. Continue?')) return;
+  postJSON('/accounts/admin/impersonate/' + id + '/', {}).then(function(data) {
+    if (data.success) window.location.href = data.redirect;
+    else showToast(data.error, true);
+  });
+}
+
+// Impersonate exit — submit as regular form POST (view returns a redirect)
+function exitImpersonation() {
+  document.getElementById('impersonateExitForm').submit();
+}
+
+// Roles tab — switch to user row and open edit panel
+function switchToUserRow(link) {
+  document.getElementById('tab-users-btn').click();
+  setTimeout(function() {
+    const row = document.querySelector('[data-user-id="' + link.dataset.memberId + '"]');
+    if (row) openEditPanelFromRow(row);
+  }, 50);
+}
+
+// Roles management
+function createRole() {
+  const nameInput = document.getElementById('newRoleName');
+  const name = nameInput.value.trim();
+  if (!name) return;
+  postJSON('/accounts/admin/create_role/', {name: name}).then(function(data) {
+    if (data.success) {
+      showToast('Role created.', false);
+      nameInput.value = '';
+      const container = document.getElementById('roleCards');
+      const col = document.createElement('div');
+      col.className = 'col-12 col-md-6 col-lg-4';
+      col.id = 'role-card-' + data.id;
+      col.innerHTML = '<div class="card h-100" style="border-radius:12px;"><div class="card-body">' +
+        '<div class="d-flex align-items-start justify-content-between mb-2">' +
+        '<span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="Click to rename" onclick="startRenameRole(' + data.id + ', this)">' + escHtml(data.name) + '</span>' +
+        '<div class="d-flex gap-1 align-items-center"><span class="badge bg-secondary">0</span>' +
+        '<button class="btn btn-sm btn-outline-danger" onclick="deleteRole(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
+        '</div></div></div></div>';
+      container.appendChild(col);
+    } else {
+      showToast(data.error, true);
+    }
+  });
+}
+
+function deleteRole(id) {
+  if (!confirm('Delete this role?')) return;
+  postJSON('/accounts/admin/delete_role/' + id + '/', {}).then(function(data) {
+    if (data.success) {
+      showToast('Role deleted.', false);
+      const card = document.getElementById('role-card-' + id);
+      if (card) card.remove();
+    } else {
+      showToast(data.error, true);
+    }
+  });
+}
+
+function startRenameRole(id, el) {
+  const currentName = el.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.className = 'form-control form-control-sm';
+  input.style.maxWidth = '160px';
+  el.replaceWith(input);
+  input.focus();
+
+  function finishRename() {
+    const newName = input.value.trim();
+    if (!newName || newName === currentName) {
+      input.replaceWith(el);
+      return;
+    }
+    postJSON('/accounts/admin/rename_role/' + id + '/', {name: newName}).then(function(data) {
+      if (data.success) {
+        el.textContent = data.name;
+        input.replaceWith(el);
+        showToast('Role renamed.', false);
+      } else {
+        showToast(data.error, true);
+        input.replaceWith(el);
+      }
+    });
+  }
+  input.addEventListener('blur', finishRename);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+{% endblock atcontent %}
