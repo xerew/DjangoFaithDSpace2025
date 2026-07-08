@@ -136,11 +136,15 @@ def admin_delete_role(request, role_id):
 @require_POST
 @staff_required
 def admin_impersonate(request, user_id):
+    if request.session.get('impersonator_id'):
+        return JsonResponse({'success': False, 'error': 'Cannot impersonate while already impersonating.'}, status=403)
     target = get_object_or_404(User, id=user_id)
     if target.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Cannot impersonate a superuser.'})
+        return JsonResponse({'success': False, 'error': 'Cannot impersonate a superuser.'}, status=403)
+    if target.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Staff can only impersonate non-staff users.'}, status=403)
     if target == request.user:
-        return JsonResponse({'success': False, 'error': 'Cannot impersonate yourself.'})
+        return JsonResponse({'success': False, 'error': 'Cannot impersonate yourself.'}, status=403)
     impersonator_id = request.user.id          # save before login() may flush session
     target.backend = 'django.contrib.auth.backends.ModelBackend'
     auth_login(request, target)                # switches session to target user
@@ -154,7 +158,12 @@ def admin_impersonate_exit(request):
     impersonator_id = request.session.get('impersonator_id')
     if not impersonator_id:
         return redirect('index')
-    original = get_object_or_404(User, id=impersonator_id)
+    original = User.objects.filter(id=impersonator_id).first()
+    if original is None:
+        # Impersonator account was deleted; clear the flag and redirect to login
+        request.session.pop('impersonator_id', None)
+        return redirect('login')
     original.backend = 'django.contrib.auth.backends.ModelBackend'
-    auth_login(request, original)              # session flush clears impersonator_id
+    auth_login(request, original)              # session flush normally clears impersonator_id
+    request.session.pop('impersonator_id', None)  # defensive: clear if flush was skipped
     return redirect('admin_dashboard')
