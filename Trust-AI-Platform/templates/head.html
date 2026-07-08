@@ -39,6 +39,31 @@
 
 <body>
 
+  {% if request.session.impersonator_id %}
+  <div id="impersonation-banner" style="
+    position:fixed; top:0; left:0; right:0; z-index:9999;
+    background:#f59e0b; color:#1c1917;
+    padding:8px 20px; font-size:13px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  ">
+    <i class="bi bi-eye-fill"></i>
+    Viewing as <strong>@{{ request.user.username }}</strong> &mdash; not your account
+    <form method="post" action="{% url 'admin_impersonate_exit' %}" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" style="
+        background:#1c1917; color:#fff; border:none; border-radius:6px;
+        padding:3px 12px; font-size:12px; font-weight:600; cursor:pointer;
+      ">Exit Impersonation</button>
+    </form>
+  </div>
+  <style>
+    #header { top: 40px !important; }
+    #sidebar { top: 112px !important; }
+    .main { padding-top: 96px !important; }
+  </style>
+  {% endif %}
+
   <!-- ======= Header ======= -->
   <header id="header" class="header fixed-top d-flex align-items-center">
 
@@ -80,6 +105,14 @@
                 <span>Organizations</span>
               </a>
             </li>
+            {% if request.user.is_staff or request.user.is_superuser %}
+            <li>
+              <a class="dropdown-item d-flex align-items-center" href="{% url 'admin_dashboard' %}">
+                <span class="profile-icon-wrap" style="background:#ede9fe;color:#7c3aed;"><i class="bi bi-shield-lock-fill"></i></span>
+                <span>User Management</span>
+              </a>
+            </li>
+            {% endif %}
             <li><hr class="dropdown-divider"></li>
             {% endif %}
 
