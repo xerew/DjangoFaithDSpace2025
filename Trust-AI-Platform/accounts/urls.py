@@ -2,6 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
 from . import admin_views
+from . import admin_lab_views
 from .views import CustomPasswordResetView
 from .forms import CustomSetPasswordForm
 from django.views.generic import TemplateView
@@ -33,4 +34,13 @@ urlpatterns = [
     path('admin/delete_role/<int:role_id>/', admin_views.admin_delete_role, name='admin_delete_role'),
     path('admin/impersonate/<int:user_id>/', admin_views.admin_impersonate, name='admin_impersonate'),
     path('admin/impersonate_exit/', admin_views.admin_impersonate_exit, name='admin_impersonate_exit'),
+    path('admin/simulations/create/', admin_lab_views.admin_create_simulation, name='admin_create_simulation'),
+    path('admin/simulations/<int:sim_id>/edit/', admin_lab_views.admin_edit_simulation, name='admin_edit_simulation'),
+    path('admin/simulations/<int:sim_id>/delete/', admin_lab_views.admin_delete_simulation, name='admin_delete_simulation'),
+    path('admin/remote_labs/create/', admin_lab_views.admin_create_remote_lab, name='admin_create_remote_lab'),
+    path('admin/remote_labs/<int:lab_id>/edit/', admin_lab_views.admin_edit_remote_lab, name='admin_edit_remote_lab'),
+    path('admin/remote_labs/<int:lab_id>/delete/', admin_lab_views.admin_delete_remote_lab, name='admin_delete_remote_lab'),
+    path('admin/vr_labs/create/', admin_lab_views.admin_create_vr_lab, name='admin_create_vr_lab'),
+    path('admin/vr_labs/<int:vr_id>/edit/', admin_lab_views.admin_edit_vr_lab, name='admin_edit_vr_lab'),
+    path('admin/vr_labs/<int:vr_id>/delete/', admin_lab_views.admin_delete_vr_lab, name='admin_delete_vr_lab'),
 ]

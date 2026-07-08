@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db.models import Count, Q
 from functools import wraps
+from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
 
 
 def staff_required(view_func):
@@ -34,11 +35,18 @@ def admin_dashboard(request):
         'inactive': agg['total'] - agg['active'],
     }
     is_superuser = request.user.is_superuser
+    simulations = list(Simulation.objects.all().order_by('name'))
+    remote_labs = list(ExperimentLL.objects.all().order_by('name'))
+    vr_labs = list(VRARExperiment.objects.all().order_by('name'))
     return render(request, 'accounts/admin_dashboard.html', {
         'all_users': users,
         'groups': groups,
         'stats': stats,
         'is_superuser': is_superuser,
+        'simulations': simulations,
+        'remote_labs': remote_labs,
+        'vr_labs': vr_labs,
+        'lab_count': len(simulations) + len(remote_labs) + len(vr_labs),
     })
 
 
