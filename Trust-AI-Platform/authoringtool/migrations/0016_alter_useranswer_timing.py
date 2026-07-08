@@ -12,12 +12,17 @@ def convert_timing_with_sql(apps, schema_editor):
     3. Drop old column
     4. Rename new column
     """
-    db_alias = schema_editor.connection.alias
+    vendor = schema_editor.connection.vendor
+    if vendor == 'sqlite':
+        # On SQLite (used in tests) the table is always empty at this point;
+        # the column type change is handled by AlterField below, so nothing
+        # to do here.
+        return
     schema_editor.execute(
         'ALTER TABLE "authoringtool_useranswer" '
         'ADD COLUMN "timing_int" integer DEFAULT 0'
     )
-    # Convert interval to integer (seconds)
+    # Convert interval to integer (seconds) — PostgreSQL-specific syntax
     schema_editor.execute(
         'UPDATE "authoringtool_useranswer" '
         'SET "timing_int" = EXTRACT(EPOCH FROM "timing")::integer '

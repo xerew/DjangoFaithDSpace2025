@@ -2,6 +2,51 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def apply_school_department_column(apps, schema_editor):
+    """Add school_department_id column to auth_user — PostgreSQL only."""
+    if schema_editor.connection.vendor != 'postgresql':
+        return
+    schema_editor.execute("""
+        ALTER TABLE auth_user
+        ADD COLUMN IF NOT EXISTS school_department_id bigint NULL;
+
+        CREATE INDEX IF NOT EXISTS auth_user_school_department_id_idx
+        ON auth_user (school_department_id);
+
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'auth_user_school_department_id_fk'
+            ) THEN
+                ALTER TABLE auth_user
+                ADD CONSTRAINT auth_user_school_department_id_fk
+                FOREIGN KEY (school_department_id)
+                REFERENCES authoringtool_schooldepartment (id)
+                ON DELETE SET NULL
+                DEFERRABLE INITIALLY DEFERRED;
+            END IF;
+        END
+        $$;
+    """)
+
+
+def reverse_school_department_column(apps, schema_editor):
+    """Remove school_department_id column from auth_user — PostgreSQL only."""
+    if schema_editor.connection.vendor != 'postgresql':
+        return
+    schema_editor.execute("""
+        ALTER TABLE auth_user
+        DROP CONSTRAINT IF EXISTS auth_user_school_department_id_fk;
+
+        DROP INDEX IF EXISTS auth_user_school_department_id_idx;
+
+        ALTER TABLE auth_user
+        DROP COLUMN IF EXISTS school_department_id;
+    """)
+
+
 class AddAuthUserSchoolDepartmentState(migrations.operations.base.Operation):
     reduces_to_sql = False
     reversible = True
@@ -40,40 +85,9 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                        ALTER TABLE auth_user
-                        ADD COLUMN IF NOT EXISTS school_department_id bigint NULL;
-
-                        CREATE INDEX IF NOT EXISTS auth_user_school_department_id_idx
-                        ON auth_user (school_department_id);
-
-                        DO $$
-                        BEGIN
-                            IF NOT EXISTS (
-                                SELECT 1
-                                FROM pg_constraint
-                                WHERE conname = 'auth_user_school_department_id_fk'
-                            ) THEN
-                                ALTER TABLE auth_user
-                                ADD CONSTRAINT auth_user_school_department_id_fk
-                                FOREIGN KEY (school_department_id)
-                                REFERENCES authoringtool_schooldepartment (id)
-                                ON DELETE SET NULL
-                                DEFERRABLE INITIALLY DEFERRED;
-                            END IF;
-                        END
-                        $$;
-                    """,
-                    reverse_sql="""
-                        ALTER TABLE auth_user
-                        DROP CONSTRAINT IF EXISTS auth_user_school_department_id_fk;
-
-                        DROP INDEX IF EXISTS auth_user_school_department_id_idx;
-
-                        ALTER TABLE auth_user
-                        DROP COLUMN IF EXISTS school_department_id;
-                    """,
+                migrations.RunPython(
+                    apply_school_department_column,
+                    reverse_code=reverse_school_department_column,
                 ),
             ],
             state_operations=[
