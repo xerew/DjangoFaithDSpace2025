@@ -115,6 +115,12 @@
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ groups|length }}</span>
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-labs-btn" data-bs-toggle="tab" data-bs-target="#tab-labs" type="button" role="tab">
+          <i class="bi bi-flask me-1"></i> Labs
+          <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ lab_count }}</span>
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content pt-4">
@@ -291,6 +297,176 @@
 
       </div><!-- /tab-roles -->
 
+      <!-- Labs Tab -->
+      <div class="tab-pane fade" id="tab-labs" role="tabpanel">
+
+        <!-- Simulations -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+            <i class="bi bi-display me-2 text-primary"></i>Simulations
+            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ simulations|length }}</span>
+          </h5>
+          <button class="btn btn-sm btn-primary" onclick="openLabPanel('simulation', null)">
+            <i class="bi bi-plus-lg me-1"></i>Add Simulation
+          </button>
+        </div>
+        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead style="background:#f8faff;">
+                <tr>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Iframe URL</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Size</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Fullscreen</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="simTableBody">
+                {% for sim in simulations %}
+                <tr class="sim-row"
+                    data-sim-id="{{ sim.id }}"
+                    data-name="{{ sim.name }}"
+                    data-iframe-url="{{ sim.iframe_url }}"
+                    data-width="{{ sim.width }}"
+                    data-height="{{ sim.height }}"
+                    data-allow-fullscreen="{{ sim.allow_fullscreen|yesno:'true,false' }}">
+                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ sim.name }}</td>
+                  <td><span class="text-truncate d-inline-block" style="max-width:280px;font-size:12px;color:#666;" title="{{ sim.iframe_url }}">{{ sim.iframe_url }}</span></td>
+                  <td style="font-size:13px;">{{ sim.width }}&times;{{ sim.height }}px</td>
+                  <td>{% if sim.allow_fullscreen %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                  <td style="white-space:nowrap;">
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-primary" title="Edit"
+                              onclick="openLabPanel('simulation', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-outline-danger" title="Delete"
+                              data-lab-type="simulation" data-lab-id="{{ sim.id }}" data-lab-name="{{ sim.name }}"
+                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr id="simEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No simulations yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Remote Labs -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+            <i class="bi bi-hdd-network me-2" style="color:#0891b2;"></i>Remote Labs (LabsLand)
+            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ remote_labs|length }}</span>
+          </h5>
+          <button class="btn btn-sm" style="background:#0891b2;color:#fff;" onclick="openLabPanel('remote_lab', null)">
+            <i class="bi bi-plus-lg me-1"></i>Add Remote Lab
+          </button>
+        </div>
+        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead style="background:#f8faff;">
+                <tr>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Consumer Key</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="remoteLabTableBody">
+                {% for lab in remote_labs %}
+                <tr class="remote-lab-row"
+                    data-rlab-id="{{ lab.id }}"
+                    data-name="{{ lab.name }}"
+                    data-description="{{ lab.description }}"
+                    data-launch-url="{{ lab.launch_url }}"
+                    data-consumer-key="{{ lab.consumer_key }}">
+                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ lab.name }}</td>
+                  <td><span style="font-size:12px;color:#666;">{{ lab.description|truncatechars:60 }}</span></td>
+                  <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ lab.launch_url }}">{{ lab.launch_url }}</span></td>
+                  <td><code style="font-size:11px;">{{ lab.consumer_key }}</code></td>
+                  <td style="white-space:nowrap;">
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-primary" title="Edit"
+                              onclick="openLabPanel('remote_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-outline-danger" title="Delete"
+                              data-lab-type="remote_lab" data-lab-id="{{ lab.id }}" data-lab-name="{{ lab.name }}"
+                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr id="remoteLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No remote labs yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VR/AR Labs -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+            <i class="bi bi-badge-vr me-2 text-danger"></i>VR/AR Labs
+            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ vr_labs|length }}</span>
+          </h5>
+          <button class="btn btn-sm btn-danger" onclick="openLabPanel('vr_lab', null)">
+            <i class="bi bi-plus-lg me-1"></i>Add VR Lab
+          </button>
+        </div>
+        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead style="background:#f8faff;">
+                <tr>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">QR Code</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="vrLabTableBody">
+                {% for vr in vr_labs %}
+                <tr class="vr-lab-row"
+                    data-vr-id="{{ vr.id }}"
+                    data-name="{{ vr.name }}"
+                    data-description="{{ vr.description }}"
+                    data-launch-url="{{ vr.launch_url }}"
+                    data-qr-url="{% if vr.qr_code %}{{ vr.qr_code.url }}{% endif %}">
+                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ vr.name }}</td>
+                  <td><span style="font-size:12px;color:#666;">{{ vr.description|truncatechars:60 }}</span></td>
+                  <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ vr.launch_url }}">{{ vr.launch_url }}</span></td>
+                  <td>
+                    {% if vr.qr_code %}
+                    <img src="{{ vr.qr_code.url }}" class="vr-qr-thumb" alt="QR"
+                         style="width:32px;height:32px;border-radius:4px;cursor:pointer;"
+                         onclick="window.open(this.src,'_blank')">
+                    {% else %}
+                    <span class="text-muted" style="font-size:12px;">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="white-space:nowrap;">
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-primary" title="Edit"
+                              onclick="openLabPanel('vr_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-outline-danger" title="Delete"
+                              data-lab-type="vr_lab" data-lab-id="{{ vr.id }}" data-lab-name="{{ vr.name }}"
+                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr id="vrLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No VR/AR labs yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /tab-labs -->
+
     </div><!-- /tab-content -->
 
   </section>
@@ -358,6 +534,122 @@
   </div>
 </div>
 <div id="editPanelOverlay" class="edit-panel-overlay" onclick="closeEditPanel()"></div>
+
+<!-- Lab slide panel -->
+<div id="labPanel" class="edit-panel">
+  <div class="edit-panel-header">
+    <h5 id="labPanelTitle">Add Lab</h5>
+    <button type="button" class="btn-close" onclick="closeLabPanel()"></button>
+  </div>
+  <div class="edit-panel-body">
+    <input type="hidden" id="labPanelType">
+    <input type="hidden" id="labPanelId">
+
+    <!-- Simulation fields -->
+    <div id="simFields">
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <input type="text" id="simName" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Iframe URL <span class="text-danger">*</span></label>
+        <input type="url" id="simIframeUrl" class="form-control form-control-sm">
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold" style="font-size:13px;">Width (px)</label>
+          <input type="number" id="simWidth" class="form-control form-control-sm" value="800" min="100">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold" style="font-size:13px;">Height (px)</label>
+          <input type="number" id="simHeight" class="form-control form-control-sm" value="600" min="100">
+        </div>
+      </div>
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="simAllowFullscreen" checked>
+          <label class="form-check-label" for="simAllowFullscreen" style="font-size:13px;">Allow Fullscreen</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Remote Lab fields -->
+    <div id="remoteLabFields" style="display:none;">
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <input type="text" id="rlName" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Description</label>
+        <textarea id="rlDescription" class="form-control form-control-sm" rows="2"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Launch URL <span class="text-danger">*</span></label>
+        <input type="url" id="rlLaunchUrl" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Consumer Key <span class="text-danger">*</span></label>
+        <input type="text" id="rlConsumerKey" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Shared Secret <span class="text-danger">*</span></label>
+        <div class="input-group input-group-sm">
+          <input type="password" id="rlSharedSecret" class="form-control">
+          <button class="btn btn-outline-secondary" type="button" onclick="toggleSecretVisibility()">
+            <i class="bi bi-eye" id="secretEyeIcon"></i>
+          </button>
+        </div>
+        <div class="form-text" style="font-size:11px;" id="rlSecretHint"></div>
+      </div>
+    </div>
+
+    <!-- VR/AR Lab fields -->
+    <div id="vrLabFields" style="display:none;">
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <input type="text" id="vrName" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Description</label>
+        <textarea id="vrDescription" class="form-control form-control-sm" rows="2"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Launch URL <span class="text-danger">*</span></label>
+        <input type="url" id="vrLaunchUrl" class="form-control form-control-sm">
+        <div class="form-text" style="font-size:11px;">QR code regenerates automatically on save</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-100" onclick="saveLabPanel()">
+      <i class="bi bi-check-lg me-1"></i>Save
+    </button>
+    <div id="labPanelError" class="text-danger mt-2" style="display:none;font-size:13px;"></div>
+  </div>
+</div>
+<div id="labPanelOverlay" class="edit-panel-overlay" onclick="closeLabPanel()"></div>
+
+<!-- Delete Lab modal -->
+<div class="modal fade" id="deleteLabModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+      <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
+        <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
+          <i class="bi bi-exclamation-triangle me-2"></i>Delete
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="font-size:14px;padding:20px 24px;">
+        Delete <strong id="deleteLabName"></strong>? Activities using this will lose their experiment link.
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="deleteLabConfirmBtn">
+          <i class="bi bi-trash me-1"></i>Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Delete confirmation modal -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
@@ -669,6 +961,257 @@ function startRenameRole(id, el) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Lab panel ─────────────────────────────────────────────────────────────
+let _labDeleteType = null, _labDeleteId = null;
+
+function openLabPanel(type, row) {
+  const isEdit = !!row;
+  document.getElementById('labPanelType').value = type;
+
+  // resolve row ID based on type-specific data attribute
+  let rowId = '';
+  if (isEdit) {
+    if (type === 'simulation') rowId = row.dataset.simId;
+    else if (type === 'remote_lab') rowId = row.dataset.rlabId;
+    else rowId = row.dataset.vrId;
+  }
+  document.getElementById('labPanelId').value = rowId;
+
+  document.getElementById('simFields').style.display = 'none';
+  document.getElementById('remoteLabFields').style.display = 'none';
+  document.getElementById('vrLabFields').style.display = 'none';
+
+  const labels = {simulation: 'Simulation', remote_lab: 'Remote Lab', vr_lab: 'VR/AR Lab'};
+
+  if (type === 'simulation') {
+    document.getElementById('simFields').style.display = '';
+    document.getElementById('simName').value = isEdit ? row.dataset.name : '';
+    document.getElementById('simIframeUrl').value = isEdit ? row.dataset.iframeUrl : '';
+    document.getElementById('simWidth').value = isEdit ? row.dataset.width : '800';
+    document.getElementById('simHeight').value = isEdit ? row.dataset.height : '600';
+    document.getElementById('simAllowFullscreen').checked = isEdit ? row.dataset.allowFullscreen === 'true' : true;
+  } else if (type === 'remote_lab') {
+    document.getElementById('remoteLabFields').style.display = '';
+    document.getElementById('rlName').value = isEdit ? row.dataset.name : '';
+    document.getElementById('rlDescription').value = isEdit ? row.dataset.description : '';
+    document.getElementById('rlLaunchUrl').value = isEdit ? row.dataset.launchUrl : '';
+    document.getElementById('rlConsumerKey').value = isEdit ? row.dataset.consumerKey : '';
+    document.getElementById('rlSharedSecret').value = '';
+    document.getElementById('rlSecretHint').textContent = isEdit ? 'Leave blank to keep current secret.' : '';
+  } else {
+    document.getElementById('vrLabFields').style.display = '';
+    document.getElementById('vrName').value = isEdit ? row.dataset.name : '';
+    document.getElementById('vrDescription').value = isEdit ? row.dataset.description : '';
+    document.getElementById('vrLaunchUrl').value = isEdit ? row.dataset.launchUrl : '';
+  }
+
+  document.getElementById('labPanelTitle').textContent = (isEdit ? 'Edit ' : 'Add ') + labels[type];
+  document.getElementById('labPanelError').style.display = 'none';
+  document.getElementById('labPanel').classList.add('open');
+  document.getElementById('labPanelOverlay').classList.add('open');
+}
+
+function closeLabPanel() {
+  document.getElementById('labPanel').classList.remove('open');
+  document.getElementById('labPanelOverlay').classList.remove('open');
+}
+
+function toggleSecretVisibility() {
+  const inp = document.getElementById('rlSharedSecret');
+  const icon = document.getElementById('secretEyeIcon');
+  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+  else { inp.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+
+function saveLabPanel() {
+  const type = document.getElementById('labPanelType').value;
+  const id   = document.getElementById('labPanelId').value;
+  let url, data;
+
+  if (type === 'simulation') {
+    url  = id ? '/accounts/admin/simulations/' + id + '/edit/' : '/accounts/admin/simulations/create/';
+    data = {
+      name: document.getElementById('simName').value,
+      iframe_url: document.getElementById('simIframeUrl').value,
+      width: document.getElementById('simWidth').value,
+      height: document.getElementById('simHeight').value,
+      allow_fullscreen: document.getElementById('simAllowFullscreen').checked ? 'true' : 'false',
+    };
+  } else if (type === 'remote_lab') {
+    url  = id ? '/accounts/admin/remote_labs/' + id + '/edit/' : '/accounts/admin/remote_labs/create/';
+    data = {
+      name: document.getElementById('rlName').value,
+      description: document.getElementById('rlDescription').value,
+      launch_url: document.getElementById('rlLaunchUrl').value,
+      consumer_key: document.getElementById('rlConsumerKey').value,
+      shared_secret: document.getElementById('rlSharedSecret').value,
+    };
+  } else {
+    url  = id ? '/accounts/admin/vr_labs/' + id + '/edit/' : '/accounts/admin/vr_labs/create/';
+    data = {
+      name: document.getElementById('vrName').value,
+      description: document.getElementById('vrDescription').value,
+      launch_url: document.getElementById('vrLaunchUrl').value,
+    };
+  }
+
+  postJSON(url, data).then(function(res) {
+    if (!res.success) {
+      const err = document.getElementById('labPanelError');
+      err.textContent = res.error;
+      err.style.display = 'block';
+      return;
+    }
+    showToast('Saved.', false);
+    closeLabPanel();
+    if (id) { updateLabRow(type, res); } else { prependLabRow(type, res); }
+  });
+}
+
+function updateLabRow(type, res) {
+  let row, cells;
+  if (type === 'simulation') {
+    row = document.querySelector('[data-sim-id="' + res.id + '"]');
+    if (!row) return;
+    row.dataset.name = res.name;
+    row.dataset.iframeUrl = res.iframe_url;
+    row.dataset.width = res.width;
+    row.dataset.height = res.height;
+    row.dataset.allowFullscreen = res.allow_fullscreen ? 'true' : 'false';
+    cells = row.querySelectorAll('td');
+    cells[0].textContent = res.name;
+    cells[0].style.fontWeight = '600';
+    cells[0].style.fontSize = '13px';
+    cells[0].style.color = '#012970';
+    const urlSpan = cells[1].querySelector('span');
+    if (urlSpan) { urlSpan.textContent = res.iframe_url; urlSpan.title = res.iframe_url; }
+    cells[2].textContent = res.width + '\xd7' + res.height + 'px';
+    cells[3].innerHTML = res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+  } else if (type === 'remote_lab') {
+    row = document.querySelector('[data-rlab-id="' + res.id + '"]');
+    if (!row) return;
+    row.dataset.name = res.name;
+    row.dataset.description = res.description || '';
+    row.dataset.launchUrl = res.launch_url;
+    row.dataset.consumerKey = res.consumer_key;
+    cells = row.querySelectorAll('td');
+    cells[0].textContent = res.name;
+    const descSpan = cells[1].querySelector('span');
+    if (descSpan) descSpan.textContent = (res.description || '').substring(0, 60);
+    const urlSpan2 = cells[2].querySelector('span');
+    if (urlSpan2) { urlSpan2.textContent = res.launch_url; urlSpan2.title = res.launch_url; }
+    const ckCode = cells[3].querySelector('code');
+    if (ckCode) ckCode.textContent = res.consumer_key;
+  } else {
+    row = document.querySelector('[data-vr-id="' + res.id + '"]');
+    if (!row) return;
+    row.dataset.name = res.name;
+    row.dataset.description = res.description || '';
+    row.dataset.launchUrl = res.launch_url;
+    if (res.qr_code_url) row.dataset.qrUrl = res.qr_code_url;
+    cells = row.querySelectorAll('td');
+    cells[0].textContent = res.name;
+    const descSpan2 = cells[1].querySelector('span');
+    if (descSpan2) descSpan2.textContent = (res.description || '').substring(0, 60);
+    const urlSpan3 = cells[2].querySelector('span');
+    if (urlSpan3) { urlSpan3.textContent = res.launch_url; urlSpan3.title = res.launch_url; }
+    if (res.qr_code_url) {
+      cells[3].innerHTML = '<img src="' + res.qr_code_url + '" class="vr-qr-thumb" alt="QR" style="width:32px;height:32px;border-radius:4px;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">';
+    }
+  }
+}
+
+function prependLabRow(type, res) {
+  let tbody, emptyId, html;
+
+  if (type === 'simulation') {
+    tbody   = document.getElementById('simTableBody');
+    emptyId = 'simEmptyRow';
+    html = '<tr class="sim-row" data-sim-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
+      ' data-iframe-url="' + escHtml(res.iframe_url) + '" data-width="' + res.width + '"' +
+      ' data-height="' + res.height + '" data-allow-fullscreen="' + (res.allow_fullscreen ? 'true' : 'false') + '">' +
+      '<td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">' + escHtml(res.name) + '</td>' +
+      '<td><span class="text-truncate d-inline-block" style="max-width:280px;font-size:12px;color:#666;" title="' + escHtml(res.iframe_url) + '">' + escHtml(res.iframe_url) + '</span></td>' +
+      '<td style="font-size:13px;">' + res.width + '\xd7' + res.height + 'px</td>' +
+      '<td>' + (res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>') + '</td>' +
+      '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
+      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'simulation\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="simulation" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '</div></td></tr>';
+
+  } else if (type === 'remote_lab') {
+    tbody   = document.getElementById('remoteLabTableBody');
+    emptyId = 'remoteLabEmptyRow';
+    const desc = (res.description || '').substring(0, 60);
+    html = '<tr class="remote-lab-row" data-rlab-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
+      ' data-description="' + escHtml(res.description || '') + '" data-launch-url="' + escHtml(res.launch_url) + '"' +
+      ' data-consumer-key="' + escHtml(res.consumer_key) + '">' +
+      '<td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">' + escHtml(res.name) + '</td>' +
+      '<td><span style="font-size:12px;color:#666;">' + escHtml(desc) + '</span></td>' +
+      '<td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="' + escHtml(res.launch_url) + '">' + escHtml(res.launch_url) + '</span></td>' +
+      '<td><code style="font-size:11px;">' + escHtml(res.consumer_key) + '</code></td>' +
+      '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
+      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'remote_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="remote_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '</div></td></tr>';
+
+  } else {
+    tbody   = document.getElementById('vrLabTableBody');
+    emptyId = 'vrLabEmptyRow';
+    const vrDesc = (res.description || '').substring(0, 60);
+    const qrHtml = res.qr_code_url
+      ? '<img src="' + res.qr_code_url + '" class="vr-qr-thumb" alt="QR" style="width:32px;height:32px;border-radius:4px;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">'
+      : '<span class="text-muted" style="font-size:12px;">—</span>';
+    html = '<tr class="vr-lab-row" data-vr-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
+      ' data-description="' + escHtml(res.description || '') + '" data-launch-url="' + escHtml(res.launch_url) + '"' +
+      ' data-qr-url="' + (res.qr_code_url || '') + '">' +
+      '<td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">' + escHtml(res.name) + '</td>' +
+      '<td><span style="font-size:12px;color:#666;">' + escHtml(vrDesc) + '</span></td>' +
+      '<td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="' + escHtml(res.launch_url) + '">' + escHtml(res.launch_url) + '</span></td>' +
+      '<td>' + qrHtml + '</td>' +
+      '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
+      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'vr_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="vr_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '</div></td></tr>';
+  }
+
+  const emptyRow = document.getElementById(emptyId);
+  if (emptyRow) emptyRow.remove();
+  tbody.insertAdjacentHTML('afterbegin', html);
+}
+
+function openDeleteLabModal(btn) {
+  _labDeleteType = btn.dataset.labType;
+  _labDeleteId   = btn.dataset.labId;
+  document.getElementById('deleteLabName').textContent = btn.dataset.labName;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteLabModal')).show();
+}
+
+document.getElementById('deleteLabConfirmBtn').addEventListener('click', function() {
+  if (!_labDeleteType || !_labDeleteId) return;
+  const urlMap = {
+    simulation: '/accounts/admin/simulations/' + _labDeleteId + '/delete/',
+    remote_lab: '/accounts/admin/remote_labs/' + _labDeleteId + '/delete/',
+    vr_lab:     '/accounts/admin/vr_labs/'     + _labDeleteId + '/delete/',
+  };
+  const selMap = {
+    simulation: '[data-sim-id="'  + _labDeleteId + '"]',
+    remote_lab: '[data-rlab-id="' + _labDeleteId + '"]',
+    vr_lab:     '[data-vr-id="'   + _labDeleteId + '"]',
+  };
+  postJSON(urlMap[_labDeleteType], {}).then(function(data) {
+    bootstrap.Modal.getInstance(document.getElementById('deleteLabModal')).hide();
+    if (data.success) {
+      showToast('Deleted.', false);
+      const row = document.querySelector(selMap[_labDeleteType]);
+      if (row) row.remove();
+    } else {
+      showToast(data.error, true);
+    }
+    _labDeleteType = null; _labDeleteId = null;
+  });
+});
 </script>
 
 {% endblock atcontent %}
