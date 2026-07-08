@@ -166,9 +166,9 @@
                     data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}"
                     data-has-role="{% if u.groups.exists or u.is_staff or u.is_superuser %}yes{% else %}no{% endif %}"
                     data-is-active="{{ u.is_active|yesno:'true,false' }}"
-                    data-first="{{ u.first_name|escapejs }}"
-                    data-last="{{ u.last_name|escapejs }}"
-                    data-email="{{ u.email|escapejs }}"
+                    data-first="{{ u.first_name }}"
+                    data-last="{{ u.last_name }}"
+                    data-email="{{ u.email }}"
                     data-is-staff="{{ u.is_staff|yesno:'true,false' }}"
                     data-is-superuser="{{ u.is_superuser|yesno:'true,false' }}"
                     data-group-ids="{% for g in u.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
@@ -217,7 +217,9 @@
                       </button>
                       {% endif %}
                       <button class="btn btn-sm btn-outline-danger" title="Delete"
-                              onclick="openDeleteModal({{ u.id }}, '{{ u.get_full_name|default:u.username|escapejs }}')">
+                              data-delete-id="{{ u.id }}"
+                              data-delete-name="{{ u.get_full_name|default:u.username }}"
+                              onclick="openDeleteModal(this)">
                         <i class="bi bi-trash"></i>
                       </button>
                       {% endif %}
@@ -428,7 +430,7 @@ function filterUsers() {
     const matchSearch = !q || row.dataset.search.includes(q);
     let matchRole = true;
     if (role === '__none__') matchRole = row.dataset.hasRole === 'no';
-    else if (role) matchRole = row.dataset.groups.includes(role);
+    else if (role) matchRole = row.dataset.groups.split(' ').includes(role);
 
     row.style.display = (matchSearch && matchRole) ? '' : 'none';
   });
@@ -487,7 +489,25 @@ function saveUser() {
   }).then(function(data) {
     if (data.success) {
       showToast('User saved.', false);
-      setTimeout(function() { location.reload(); }, 800);
+      closeEditPanel();
+      // Update row data attributes and displayed name in-place
+      const id = document.getElementById('editUserId').value;
+      const row = document.querySelector('[data-user-id="' + id + '"]');
+      if (row) {
+        const fn = document.getElementById('editFirstName').value.trim();
+        const ln = document.getElementById('editLastName').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        row.dataset.first = fn;
+        row.dataset.last = ln;
+        row.dataset.email = email;
+        row.dataset.search = (row.dataset.userId + ' ' + fn + ' ' + ln + ' ' + email).toLowerCase();
+        // Update displayed name cell (first td, second div inside flex)
+        const nameDiv = row.querySelector('.fw-semibold');
+        if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || row.dataset.username || '';
+        // Update email cell (second td)
+        const cells = row.querySelectorAll('td');
+        if (cells[1]) cells[1].textContent = email || '—';
+      }
     } else {
       const el = document.getElementById('editPanelError');
       el.textContent = data.error;
@@ -501,7 +521,23 @@ function toggleUser(id) {
   postJSON('/accounts/admin/toggle_user/' + id + '/', {}).then(function(data) {
     if (data.success) {
       showToast(data.is_active ? 'User activated.' : 'User suspended.', false);
-      setTimeout(function() { location.reload(); }, 800);
+      const row = document.querySelector('[data-user-id="' + id + '"]');
+      if (row) {
+        row.dataset.isActive = data.is_active ? 'true' : 'false';
+        row.classList.toggle('inactive-row', !data.is_active);
+        // Update status badge (5th td)
+        const cells = row.querySelectorAll('td');
+        if (cells[4]) cells[4].innerHTML = data.is_active
+          ? '<span class="badge bg-success">Active</span>'
+          : '<span class="badge bg-secondary">Inactive</span>';
+        // Update toggle button
+        const btn = document.getElementById('toggle-btn-' + id);
+        if (btn) {
+          btn.className = 'btn btn-sm ' + (data.is_active ? 'btn-outline-warning' : 'btn-outline-success');
+          btn.title = data.is_active ? 'Suspend' : 'Activate';
+          btn.innerHTML = '<i class="bi ' + (data.is_active ? 'bi-pause-circle' : 'bi-play-circle') + '"></i>';
+        }
+      }
     } else {
       showToast(data.error, true);
     }
@@ -510,9 +546,9 @@ function toggleUser(id) {
 
 // Delete
 let _deleteId = null;
-function openDeleteModal(id, name) {
-  _deleteId = id;
-  document.getElementById('deleteUserName').textContent = name;
+function openDeleteModal(btn) {
+  _deleteId = btn.dataset.deleteId;
+  document.getElementById('deleteUserName').textContent = btn.dataset.deleteName;
   bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteUserModal')).show();
 }
 document.getElementById('deleteConfirmBtn').addEventListener('click', function() {
@@ -546,11 +582,14 @@ function exitImpersonation() {
 
 // Roles tab — switch to user row and open edit panel
 function switchToUserRow(link) {
-  document.getElementById('tab-users-btn').click();
-  setTimeout(function() {
-    const row = document.querySelector('[data-user-id="' + link.dataset.memberId + '"]');
+  const memberId = link.dataset.memberId;
+  const usersTab = document.getElementById('tab-users-btn');
+  usersTab.addEventListener('shown.bs.tab', function handler() {
+    usersTab.removeEventListener('shown.bs.tab', handler);
+    const row = document.querySelector('[data-user-id="' + memberId + '"]');
     if (row) openEditPanelFromRow(row);
-  }, 50);
+  });
+  usersTab.click();
 }
 
 // Roles management
