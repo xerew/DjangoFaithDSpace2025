@@ -27,12 +27,16 @@ def admin_dashboard(request):
         total=Count('id'),
         active=Count('id', filter=Q(is_active=True)),
         staff=Count('id', filter=Q(is_staff=True)),
+        teachers=Count('id', filter=Q(groups__name__iexact='teachers')),
+        no_role=Count('id', filter=Q(groups__isnull=True, is_staff=False, is_superuser=False)),
     )
     stats = {
         'total': agg['total'],
         'active': agg['active'],
         'staff': agg['staff'],
         'inactive': agg['total'] - agg['active'],
+        'teachers': agg['teachers'],
+        'no_role': agg['no_role'],
     }
     is_superuser = request.user.is_superuser
     simulations = list(Simulation.objects.all().order_by('language', 'name'))
