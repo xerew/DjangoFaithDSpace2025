@@ -340,8 +340,12 @@
           <div class="content-body">
             {% if existingSim and not existingRemote and not existingVR_AR %}
               <p style="font-size:13px; margin-bottom:10px;"><strong>Simulation:</strong> {{ existingSim.name }}</p>
-              <div class="experiment-frame">
+              <div class="experiment-frame" style="position:relative;">
                 <iframe width="100%" style="height:min(420px,75vw);display:block;" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
+                  Can't see the simulation? &nbsp;
+                  <a href="{{ existingSim.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+                </div>
               </div>
             {% elif existingRemote and not existingVR_AR %}
               <p style="font-size:13px; margin-bottom:10px;"><strong>Remote Lab:</strong> {{ existingRemote.name }}</p>

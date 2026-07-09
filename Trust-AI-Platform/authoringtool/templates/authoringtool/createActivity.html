@@ -381,9 +381,13 @@
         <div class="act-card-header" style="background:#f5f3ff; border-bottom-color:#ede9fe;">
           <i class="bi bi-window" style="color:#7c3aed;"></i> Preview
         </div>
-        <div class="act-card-body" style="padding:0;">
+        <div class="act-card-body" style="padding:0;position:relative;">
           <iframe id="simulationPreview" width="100%" height="450" src=""
                   frameborder="0" allowfullscreen style="display:block;"></iframe>
+          <div id="simFallbackBanner" style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
+            Can't see the simulation? &nbsp;
+            <a id="simFallbackLink" href="#" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+          </div>
         </div>
       </div>
 
@@ -619,11 +623,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-iframe-url') || '') : '';
     document.getElementById('simulationPreview').src = url;
     document.getElementById('iframeSection').style.display = url ? 'block' : 'none';
+    if (url) document.getElementById('simFallbackLink').href = url;
   });
   document.getElementById('remoteLabSelect').addEventListener('change', function () {
     var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-iframe-url') || '') : '';
     document.getElementById('simulationPreview').src = url;
     document.getElementById('iframeSection').style.display = url ? 'block' : 'none';
+    if (url) document.getElementById('simFallbackLink').href = url;
   });
   document.getElementById('VRARLabSelect').addEventListener('change', function () {
     var url = this.options[this.selectedIndex] ? (this.options[this.selectedIndex].getAttribute('data-qrcode-url') || '') : '';

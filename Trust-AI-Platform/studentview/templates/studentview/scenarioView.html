@@ -293,7 +293,13 @@
                   <div id="activityContent"></div>
 
                   {% if activity_type_name == 'Experiment' %}
-                  <iframe id="simulationPreview" width="100%" style="height:min(600px,80vh);display:block;" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                  <div style="position:relative;">
+                    <iframe id="simulationPreview" width="100%" style="height:min(600px,80vh);display:block;" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
+                    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
+                      Can't see the simulation? &nbsp;
+                      <a href="{{ simulation.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+                    </div>
+                  </div>
                   {% endif %}
                 </div>
 
@@ -413,15 +419,34 @@
 									} catch (e) {}
 									return url;
 								}
+								let _iframeUrl = '';
 								if (!data.experimentLL && data.simulation) {
-									iframe.src = _localiseUrl(data.simulation.iframe_url);
+									_iframeUrl = _localiseUrl(data.simulation.iframe_url);
 								} else if (data.experimentLL) {
-									iframe.src = _localiseUrl(data.experimentLL.iframe_url);
+									_iframeUrl = _localiseUrl(data.experimentLL.iframe_url);
 								}
+								iframe.src = _iframeUrl;
 
 								iframe.frameBorder = '0';
 								iframe.allowFullscreen = true;
-								contentDiv.appendChild(iframe);
+
+								const _iframeWrapper = document.createElement('div');
+								_iframeWrapper.style.position = 'relative';
+								_iframeWrapper.appendChild(iframe);
+								if (_iframeUrl) {
+									const _fallback = document.createElement('div');
+									_fallback.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;';
+									const _fallbackLink = document.createElement('a');
+									_fallbackLink.href = _iframeUrl;
+									_fallbackLink.target = '_blank';
+									_fallbackLink.rel = 'noopener';
+									_fallbackLink.style.cssText = 'color:#93c5fd;font-weight:600;text-decoration:none;';
+									_fallbackLink.textContent = 'Open in a new tab ↗';
+									_fallback.appendChild(document.createTextNode("Can't see the simulation?  "));
+									_fallback.appendChild(_fallbackLink);
+									_iframeWrapper.appendChild(_fallback);
+								}
+								contentDiv.appendChild(_iframeWrapper);
 							}
 							// Store activity ID in DOM if needed
 							document.getElementById('activityContainer').setAttribute('data-activity-id', data.activity_id);
