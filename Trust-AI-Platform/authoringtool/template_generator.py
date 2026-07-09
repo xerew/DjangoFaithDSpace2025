@@ -191,19 +191,10 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
         ('Age Min', True), ('Age Max', True),
         ('Suggested Time (min)', True), ('Visibility', True),
         ('Subject 1', False), ('Subject 2', False), ('Subject 3', False),
-    ], example_rows=[
-        ['My Scenario', 'A brief description', 'Students will learn...', 'English',
-         '14', '18', '90', 'private', '', '', ''],
     ], list_cols=scen_list_cols)
 
     _write_sheet(wb, 'Phases', [
         ('Phase Name', True), ('Description', False),
-    ], example_rows=[
-        ['Engagement', ''],
-        ['Hypothesis', ''],
-        ['Experiment', ''],
-        ['Analysis', ''],
-        ['Reflection', ''],
     ])
 
     act_list_cols = {
@@ -221,15 +212,10 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
     acts_ws = _write_sheet(wb, 'Activities', [
         ('Activity Name', True), ('Phase Name', True), ('Text', True),
         ('Activity Type', True), ('Helper', False),
-        ('Is Evaluatable', False), ('Is Primary Evaluation', False),
-        ('Experiment Type', False),
+        ('Is Evaluatable', True), ('Is Primary Evaluation', True),
+        ('Experiment Type', True),
         ('Simulation Name', False), ('Remote Lab Name', False), ('VR Lab Name', False),
-    ], bool_cols=['Is Evaluatable', 'Is Primary Evaluation'], example_rows=[
-        ['Welcome', 'Engagement', 'Welcome to this scenario! **Read carefully.**',
-         'Explanation', '', 'No', 'No', '', '', '', ''],
-        ['Quiz 1', 'Analysis', 'What is the boiling point of water?',
-         'Question', '', 'Yes', 'Yes', '', '', '', ''],
-    ], list_cols=act_list_cols)
+    ], bool_cols=['Is Evaluatable', 'Is Primary Evaluation'], list_cols=act_list_cols)
 
     # Conditional formatting: grey out name columns when Experiment Type doesn't match
     # Col H=Experiment Type, I=Simulation Name, J=Remote Lab Name, K=VR Lab Name
@@ -245,22 +231,15 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
     ans_ws = _write_sheet(wb, 'Answers', [
         ('Activity Name', True), ('Answer Key', True), ('Answer Text', True),
         ('Is Correct', False), ('Answer Weight', False),
-    ], bool_cols=['Is Correct'], example_rows=[
-        ['Quiz 1', 'ans_correct', '100°C', 'Yes', '3'],
-        ['Quiz 1', 'ans_wrong',   '50°C',  'No',  '1'],
-    ], list_cols={
+    ], bool_cols=['Is Correct'], list_cols={
         'Activity Name': 'Activities!$A$2:$A$200',
         'Answer Weight': '"3,2,1"',
     })
-    for _row in range(4, 201):
+    for _row in range(2, 201):
         ans_ws.cell(row=_row, column=2, value=f'=IF(A{_row}="","","ans_"&(ROW()-1))')
 
     _write_sheet(wb, 'Next Activity', [
         ('Source Activity Name', True), ('Answer Key', False), ('Next Activity Name', False),
-    ], example_rows=[
-        ['Welcome',  '',            'Quiz 1'],
-        ['Quiz 1',   'ans_correct', 'Well Done'],
-        ['Quiz 1',   'ans_wrong',   'Try Again'],
     ], list_cols={
         'Source Activity Name': 'Activities!$A$2:$A$200',
         'Answer Key': 'Answers!$B$2:$B$200',
@@ -280,9 +259,6 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
         ['Primary Activity Name'] + _GROUPED_ACT_COLS
         + ['High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity']
     )}
-    _write_sheet(wb, 'Evaluation', eval_cols, example_rows=[
-        ['Quiz 1', 'Quiz 1', 'Quiz 2', '', '', '', '',
-         'Result High', 'Result Standard', 'Result Low'],
-    ], list_cols=eval_list_cols)
+    _write_sheet(wb, 'Evaluation', eval_cols, list_cols=eval_list_cols)
 
     return wb
