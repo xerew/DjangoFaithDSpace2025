@@ -70,7 +70,8 @@
       </div>
       <div class="col-12 col-md-7 text-center">
         <img src="{% static 'img/home_platform.png' %}" alt="Trust AI Lab platform overview"
-             style="width:100%;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.1);">
+             onclick="document.getElementById('imgLightbox').style.display='flex'"
+             style="width:100%;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.1);cursor:zoom-in;">
       </div>
     </div>
   </div>
@@ -138,4 +139,13 @@
   </div>
 
 </main>
+
+<!-- Lightbox overlay -->
+<div id="imgLightbox" onclick="this.style.display='none'"
+     style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;padding:24px;cursor:zoom-out;">
+  <img src="{% static 'img/home_platform.png' %}" alt="Trust AI Lab platform overview"
+       style="max-width:92vw;max-height:92vh;border-radius:12px;box-shadow:0 8px 48px rgba(0,0,0,0.5);">
+  <span style="position:absolute;top:18px;right:24px;color:#fff;font-size:28px;line-height:1;cursor:pointer;">&times;</span>
+</div>
+
 {% endblock %}
