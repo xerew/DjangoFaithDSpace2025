@@ -7,8 +7,10 @@ _HEADER_FILL = PatternFill('solid', fgColor='1D4ED8')
 _REQ_FILL = PatternFill('solid', fgColor='DC2626')
 
 
-def _write_sheet(wb, title, columns, bool_cols=(), example_rows=()):
-    """columns: list of (name, required_bool)"""
+def _write_sheet(wb, title, columns, bool_cols=(), example_rows=(), list_cols=None):
+    """columns: list of (name, required_bool).
+    list_cols: dict of {col_name: formula1} for dropdown validation.
+    bool_cols: shorthand for Yes/No dropdowns (merged into list_cols internally)."""
     ws = wb.create_sheet(title)
     for col_idx, (name, required) in enumerate(columns, start=1):
         cell = ws.cell(row=1, column=col_idx, value=f'{name}*' if required else name)
@@ -18,11 +20,16 @@ def _write_sheet(wb, title, columns, bool_cols=(), example_rows=()):
         ws.column_dimensions[cell.column_letter].width = max(len(name) + 4, 16)
 
     col_name_to_idx = {name: i + 1 for i, (name, _) in enumerate(columns)}
-    for bool_col in bool_cols:
-        if bool_col in col_name_to_idx:
-            idx = col_name_to_idx[bool_col]
+
+    all_list_cols = {col: '"Yes,No"' for col in bool_cols}
+    if list_cols:
+        all_list_cols.update(list_cols)
+
+    for col_name, formula1 in all_list_cols.items():
+        if col_name in col_name_to_idx:
+            idx = col_name_to_idx[col_name]
             letter = ws.cell(row=1, column=idx).column_letter
-            dv = DataValidation(type='list', formula1='"Yes,No"', showDropDown=False)
+            dv = DataValidation(type='list', formula1=formula1, showDropDown=False)
             dv.sqref = f'{letter}2:{letter}200'
             ws.add_data_validation(dv)
 
@@ -135,7 +142,10 @@ def generate_blank_template():
          'Explanation', '', 'No', 'No', '', '', ''],
         ['Quiz 1', 'Analysis', 'What is the boiling point of water?',
          'Question', '', 'Yes', 'Yes', '', '', ''],
-    ])
+    ], list_cols={
+        'Activity Type': '"Explanation,Question,Experiment,Guidance"',
+        'Phase Name': 'Phases!$A$2:$A$200',
+    })
 
     ans_ws = _write_sheet(wb, 'Answers', [
         ('Activity Name', True), ('Answer Key', True), ('Answer Text', True),
@@ -143,7 +153,9 @@ def generate_blank_template():
     ], bool_cols=['Is Correct'], example_rows=[
         ['Quiz 1', 'ans_correct', '100°C', 'Yes', '1'],
         ['Quiz 1', 'ans_wrong',   '50°C',  'No',  '0'],
-    ])
+    ], list_cols={
+        'Activity Name': 'Activities!$A$2:$A$200',
+    })
     # Pre-fill Answer Key column (B) with a formula so new rows get a unique key automatically.
     # Teachers can overwrite it with their own key; the formula returns "" when A is empty.
     for _row in range(4, 201):
@@ -155,7 +167,10 @@ def generate_blank_template():
         ['Welcome',  '',            'Quiz 1'],
         ['Quiz 1',   'ans_correct', 'Well Done'],
         ['Quiz 1',   'ans_wrong',   'Try Again'],
-    ])
+    ], list_cols={
+        'Source Activity Name': 'Activities!$A$2:$A$200',
+        'Next Activity Name': 'Activities!$A$2:$A$200',
+    })
 
     _write_sheet(wb, 'Evaluation', [
         ('Primary Activity Name', True), ('Grouped Activities', True),
@@ -164,6 +179,11 @@ def generate_blank_template():
         ('Low Performers Activity', False),
     ], example_rows=[
         ['Quiz 1', 'Quiz 1,Quiz 2', 'Result High', 'Result Standard', 'Result Low'],
-    ])
+    ], list_cols={
+        'Primary Activity Name': 'Activities!$A$2:$A$200',
+        'High Performers Activity': 'Activities!$A$2:$A$200',
+        'Moderate Performers Activity': 'Activities!$A$2:$A$200',
+        'Low Performers Activity': 'Activities!$A$2:$A$200',
+    })
 
     return wb
