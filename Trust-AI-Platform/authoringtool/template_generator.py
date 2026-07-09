@@ -58,6 +58,7 @@ def _write_readme(ws):
         '  Experiment  — Embed a simulation or remote lab',
         '               NOTE: After import, you must manually assign the simulation or',
         '               lab to each Experiment activity in the authoring tool.',
+        '  Guidance    — Provide targeted feedback or guidance to the student',
         '',
         'TEXT FIELDS',
         '  Activity Text supports Markdown formatting:',
@@ -136,13 +137,17 @@ def generate_blank_template():
          'Question', '', 'Yes', 'Yes', '', '', ''],
     ])
 
-    _write_sheet(wb, 'Answers', [
+    ans_ws = _write_sheet(wb, 'Answers', [
         ('Activity Name', True), ('Answer Key', True), ('Answer Text', True),
         ('Is Correct', False), ('Answer Weight', False),
     ], bool_cols=['Is Correct'], example_rows=[
         ['Quiz 1', 'ans_correct', '100°C', 'Yes', '1'],
         ['Quiz 1', 'ans_wrong',   '50°C',  'No',  '0'],
     ])
+    # Pre-fill Answer Key column (B) with a formula so new rows get a unique key automatically.
+    # Teachers can overwrite it with their own key; the formula returns "" when A is empty.
+    for _row in range(4, 201):
+        ans_ws.cell(row=_row, column=2, value=f'=IF(A{_row}="","","ans_"&(ROW()-1))')
 
     _write_sheet(wb, 'Next Activity', [
         ('Source Activity Name', True), ('Answer Key', False), ('Next Activity Name', False),
@@ -158,7 +163,7 @@ def generate_blank_template():
         ('Moderate Performers Activity', False),
         ('Low Performers Activity', False),
     ], example_rows=[
-        ['Quiz 1', 'Quiz 1,Quiz 2', 'Advanced Track', 'Standard Track', 'Review Track'],
+        ['Quiz 1', 'Quiz 1,Quiz 2', 'Result High', 'Result Standard', 'Result Low'],
     ])
 
     return wb
