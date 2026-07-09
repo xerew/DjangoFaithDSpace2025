@@ -78,7 +78,10 @@ class ScenarioImporter:
         if not self.errors:
             self._validate()
         if not self.errors:
-            return self._create(), []
+            try:
+                return self._create(), []
+            except ValueError as exc:
+                return None, [{'sheet': 'Scenario', 'row': 2, 'column': 'Name', 'message': str(exc)}]
         return None, self.errors
 
     def _add_error(self, sheet, row, column, message):
@@ -240,12 +243,20 @@ class ScenarioImporter:
                 self._add_error('Activities', row, 'Activity Type', f'Activity type "{v}" not found in the database.')
 
     def _validate_answers(self):
+        seen_answers = set()
         for ans in self.answers:
             row = ans['_row']
             act_name = ans.get('Activity Name', '').strip()
+            ans_text = ans.get('Answer Text', '').strip()
             if act_name not in self.activity_map:
                 self._add_error('Answers', row, 'Activity Name',
                                 f'Activity "{act_name}" not found in Activities sheet.')
+            pair = (act_name, ans_text)
+            if pair in seen_answers:
+                self._add_error('Answers', row, 'Answer Text',
+                                f'Duplicate answer text "{ans_text}" for activity "{act_name}".')
+            elif act_name and ans_text:
+                seen_answers.add(pair)
             for col in BOOL_COLS_ANSWERS:
                 v = ans.get(col, '').strip().lower()
                 if v and v not in ('yes', 'no'):
@@ -326,7 +337,7 @@ class ScenarioImporter:
                                 f'but has no row in the Evaluation sheet.')
 
     def _create(self):
-        from django.db import transaction
+        from django.db import transaction, IntegrityError
         from django.utils.html import strip_tags
         from .models import (
             Phase, Activity, Answer, AnswerFeedback,
@@ -335,18 +346,23 @@ class ScenarioImporter:
 
         with transaction.atomic():
             # 1. Scenario
-            scenario = Scenario.objects.create(
-                name=self.scenario_data['Name'].strip(),
-                description=_md(self.scenario_data.get('Description', '')),
-                learning_goals=_md(self.scenario_data.get('Learning Goals', '')),
-                language=self.scenario_data.get('Language', ''),
-                subject_domains=self.scenario_data.get('Subject Domains', ''),
-                suggested_learning_time=_to_int(self.scenario_data.get('Suggested Time (min)', '')) or None,
-                video_url=self.scenario_data.get('Video URL', '') or None,
-                visibility_status=self.scenario_data.get('Visibility', '').strip().lower() or 'private',
-                created_by=self.user,
-                updated_by=self.user,
-            )
+            try:
+                scenario = Scenario.objects.create(
+                    name=self.scenario_data['Name'].strip(),
+                    description=_md(self.scenario_data.get('Description', '')),
+                    learning_goals=_md(self.scenario_data.get('Learning Goals', '')),
+                    language=self.scenario_data.get('Language', ''),
+                    subject_domains=self.scenario_data.get('Subject Domains', ''),
+                    suggested_learning_time=_to_int(self.scenario_data.get('Suggested Time (min)', '')) or None,
+                    video_url=self.scenario_data.get('Video URL', '') or None,
+                    visibility_status=self.scenario_data.get('Visibility', '').strip().lower() or 'private',
+                    created_by=self.user,
+                    updated_by=self.user,
+                )
+            except IntegrityError:
+                raise ValueError(
+                    f'A scenario named "{self.scenario_data["Name"].strip()}" already exists (created concurrently).'
+                )
 
             # 2. Phases (row order preserved)
             phase_obj_map = {}
