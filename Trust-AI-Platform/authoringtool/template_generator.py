@@ -6,6 +6,13 @@ _HEADER_FONT = Font(bold=True, color='FFFFFF')
 _HEADER_FILL = PatternFill('solid', fgColor='1D4ED8')
 _REQ_FILL = PatternFill('solid', fgColor='DC2626')
 
+_SCENARIO_LANGUAGES = (
+    'English,Greek,Spanish,French,German,Italian,'
+    'Portuguese,Dutch,Polish,Romanian,Turkish,Arabic,Other'
+)
+
+_GROUPED_ACT_COLS = [f'Grouped Activity {i}' for i in range(1, 7)]
+
 
 def _write_sheet(wb, title, columns, bool_cols=(), example_rows=(), list_cols=None):
     """columns: list of (name, required_bool).
@@ -39,18 +46,44 @@ def _write_sheet(wb, title, columns, bool_cols=(), example_rows=(), list_cols=No
     return ws
 
 
+def _build_data_sheet(wb, simulations, remote_labs, vr_labs):
+    """Create a hidden _Data sheet for DB-sourced dropdowns.
+    Returns (sim_formula, rlab_formula, vr_formula) — None for any empty list."""
+    if not (simulations or remote_labs or vr_labs):
+        return None, None, None
+    ws = wb.create_sheet('_Data')
+    ws.sheet_state = 'hidden'
+    sim_f = rlab_f = vr_f = None
+    if simulations:
+        ws['A1'] = 'Simulations'
+        for i, n in enumerate(simulations, start=2):
+            ws.cell(row=i, column=1, value=n)
+        sim_f = f'_Data!$A$2:$A${1 + len(simulations)}'
+    if remote_labs:
+        ws['B1'] = 'Remote Labs'
+        for i, n in enumerate(remote_labs, start=2):
+            ws.cell(row=i, column=2, value=n)
+        rlab_f = f'_Data!$B$2:$B${1 + len(remote_labs)}'
+    if vr_labs:
+        ws['C1'] = 'VR Labs'
+        for i, n in enumerate(vr_labs, start=2):
+            ws.cell(row=i, column=3, value=n)
+        vr_f = f'_Data!$C$2:$C${1 + len(vr_labs)}'
+    return sim_f, rlab_f, vr_f
+
+
 def _write_readme(ws):
     ws['A1'] = 'SCENARIO TEMPLATE — INSTRUCTIONS'
     ws['A1'].font = Font(bold=True, size=14)
     lines = [
         '',
         'SHEETS AND THEIR PURPOSE',
-        '  Scenario     — One row of scenario metadata (name, description, etc.)',
-        '  Phases       — One row per phase; row order = phase order in the scenario',
-        '  Activities   — One row per activity; row order = activity order within each phase',
-        '  Answers      — One row per answer choice (multiple rows per activity)',
+        '  Scenario      — One row of scenario metadata (all fields required)',
+        '  Phases        — One row per phase; row order = phase order in the scenario',
+        '  Activities    — One row per activity; row order = activity order within each phase',
+        '  Answers       — One row per answer choice (multiple rows per activity)',
         '  Next Activity — One row per routing rule (which activity comes after which)',
-        '  Evaluation   — One row per evaluatable activity (scoring groups + branching)',
+        '  Evaluation    — One row per evaluatable activity (scoring groups + branching)',
         '',
         'REFERENCING RULES',
         '  Activities reference Phases by Phase Name — must match exactly.',
@@ -67,6 +100,11 @@ def _write_readme(ws):
         '               lab to each Experiment activity in the authoring tool.',
         '  Guidance    — Provide targeted feedback or guidance to the student',
         '',
+        'EXPERIMENT TYPE (advisory — for Experiment activities)',
+        '  Select "Simulation", "Remote Lab", or "VR/AR Lab" in the Experiment Type column.',
+        '  Then fill the matching name column (Simulation Name / Remote Lab Name / VR Lab Name).',
+        '  The name columns have a dropdown pre-loaded with resources from the platform.',
+        '',
         'TEXT FIELDS',
         '  Activity Text supports Markdown formatting:',
         '    **bold**   _italic_   # Heading   - bullet list   [Link](https://...)',
@@ -75,13 +113,27 @@ def _write_readme(ws):
         'BOOLEAN FIELDS (Is Evaluatable, Is Correct)',
         '  Use the dropdown: Yes or No (case-insensitive).',
         '',
+        'ANSWER WEIGHT',
+        '  Correct answers always receive weight 3 — set automatically on import.',
+        '  For wrong answers choose: 1 (completely wrong) or 2 (partially correct).',
+        '',
         'STUDENT PERFORMANCE CATEGORIES',
         '  After evaluation, students are placed into one of three groups:',
-        '    High     — average answer weight ≥ 2.5',
-        '    Moderate — average answer weight ≥ 1.5',
+        '    High     — average answer weight >= 2.5',
+        '    Moderate — average answer weight >= 1.5',
         '    Low      — all remaining students (fallback)',
         '  Thresholds (2.5 / 1.5 / 1.0) are fixed and applied automatically on import.',
         '  You do not need to enter them.',
+        '',
+        'EVALUATION SHEET — GROUPED ACTIVITIES',
+        '  Use "Grouped Activity 1" through "Grouped Activity 6" to select the activities',
+        '  that form this evaluation group. Include the Primary Activity itself.',
+        '  Leave extra columns blank — they are ignored.',
+        '',
+        'SCENARIO VISIBILITY',
+        '  private — visible only to you (default; can be changed after import)',
+        '  org     — visible to all members of your organisation',
+        '  public  — visible to all platform users',
         '',
         'NEXT ACTIVITY SHEET',
         '  Leave "Answer Key" blank for an unconditional (default) next activity.',
@@ -94,8 +146,7 @@ def _write_readme(ws):
         '',
         'EVALUATION SHEET',
         '  Primary Activity Name: an activity with Is Evaluatable = Yes.',
-        '  Grouped Activities: comma-separated activity names that form the scoring group.',
-        '    Include the primary activity itself in this list.',
+        '  Grouped Activity 1-6: activities that form the scoring group (include primary).',
         '  High / Moderate / Low Performers Activity: where students go based on their score.',
         '',
         'COLUMNS MARKED WITH *',
@@ -106,21 +157,26 @@ def _write_readme(ws):
     ws.column_dimensions['A'].width = 80
 
 
-def generate_blank_template():
+def generate_blank_template(simulations=(), remote_labs=(), vr_labs=()):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'README'
     _write_readme(ws)
 
+    sim_f, rlab_f, vr_f = _build_data_sheet(wb, simulations, remote_labs, vr_labs)
+
     _write_sheet(wb, 'Scenario', [
-        ('Name', True), ('Description', False), ('Learning Goals', False),
-        ('Language', False), ('Subject Domains', False),
-        ('Age Min', False), ('Age Max', False),
-        ('Suggested Time (min)', False), ('Visibility', False),
+        ('Name', True), ('Description', True), ('Learning Goals', True),
+        ('Language', True), ('Subject Domains', True),
+        ('Age Min', True), ('Age Max', True),
+        ('Suggested Time (min)', True), ('Visibility', True),
     ], example_rows=[
         ['My Scenario', 'A brief description', 'Students will learn...', 'English',
          'Physics,STEM', '14', '18', '90', 'private'],
-    ])
+    ], list_cols={
+        'Language': f'"{_SCENARIO_LANGUAGES}"',
+        'Visibility': '"private,org,public"',
+    })
 
     _write_sheet(wb, 'Phases', [
         ('Phase Name', True), ('Description', False),
@@ -132,32 +188,41 @@ def generate_blank_template():
         ['Reflection', ''],
     ])
 
+    act_list_cols = {
+        'Activity Type': '"Explanation,Question,Experiment,Guidance"',
+        'Phase Name': 'Phases!$A$2:$A$200',
+        'Experiment Type': '"Simulation,Remote Lab,VR/AR Lab"',
+    }
+    if sim_f:
+        act_list_cols['Simulation Name'] = sim_f
+    if rlab_f:
+        act_list_cols['Remote Lab Name'] = rlab_f
+    if vr_f:
+        act_list_cols['VR Lab Name'] = vr_f
+
     _write_sheet(wb, 'Activities', [
         ('Activity Name', True), ('Phase Name', True), ('Text', True),
         ('Activity Type', True), ('Helper', False),
         ('Is Evaluatable', False), ('Is Primary Evaluation', False),
+        ('Experiment Type', False),
         ('Simulation Name', False), ('Remote Lab Name', False), ('VR Lab Name', False),
     ], bool_cols=['Is Evaluatable', 'Is Primary Evaluation'], example_rows=[
         ['Welcome', 'Engagement', 'Welcome to this scenario! **Read carefully.**',
-         'Explanation', '', 'No', 'No', '', '', ''],
+         'Explanation', '', 'No', 'No', '', '', '', ''],
         ['Quiz 1', 'Analysis', 'What is the boiling point of water?',
-         'Question', '', 'Yes', 'Yes', '', '', ''],
-    ], list_cols={
-        'Activity Type': '"Explanation,Question,Experiment,Guidance"',
-        'Phase Name': 'Phases!$A$2:$A$200',
-    })
+         'Question', '', 'Yes', 'Yes', '', '', '', ''],
+    ], list_cols=act_list_cols)
 
     ans_ws = _write_sheet(wb, 'Answers', [
         ('Activity Name', True), ('Answer Key', True), ('Answer Text', True),
         ('Is Correct', False), ('Answer Weight', False),
     ], bool_cols=['Is Correct'], example_rows=[
-        ['Quiz 1', 'ans_correct', '100°C', 'Yes', '1'],
-        ['Quiz 1', 'ans_wrong',   '50°C',  'No',  '0'],
+        ['Quiz 1', 'ans_correct', '100°C', 'Yes', '3'],
+        ['Quiz 1', 'ans_wrong',   '50°C',  'No',  '1'],
     ], list_cols={
         'Activity Name': 'Activities!$A$2:$A$200',
+        'Answer Weight': '"3,2,1"',
     })
-    # Pre-fill Answer Key column (B) with a formula so new rows get a unique key automatically.
-    # Teachers can overwrite it with their own key; the formula returns "" when A is empty.
     for _row in range(4, 201):
         ans_ws.cell(row=_row, column=2, value=f'=IF(A{_row}="","","ans_"&(ROW()-1))')
 
@@ -169,21 +234,26 @@ def generate_blank_template():
         ['Quiz 1',   'ans_wrong',   'Try Again'],
     ], list_cols={
         'Source Activity Name': 'Activities!$A$2:$A$200',
+        'Answer Key': 'Answers!$B$2:$B$200',
         'Next Activity Name': 'Activities!$A$2:$A$200',
     })
 
-    _write_sheet(wb, 'Evaluation', [
-        ('Primary Activity Name', True), ('Grouped Activities', True),
-        ('High Performers Activity', False),
-        ('Moderate Performers Activity', False),
-        ('Low Performers Activity', False),
-    ], example_rows=[
-        ['Quiz 1', 'Quiz 1,Quiz 2', 'Result High', 'Result Standard', 'Result Low'],
-    ], list_cols={
-        'Primary Activity Name': 'Activities!$A$2:$A$200',
-        'High Performers Activity': 'Activities!$A$2:$A$200',
-        'Moderate Performers Activity': 'Activities!$A$2:$A$200',
-        'Low Performers Activity': 'Activities!$A$2:$A$200',
-    })
+    eval_cols = (
+        [('Primary Activity Name', True), ('Grouped Activity 1', True)]
+        + [(col, False) for col in _GROUPED_ACT_COLS[1:]]
+        + [
+            ('High Performers Activity', False),
+            ('Moderate Performers Activity', False),
+            ('Low Performers Activity', False),
+        ]
+    )
+    eval_list_cols = {col: 'Activities!$A$2:$A$200' for col in (
+        ['Primary Activity Name'] + _GROUPED_ACT_COLS
+        + ['High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity']
+    )}
+    _write_sheet(wb, 'Evaluation', eval_cols, example_rows=[
+        ['Quiz 1', 'Quiz 1', 'Quiz 2', '', '', '', '',
+         'Result High', 'Result Standard', 'Result Low'],
+    ], list_cols=eval_list_cols)
 
     return wb

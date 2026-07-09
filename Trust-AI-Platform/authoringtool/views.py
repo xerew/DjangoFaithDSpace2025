@@ -2513,7 +2513,10 @@ def edit_proposal_json(request, scenario_id, pk):
 def download_template(request):
     import io
     from .template_generator import generate_blank_template
-    wb = generate_blank_template()
+    sims  = list(Simulation.objects.values_list('name', flat=True).order_by('name'))
+    rlabs = list(ExperimentLL.objects.values_list('name', flat=True).order_by('name'))
+    vrlabs = list(VRARExperiment.objects.values_list('name', flat=True).order_by('name'))
+    wb = generate_blank_template(simulations=sims, remote_labs=rlabs, vr_labs=vrlabs)
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)

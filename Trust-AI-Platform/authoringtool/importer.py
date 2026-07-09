@@ -15,9 +15,16 @@ PHASES_REQUIRED = ['Phase Name']
 ACTIVITIES_REQUIRED = ['Activity Name', 'Phase Name', 'Text', 'Activity Type']
 ANSWERS_REQUIRED = ['Activity Name', 'Answer Key', 'Answer Text']
 ROUTING_REQUIRED = ['Source Activity Name']
-EVALUATION_REQUIRED = ['Primary Activity Name', 'Grouped Activities']
+EVALUATION_REQUIRED = ['Primary Activity Name', 'Grouped Activity 1']
 
 BOOL_COLS_ACTIVITIES = ('Is Evaluatable', 'Is Primary Evaluation')
+
+_GROUPED_ACT_COLS = [f'Grouped Activity {i}' for i in range(1, 7)]
+
+
+def _grouped_acts(ev):
+    """Return the list of non-empty grouped activity names from the multi-column format."""
+    return [ev.get(col, '').strip() for col in _GROUPED_ACT_COLS if ev.get(col, '').strip()]
 BOOL_COLS_ANSWERS = ('Is Correct',)
 
 # Fixed performance thresholds — not editable by teachers
@@ -325,14 +332,14 @@ class ScenarioImporter:
                 self._add_error('Evaluation', row, 'Primary Activity Name',
                                 f'Activity "{primary}" is not marked Is Evaluatable = Yes.')
             ev_seen.add(primary)
-            grouped_raw = ev.get('Grouped Activities', '').strip()
-            if not grouped_raw:
-                self._add_error('Evaluation', row, 'Grouped Activities',
-                                'Grouped Activities is required.')
+            grouped = _grouped_acts(ev)
+            if not grouped:
+                self._add_error('Evaluation', row, 'Grouped Activity 1',
+                                'At least one grouped activity is required.')
             else:
-                for g in [x.strip() for x in grouped_raw.split(',') if x.strip()]:
+                for g in grouped:
                     if g not in self.activity_map:
-                        self._add_error('Evaluation', row, 'Grouped Activities',
+                        self._add_error('Evaluation', row, 'Grouped Activity 1',
                                         f'Activity "{g}" not found in Activities sheet.')
             for col in ('High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity'):
                 v = ev.get(col, '').strip()
@@ -411,11 +418,16 @@ class ScenarioImporter:
             answer_obj_map = {}
             for ans in self.answers:
                 ans_html = _md(ans.get('Answer Text', ''))
+                is_correct_bool = _to_bool(ans.get('Is Correct', 'No'))
+                if is_correct_bool:
+                    weight = 3
+                else:
+                    weight = _to_int(ans.get('Answer Weight', '')) or 1
                 ans_obj = Answer.objects.create(
                     activity=activity_obj_map[ans['Activity Name']],
                     text=ans_html,
-                    is_correct=_to_bool(ans.get('Is Correct', 'No')),
-                    answer_weight=_to_int(ans.get('Answer Weight', '')) or 0,
+                    is_correct=is_correct_bool,
+                    answer_weight=weight,
                     created_by=self.user,
                     updated_by=self.user,
                 )
@@ -439,7 +451,7 @@ class ScenarioImporter:
             # 6. QuestionBunch + EvQuestionBranching with fixed thresholds
             for ev in self.evaluation:
                 primary = activity_obj_map[ev['Primary Activity Name'].strip()]
-                grouped = [x.strip() for x in ev['Grouped Activities'].split(',') if x.strip()]
+                grouped = _grouped_acts(ev)
                 grouped_ids = [activity_obj_map[n].id for n in grouped]
                 QuestionBunch.objects.create(
                     activity_primary=primary,

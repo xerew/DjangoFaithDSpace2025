@@ -51,8 +51,8 @@ def make_xlsx(
         'Activities': (
             ['Activity Name', 'Phase Name', 'Text', 'Activity Type', 'Helper',
              'Is Evaluatable', 'Is Primary Evaluation',
-             'Simulation Name', 'Remote Lab Name', 'VR Lab Name'],
-            activities or [['Act 1', 'Phase 1', 'Hello world', activity_type, '', 'No', 'No', '', '', '']],
+             'Experiment Type', 'Simulation Name', 'Remote Lab Name', 'VR Lab Name'],
+            activities or [['Act 1', 'Phase 1', 'Hello world', activity_type, '', 'No', 'No', '', '', '', '']],
         ),
         'Answers': (
             ['Activity Name', 'Answer Key', 'Answer Text', 'Is Correct', 'Answer Weight'],
@@ -63,7 +63,9 @@ def make_xlsx(
             routing or [],
         ),
         'Evaluation': (
-            ['Primary Activity Name', 'Grouped Activities',
+            ['Primary Activity Name',
+             'Grouped Activity 1', 'Grouped Activity 2', 'Grouped Activity 3',
+             'Grouped Activity 4', 'Grouped Activity 5', 'Grouped Activity 6',
              'High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity'],
             evaluation or [],
         ),
@@ -239,14 +241,16 @@ class ImporterCreationTest(TestCase):
         scenario, errors = self._import(
             answers=[
                 ['Act 1', 'ans_correct', 'Option A', 'Yes', '2'],
-                ['Act 1', 'ans_wrong',   'Option B', 'No',  '0'],
+                ['Act 1', 'ans_wrong',   'Option B', 'No',  '2'],
             ],
         )
         self.assertEqual(errors, [])
         act = Activity.objects.get(scenario=scenario)
         self.assertEqual(act.answers.count(), 2)
         correct = act.answers.get(is_correct=True)
-        self.assertEqual(correct.answer_weight, 2)
+        self.assertEqual(correct.answer_weight, 3)  # auto-set to 3 regardless of sheet value
+        wrong = act.answers.get(is_correct=False)
+        self.assertEqual(wrong.answer_weight, 2)    # sheet value honoured for wrong answers
 
     def test_creates_next_question_logic_default(self):
         scenario, errors = self._import(
