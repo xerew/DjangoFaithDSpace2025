@@ -49,7 +49,7 @@ def login_view(request):
                 request.session.set_expiry(0)  # Browser close
 
             if user.groups.filter(name='teachers').exists():
-                return redirect('index')  # Redirect to the teachers dashboard
+                return redirect('teacher_home')  # Redirect to the teachers home page
             else:
                 return redirect('studentScenarios')  # Redirect to the default page
         else:

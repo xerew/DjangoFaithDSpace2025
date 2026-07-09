@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db.models import Count
+from datetime import date
 from authoringtool.models import Scenario
 from usergroups.models import UserGroup, UserGroupMembership
 from accounts.views import group_required
@@ -21,4 +22,5 @@ def teacher_home(request):
         'total_students': total_students,
         'latest_public': latest_public,
         'show_get_started': my_scenario_count == 0,
+        'today': date.today(),
     })

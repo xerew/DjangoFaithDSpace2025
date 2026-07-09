@@ -1,4 +1,141 @@
 {% extends "main.html" %}
-{% block content %}
-<h1>Teacher Home</h1>
+{% load static %}
+{% block page_title %}<title>Trust AI Lab — Home</title>{% endblock %}
+
+{% block atcontent %}
+<main id="main" class="main">
+
+  <!-- ── Hero ── -->
+  <div class="dash-hero" style="background:linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%);border-radius:14px;padding:26px 30px 20px;color:#fff;margin-bottom:26px;box-shadow:0 4px 20px rgba(26,86,219,0.18);">
+    <div class="d-flex align-items-start gap-3">
+      <div style="background:rgba(255,255,255,0.18);border-radius:10px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+        <i class="bi bi-house-heart-fill"></i>
+      </div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Trust AI Lab</div>
+        <h2 style="margin:0;font-size:22px;font-weight:700;line-height:1.2;">Welcome back, {{ user.get_full_name|default:user.username }}!</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">{{ today|date:"l, j F Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Get Started Strip (only when 0 scenarios) ── -->
+  {% if show_get_started %}
+  <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:14px;font-weight:700;color:#1e3a8a;margin-bottom:2px;"><i class="bi bi-rocket-takeoff me-2"></i>Get started</div>
+      <div style="font-size:13px;color:#374151;">You haven't created a scenario yet — start building your first one.</div>
+    </div>
+    <a href="{% url 'createScenario' %}" style="background:#1a56db;color:#fff;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;">Create your first scenario</a>
+  </div>
+  {% endif %}
+
+  <!-- ── Quick Stats ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-4">
+      <div style="background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-align:center;">
+        <div style="font-size:32px;font-weight:800;color:#1a56db;">{{ my_scenario_count }}</div>
+        <div style="font-size:12.5px;color:#6b7280;margin-top:2px;"><i class="bi bi-collection me-1"></i>Your Scenarios</div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-4">
+      <div style="background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-align:center;">
+        <div style="font-size:32px;font-weight:800;color:#1a56db;">{{ my_group_count }}</div>
+        <div style="font-size:12.5px;color:#6b7280;margin-top:2px;"><i class="bi bi-people me-1"></i>Student Groups</div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-4">
+      <div style="background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-align:center;">
+        <div style="font-size:32px;font-weight:800;color:#1a56db;">{{ total_students }}</div>
+        <div style="font-size:12.5px;color:#6b7280;margin-top:2px;"><i class="bi bi-mortarboard me-1"></i>Total Students</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── About the Platform / IBL ── -->
+  <div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;box-shadow:0 1px 4px rgba(0,0,0,0.04);padding:32px;margin-bottom:28px;">
+    <div class="row align-items-center g-4">
+      <div class="col-12 col-md-7">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:#1a56db;font-weight:700;margin-bottom:8px;">About the Platform</div>
+        <h3 style="font-size:20px;font-weight:700;color:#1e3a8a;margin-bottom:12px;">Inquiry-Based Learning with Trust AI Lab</h3>
+        <p style="font-size:13.5px;color:#374151;line-height:1.7;margin-bottom:12px;">
+          Trust AI Lab supports <strong>Inquiry-Based Learning (IBL)</strong> — a student-centred pedagogical approach where learners explore, question, and discover knowledge through guided investigation rather than passive instruction.
+        </p>
+        <p style="font-size:13.5px;color:#374151;line-height:1.7;margin-bottom:12px;">
+          As a teacher, you design <strong>scenarios</strong> — interactive digital experiments that guide students step by step through a scientific inquiry cycle. Each scenario can include simulations, remote labs, VR/AR experiences, adaptive evaluation, and branching paths based on student performance.
+        </p>
+        <p style="font-size:13.5px;color:#374151;line-height:1.7;">
+          This platform was developed as part of the <strong>FAITH</strong> and <strong>DSpace</strong> projects, funded by the European Union under grant agreements No. 101135932 and No. 101086701.
+        </p>
+      </div>
+      <div class="col-12 col-md-5 text-center">
+        <img src="{% static 'img/home_ibl.jpg' %}" alt="Teachers in classroom"
+             style="width:100%;max-width:420px;border-radius:12px;object-fit:cover;aspect-ratio:4/3;box-shadow:0 4px 18px rgba(0,0,0,0.1);">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Latest Public Scenarios ── -->
+  <div style="margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h4 style="font-size:16px;font-weight:700;color:#1e3a8a;margin:0;"><i class="bi bi-globe me-2" style="color:#1a56db;"></i>Latest Public Scenarios</h4>
+      <a href="{% url 'scenarios' %}" style="font-size:12.5px;color:#1a56db;text-decoration:none;font-weight:600;">View all <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% if latest_public %}
+    <div class="row g-3">
+      {% for scenario in latest_public %}
+      <div class="col-12 col-sm-6 col-lg-4">
+        <div style="background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);height:100%;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px;">{{ scenario.name }}</div>
+            {% if scenario.subject_domains %}
+            <div style="font-size:11.5px;color:#6b7280;margin-bottom:4px;"><i class="bi bi-tag me-1"></i>{{ scenario.subject_domains }}</div>
+            {% endif %}
+            {% if scenario.age_of_students %}
+            <div style="font-size:11.5px;color:#6b7280;"><i class="bi bi-person me-1"></i>Ages {{ scenario.age_of_students }}</div>
+            {% endif %}
+          </div>
+          <div style="margin-top:14px;">
+            <a href="{% url 'viewScenario' scenario.id %}" style="display:inline-block;background:#eff6ff;color:#1a56db;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:600;text-decoration:none;">View <i class="bi bi-arrow-right-short"></i></a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:#f9fafb;border-radius:12px;border:1px dashed #d1d9e0;padding:28px;text-align:center;color:#9ca3af;font-size:13px;">
+      No public scenarios yet.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Quick Actions ── -->
+  <div>
+    <h4 style="font-size:16px;font-weight:700;color:#1e3a8a;margin-bottom:14px;"><i class="bi bi-lightning-charge me-2" style="color:#1a56db;"></i>Quick Actions</h4>
+    <div class="row g-3">
+      <div class="col-12 col-sm-4">
+        <a href="{% url 'createScenario' %}" style="display:block;background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:22px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-decoration:none;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,86,219,0.12)'" onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+          <div style="font-size:26px;color:#1a56db;margin-bottom:8px;"><i class="bi bi-plus-circle-fill"></i></div>
+          <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">Create Scenario</div>
+          <div style="font-size:12px;color:#6b7280;">Build a new IBL scenario for your students</div>
+        </a>
+      </div>
+      <div class="col-12 col-sm-4">
+        <a href="{% url 'list_groups' %}" style="display:block;background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:22px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-decoration:none;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,86,219,0.12)'" onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+          <div style="font-size:26px;color:#1a56db;margin-bottom:8px;"><i class="bi bi-people-fill"></i></div>
+          <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">Student Groups</div>
+          <div style="font-size:12px;color:#6b7280;">Manage your student groups and credentials</div>
+        </a>
+      </div>
+      <div class="col-12 col-sm-4">
+        <a href="{% url 'index' %}" style="display:block;background:#fff;border-radius:12px;border:1px solid #e8edf5;padding:22px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-decoration:none;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,86,219,0.12)'" onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+          <div style="font-size:26px;color:#1a56db;margin-bottom:8px;"><i class="bi bi-bar-chart-line-fill"></i></div>
+          <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">Analytics Dashboard</div>
+          <div style="font-size:12px;color:#6b7280;">View student performance and scenario analytics</div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</main>
 {% endblock %}
