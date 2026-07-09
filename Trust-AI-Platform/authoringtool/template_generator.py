@@ -187,13 +187,13 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
 
     _write_sheet(wb, 'Scenario', [
         ('Name', True), ('Description', True), ('Learning Goals', True),
-        ('Language', True), ('Subject Domains', False),
+        ('Language', True),
         ('Age Min', True), ('Age Max', True),
         ('Suggested Time (min)', True), ('Visibility', True),
         ('Subject 1', False), ('Subject 2', False), ('Subject 3', False),
     ], example_rows=[
         ['My Scenario', 'A brief description', 'Students will learn...', 'English',
-         '', '14', '18', '90', 'private', '', '', ''],
+         '14', '18', '90', 'private', '', '', ''],
     ], list_cols=scen_list_cols)
 
     _write_sheet(wb, 'Phases', [
