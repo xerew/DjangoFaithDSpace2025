@@ -8,7 +8,8 @@ from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', lambda request: redirect('/authoringtool/', permanent=True)),
+    path('', lambda request: redirect('/home/', permanent=True)),
+    path('home/', include('home.urls')),
     path('authoringtool/', include('authoringtool.urls')),
     path('accounts/', include('accounts.urls')),
     path('organization/', include('organization.urls')),

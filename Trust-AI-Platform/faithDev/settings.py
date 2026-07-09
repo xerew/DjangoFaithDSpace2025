@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'usergroups',
     'django_celery_results',
     'django_redis',
+    'home',
 ]
 
 MIDDLEWARE = [
