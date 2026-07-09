@@ -336,43 +336,8 @@
                   </div>
                 </div>
                 {% if group.member_count %}
-                <div>
-                  <button class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
-                          data-bs-toggle="collapse" data-bs-target="#role-members-{{ group.id }}">
-                    <i class="bi bi-chevron-right"></i> {{ group.member_count }} member{{ group.member_count|pluralize }}
-                  </button>
-                  <div class="collapse" id="role-members-{{ group.id }}">
-                    <div class="mt-2 d-flex flex-column gap-1">
-                      {% for member in group.user_set.all|slice:":10" %}
-                      <div style="font-size:12px;">
-                        <a href="#" class="text-decoration-none"
-                           data-member-id="{{ member.id }}"
-                           onclick="switchToUserRow(this); return false;">
-                          {{ member.get_full_name|default:member.username }}
-                        </a>
-                      </div>
-                      {% endfor %}
-                      {% if group.member_count > 10 %}
-                      <div id="role-extra-{{ group.id }}" style="display:none;" class="d-flex flex-column gap-1">
-                        {% for member in group.user_set.all|slice:"10:" %}
-                        <div style="font-size:12px;">
-                          <a href="#" class="text-decoration-none"
-                             data-member-id="{{ member.id }}"
-                             onclick="switchToUserRow(this); return false;">
-                            {{ member.get_full_name|default:member.username }}
-                          </a>
-                        </div>
-                        {% endfor %}
-                      </div>
-                      <div id="role-more-{{ group.id }}">
-                        <a href="#" class="text-muted" style="font-size:11px;"
-                           onclick="expandRoleMembers({{ group.id }}); return false;">
-                          <i class="bi bi-chevron-down me-1"></i>+{{ group.member_count|add:"-10" }} more
-                        </a>
-                      </div>
-                      {% endif %}
-                    </div>
-                  </div>
+                <div style="font-size:12px;color:#888;margin-top:4px;">
+                  {{ group.member_count }} member{{ group.member_count|pluralize }}
                 </div>
                 {% endif %}
               </div>
@@ -446,7 +411,10 @@
                 <thead style="background:#f8faff;">
                   <tr>
                     <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Language</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;cursor:pointer;user-select:none;"
+                        onclick="sortSimsByLanguage()" title="Sort by language">
+                      Language <i class="bi bi-sort-alpha-down ms-1" id="simLangSortIcon" style="font-size:11px;"></i>
+                    </th>
                     <th style="font-size:12px;font-weight:600;color:#888;">Iframe URL</th>
                     <th style="font-size:12px;font-weight:600;color:#888;">Size</th>
                     <th style="font-size:12px;font-weight:600;color:#888;">Fullscreen</th>
@@ -1137,11 +1105,26 @@ function switchToUserRow(link) {
   usersTab.click();
 }
 
-function expandRoleMembers(roleId) {
-  const extra = document.getElementById('role-extra-' + roleId);
-  const moreLink = document.getElementById('role-more-' + roleId);
-  if (extra) extra.style.display = '';
-  if (moreLink) moreLink.style.display = 'none';
+// ── Simulation language sort ────────────────────────────────────────────────
+
+let _simSortDir = 0; // 0 = unsorted, 1 = A→Z, -1 = Z→A
+
+function sortSimsByLanguage() {
+  _simSortDir = _simSortDir === 1 ? -1 : 1;
+  const tbody = document.getElementById('simTableBody');
+  const rows = [...tbody.querySelectorAll('.sim-row')];
+  rows.sort(function(a, b) {
+    const la = a.dataset.language || '';
+    const lb = b.dataset.language || '';
+    // Blank language always goes last regardless of direction
+    if (!la && lb) return 1;
+    if (la && !lb) return -1;
+    return la.localeCompare(lb) * _simSortDir;
+  });
+  rows.forEach(function(row) { tbody.appendChild(row); });
+  const icon = document.getElementById('simLangSortIcon');
+  if (icon) icon.className = _simSortDir === 1 ? 'bi bi-sort-alpha-down ms-1' : 'bi bi-sort-alpha-up ms-1';
+  filterAndPaginateLabs();
 }
 
 function createRole() {
