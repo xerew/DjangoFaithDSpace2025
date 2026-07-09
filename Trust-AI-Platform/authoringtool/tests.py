@@ -1,13 +1,18 @@
 import csv
 import io
+import json
+import openpyxl
 
-from django.contrib.auth.models import User
-from django.test import TestCase
+from django.contrib.auth.models import User, Group
+from django.test import TestCase, Client
+from django.urls import reverse
 
 from authoringtool.models import (
     Activity,
     ActivityType,
     Answer,
+    AnswerFeedback,
+    NextQuestionLogic,
     Phase,
     Scenario,
     SchoolDepartment,
@@ -15,6 +20,175 @@ from authoringtool.models import (
     UserScenarioScore,
 )
 from authoringtool.tasks import compute_student_performance_metrics
+
+
+def make_xlsx(
+    scenario_name='Test Scenario',
+    phases=None,
+    activities=None,
+    answers=None,
+    routing=None,
+    evaluation=None,
+    missing_sheet=None,
+):
+    """Build a minimal valid .xlsx in memory. Each argument is a list of tuples (row values)."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'README'
+    ws['A1'] = 'Instructions'
+
+    sheets = {
+        'Scenario': (
+            ['Name', 'Description', 'Visibility'],
+            [[scenario_name, '', 'private']],
+        ),
+        'Phases': (
+            ['Phase Name', 'Description', 'Video URL'],
+            phases or [['Phase 1', '', '']],
+        ),
+        'Activities': (
+            ['Activity Name', 'Phase Name', 'Text', 'Activity Type', 'Helper',
+             'Is Evaluatable', 'Is Primary Evaluation', 'Must Wait', 'Score Limit',
+             'Simulation Name', 'Remote Lab Name', 'VR Lab Name', 'Image URL', 'Video URL'],
+            activities or [['Act 1', 'Phase 1', 'Hello world', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+        ),
+        'Answers': (
+            ['Activity Name', 'Answer Text', 'Is Correct', 'Answer Weight',
+             'Image URL', 'Video URL', 'Feedback Text', 'Feedback Image URL', 'Feedback Video URL'],
+            answers or [],
+        ),
+        'Next Activity': (
+            ['Source Activity Name', 'Answer Text', 'Next Activity Name'],
+            routing or [],
+        ),
+        'Evaluation': (
+            ['Primary Activity Name', 'Grouped Activities', 'High Branch Activity',
+             'High Branch Feedback', 'Mid Branch Activity', 'Mid Branch Feedback',
+             'Low Branch Activity', 'Low Branch Feedback'],
+            evaluation or [],
+        ),
+    }
+
+    for name, (header, rows) in sheets.items():
+        if name == missing_sheet:
+            continue
+        ws2 = wb.create_sheet(name)
+        ws2.append(header)
+        for row in rows:
+            ws2.append(row)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+class ImporterValidationTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('teacher', password='pass')
+
+    def _run(self, **kwargs):
+        from authoringtool.importer import ScenarioImporter
+        buf = make_xlsx(**kwargs)
+        importer = ScenarioImporter(buf, self.user)
+        importer._parse()
+        if not importer.errors:
+            importer._validate()
+        return importer.errors
+
+    def test_valid_file_no_errors(self):
+        errors = self._run()
+        self.assertEqual(errors, [])
+
+    def test_missing_sheet_reported(self):
+        errors = self._run(missing_sheet='Activities')
+        messages = [e['message'] for e in errors]
+        self.assertTrue(any('Activities' in m for m in messages))
+
+    def test_missing_scenario_name(self):
+        errors = self._run(scenario_name='')
+        messages = [e['message'] for e in errors]
+        self.assertTrue(any('Name' in m or 'required' in m.lower() for m in messages))
+
+    def test_duplicate_scenario_name(self):
+        # Scenario.objects.create() fails on SQLite because Scenario.age_of_students is an
+        # IntegerRangeField (postgres-only).  Mock the DB lookup instead.
+        from unittest.mock import patch
+        from authoringtool.importer import ScenarioImporter
+        buf = make_xlsx(scenario_name='Test Scenario')
+        importer = ScenarioImporter(buf, self.user)
+        importer._parse()
+        with patch('authoringtool.importer.Scenario.objects') as mock_qs:
+            mock_qs.filter.return_value.exists.return_value = True
+            importer._load_db_lookups()
+            importer._validate_scenario()
+        messages = [e['message'] for e in importer.errors]
+        self.assertTrue(any('already exists' in m for m in messages))
+
+    def test_invalid_visibility(self):
+        # build with bad visibility by patching scenario_data after parse
+        from authoringtool.importer import ScenarioImporter
+        buf = make_xlsx()
+        importer = ScenarioImporter(buf, self.user)
+        importer._parse()
+        importer.scenario_data['Visibility'] = 'invalid'
+        importer._load_db_lookups()
+        importer._validate_scenario()
+        self.assertTrue(any('Visibility' in e['column'] for e in importer.errors))
+
+    def test_activity_references_unknown_phase(self):
+        errors = self._run(
+            activities=[['Act 1', 'NonexistentPhase', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+        )
+        self.assertTrue(any('Phase' in e['message'] for e in errors))
+
+    def test_duplicate_activity_names(self):
+        errors = self._run(
+            activities=[
+                ['Act 1', 'Phase 1', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 1', 'Phase 1', 'Dupe', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+            ],
+        )
+        self.assertTrue(any('Duplicate' in e['message'] for e in errors))
+
+    def test_primary_ev_without_evaluatable(self):
+        errors = self._run(
+            activities=[['Act 1', 'Phase 1', 'Hello', '', '', 'No', 'Yes', 'No', '', '', '', '', '', '']],
+        )
+        self.assertTrue(any('Is Evaluatable' in e['message'] or 'Is Primary' in e['message'] for e in errors))
+
+    def test_evaluatable_without_evaluation_row(self):
+        errors = self._run(
+            activities=[['Quiz', 'Phase 1', 'Q?', '', '', 'Yes', 'Yes', 'No', '', '', '', '', '', '']],
+            answers=[['Quiz', 'Option A', 'Yes', '1', '', '', '', '', '']],
+            evaluation=[],  # no evaluation row
+        )
+        self.assertTrue(any('Evaluation' in e['message'] or 'evaluatable' in e['message'].lower() for e in errors))
+
+    def test_answer_references_unknown_activity(self):
+        errors = self._run(
+            answers=[['NonexistentAct', 'Option A', 'No', '', '', '', '', '', '']],
+        )
+        self.assertTrue(any('NonexistentAct' in e['message'] for e in errors))
+
+    def test_routing_references_unknown_next_activity(self):
+        errors = self._run(
+            routing=[['Act 1', '', 'GhostActivity']],
+        )
+        self.assertTrue(any('GhostActivity' in e['message'] for e in errors))
+
+    def test_routing_answer_not_found(self):
+        errors = self._run(
+            answers=[['Act 1', 'Option A', 'Yes', '1', '', '', '', '', '']],
+            routing=[['Act 1', 'Wrong Answer Text', '']],
+        )
+        self.assertTrue(any('Wrong Answer Text' in e['message'] for e in errors))
+
+    def test_invalid_boolean_field(self):
+        errors = self._run(
+            activities=[['Act 1', 'Phase 1', 'Hello', '', '', 'maybe', 'No', 'No', '', '', '', '', '', '']],
+        )
+        self.assertTrue(any('Yes' in e['message'] or 'No' in e['message'] for e in errors))
 
 
 class PerActivityCSVColumnTest(TestCase):
