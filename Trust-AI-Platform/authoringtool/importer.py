@@ -1,9 +1,10 @@
 import openpyxl
 import markdown2
 from django.utils.html import strip_tags
+from psycopg2.extras import NumericRange
 
 from .models import (
-    Scenario, Simulation, ExperimentLL, VRARExperiment, ActivityType,
+    Scenario, Simulation, ExperimentLL, VRARExperiment, ActivityType, Subject,
 )
 
 # ── Column definitions ────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ class ScenarioImporter:
         self._remote_labs = {}
         self._vr_labs = {}
         self._activity_types = {}
+        self._subjects = {}
 
     def run(self):
         """Parse, validate, create. Returns (Scenario | None, errors list)."""
@@ -187,6 +189,7 @@ class ScenarioImporter:
         self._remote_labs = {l.name: l for l in ExperimentLL.objects.all()}
         self._vr_labs = {v.name: v for v in VRARExperiment.objects.all()}
         self._activity_types = {at.name: at for at in ActivityType.objects.all()}
+        self._subjects = {s.name: s for s in Subject.objects.all()}
 
     def _validate_scenario(self):
         if not self.scenario_data:
@@ -204,6 +207,11 @@ class ScenarioImporter:
             v = self.scenario_data.get(col, '').strip()
             if v and _to_int(v) is None:
                 self._add_error('Scenario', 2, col, f'"{col}" must be a whole number.')
+        for i in range(1, 4):
+            col = f'Subject {i}'
+            v = self.scenario_data.get(col, '').strip()
+            if v and v not in self._subjects:
+                self._add_error('Scenario', 2, col, f'Subject "{v}" not found in the database.')
 
     def _validate_phases(self):
         if not self.phases:
@@ -363,13 +371,17 @@ class ScenarioImporter:
 
         with transaction.atomic():
             # 1. Scenario
+            age_min = _to_int(self.scenario_data.get('Age Min', ''))
+            age_max = _to_int(self.scenario_data.get('Age Max', ''))
+            age_range = NumericRange(age_min, age_max) if (age_min is not None and age_max is not None) else None
             try:
                 scenario = Scenario.objects.create(
                     name=self.scenario_data['Name'].strip(),
-                    description=_md(self.scenario_data.get('Description', '')),
-                    learning_goals=_md(self.scenario_data.get('Learning Goals', '')),
+                    description=self.scenario_data.get('Description', '').strip(),
+                    learning_goals=self.scenario_data.get('Learning Goals', '').strip(),
                     language=self.scenario_data.get('Language', ''),
                     subject_domains=self.scenario_data.get('Subject Domains', ''),
+                    age_of_students=age_range,
                     suggested_learning_time=_to_int(self.scenario_data.get('Suggested Time (min)', '')) or None,
                     visibility_status=self.scenario_data.get('Visibility', '').strip().lower() or 'private',
                     created_by=self.user,
@@ -379,6 +391,15 @@ class ScenarioImporter:
                 raise ValueError(
                     f'A scenario named "{self.scenario_data["Name"].strip()}" already exists (created concurrently).'
                 )
+
+            # 1b. Subjects M2M
+            subject_objs = [
+                self._subjects[self.scenario_data.get(f'Subject {i}', '').strip()]
+                for i in range(1, 4)
+                if self.scenario_data.get(f'Subject {i}', '').strip() in self._subjects
+            ]
+            if subject_objs:
+                scenario.subjects.set(subject_objs)
 
             # 2. Phases (row order preserved)
             phase_obj_map = {}
@@ -417,7 +438,6 @@ class ScenarioImporter:
             # 4. Answers  (keyed by Answer Key for routing lookups)
             answer_obj_map = {}
             for ans in self.answers:
-                ans_html = _md(ans.get('Answer Text', ''))
                 is_correct_bool = _to_bool(ans.get('Is Correct', 'No'))
                 if is_correct_bool:
                     weight = 3
@@ -425,7 +445,7 @@ class ScenarioImporter:
                     weight = _to_int(ans.get('Answer Weight', '')) or 1
                 ans_obj = Answer.objects.create(
                     activity=activity_obj_map[ans['Activity Name']],
-                    text=ans_html,
+                    text=ans.get('Answer Text', '').strip(),
                     is_correct=is_correct_bool,
                     answer_weight=weight,
                     created_by=self.user,

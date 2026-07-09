@@ -1,6 +1,7 @@
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.formatting.rule import FormulaRule
 
 _HEADER_FONT = Font(bold=True, color='FFFFFF')
 _HEADER_FILL = PatternFill('solid', fgColor='1D4ED8')
@@ -46,14 +47,14 @@ def _write_sheet(wb, title, columns, bool_cols=(), example_rows=(), list_cols=No
     return ws
 
 
-def _build_data_sheet(wb, simulations, remote_labs, vr_labs):
+def _build_data_sheet(wb, simulations, remote_labs, vr_labs, subjects=()):
     """Create a hidden _Data sheet for DB-sourced dropdowns.
-    Returns (sim_formula, rlab_formula, vr_formula) — None for any empty list."""
-    if not (simulations or remote_labs or vr_labs):
-        return None, None, None
+    Returns (sim_formula, rlab_formula, vr_formula, subj_formula) — None for any empty list."""
+    if not (simulations or remote_labs or vr_labs or subjects):
+        return None, None, None, None
     ws = wb.create_sheet('_Data')
     ws.sheet_state = 'hidden'
-    sim_f = rlab_f = vr_f = None
+    sim_f = rlab_f = vr_f = subj_f = None
     if simulations:
         ws['A1'] = 'Simulations'
         for i, n in enumerate(simulations, start=2):
@@ -69,7 +70,12 @@ def _build_data_sheet(wb, simulations, remote_labs, vr_labs):
         for i, n in enumerate(vr_labs, start=2):
             ws.cell(row=i, column=3, value=n)
         vr_f = f'_Data!$C$2:$C${1 + len(vr_labs)}'
-    return sim_f, rlab_f, vr_f
+    if subjects:
+        ws['D1'] = 'Subjects'
+        for i, n in enumerate(subjects, start=2):
+            ws.cell(row=i, column=4, value=n)
+        subj_f = f'_Data!$D$2:$D${1 + len(subjects)}'
+    return sim_f, rlab_f, vr_f, subj_f
 
 
 def _write_readme(ws):
@@ -96,14 +102,19 @@ def _write_readme(ws):
         '  Explanation — Present information (text, images, video) to the student',
         '  Question    — Ask a question; student selects from answer choices',
         '  Experiment  — Embed a simulation or remote lab',
-        '               NOTE: After import, you must manually assign the simulation or',
-        '               lab to each Experiment activity in the authoring tool.',
         '  Guidance    — Provide targeted feedback or guidance to the student',
         '',
-        'EXPERIMENT TYPE (advisory — for Experiment activities)',
+        'EXPERIMENT TYPE (for Experiment activities)',
         '  Select "Simulation", "Remote Lab", or "VR/AR Lab" in the Experiment Type column.',
-        '  Then fill the matching name column (Simulation Name / Remote Lab Name / VR Lab Name).',
+        '  Then fill ONLY the matching name column — the other two will be greyed out:',
+        '    Simulation  → fill Simulation Name only',
+        '    Remote Lab  → fill Remote Lab Name only',
+        '    VR/AR Lab   → fill VR Lab Name only',
         '  The name columns have a dropdown pre-loaded with resources from the platform.',
+        '',
+        'SUBJECTS (optional — Scenario sheet)',
+        '  Use Subject 1 / Subject 2 / Subject 3 to link the scenario to platform subjects.',
+        '  Each has a dropdown with all subjects from the platform.',
         '',
         'TEXT FIELDS',
         '  Activity Text supports Markdown formatting:',
@@ -157,26 +168,33 @@ def _write_readme(ws):
     ws.column_dimensions['A'].width = 80
 
 
-def generate_blank_template(simulations=(), remote_labs=(), vr_labs=()):
+def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects=()):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'README'
     _write_readme(ws)
 
-    sim_f, rlab_f, vr_f = _build_data_sheet(wb, simulations, remote_labs, vr_labs)
+    sim_f, rlab_f, vr_f, subj_f = _build_data_sheet(wb, simulations, remote_labs, vr_labs, subjects)
+
+    scen_list_cols = {
+        'Language': f'"{_SCENARIO_LANGUAGES}"',
+        'Visibility': '"private,org,public"',
+    }
+    if subj_f:
+        scen_list_cols['Subject 1'] = subj_f
+        scen_list_cols['Subject 2'] = subj_f
+        scen_list_cols['Subject 3'] = subj_f
 
     _write_sheet(wb, 'Scenario', [
         ('Name', True), ('Description', True), ('Learning Goals', True),
-        ('Language', True), ('Subject Domains', True),
+        ('Language', True), ('Subject Domains', False),
         ('Age Min', True), ('Age Max', True),
         ('Suggested Time (min)', True), ('Visibility', True),
+        ('Subject 1', False), ('Subject 2', False), ('Subject 3', False),
     ], example_rows=[
         ['My Scenario', 'A brief description', 'Students will learn...', 'English',
-         'Physics,STEM', '14', '18', '90', 'private'],
-    ], list_cols={
-        'Language': f'"{_SCENARIO_LANGUAGES}"',
-        'Visibility': '"private,org,public"',
-    })
+         '', '14', '18', '90', 'private', '', '', ''],
+    ], list_cols=scen_list_cols)
 
     _write_sheet(wb, 'Phases', [
         ('Phase Name', True), ('Description', False),
@@ -200,7 +218,7 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=()):
     if vr_f:
         act_list_cols['VR Lab Name'] = vr_f
 
-    _write_sheet(wb, 'Activities', [
+    acts_ws = _write_sheet(wb, 'Activities', [
         ('Activity Name', True), ('Phase Name', True), ('Text', True),
         ('Activity Type', True), ('Helper', False),
         ('Is Evaluatable', False), ('Is Primary Evaluation', False),
@@ -212,6 +230,17 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=()):
         ['Quiz 1', 'Analysis', 'What is the boiling point of water?',
          'Question', '', 'Yes', 'Yes', '', '', '', ''],
     ], list_cols=act_list_cols)
+
+    # Conditional formatting: grey out name columns when Experiment Type doesn't match
+    # Col H=Experiment Type, I=Simulation Name, J=Remote Lab Name, K=VR Lab Name
+    _grey_fill = PatternFill(start_color='D9D9D9', end_color='D9D9D9', fill_type='solid')
+    _grey_font = Font(color='808080')
+    acts_ws.conditional_formatting.add('I2:I200',
+        FormulaRule(formula=['$H2<>"Simulation"'], fill=_grey_fill, font=_grey_font))
+    acts_ws.conditional_formatting.add('J2:J200',
+        FormulaRule(formula=['$H2<>"Remote Lab"'], fill=_grey_fill, font=_grey_font))
+    acts_ws.conditional_formatting.add('K2:K200',
+        FormulaRule(formula=['$H2<>"VR/AR Lab"'], fill=_grey_fill, font=_grey_font))
 
     ans_ws = _write_sheet(wb, 'Answers', [
         ('Activity Name', True), ('Answer Key', True), ('Answer Text', True),
