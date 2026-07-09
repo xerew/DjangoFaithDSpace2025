@@ -31,6 +31,7 @@ def make_xlsx(
     routing=None,
     evaluation=None,
     missing_sheet=None,
+    activity_type='Explanation',
 ):
     """Build a minimal valid .xlsx in memory. Each argument is a list of tuples (row values)."""
     wb = openpyxl.Workbook()
@@ -44,28 +45,26 @@ def make_xlsx(
             [[scenario_name, '', 'private']],
         ),
         'Phases': (
-            ['Phase Name', 'Description', 'Video URL'],
-            phases or [['Phase 1', '', '']],
+            ['Phase Name', 'Description'],
+            phases or [['Phase 1', '']],
         ),
         'Activities': (
             ['Activity Name', 'Phase Name', 'Text', 'Activity Type', 'Helper',
-             'Is Evaluatable', 'Is Primary Evaluation', 'Must Wait', 'Score Limit',
-             'Simulation Name', 'Remote Lab Name', 'VR Lab Name', 'Image URL', 'Video URL'],
-            activities or [['Act 1', 'Phase 1', 'Hello world', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+             'Is Evaluatable', 'Is Primary Evaluation',
+             'Simulation Name', 'Remote Lab Name', 'VR Lab Name'],
+            activities or [['Act 1', 'Phase 1', 'Hello world', activity_type, '', 'No', 'No', '', '', '']],
         ),
         'Answers': (
-            ['Activity Name', 'Answer Text', 'Is Correct', 'Answer Weight',
-             'Image URL', 'Video URL', 'Feedback Text', 'Feedback Image URL', 'Feedback Video URL'],
+            ['Activity Name', 'Answer Key', 'Answer Text', 'Is Correct', 'Answer Weight'],
             answers or [],
         ),
         'Next Activity': (
-            ['Source Activity Name', 'Answer Text', 'Next Activity Name'],
+            ['Source Activity Name', 'Answer Key', 'Next Activity Name'],
             routing or [],
         ),
         'Evaluation': (
-            ['Primary Activity Name', 'Grouped Activities', 'High Branch Activity',
-             'High Branch Feedback', 'Mid Branch Activity', 'Mid Branch Feedback',
-             'Low Branch Activity', 'Low Branch Feedback'],
+            ['Primary Activity Name', 'Grouped Activities',
+             'High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity'],
             evaluation or [],
         ),
     }
@@ -87,6 +86,8 @@ def make_xlsx(
 class ImporterValidationTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('teacher', password='pass')
+        ActivityType.objects.create(name='Explanation', created_by=self.user, updated_by=self.user)
+        ActivityType.objects.create(name='Question', created_by=self.user, updated_by=self.user)
 
     def _run(self, **kwargs):
         from authoringtool.importer import ScenarioImporter
@@ -139,36 +140,36 @@ class ImporterValidationTest(TestCase):
 
     def test_activity_references_unknown_phase(self):
         errors = self._run(
-            activities=[['Act 1', 'NonexistentPhase', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+            activities=[['Act 1', 'NonexistentPhase', 'Hello', 'Explanation', '', 'No', 'No', '', '', '']],
         )
         self.assertTrue(any('Phase' in e['message'] for e in errors))
 
     def test_duplicate_activity_names(self):
         errors = self._run(
             activities=[
-                ['Act 1', 'Phase 1', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
-                ['Act 1', 'Phase 1', 'Dupe', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 1', 'Phase 1', 'Hello', 'Explanation', '', 'No', 'No', '', '', ''],
+                ['Act 1', 'Phase 1', 'Dupe',  'Explanation', '', 'No', 'No', '', '', ''],
             ],
         )
         self.assertTrue(any('Duplicate' in e['message'] for e in errors))
 
     def test_primary_ev_without_evaluatable(self):
         errors = self._run(
-            activities=[['Act 1', 'Phase 1', 'Hello', '', '', 'No', 'Yes', 'No', '', '', '', '', '', '']],
+            activities=[['Act 1', 'Phase 1', 'Hello', 'Explanation', '', 'No', 'Yes', '', '', '']],
         )
         self.assertTrue(any('Is Evaluatable' in e['message'] or 'Is Primary' in e['message'] for e in errors))
 
     def test_evaluatable_without_evaluation_row(self):
         errors = self._run(
-            activities=[['Quiz', 'Phase 1', 'Q?', '', '', 'Yes', 'Yes', 'No', '', '', '', '', '', '']],
-            answers=[['Quiz', 'Option A', 'Yes', '1', '', '', '', '', '']],
-            evaluation=[],  # no evaluation row
+            activities=[['Quiz', 'Phase 1', 'Q?', 'Question', '', 'Yes', 'Yes', '', '', '']],
+            answers=[['Quiz', 'ans_a', 'Option A', 'Yes', '1']],
+            evaluation=[],
         )
         self.assertTrue(any('Evaluation' in e['message'] or 'evaluatable' in e['message'].lower() for e in errors))
 
     def test_answer_references_unknown_activity(self):
         errors = self._run(
-            answers=[['NonexistentAct', 'Option A', 'No', '', '', '', '', '', '']],
+            answers=[['NonexistentAct', 'ans_a', 'Option A', 'No', '']],
         )
         self.assertTrue(any('NonexistentAct' in e['message'] for e in errors))
 
@@ -180,14 +181,14 @@ class ImporterValidationTest(TestCase):
 
     def test_routing_answer_not_found(self):
         errors = self._run(
-            answers=[['Act 1', 'Option A', 'Yes', '1', '', '', '', '', '']],
-            routing=[['Act 1', 'Wrong Answer Text', '']],
+            answers=[['Act 1', 'ans_a', 'Option A', 'Yes', '1']],
+            routing=[['Act 1', 'wrong_key', '']],
         )
-        self.assertTrue(any('Wrong Answer Text' in e['message'] for e in errors))
+        self.assertTrue(any('wrong_key' in e['message'] for e in errors))
 
     def test_invalid_boolean_field(self):
         errors = self._run(
-            activities=[['Act 1', 'Phase 1', 'Hello', '', '', 'maybe', 'No', 'No', '', '', '', '', '', '']],
+            activities=[['Act 1', 'Phase 1', 'Hello', 'Explanation', '', 'maybe', 'No', '', '', '']],
         )
         self.assertTrue(any('Yes' in e['message'] or 'No' in e['message'] for e in errors))
 
@@ -195,6 +196,8 @@ class ImporterValidationTest(TestCase):
 class ImporterCreationTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('teacher2', password='pass')
+        ActivityType.objects.create(name='Explanation', created_by=self.user, updated_by=self.user)
+        ActivityType.objects.create(name='Question', created_by=self.user, updated_by=self.user)
 
     def _import(self, **kwargs):
         from authoringtool.importer import ScenarioImporter
@@ -210,10 +213,10 @@ class ImporterCreationTest(TestCase):
 
     def test_creates_phases(self):
         scenario, errors = self._import(
-            phases=[['Phase A', 'First phase', ''], ['Phase B', '', '']],
+            phases=[['Phase A', 'First phase'], ['Phase B', '']],
             activities=[
-                ['Act 1', 'Phase A', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
-                ['Act 2', 'Phase B', 'World', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 1', 'Phase A', 'Hello', 'Explanation', '', 'No', 'No', '', '', ''],
+                ['Act 2', 'Phase B', 'World', 'Explanation', '', 'No', 'No', '', '', ''],
             ],
         )
         self.assertEqual(errors, [])
@@ -224,7 +227,7 @@ class ImporterCreationTest(TestCase):
 
     def test_creates_activities_with_correct_phase(self):
         scenario, errors = self._import(
-            activities=[['MyAct', 'Phase 1', '**Bold text**', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+            activities=[['MyAct', 'Phase 1', '**Bold text**', 'Explanation', '', 'No', 'No', '', '', '']],
         )
         self.assertEqual(errors, [])
         act = Activity.objects.get(scenario=scenario)
@@ -232,11 +235,11 @@ class ImporterCreationTest(TestCase):
         self.assertIn('<strong>', act.text)  # markdown converted
         self.assertNotIn('<strong>', act.plain_text)  # tags stripped
 
-    def test_creates_answers_with_feedback(self):
+    def test_creates_answers(self):
         scenario, errors = self._import(
             answers=[
-                ['Act 1', 'Option A', 'Yes', '2', '', '', 'Great job!', '', ''],
-                ['Act 1', 'Option B', 'No', '0', '', '', '', '', ''],
+                ['Act 1', 'ans_correct', 'Option A', 'Yes', '2'],
+                ['Act 1', 'ans_wrong',   'Option B', 'No',  '0'],
             ],
         )
         self.assertEqual(errors, [])
@@ -244,14 +247,12 @@ class ImporterCreationTest(TestCase):
         self.assertEqual(act.answers.count(), 2)
         correct = act.answers.get(is_correct=True)
         self.assertEqual(correct.answer_weight, 2)
-        self.assertTrue(correct.feedbacks.exists())
-        self.assertIn('Great', correct.feedbacks.first().text)
 
     def test_creates_next_question_logic_default(self):
         scenario, errors = self._import(
             activities=[
-                ['Act 1', 'Phase 1', 'First', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
-                ['Act 2', 'Phase 1', 'Second', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 1', 'Phase 1', 'First',  'Explanation', '', 'No', 'No', '', '', ''],
+                ['Act 2', 'Phase 1', 'Second', 'Explanation', '', 'No', 'No', '', '', ''],
             ],
             routing=[['Act 1', '', 'Act 2']],
         )
@@ -264,17 +265,17 @@ class ImporterCreationTest(TestCase):
     def test_creates_next_question_logic_per_answer(self):
         scenario, errors = self._import(
             activities=[
-                ['Q', 'Phase 1', 'Question?', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
-                ['Good', 'Phase 1', 'Well done!', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
-                ['Bad', 'Phase 1', 'Try again!', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Q',    'Phase 1', 'Question?',  'Question',    '', 'No', 'No', '', '', ''],
+                ['Good', 'Phase 1', 'Well done!', 'Explanation', '', 'No', 'No', '', '', ''],
+                ['Bad',  'Phase 1', 'Try again!', 'Explanation', '', 'No', 'No', '', '', ''],
             ],
             answers=[
-                ['Q', 'Correct', 'Yes', '1', '', '', '', '', ''],
-                ['Q', 'Wrong', 'No', '0', '', '', '', '', ''],
+                ['Q', 'ans_correct', 'Correct', 'Yes', '1'],
+                ['Q', 'ans_wrong',   'Wrong',   'No',  '0'],
             ],
             routing=[
-                ['Q', 'Correct', 'Good'],
-                ['Q', 'Wrong', 'Bad'],
+                ['Q', 'ans_correct', 'Good'],
+                ['Q', 'ans_wrong',   'Bad'],
             ],
         )
         self.assertEqual(errors, [])
@@ -488,6 +489,8 @@ class ImportViewTest(TestCase):
         g, _ = Group.objects.get_or_create(name='teachers')
         self.user.groups.add(g)
         self.client.login(username='teacher4', password='pass')
+        ActivityType.objects.create(name='Explanation', created_by=self.user, updated_by=self.user)
+        ActivityType.objects.create(name='Question', created_by=self.user, updated_by=self.user)
 
     def _upload(self, buf, filename='template.xlsx'):
         f = SimpleUploadedFile(filename, buf.read(),

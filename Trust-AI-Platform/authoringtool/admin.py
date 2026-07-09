@@ -80,7 +80,7 @@ class ScenarioAdmin(admin.ModelAdmin):
                        'language', 'age_of_students', 'suggested_learning_time'),
         }),
         ('Media', {
-            'fields': ('image', 'video_url'),
+            'fields': ('image',),
             'classes': ('collapse',),
         }),
         ('Visibility & Access', {

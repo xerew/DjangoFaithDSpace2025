@@ -12,13 +12,18 @@ REQUIRED_SHEETS = ['README', 'Scenario', 'Phases', 'Activities', 'Answers', 'Nex
 
 SCENARIO_REQUIRED = ['Name']
 PHASES_REQUIRED = ['Phase Name']
-ACTIVITIES_REQUIRED = ['Activity Name', 'Phase Name', 'Text']
-ANSWERS_REQUIRED = ['Activity Name', 'Answer Text']
+ACTIVITIES_REQUIRED = ['Activity Name', 'Phase Name', 'Text', 'Activity Type']
+ANSWERS_REQUIRED = ['Activity Name', 'Answer Key', 'Answer Text']
 ROUTING_REQUIRED = ['Source Activity Name']
 EVALUATION_REQUIRED = ['Primary Activity Name', 'Grouped Activities']
 
-BOOL_COLS_ACTIVITIES = ('Is Evaluatable', 'Is Primary Evaluation', 'Must Wait')
+BOOL_COLS_ACTIVITIES = ('Is Evaluatable', 'Is Primary Evaluation')
 BOOL_COLS_ANSWERS = ('Is Correct',)
+
+# Fixed performance thresholds — not editable by teachers
+_SCORE_HIGH     = 2.5
+_SCORE_MODERATE = 1.5
+_SCORE_LOW      = 1.0
 
 
 def _to_bool(value, default=False):
@@ -63,7 +68,7 @@ class ScenarioImporter:
         self.activities = []
         self.activity_map = {}   # name -> dict
         self.answers = []
-        self.answer_map = {}     # (activity_name, answer_text) -> dict
+        self.answer_map = {}     # (activity_name, answer_key) -> dict
         self.routing = []
         self.evaluation = []
 
@@ -112,9 +117,9 @@ class ScenarioImporter:
         self.activity_map = {a['Activity Name']: a for a in self.activities if a.get('Activity Name')}
         self.answers = self._parse_rows(ws('Answers'), 'Answers', ANSWERS_REQUIRED)
         self.answer_map = {
-            (a['Activity Name'], a['Answer Text']): a
+            (a['Activity Name'], a['Answer Key']): a
             for a in self.answers
-            if a.get('Activity Name') and a.get('Answer Text')
+            if a.get('Activity Name') and a.get('Answer Key')
         }
         self.routing = self._parse_rows(ws('Next Activity'), 'Next Activity', ROUTING_REQUIRED)
         self.evaluation = self._parse_rows(ws('Evaluation'), 'Evaluation', EVALUATION_REQUIRED)
@@ -219,6 +224,12 @@ class ScenarioImporter:
                 self._add_error('Activities', row, 'Phase Name', 'Phase Name is required.')
             elif phase not in phase_names:
                 self._add_error('Activities', row, 'Phase Name', f'Phase "{phase}" not found in Phases sheet.')
+            activity_type = a.get('Activity Type', '').strip()
+            if not activity_type:
+                self._add_error('Activities', row, 'Activity Type', 'Activity Type is required.')
+            elif activity_type not in self._activity_types:
+                self._add_error('Activities', row, 'Activity Type',
+                                f'Activity type "{activity_type}" not found in the database.')
             for col in BOOL_COLS_ACTIVITIES:
                 v = a.get(col, '').strip().lower()
                 if v and v not in ('yes', 'no'):
@@ -227,9 +238,6 @@ class ScenarioImporter:
                     and not _to_bool(a.get('Is Evaluatable', 'No'))):
                 self._add_error('Activities', row, 'Is Primary Evaluation',
                                 'Is Primary Evaluation = Yes requires Is Evaluatable = Yes.')
-            v = a.get('Score Limit', '').strip()
-            if v and _to_float(v) is None:
-                self._add_error('Activities', row, 'Score Limit', 'Score Limit must be a number.')
             for col, lookup in (
                 ('Simulation Name', self._simulations),
                 ('Remote Lab Name', self._remote_labs),
@@ -238,24 +246,26 @@ class ScenarioImporter:
                 v = a.get(col, '').strip()
                 if v and v not in lookup:
                     self._add_error('Activities', row, col, f'"{v}" not found in the database.')
-            v = a.get('Activity Type', '').strip()
-            if v and v not in self._activity_types:
-                self._add_error('Activities', row, 'Activity Type', f'Activity type "{v}" not found in the database.')
 
     def _validate_answers(self):
         seen_answers = set()
         for ans in self.answers:
             row = ans['_row']
             act_name = ans.get('Activity Name', '').strip()
+            ans_key = ans.get('Answer Key', '').strip()
             ans_text = ans.get('Answer Text', '').strip()
             if act_name not in self.activity_map:
                 self._add_error('Answers', row, 'Activity Name',
                                 f'Activity "{act_name}" not found in Activities sheet.')
-            pair = (act_name, ans_text)
+            if not ans_key:
+                self._add_error('Answers', row, 'Answer Key', 'Answer Key is required.')
+            if not ans_text:
+                self._add_error('Answers', row, 'Answer Text', 'Answer Text is required.')
+            pair = (act_name, ans_key)
             if pair in seen_answers:
-                self._add_error('Answers', row, 'Answer Text',
-                                f'Duplicate answer text "{ans_text}" for activity "{act_name}".')
-            elif act_name and ans_text:
+                self._add_error('Answers', row, 'Answer Key',
+                                f'Duplicate answer key "{ans_key}" for activity "{act_name}".')
+            elif act_name and ans_key:
                 seen_answers.add(pair)
             for col in BOOL_COLS_ANSWERS:
                 v = ans.get(col, '').strip().lower()
@@ -278,16 +288,16 @@ class ScenarioImporter:
                 self._add_error('Next Activity', row, 'Source Activity Name',
                                 f'Activity "{src}" not found in Activities sheet.')
                 continue
-            ans_text = r.get('Answer Text', '').strip()
-            pair = (src, ans_text)
+            ans_key = r.get('Answer Key', '').strip()
+            pair = (src, ans_key)
             if pair in seen_pairs:
-                self._add_error('Next Activity', row, 'Answer Text',
+                self._add_error('Next Activity', row, 'Answer Key',
                                 f'Duplicate routing rule for activity "{src}" / '
-                                f'answer "{ans_text or "(default)"}".')
+                                f'answer key "{ans_key or "(default)"}".')
             seen_pairs.add(pair)
-            if ans_text and (src, ans_text) not in self.answer_map:
-                self._add_error('Next Activity', row, 'Answer Text',
-                                f'Answer "{ans_text}" not found for activity "{src}".')
+            if ans_key and (src, ans_key) not in self.answer_map:
+                self._add_error('Next Activity', row, 'Answer Key',
+                                f'Answer key "{ans_key}" not found for activity "{src}".')
             next_act = r.get('Next Activity Name', '').strip()
             if next_act and next_act not in self.activity_map:
                 self._add_error('Next Activity', row, 'Next Activity Name',
@@ -324,7 +334,7 @@ class ScenarioImporter:
                     if g not in self.activity_map:
                         self._add_error('Evaluation', row, 'Grouped Activities',
                                         f'Activity "{g}" not found in Activities sheet.')
-            for col in ('High Branch Activity', 'Mid Branch Activity', 'Low Branch Activity'):
+            for col in ('High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity'):
                 v = ev.get(col, '').strip()
                 if v and v not in self.activity_map:
                     self._add_error('Evaluation', row, col,
@@ -340,7 +350,7 @@ class ScenarioImporter:
         from django.db import transaction, IntegrityError
         from django.utils.html import strip_tags
         from .models import (
-            Phase, Activity, Answer, AnswerFeedback,
+            Phase, Activity, Answer,
             NextQuestionLogic, QuestionBunch, EvQuestionBranching,
         )
 
@@ -354,7 +364,6 @@ class ScenarioImporter:
                     language=self.scenario_data.get('Language', ''),
                     subject_domains=self.scenario_data.get('Subject Domains', ''),
                     suggested_learning_time=_to_int(self.scenario_data.get('Suggested Time (min)', '')) or None,
-                    video_url=self.scenario_data.get('Video URL', '') or None,
                     visibility_status=self.scenario_data.get('Visibility', '').strip().lower() or 'private',
                     created_by=self.user,
                     updated_by=self.user,
@@ -370,7 +379,6 @@ class ScenarioImporter:
                 obj = Phase.objects.create(
                     name=ph['Phase Name'],
                     description=ph.get('Description', ''),
-                    video_url=ph.get('Video URL', '') or None,
                     scenario=scenario,
                     created_by=self.user,
                     updated_by=self.user,
@@ -387,8 +395,6 @@ class ScenarioImporter:
                     plain_text=strip_tags(html),
                     is_evaluatable=_to_bool(act.get('Is Evaluatable', 'No')),
                     is_primary_ev=_to_bool(act.get('Is Primary Evaluation', 'No')),
-                    must_wait=_to_bool(act.get('Must Wait', 'No')),
-                    score_limit=_to_float(act.get('Score Limit', '')) or 0.0,
                     helper=act.get('Helper', ''),
                     scenario=scenario,
                     phase=phase_obj_map[act['Phase Name']],
@@ -401,7 +407,7 @@ class ScenarioImporter:
                 )
                 activity_obj_map[act['Activity Name']] = obj
 
-            # 4. Answers + AnswerFeedback
+            # 4. Answers  (keyed by Answer Key for routing lookups)
             answer_obj_map = {}
             for ans in self.answers:
                 ans_html = _md(ans.get('Answer Text', ''))
@@ -410,28 +416,18 @@ class ScenarioImporter:
                     text=ans_html,
                     is_correct=_to_bool(ans.get('Is Correct', 'No')),
                     answer_weight=_to_int(ans.get('Answer Weight', '')) or 0,
-                    vid_url=ans.get('Video URL', '') or None,
                     created_by=self.user,
                     updated_by=self.user,
                 )
-                answer_obj_map[(ans['Activity Name'], ans['Answer Text'])] = ans_obj
-                fb_text = ans.get('Feedback Text', '').strip()
-                if fb_text:
-                    AnswerFeedback.objects.create(
-                        answer=ans_obj,
-                        text=_md(fb_text),
-                        vid_url=ans.get('Feedback Video URL', '') or None,
-                        created_by=self.user,
-                        updated_by=self.user,
-                    )
+                answer_obj_map[(ans['Activity Name'], ans['Answer Key'])] = ans_obj
 
             # 5. NextQuestionLogic
             for r in self.routing:
                 src = activity_obj_map[r['Source Activity Name'].strip()]
-                ans_text = r.get('Answer Text', '').strip()
+                ans_key = r.get('Answer Key', '').strip()
                 ans_obj = (
-                    answer_obj_map.get((r['Source Activity Name'].strip(), ans_text))
-                    if ans_text else None
+                    answer_obj_map.get((r['Source Activity Name'].strip(), ans_key))
+                    if ans_key else None
                 )
                 next_name = r.get('Next Activity Name', '').strip()
                 NextQuestionLogic.objects.create(
@@ -440,7 +436,7 @@ class ScenarioImporter:
                     next_activity=activity_obj_map.get(next_name),
                 )
 
-            # 6. QuestionBunch + EvQuestionBranching (Postgres ArrayField — skipped in SQLite tests)
+            # 6. QuestionBunch + EvQuestionBranching with fixed thresholds
             for ev in self.evaluation:
                 primary = activity_obj_map[ev['Primary Activity Name'].strip()]
                 grouped = [x.strip() for x in ev['Grouped Activities'].split(',') if x.strip()]
@@ -449,14 +445,28 @@ class ScenarioImporter:
                     activity_primary=primary,
                     activity_ids=grouped_ids,
                 )
+
+                high_name = ev.get('High Performers Activity', '').strip()
+                mod_name  = ev.get('Moderate Performers Activity', '').strip()
+                low_name  = ev.get('Low Performers Activity', '').strip()
+
+                high_act = activity_obj_map.get(high_name)
+                mod_act  = activity_obj_map.get(mod_name)
+                low_act  = activity_obj_map.get(low_name)
+
                 EvQuestionBranching.objects.create(
                     activity=primary,
-                    next_question_on_high=activity_obj_map.get(ev.get('High Branch Activity', '').strip()),
-                    next_question_on_high_feedback=_md(ev.get('High Branch Feedback', '')),
-                    next_question_on_mid=activity_obj_map.get(ev.get('Mid Branch Activity', '').strip()),
-                    next_question_on_mid_feedback=_md(ev.get('Mid Branch Feedback', '')),
-                    next_question_on_low=activity_obj_map.get(ev.get('Low Branch Activity', '').strip()),
-                    next_question_on_low_feedback=_md(ev.get('Low Branch Feedback', '')),
+                    next_question_on_high=high_act,
+                    next_question_on_mid=mod_act,
+                    next_question_on_low=low_act,
                 )
+
+                # Apply fixed thresholds to branch target activities
+                if high_act:
+                    Activity.objects.filter(pk=high_act.pk).update(score_limit=_SCORE_HIGH)
+                if mod_act:
+                    Activity.objects.filter(pk=mod_act.pk).update(score_limit=_SCORE_MODERATE)
+                if low_act:
+                    Activity.objects.filter(pk=low_act.pk).update(score_limit=_SCORE_LOW)
 
         return scenario

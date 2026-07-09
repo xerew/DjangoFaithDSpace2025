@@ -2921,7 +2921,6 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
             language=original_scenario.language,
             suggested_learning_time=original_scenario.suggested_learning_time,
             image=original_scenario.image,
-            video_url=original_scenario.video_url,
             created_by=user,
             updated_by=user,
             is_personal=True,
@@ -2938,7 +2937,6 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
                 name=phase.name,
                 description=phase.description,
                 image=phase.image,
-                video_url=phase.video_url,
                 scenario=new_scenario,
                 created_by=user,
                 updated_by=user
