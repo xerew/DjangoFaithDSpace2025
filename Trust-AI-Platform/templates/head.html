@@ -136,7 +136,7 @@
 
     <!-- Brand at top of sidebar -->
     <div class="d-flex align-items-center px-3 border-bottom" style="height:72px;">
-      <a href="{% url 'scenarios' %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
+      <a href="{% url 'teacher_home' %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
         <img src="{% static 'img/logo.png' %}" alt="Trust AI Lab Logo" style="max-height:46px;">
         <span style="font-size:18px; font-weight:700; color:#012970;">Trust AI Lab</span>
       </a>
@@ -147,7 +147,7 @@
 	{% if request.user|has_group:"teachers" %}
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'teacher_home' %}">
-          <i class="bi bi-house-heart-fill"></i>
+          <i class="bi bi-speedometer2"></i>
           <span>Home</span>
         </a>
       </li>

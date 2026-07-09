@@ -35,11 +35,15 @@
 
   /* Edit slide panel */
   .edit-panel {
-    position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
+    position: fixed; top: 0; right: -105vw; width: min(400px, 100vw); height: 100vh;
     background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,0.12);
     z-index: 1055; transition: right 0.25s ease; overflow-y: auto;
   }
   .edit-panel.open { right: 0; }
+  @media (max-width: 420px) {
+    .edit-panel-body { padding: 16px; }
+    .edit-panel-header { padding: 14px 16px 12px; }
+  }
   .edit-panel-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 20px 24px 16px; border-bottom: 1px solid #e8edf5; position: sticky; top: 0; background: #fff; z-index:1;
@@ -369,7 +373,7 @@
             <input type="text" id="labSearch" class="form-control" placeholder="Search labs by name…">
           </div>
           <div class="col-12 col-md-7">
-            <div class="btn-group flex-wrap" role="group" aria-label="Lab type filter">
+            <div class="d-flex flex-wrap gap-1" role="group" aria-label="Lab type filter">
               <button type="button" class="btn btn-outline-primary lab-type-btn active" id="labFilterAll"
                       onclick="setLabFilter('all')">
                 <i class="bi bi-grid-3x3-gap me-1"></i>All
