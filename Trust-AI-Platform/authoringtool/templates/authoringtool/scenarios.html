@@ -472,6 +472,29 @@
             </label>
             <input type="file" id="templateFileInput" accept=".xlsx" class="d-none">
 
+            <!-- Cover image (optional) -->
+            <div style="margin-top:20px;">
+              <label style="font-size:12.5px;font-weight:700;color:#374151;display:block;margin-bottom:8px;">
+                <i class="bi bi-image me-1" style="color:#1a56db;"></i>Cover Image
+                <span style="font-size:11.5px;font-weight:400;color:#9ca3af;margin-left:4px;">Optional</span>
+              </label>
+              <label for="scenarioImageInput"
+                     style="display:block;border:2px dashed #d1d9e0;border-radius:10px;padding:18px 16px;text-align:center;cursor:pointer;background:#f9fafb;transition:background 0.15s,border-color 0.15s;"
+                     id="imgModalDropLabel">
+                <i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                <span style="font-size:13px;color:#6b7280;" id="imgModalDropText">
+                  <strong style="color:#1a56db;">Click to upload</strong> or drag &amp; drop<br>
+                  <span style="font-size:11.5px;color:#9ca3af;">PNG, JPG, WEBP — recommended 1200×630px</span>
+                </span>
+              </label>
+              <input type="file" id="scenarioImageInput" accept="image/*" class="d-none">
+              <div id="imgModalPreviewWrap" style="display:none;margin-top:10px;text-align:center;">
+                <img id="imgModalPreview" src="" alt="Preview"
+                     style="max-height:120px;border-radius:8px;border:1px solid #e8edf5;object-fit:cover;">
+                <div style="margin-top:4px;font-size:12px;color:#6b7280;" id="imgModalFileName"></div>
+              </div>
+            </div>
+
             <!-- Download link -->
             <p class="mt-3 mb-0" style="font-size:13px;text-align:center;color:#6b7280;">
               <a href="{% url 'download_template' %}" style="color:#2563eb;font-weight:600;">
@@ -510,18 +533,24 @@
 
 <script>
 (function () {
-  const fileInput = document.getElementById('templateFileInput');
-  const dropLabel = document.getElementById('dropZoneLabel');
-  const dropText  = document.getElementById('dropZoneText');
-  const importBtn = document.getElementById('importBtn');
-  const btnText   = document.getElementById('importBtnText');
-  const spinner   = document.getElementById('importBtnSpinner');
-  const errBox    = document.getElementById('importErrors');
-  const errList   = document.getElementById('importErrorList');
+  const fileInput   = document.getElementById('templateFileInput');
+  const dropLabel   = document.getElementById('dropZoneLabel');
+  const dropText    = document.getElementById('dropZoneText');
+  const importBtn   = document.getElementById('importBtn');
+  const btnText     = document.getElementById('importBtnText');
+  const spinner     = document.getElementById('importBtnSpinner');
+  const errBox      = document.getElementById('importErrors');
+  const errList     = document.getElementById('importErrorList');
+  const imgInput    = document.getElementById('scenarioImageInput');
+  const imgDropLbl  = document.getElementById('imgModalDropLabel');
+  const imgDropTxt  = document.getElementById('imgModalDropText');
+  const imgPreviewW = document.getElementById('imgModalPreviewWrap');
+  const imgPreview  = document.getElementById('imgModalPreview');
+  const imgFileName = document.getElementById('imgModalFileName');
 
   if (!fileInput) return;  // guard: this script only runs on the scenarios page
 
-  // Show selected filename in drop zone
+  // Show selected filename in xlsx drop zone
   fileInput.addEventListener('change', function () {
     if (fileInput.files.length) {
       dropText.textContent = fileInput.files[0].name;
@@ -530,7 +559,23 @@
     }
   });
 
-  // Reset errors when modal opens
+  // Image picker — preview on select
+  imgInput.addEventListener('change', function () {
+    if (!imgInput.files.length) return;
+    const f = imgInput.files[0];
+    imgDropTxt.innerHTML = '<strong style="color:#1a56db;">' + f.name + '</strong>';
+    imgDropLbl.style.background    = '#d1fae5';
+    imgDropLbl.style.borderColor   = '#6ee7b7';
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      imgPreview.src      = e.target.result;
+      imgPreviewW.style.display = 'block';
+      imgFileName.textContent   = f.name;
+    };
+    reader.readAsDataURL(f);
+  });
+
+  // Reset entire modal when it opens
   document.getElementById('createScenarioModal').addEventListener('show.bs.modal', function () {
     errBox.classList.add('d-none');
     errList.innerHTML = '';
@@ -538,6 +583,13 @@
     dropText.textContent = 'Drop your .xlsx file here or click to browse';
     dropLabel.style.background = '#eff6ff';
     dropLabel.style.borderColor = '#93c5fd';
+    imgInput.value = '';
+    imgDropTxt.innerHTML = '<strong style="color:#1a56db;">Click to upload</strong> or drag &amp; drop<br><span style="font-size:11.5px;color:#9ca3af;">PNG, JPG, WEBP — recommended 1200×630px</span>';
+    imgDropLbl.style.background  = '#f9fafb';
+    imgDropLbl.style.borderColor = '#d1d9e0';
+    imgPreviewW.style.display = 'none';
+    imgPreview.src = '';
+    imgFileName.textContent = '';
   });
 
   importBtn.addEventListener('click', function () {
@@ -557,6 +609,9 @@
 
     const fd = new FormData();
     fd.append('template_file', file);
+    if (imgInput.files.length) {
+      fd.append('scenario_image', imgInput.files[0]);
+    }
     fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
     fetch('{% url "import_scenario" %}', {method: 'POST', body: fd})

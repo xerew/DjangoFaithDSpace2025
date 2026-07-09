@@ -428,8 +428,8 @@ def updateScenario(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if updateScenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
-    scenario_min_age = updateScenario.age_of_students.lower
-    scenario_max_age = updateScenario.age_of_students.upper
+    scenario_min_age = updateScenario.age_of_students.lower if updateScenario.age_of_students else None
+    scenario_max_age = updateScenario.age_of_students.upper if updateScenario.age_of_students else None
     # Get the organizations the user is a member of
     user_organizations = request.user.member_of_organizations.all()
     template = loader.get_template('authoringtool/updateScenario.html')
@@ -543,8 +543,8 @@ def viewScenario(request, id):
     scenarioPhases = Phase.objects.filter(scenario=id) # Me
     mermaid_graph_definition = generate_flowchart(id)
     # print(f'MERMAID: \n', mermaid_graph_definition)
-    scenario_min_age = myScenario.age_of_students.lower
-    scenario_max_age = myScenario.age_of_students.upper
+    scenario_min_age = myScenario.age_of_students.lower if myScenario.age_of_students else None
+    scenario_max_age = myScenario.age_of_students.upper if myScenario.age_of_students else None
 
     # List existing RAG files # 2026
     rag_folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
@@ -2545,6 +2545,10 @@ def import_scenario(request):
     scenario, errors = importer.run()
     if errors:
         return JsonResponse({'success': False, 'errors': errors})
+    image_file = request.FILES.get('scenario_image')
+    if image_file:
+        scenario.image = image_file
+        scenario.save(update_fields=['image'])
     return JsonResponse({
         'success': True,
         'scenario_id': scenario.id,
