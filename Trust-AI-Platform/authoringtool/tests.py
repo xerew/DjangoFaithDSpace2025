@@ -191,6 +191,104 @@ class ImporterValidationTest(TestCase):
         self.assertTrue(any('Yes' in e['message'] or 'No' in e['message'] for e in errors))
 
 
+class ImporterCreationTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('teacher2', password='pass')
+
+    def _import(self, **kwargs):
+        from authoringtool.importer import ScenarioImporter
+        buf = make_xlsx(**kwargs)
+        importer = ScenarioImporter(buf, self.user)
+        return importer.run()
+
+    def test_creates_scenario(self):
+        scenario, errors = self._import(scenario_name='Created Scenario')
+        self.assertEqual(errors, [])
+        self.assertIsNotNone(scenario)
+        self.assertTrue(Scenario.objects.filter(name='Created Scenario').exists())
+
+    def test_creates_phases(self):
+        scenario, errors = self._import(
+            phases=[['Phase A', 'First phase', ''], ['Phase B', '', '']],
+            activities=[
+                ['Act 1', 'Phase A', 'Hello', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 2', 'Phase B', 'World', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+            ],
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(Phase.objects.filter(scenario=scenario).count(), 2)
+        phase_names = list(Phase.objects.filter(scenario=scenario).values_list('name', flat=True))
+        self.assertIn('Phase A', phase_names)
+        self.assertIn('Phase B', phase_names)
+
+    def test_creates_activities_with_correct_phase(self):
+        scenario, errors = self._import(
+            activities=[['MyAct', 'Phase 1', '**Bold text**', '', '', 'No', 'No', 'No', '', '', '', '', '', '']],
+        )
+        self.assertEqual(errors, [])
+        act = Activity.objects.get(scenario=scenario)
+        self.assertEqual(act.name, 'MyAct')
+        self.assertIn('<strong>', act.text)  # markdown converted
+        self.assertNotIn('<strong>', act.plain_text)  # tags stripped
+
+    def test_creates_answers_with_feedback(self):
+        scenario, errors = self._import(
+            answers=[
+                ['Act 1', 'Option A', 'Yes', '2', '', '', 'Great job!', '', ''],
+                ['Act 1', 'Option B', 'No', '0', '', '', '', '', ''],
+            ],
+        )
+        self.assertEqual(errors, [])
+        act = Activity.objects.get(scenario=scenario)
+        self.assertEqual(act.answers.count(), 2)
+        correct = act.answers.get(is_correct=True)
+        self.assertEqual(correct.answer_weight, 2)
+        self.assertTrue(correct.feedbacks.exists())
+        self.assertIn('Great', correct.feedbacks.first().text)
+
+    def test_creates_next_question_logic_default(self):
+        scenario, errors = self._import(
+            activities=[
+                ['Act 1', 'Phase 1', 'First', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Act 2', 'Phase 1', 'Second', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+            ],
+            routing=[['Act 1', '', 'Act 2']],
+        )
+        self.assertEqual(errors, [])
+        act1 = Activity.objects.get(scenario=scenario, name='Act 1')
+        act2 = Activity.objects.get(scenario=scenario, name='Act 2')
+        logic = NextQuestionLogic.objects.get(activity=act1, answer__isnull=True)
+        self.assertEqual(logic.next_activity, act2)
+
+    def test_creates_next_question_logic_per_answer(self):
+        scenario, errors = self._import(
+            activities=[
+                ['Q', 'Phase 1', 'Question?', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Good', 'Phase 1', 'Well done!', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+                ['Bad', 'Phase 1', 'Try again!', '', '', 'No', 'No', 'No', '', '', '', '', '', ''],
+            ],
+            answers=[
+                ['Q', 'Correct', 'Yes', '1', '', '', '', '', ''],
+                ['Q', 'Wrong', 'No', '0', '', '', '', '', ''],
+            ],
+            routing=[
+                ['Q', 'Correct', 'Good'],
+                ['Q', 'Wrong', 'Bad'],
+            ],
+        )
+        self.assertEqual(errors, [])
+        q_act = Activity.objects.get(scenario=scenario, name='Q')
+        correct_ans = q_act.answers.get(is_correct=True)
+        logic = NextQuestionLogic.objects.get(activity=q_act, answer=correct_ans)
+        self.assertEqual(logic.next_activity.name, 'Good')
+
+    def test_created_by_is_set(self):
+        scenario, errors = self._import()
+        self.assertEqual(errors, [])
+        self.assertEqual(scenario.created_by, self.user)
+        self.assertEqual(scenario.updated_by, self.user)
+
+
 class PerActivityCSVColumnTest(TestCase):
     """
     Verify that compute_student_performance_metrics with include_activity_detail=True

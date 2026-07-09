@@ -326,4 +326,121 @@ class ScenarioImporter:
                                 f'but has no row in the Evaluation sheet.')
 
     def _create(self):
-        raise NotImplementedError('Implemented in Task 2')
+        from django.db import transaction
+        from django.utils.html import strip_tags
+        from .models import (
+            Phase, Activity, Answer, AnswerFeedback,
+            NextQuestionLogic, QuestionBunch, EvQuestionBranching,
+        )
+
+        with transaction.atomic():
+            # 1. Scenario
+            scenario = Scenario.objects.create(
+                name=self.scenario_data['Name'].strip(),
+                description=_md(self.scenario_data.get('Description', '')),
+                learning_goals=_md(self.scenario_data.get('Learning Goals', '')),
+                language=self.scenario_data.get('Language', ''),
+                subject_domains=self.scenario_data.get('Subject Domains', ''),
+                suggested_learning_time=_to_int(self.scenario_data.get('Suggested Time (min)', '')) or None,
+                video_url=self.scenario_data.get('Video URL', '') or None,
+                visibility_status=self.scenario_data.get('Visibility', '').strip().lower() or 'private',
+                created_by=self.user,
+                updated_by=self.user,
+            )
+
+            # 2. Phases (row order preserved)
+            phase_obj_map = {}
+            for ph in self.phases:
+                obj = Phase.objects.create(
+                    name=ph['Phase Name'],
+                    description=ph.get('Description', ''),
+                    video_url=ph.get('Video URL', '') or None,
+                    scenario=scenario,
+                    created_by=self.user,
+                    updated_by=self.user,
+                )
+                phase_obj_map[ph['Phase Name']] = obj
+
+            # 3. Activities (row order preserved)
+            activity_obj_map = {}
+            for act in self.activities:
+                html = _md(act.get('Text', ''))
+                obj = Activity.objects.create(
+                    name=act['Activity Name'],
+                    text=html,
+                    plain_text=strip_tags(html),
+                    is_evaluatable=_to_bool(act.get('Is Evaluatable', 'No')),
+                    is_primary_ev=_to_bool(act.get('Is Primary Evaluation', 'No')),
+                    must_wait=_to_bool(act.get('Must Wait', 'No')),
+                    score_limit=_to_float(act.get('Score Limit', '')) or 0.0,
+                    helper=act.get('Helper', ''),
+                    scenario=scenario,
+                    phase=phase_obj_map[act['Phase Name']],
+                    activity_type=self._activity_types.get(act.get('Activity Type', '').strip()),
+                    simulation=self._simulations.get(act.get('Simulation Name', '').strip()),
+                    experiment_ll=self._remote_labs.get(act.get('Remote Lab Name', '').strip()),
+                    vr_ar_experiment=self._vr_labs.get(act.get('VR Lab Name', '').strip()),
+                    created_by=self.user,
+                    updated_by=self.user,
+                )
+                activity_obj_map[act['Activity Name']] = obj
+
+            # 4. Answers + AnswerFeedback
+            answer_obj_map = {}
+            for ans in self.answers:
+                ans_html = _md(ans.get('Answer Text', ''))
+                ans_obj = Answer.objects.create(
+                    activity=activity_obj_map[ans['Activity Name']],
+                    text=ans_html,
+                    is_correct=_to_bool(ans.get('Is Correct', 'No')),
+                    answer_weight=_to_int(ans.get('Answer Weight', '')) or 0,
+                    vid_url=ans.get('Video URL', '') or None,
+                    created_by=self.user,
+                    updated_by=self.user,
+                )
+                answer_obj_map[(ans['Activity Name'], ans['Answer Text'])] = ans_obj
+                fb_text = ans.get('Feedback Text', '').strip()
+                if fb_text:
+                    AnswerFeedback.objects.create(
+                        answer=ans_obj,
+                        text=_md(fb_text),
+                        vid_url=ans.get('Feedback Video URL', '') or None,
+                        created_by=self.user,
+                        updated_by=self.user,
+                    )
+
+            # 5. NextQuestionLogic
+            for r in self.routing:
+                src = activity_obj_map[r['Source Activity Name'].strip()]
+                ans_text = r.get('Answer Text', '').strip()
+                ans_obj = (
+                    answer_obj_map.get((r['Source Activity Name'].strip(), ans_text))
+                    if ans_text else None
+                )
+                next_name = r.get('Next Activity Name', '').strip()
+                NextQuestionLogic.objects.create(
+                    activity=src,
+                    answer=ans_obj,
+                    next_activity=activity_obj_map.get(next_name),
+                )
+
+            # 6. QuestionBunch + EvQuestionBranching (Postgres ArrayField — skipped in SQLite tests)
+            for ev in self.evaluation:
+                primary = activity_obj_map[ev['Primary Activity Name'].strip()]
+                grouped = [x.strip() for x in ev['Grouped Activities'].split(',') if x.strip()]
+                grouped_ids = [activity_obj_map[n].id for n in grouped]
+                QuestionBunch.objects.create(
+                    activity_primary=primary,
+                    activity_ids=grouped_ids,
+                )
+                EvQuestionBranching.objects.create(
+                    activity=primary,
+                    next_question_on_high=activity_obj_map.get(ev.get('High Branch Activity', '').strip()),
+                    next_question_on_high_feedback=_md(ev.get('High Branch Feedback', '')),
+                    next_question_on_mid=activity_obj_map.get(ev.get('Mid Branch Activity', '').strip()),
+                    next_question_on_mid_feedback=_md(ev.get('Mid Branch Feedback', '')),
+                    next_question_on_low=activity_obj_map.get(ev.get('Low Branch Activity', '').strip()),
+                    next_question_on_low_feedback=_md(ev.get('Low Branch Feedback', '')),
+                )
+
+        return scenario

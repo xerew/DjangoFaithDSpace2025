@@ -21,3 +21,19 @@ CACHES = {
 # Silence Celery so no broker connection is attempted during tests
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# Patch django.contrib.postgres range fields so their SQL placeholder degrades
+# gracefully to plain %s on SQLite.  Without this, IntegerRangeField generates
+# NULL::int4range in INSERT statements, which SQLite cannot parse.
+from django.contrib.postgres.fields import IntegerRangeField as _IRF  # noqa: E402
+
+_orig_placeholder = _IRF.get_placeholder
+
+
+def _sqlite_safe_placeholder(self, value, compiler, connection):
+    if connection.vendor == 'sqlite':
+        return '%s'
+    return _orig_placeholder(self, value, compiler, connection)
+
+
+_IRF.get_placeholder = _sqlite_safe_placeholder
