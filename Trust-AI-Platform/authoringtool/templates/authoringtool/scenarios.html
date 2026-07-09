@@ -245,7 +245,7 @@
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card h-100 scenario-card">
             <div class="scenario-img-wrapper">
-              <img src="{{ scenario.image.url }}" class="scenario-thumb" alt="{{ scenario.name }}">
+              <img src="{% if scenario.image %}{{ scenario.image.url }}{% else %}/static/img/card.jpg{% endif %}" class="scenario-thumb" alt="{{ scenario.name }}">
               {% if scenario.visibility_status == 'public' %}
                 <span class="img-badge bg-success">Public</span>
               {% elif scenario.visibility_status == 'org' %}
