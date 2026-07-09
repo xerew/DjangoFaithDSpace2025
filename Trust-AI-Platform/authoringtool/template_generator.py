@@ -5,7 +5,6 @@ from openpyxl.worksheet.datavalidation import DataValidation
 _HEADER_FONT = Font(bold=True, color='FFFFFF')
 _HEADER_FILL = PatternFill('solid', fgColor='1D4ED8')
 _REQ_FILL = PatternFill('solid', fgColor='DC2626')
-_BOOL_DV = DataValidation(type='list', formula1='"Yes,No"', showDropDown=False, showErrorMessage=True)
 
 
 def _write_sheet(wb, title, columns, bool_cols=(), example_rows=()):
@@ -19,13 +18,13 @@ def _write_sheet(wb, title, columns, bool_cols=(), example_rows=()):
         ws.column_dimensions[cell.column_letter].width = max(len(name) + 4, 16)
 
     col_name_to_idx = {name: i + 1 for i, (name, _) in enumerate(columns)}
-    dv = DataValidation(type='list', formula1='"Yes,No"', showDropDown=False)
-    ws.add_data_validation(dv)
     for bool_col in bool_cols:
         if bool_col in col_name_to_idx:
             idx = col_name_to_idx[bool_col]
             letter = ws.cell(row=1, column=idx).column_letter
+            dv = DataValidation(type='list', formula1='"Yes,No"', showDropDown=False)
             dv.sqref = f'{letter}2:{letter}200'
+            ws.add_data_validation(dv)
 
     for row_data in example_rows:
         ws.append(row_data)
