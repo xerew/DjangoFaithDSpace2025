@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Edit Evaluation</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab - Edit Evaluation</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -163,7 +163,7 @@
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Authoring Tool</div>
         <h2>Edit Evaluation Criterion</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{{ myActivity.name }} — Update how students are routed based on their performance score.</div>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{{ myActivity.name }} - Update how students are routed based on their performance score.</div>
         <nav><ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
           <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
@@ -192,7 +192,7 @@
           <div class="perf-card">
             <div class="perf-header perf-header-high">
               <i class="bi bi-arrow-up-circle-fill"></i> High Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Best scoring students</span>
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Best scoring students</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
@@ -235,7 +235,7 @@
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-success"></i>Performance Threshold</div>
                   <input type="number" class="form-control" name="high_score_limit" value="{{ high_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Min. avg weight to reach this group (1–3)</div>
+                  <div class="score-help">Min. avg weight to reach this group (1-3)</div>
                 </div>
               </div>
             </div>
@@ -245,7 +245,7 @@
           <div class="perf-card">
             <div class="perf-header perf-header-mid">
               <i class="bi bi-dash-circle-fill"></i> Moderate Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Average scoring students</span>
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Average scoring students</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
@@ -288,7 +288,7 @@
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-warning"></i>Performance Threshold</div>
                   <input type="number" class="form-control" name="mid_score_limit" value="{{ mid_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Min. avg weight to reach this group (1–3)</div>
+                  <div class="score-help">Min. avg weight to reach this group (1-3)</div>
                 </div>
               </div>
             </div>
@@ -298,7 +298,7 @@
           <div class="perf-card">
             <div class="perf-header perf-header-low">
               <i class="bi bi-arrow-down-circle-fill"></i> Low Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">— Lowest scoring students</span>
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Lowest scoring students</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
@@ -341,7 +341,7 @@
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-danger"></i>Performance Threshold</div>
                   <input type="number" class="form-control" name="low_score_limit" value="{{ low_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Fallback — students below Moderate go here</div>
+                  <div class="score-help">Fallback - students below Moderate go here</div>
                 </div>
               </div>
             </div>
@@ -372,11 +372,11 @@
                 <i class="bi bi-info-circle-fill me-2 text-primary"></i>How it works
               </div>
               <div class="small text-muted" style="line-height:1.7;">
-                <p>After students complete the evaluation, their <strong>average answer weight</strong> (1–3) across all activities in the group is compared against your thresholds:</p>
+                <p>After students complete the evaluation, their <strong>average answer weight</strong> (1-3) across all activities in the group is compared against your thresholds:</p>
                 <ul class="ps-3 mb-3">
-                  <li><span class="fw-semibold text-success">High</span> — avg weight ≥ High threshold</li>
-                  <li><span class="fw-semibold text-warning">Moderate</span> — avg weight ≥ Moderate threshold</li>
-                  <li><span class="fw-semibold text-danger">Low</span> — everyone else (fallback, threshold not used)</li>
+                  <li><span class="fw-semibold text-success">High</span> - avg weight ≥ High threshold</li>
+                  <li><span class="fw-semibold text-warning">Moderate</span> - avg weight ≥ Moderate threshold</li>
+                  <li><span class="fw-semibold text-danger">Low</span> - everyone else (fallback, threshold not used)</li>
                 </ul>
                 <p class="mb-0">Recommended defaults: High = <strong>2.5</strong>, Moderate = <strong>1.5</strong>.</p>
               </div>
