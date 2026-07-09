@@ -143,12 +143,29 @@ class ActivityType(models.Model):
         return self.name
 
 class Simulation(models.Model):
+    LANGUAGE_CHOICES = [
+        ('', '— Select Language —'),
+        ('English', 'English'),
+        ('Greek', 'Greek'),
+        ('Spanish', 'Spanish'),
+        ('French', 'French'),
+        ('German', 'German'),
+        ('Italian', 'Italian'),
+        ('Portuguese', 'Portuguese'),
+        ('Dutch', 'Dutch'),
+        ('Polish', 'Polish'),
+        ('Romanian', 'Romanian'),
+        ('Turkish', 'Turkish'),
+        ('Arabic', 'Arabic'),
+        ('Other', 'Other'),
+    ]
+
     name = models.CharField(max_length=200)
     iframe_url = models.URLField()
     width = models.PositiveIntegerField(default=800)
     height = models.PositiveIntegerField(default=600)
     allow_fullscreen = models.BooleanField(default=True)
-    language = models.CharField(max_length=100, blank=True, default='')
+    language = models.CharField(max_length=100, blank=True, default='', choices=LANGUAGE_CHOICES)
 
     class Meta:
         verbose_name = "Simulation"
