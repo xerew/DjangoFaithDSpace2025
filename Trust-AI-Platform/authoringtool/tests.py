@@ -4,6 +4,7 @@ import json
 import openpyxl
 
 from django.contrib.auth.models import User, Group
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -452,3 +453,89 @@ class PerActivityCSVColumnTest(TestCase):
         # --- Assert Quiz Score cell value ---
         quiz_score_idx = header.index("Phase 1 > Quiz Score")
         self.assertEqual(data_row[quiz_score_idx], "10", "Quiz score should equal the correct answer weight")
+
+
+class TemplateDownloadTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('teacher3', password='pass')
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.user.groups.add(g)
+        self.client.login(username='teacher3', password='pass')
+
+    def test_download_requires_login(self):
+        self.client.logout()
+        r = self.client.get(reverse('download_template'))
+        self.assertNotEqual(r.status_code, 200)
+
+    def test_download_returns_xlsx(self):
+        r = self.client.get(reverse('download_template'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('spreadsheetml', r['Content-Type'])
+
+    def test_download_has_all_sheets(self):
+        import openpyxl, io
+        r = self.client.get(reverse('download_template'))
+        wb = openpyxl.load_workbook(io.BytesIO(r.content))
+        for sheet in ['README', 'Scenario', 'Phases', 'Activities', 'Answers', 'Next Activity', 'Evaluation']:
+            self.assertIn(sheet, wb.sheetnames)
+
+
+class ImportViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('teacher4', password='pass')
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.user.groups.add(g)
+        self.client.login(username='teacher4', password='pass')
+
+    def _upload(self, buf, filename='template.xlsx'):
+        f = SimpleUploadedFile(filename, buf.read(),
+                               content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        return self.client.post(reverse('import_scenario'), {'template_file': f})
+
+    def test_requires_login(self):
+        self.client.logout()
+        buf = make_xlsx(scenario_name='X')
+        r = self._upload(buf)
+        self.assertNotEqual(r.status_code, 200)
+
+    def test_valid_file_creates_scenario(self):
+        buf = make_xlsx(scenario_name='Imported Scenario')
+        r = self._upload(buf)
+        data = json.loads(r.content)
+        self.assertTrue(data['success'])
+        self.assertTrue(Scenario.objects.filter(name='Imported Scenario').exists())
+
+    def test_valid_file_returns_redirect_url(self):
+        buf = make_xlsx(scenario_name='Redir Test')
+        r = self._upload(buf)
+        data = json.loads(r.content)
+        self.assertIn('redirect', data)
+        self.assertIn(str(data['scenario_id']), data['redirect'])
+
+    def test_invalid_file_returns_errors(self):
+        buf = make_xlsx(scenario_name='')  # missing required name
+        r = self._upload(buf)
+        data = json.loads(r.content)
+        self.assertFalse(data['success'])
+        self.assertIsInstance(data['errors'], list)
+        self.assertGreater(len(data['errors']), 0)
+
+    def test_non_xlsx_rejected(self):
+        f = SimpleUploadedFile('file.csv', b'name,val', content_type='text/csv')
+        r = self.client.post(reverse('import_scenario'), {'template_file': f})
+        data = json.loads(r.content)
+        self.assertFalse(data['success'])
+
+    def test_get_not_allowed(self):
+        r = self.client.get(reverse('import_scenario'))
+        self.assertEqual(r.status_code, 405)
+
+    def test_duplicate_scenario_name_returns_error(self):
+        Scenario.objects.create(name='Dupe', created_by=self.user, updated_by=self.user)
+        buf = make_xlsx(scenario_name='Dupe')
+        r = self._upload(buf)
+        data = json.loads(r.content)
+        self.assertFalse(data['success'])
+        self.assertTrue(any('already exists' in e['message'] for e in data['errors']))

@@ -2509,3 +2509,43 @@ def edit_proposal_json(request, scenario_id, pk):
     review.save()
     print("RAW saved value:", review.teacher_edited_json)
     return redirect("proposal_list", scenario_id=scenario_id)
+
+
+@group_required('teachers')
+def download_template(request):
+    import io
+    from .template_generator import generate_blank_template
+    wb = generate_blank_template()
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="scenario_template.xlsx"'
+    return response
+
+
+@require_POST
+@group_required('teachers')
+def import_scenario(request):
+    from .importer import ScenarioImporter
+    uploaded = request.FILES.get('template_file')
+    if not uploaded:
+        return JsonResponse({'success': False, 'errors': [
+            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'No file uploaded.'}
+        ]})
+    if not uploaded.name.endswith('.xlsx'):
+        return JsonResponse({'success': False, 'errors': [
+            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'Only .xlsx files are supported.'}
+        ]})
+    importer = ScenarioImporter(uploaded, request.user)
+    scenario, errors = importer.run()
+    if errors:
+        return JsonResponse({'success': False, 'errors': errors})
+    return JsonResponse({
+        'success': True,
+        'scenario_id': scenario.id,
+        'redirect': reverse('viewScenario', args=[scenario.id]),
+    })
