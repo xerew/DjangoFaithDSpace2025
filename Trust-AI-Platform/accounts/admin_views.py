@@ -35,9 +35,10 @@ def admin_dashboard(request):
         'inactive': agg['total'] - agg['active'],
     }
     is_superuser = request.user.is_superuser
-    simulations = list(Simulation.objects.all().order_by('name'))
+    simulations = list(Simulation.objects.all().order_by('language', 'name'))
     remote_labs = list(ExperimentLL.objects.all().order_by('name'))
     vr_labs = list(VRARExperiment.objects.all().order_by('name'))
+    sim_languages = sorted({s.language for s in simulations if s.language})
     return render(request, 'accounts/admin_dashboard.html', {
         'all_users': users,
         'groups': groups,
@@ -47,6 +48,7 @@ def admin_dashboard(request):
         'remote_labs': remote_labs,
         'vr_labs': vr_labs,
         'lab_count': len(simulations) + len(remote_labs) + len(vr_labs),
+        'sim_languages': sim_languages,
     })
 
 

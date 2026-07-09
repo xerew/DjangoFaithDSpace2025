@@ -53,6 +53,18 @@
 
   /* Role cards */
   .role-name-display:hover { color: #1a56db; text-decoration: underline; }
+
+  /* Pagination */
+  .pagination .page-item.active .page-link { background: #1a56db; border-color: #1a56db; color: #fff; }
+  .pagination .page-link { color: #1a56db; font-size: 13px; padding: 4px 10px; }
+  .pagination .page-item.disabled .page-link { color: #aaa; }
+
+  /* Role multi-select dropdown */
+  .role-filter-menu { min-width: 230px; max-height: 280px; overflow-y: auto; }
+  .role-filter-menu .form-check-label { cursor: pointer; }
+
+  /* Lab type filter buttons */
+  .lab-type-btn { font-size: 13px; }
 </style>
 
 <main id="main" class="main">
@@ -125,7 +137,7 @@
 
     <div class="tab-content pt-4">
 
-      <!-- Users Tab -->
+      <!-- ══════════════ Users Tab ══════════════ -->
       <div class="tab-pane fade show active" id="tab-users" role="tabpanel">
 
         <!-- Search + filter row -->
@@ -134,13 +146,59 @@
             <input type="text" id="userSearch" class="form-control" placeholder="Search name, username or email…">
           </div>
           <div class="col-12 col-md-4">
-            <select id="roleFilter" class="form-select">
-              <option value="">All Roles</option>
-              {% for group in groups %}
-              <option value="{{ group.name|lower }}">{{ group.name }}</option>
-              {% endfor %}
-              <option value="__none__">No Role</option>
-            </select>
+            <!-- Multi-select role filter -->
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex align-items-center justify-content-between"
+                      type="button" id="roleFilterBtn"
+                      data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                      aria-expanded="false">
+                <span id="roleFilterLabel">All Roles</span>
+                <i class="bi bi-chevron-down ms-2" style="font-size:11px;"></i>
+              </button>
+              <ul class="dropdown-menu role-filter-menu px-2 py-2 w-100">
+                <!-- Special flags -->
+                <li>
+                  <div class="form-check mb-1">
+                    <input class="form-check-input role-filter-check" type="checkbox" value="__superuser__" id="rfSuperuser">
+                    <label class="form-check-label" for="rfSuperuser" style="font-size:13px;">
+                      <span class="badge bg-danger me-1" style="font-size:10px;">SU</span>Superuser
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="form-check mb-1">
+                    <input class="form-check-input role-filter-check" type="checkbox" value="__staff__" id="rfStaff">
+                    <label class="form-check-label" for="rfStaff" style="font-size:13px;">
+                      <span class="badge bg-warning text-dark me-1" style="font-size:10px;">ST</span>Staff
+                    </label>
+                  </div>
+                </li>
+                {% if groups %}
+                <li><hr class="dropdown-divider my-1"></li>
+                {% for group in groups %}
+                <li>
+                  <div class="form-check mb-1">
+                    <input class="form-check-input role-filter-check" type="checkbox"
+                           value="{{ group.name|lower }}" id="rfGroup{{ group.id }}">
+                    <label class="form-check-label" for="rfGroup{{ group.id }}" style="font-size:13px;">{{ group.name }}</label>
+                  </div>
+                </li>
+                {% endfor %}
+                {% endif %}
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                  <div class="form-check mb-1">
+                    <input class="form-check-input role-filter-check" type="checkbox" value="__none__" id="rfNone">
+                    <label class="form-check-label" for="rfNone" style="font-size:13px;color:#888;">No Role</label>
+                  </div>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                  <button type="button" class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
+                          onclick="clearRoleFilter()">Clear filter</button>
+                </li>
+              </ul>
+            </div>
           </div>
           <div class="col-12 col-md-3">
             <div class="form-check form-switch ms-1 mt-1">
@@ -170,7 +228,7 @@
                     data-user-id="{{ u.id }}"
                     data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }}"
                     data-username="{{ u.username }}"
-                    data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}"
+                    data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}{% if u.is_superuser %}__superuser__ {% endif %}"
                     data-has-role="{% if u.groups.exists or u.is_staff or u.is_superuser %}yes{% else %}no{% endif %}"
                     data-is-active="{{ u.is_active|yesno:'true,false' }}"
                     data-first="{{ u.first_name }}"
@@ -179,7 +237,7 @@
                     data-is-staff="{{ u.is_staff|yesno:'true,false' }}"
                     data-is-superuser="{{ u.is_superuser|yesno:'true,false' }}"
                     data-group-ids="{% for g in u.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                    {% if not u.is_active %}style="display:none;"{% endif %}>
+                    style="display:none;">
                   <td style="padding:12px 16px;">
                     <div class="d-flex align-items-center gap-2">
                       <div class="user-avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
@@ -238,9 +296,18 @@
             </table>
           </div>
         </div>
+
+        <!-- User pagination -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+          <div style="font-size:13px;color:#888;" id="userPaginationInfo"></div>
+          <nav aria-label="User pages">
+            <ul class="pagination pagination-sm mb-0" id="userPagination"></ul>
+          </nav>
+        </div>
+
       </div><!-- /tab-users -->
 
-      <!-- Roles Tab -->
+      <!-- ══════════════ Roles Tab ══════════════ -->
       <div class="tab-pane fade" id="tab-roles" role="tabpanel">
 
         <div class="d-flex gap-2 mb-4 align-items-center">
@@ -276,7 +343,7 @@
                   </button>
                   <div class="collapse" id="role-members-{{ group.id }}">
                     <div class="mt-2 d-flex flex-column gap-1">
-                      {% for member in group.user_set.all %}
+                      {% for member in group.user_set.all|slice:":10" %}
                       <div style="font-size:12px;">
                         <a href="#" class="text-decoration-none"
                            data-member-id="{{ member.id }}"
@@ -285,6 +352,25 @@
                         </a>
                       </div>
                       {% endfor %}
+                      {% if group.member_count > 10 %}
+                      <div id="role-extra-{{ group.id }}" style="display:none;" class="d-flex flex-column gap-1">
+                        {% for member in group.user_set.all|slice:"10:" %}
+                        <div style="font-size:12px;">
+                          <a href="#" class="text-decoration-none"
+                             data-member-id="{{ member.id }}"
+                             onclick="switchToUserRow(this); return false;">
+                            {{ member.get_full_name|default:member.username }}
+                          </a>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      <div id="role-more-{{ group.id }}">
+                        <a href="#" class="text-muted" style="font-size:11px;"
+                           onclick="expandRoleMembers({{ group.id }}); return false;">
+                          <i class="bi bi-chevron-down me-1"></i>+{{ group.member_count|add:"-10" }} more
+                        </a>
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -297,173 +383,246 @@
 
       </div><!-- /tab-roles -->
 
-      <!-- Labs Tab -->
+      <!-- ══════════════ Labs Tab ══════════════ -->
       <div class="tab-pane fade" id="tab-labs" role="tabpanel">
 
-        <!-- Simulations -->
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-            <i class="bi bi-display me-2 text-primary"></i>Simulations
-            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ simulations|length }}</span>
-          </h5>
-          <button class="btn btn-sm btn-primary" onclick="openLabPanel('simulation', null)">
-            <i class="bi bi-plus-lg me-1"></i>Add Simulation
-          </button>
-        </div>
-        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead style="background:#f8faff;">
-                <tr>
-                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Iframe URL</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Size</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Fullscreen</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="simTableBody">
-                {% for sim in simulations %}
-                <tr class="sim-row"
-                    data-sim-id="{{ sim.id }}"
-                    data-name="{{ sim.name }}"
-                    data-iframe-url="{{ sim.iframe_url }}"
-                    data-width="{{ sim.width }}"
-                    data-height="{{ sim.height }}"
-                    data-allow-fullscreen="{{ sim.allow_fullscreen|yesno:'true,false' }}">
-                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ sim.name }}</td>
-                  <td><span class="text-truncate d-inline-block" style="max-width:280px;font-size:12px;color:#666;" title="{{ sim.iframe_url }}">{{ sim.iframe_url }}</span></td>
-                  <td style="font-size:13px;">{{ sim.width }}&times;{{ sim.height }}px</td>
-                  <td>{% if sim.allow_fullscreen %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
-                  <td style="white-space:nowrap;">
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-sm btn-outline-primary" title="Edit"
-                              onclick="openLabPanel('simulation', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                      <button class="btn btn-sm btn-outline-danger" title="Delete"
-                              data-lab-type="simulation" data-lab-id="{{ sim.id }}" data-lab-name="{{ sim.name }}"
-                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr id="simEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No simulations yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+        <!-- Labs search + type filter -->
+        <div class="row g-2 mb-4 align-items-center">
+          <div class="col-12 col-md-5">
+            <input type="text" id="labSearch" class="form-control" placeholder="Search labs by name…">
+          </div>
+          <div class="col-12 col-md-7">
+            <div class="btn-group flex-wrap" role="group" aria-label="Lab type filter">
+              <button type="button" class="btn btn-outline-primary lab-type-btn active" id="labFilterAll"
+                      onclick="setLabFilter('all')">
+                <i class="bi bi-grid-3x3-gap me-1"></i>All
+              </button>
+              <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterSim"
+                      onclick="setLabFilter('simulation')">
+                <i class="bi bi-display me-1"></i>Simulations
+              </button>
+              <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterRemote"
+                      onclick="setLabFilter('remote_lab')">
+                <i class="bi bi-hdd-network me-1"></i>Remote Labs
+              </button>
+              <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterVR"
+                      onclick="setLabFilter('vr_lab')">
+                <i class="bi bi-badge-vr me-1"></i>VR/AR
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Remote Labs -->
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-            <i class="bi bi-hdd-network me-2" style="color:#0891b2;"></i>Remote Labs (LabsLand)
-            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ remote_labs|length }}</span>
-          </h5>
-          <button class="btn btn-sm" style="background:#0891b2;color:#fff;" onclick="openLabPanel('remote_lab', null)">
-            <i class="bi bi-plus-lg me-1"></i>Add Remote Lab
-          </button>
-        </div>
-        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead style="background:#f8faff;">
-                <tr>
-                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Consumer Key</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="remoteLabTableBody">
-                {% for lab in remote_labs %}
-                <tr class="remote-lab-row"
-                    data-rlab-id="{{ lab.id }}"
-                    data-name="{{ lab.name }}"
-                    data-description="{{ lab.description }}"
-                    data-launch-url="{{ lab.launch_url }}"
-                    data-consumer-key="{{ lab.consumer_key }}">
-                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ lab.name }}</td>
-                  <td><span style="font-size:12px;color:#666;">{{ lab.description|truncatechars:60 }}</span></td>
-                  <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ lab.launch_url }}">{{ lab.launch_url }}</span></td>
-                  <td><code style="font-size:11px;">{{ lab.consumer_key }}</code></td>
-                  <td style="white-space:nowrap;">
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-sm btn-outline-primary" title="Edit"
-                              onclick="openLabPanel('remote_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                      <button class="btn btn-sm btn-outline-danger" title="Delete"
-                              data-lab-type="remote_lab" data-lab-id="{{ lab.id }}" data-lab-name="{{ lab.name }}"
-                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr id="remoteLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No remote labs yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+        <!-- ── Simulations ── -->
+        <div id="simSection">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+              <i class="bi bi-display me-2 text-primary"></i>Simulations
+              <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ simulations|length }}</span>
+            </h5>
+            <button class="btn btn-sm btn-primary" onclick="openLabPanel('simulation', null)">
+              <i class="bi bi-plus-lg me-1"></i>Add Simulation
+            </button>
           </div>
-        </div>
 
-        <!-- VR/AR Labs -->
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-            <i class="bi bi-badge-vr me-2 text-danger"></i>VR/AR Labs
-            <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ vr_labs|length }}</span>
-          </h5>
-          <button class="btn btn-sm btn-danger" onclick="openLabPanel('vr_lab', null)">
-            <i class="bi bi-plus-lg me-1"></i>Add VR Lab
-          </button>
-        </div>
-        <div class="card mb-4" style="border-radius:12px;overflow:hidden;">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead style="background:#f8faff;">
-                <tr>
-                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">QR Code</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="vrLabTableBody">
-                {% for vr in vr_labs %}
-                <tr class="vr-lab-row"
-                    data-vr-id="{{ vr.id }}"
-                    data-name="{{ vr.name }}"
-                    data-description="{{ vr.description }}"
-                    data-launch-url="{{ vr.launch_url }}"
-                    data-qr-url="{% if vr.qr_code %}{{ vr.qr_code.url }}{% endif %}">
-                  <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ vr.name }}</td>
-                  <td><span style="font-size:12px;color:#666;">{{ vr.description|truncatechars:60 }}</span></td>
-                  <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ vr.launch_url }}">{{ vr.launch_url }}</span></td>
-                  <td>
-                    {% if vr.qr_code %}
-                    <img src="{{ vr.qr_code.url }}" class="vr-qr-thumb" alt="QR"
-                         style="width:32px;height:32px;border-radius:4px;cursor:pointer;"
-                         onclick="window.open(this.src,'_blank')">
-                    {% else %}
-                    <span class="text-muted" style="font-size:12px;">—</span>
-                    {% endif %}
-                  </td>
-                  <td style="white-space:nowrap;">
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-sm btn-outline-primary" title="Edit"
-                              onclick="openLabPanel('vr_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                      <button class="btn btn-sm btn-outline-danger" title="Delete"
-                              data-lab-type="vr_lab" data-lab-id="{{ vr.id }}" data-lab-name="{{ vr.name }}"
-                              onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr id="vrLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No VR/AR labs yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <!-- Language filter for simulations -->
+          {% if sim_languages %}
+          <div class="mb-2">
+            <select id="simLangFilter" class="form-select form-select-sm" style="max-width:200px;"
+                    onchange="filterAndPaginateLabs()">
+              <option value="">All Languages</option>
+              {% for lang in sim_languages %}
+              <option value="{{ lang|lower }}">{{ lang }}</option>
+              {% endfor %}
+            </select>
           </div>
-        </div>
+          {% else %}
+          <select id="simLangFilter" class="d-none"><option value=""></option></select>
+          {% endif %}
+
+          <div class="card mb-2" style="border-radius:12px;overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead style="background:#f8faff;">
+                  <tr>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Language</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Iframe URL</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Size</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Fullscreen</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="simTableBody">
+                  {% for sim in simulations %}
+                  <tr class="sim-row"
+                      data-sim-id="{{ sim.id }}"
+                      data-name="{{ sim.name }}"
+                      data-iframe-url="{{ sim.iframe_url }}"
+                      data-width="{{ sim.width }}"
+                      data-height="{{ sim.height }}"
+                      data-allow-fullscreen="{{ sim.allow_fullscreen|yesno:'true,false' }}"
+                      data-language="{{ sim.language|lower }}">
+                    <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ sim.name }}</td>
+                    <td>
+                      {% if sim.language %}
+                      <span class="badge bg-light text-dark border" style="font-size:11px;">{{ sim.language }}</span>
+                      {% else %}
+                      <span style="color:#aaa;font-size:12px;">—</span>
+                      {% endif %}
+                    </td>
+                    <td><span class="text-truncate d-inline-block" style="max-width:220px;font-size:12px;color:#666;" title="{{ sim.iframe_url }}">{{ sim.iframe_url }}</span></td>
+                    <td style="font-size:13px;">{{ sim.width }}&times;{{ sim.height }}px</td>
+                    <td>{% if sim.allow_fullscreen %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                    <td style="white-space:nowrap;">
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                                onclick="openLabPanel('simulation', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                                data-lab-type="simulation" data-lab-id="{{ sim.id }}" data-lab-name="{{ sim.name }}"
+                                onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="simEmptyRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:13px;">No simulations yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Simulation pagination -->
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div style="font-size:13px;color:#888;" id="simPaginationInfo"></div>
+            <nav><ul class="pagination pagination-sm mb-0" id="simPagination"></ul></nav>
+          </div>
+        </div><!-- /simSection -->
+
+        <!-- ── Remote Labs ── -->
+        <div id="remoteLabSection">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+              <i class="bi bi-hdd-network me-2" style="color:#0891b2;"></i>Remote Labs (LabsLand)
+              <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ remote_labs|length }}</span>
+            </h5>
+            <button class="btn btn-sm" style="background:#0891b2;color:#fff;" onclick="openLabPanel('remote_lab', null)">
+              <i class="bi bi-plus-lg me-1"></i>Add Remote Lab
+            </button>
+          </div>
+          <div class="card mb-2" style="border-radius:12px;overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead style="background:#f8faff;">
+                  <tr>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Consumer Key</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="remoteLabTableBody">
+                  {% for lab in remote_labs %}
+                  <tr class="remote-lab-row"
+                      data-rlab-id="{{ lab.id }}"
+                      data-name="{{ lab.name }}"
+                      data-description="{{ lab.description }}"
+                      data-launch-url="{{ lab.launch_url }}"
+                      data-consumer-key="{{ lab.consumer_key }}">
+                    <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ lab.name }}</td>
+                    <td><span style="font-size:12px;color:#666;">{{ lab.description|truncatechars:60 }}</span></td>
+                    <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ lab.launch_url }}">{{ lab.launch_url }}</span></td>
+                    <td><code style="font-size:11px;">{{ lab.consumer_key }}</code></td>
+                    <td style="white-space:nowrap;">
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                                onclick="openLabPanel('remote_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                                data-lab-type="remote_lab" data-lab-id="{{ lab.id }}" data-lab-name="{{ lab.name }}"
+                                onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="remoteLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No remote labs yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Remote lab pagination -->
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div style="font-size:13px;color:#888;" id="remoteLabPaginationInfo"></div>
+            <nav><ul class="pagination pagination-sm mb-0" id="remoteLabPagination"></ul></nav>
+          </div>
+        </div><!-- /remoteLabSection -->
+
+        <!-- ── VR/AR Labs ── -->
+        <div id="vrLabSection">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
+              <i class="bi bi-badge-vr me-2 text-danger"></i>VR/AR Labs
+              <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ vr_labs|length }}</span>
+            </h5>
+            <button class="btn btn-sm btn-danger" onclick="openLabPanel('vr_lab', null)">
+              <i class="bi bi-plus-lg me-1"></i>Add VR Lab
+            </button>
+          </div>
+          <div class="card mb-2" style="border-radius:12px;overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead style="background:#f8faff;">
+                  <tr>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">QR Code</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="vrLabTableBody">
+                  {% for vr in vr_labs %}
+                  <tr class="vr-lab-row"
+                      data-vr-id="{{ vr.id }}"
+                      data-name="{{ vr.name }}"
+                      data-description="{{ vr.description }}"
+                      data-launch-url="{{ vr.launch_url }}"
+                      data-qr-url="{% if vr.qr_code %}{{ vr.qr_code.url }}{% endif %}">
+                    <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ vr.name }}</td>
+                    <td><span style="font-size:12px;color:#666;">{{ vr.description|truncatechars:60 }}</span></td>
+                    <td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="{{ vr.launch_url }}">{{ vr.launch_url }}</span></td>
+                    <td>
+                      {% if vr.qr_code %}
+                      <img src="{{ vr.qr_code.url }}" class="vr-qr-thumb" alt="QR"
+                           style="width:32px;height:32px;border-radius:4px;cursor:pointer;"
+                           onclick="window.open(this.src,'_blank')">
+                      {% else %}
+                      <span class="text-muted" style="font-size:12px;">—</span>
+                      {% endif %}
+                    </td>
+                    <td style="white-space:nowrap;">
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                                onclick="openLabPanel('vr_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                                data-lab-type="vr_lab" data-lab-id="{{ vr.id }}" data-lab-name="{{ vr.name }}"
+                                onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="vrLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No VR/AR labs yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- VR lab pagination -->
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div style="font-size:13px;color:#888;" id="vrLabPaginationInfo"></div>
+            <nav><ul class="pagination pagination-sm mb-0" id="vrLabPagination"></ul></nav>
+          </div>
+        </div><!-- /vrLabSection -->
 
       </div><!-- /tab-labs -->
 
@@ -550,6 +709,10 @@
       <div class="mb-3">
         <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
         <input type="text" id="simName" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:13px;">Language</label>
+        <input type="text" id="simLanguage" class="form-control form-control-sm" placeholder="e.g. English, Greek, Spanish">
       </div>
       <div class="mb-3">
         <label class="form-label fw-semibold" style="font-size:13px;">Iframe URL <span class="text-danger">*</span></label>
@@ -651,7 +814,7 @@
   </div>
 </div>
 
-<!-- Delete confirmation modal -->
+<!-- Delete user modal -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
@@ -674,7 +837,7 @@
   </div>
 </div>
 
-<!-- Hidden form for impersonate exit (returns redirect, not JSON) -->
+<!-- Hidden form for impersonate exit -->
 <form id="impersonateExitForm" method="post" action="{% url 'admin_impersonate_exit' %}" style="display:none;">
   {% csrf_token %}
 </form>
@@ -691,8 +854,11 @@
 
 <script>
 const CSRF = '{{ csrf_token }}';
+const USER_PAGE_SIZE = 20;
+const LAB_PAGE_SIZE = 20;
 
-// Toast helper
+// ── Shared helpers ──────────────────────────────────────────────────────────
+
 function showToast(msg, isError) {
   const t = document.getElementById('adminToast');
   t.className = 'toast align-items-center text-white border-0 ' + (isError ? 'bg-danger' : 'bg-success');
@@ -710,39 +876,125 @@ function postJSON(url, data) {
   return fetch(url, {method: 'POST', headers: {'X-CSRFToken': CSRF}, body: fd}).then(r => r.json());
 }
 
-// Client-side search / filter
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildPagination(ul, page, totalPages, onPage) {
+  function addPage(label, p, disabled, active) {
+    const li = document.createElement('li');
+    li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+    const a = document.createElement('a');
+    a.className = 'page-link';
+    a.href = '#';
+    a.innerHTML = label;
+    if (!disabled && p !== null) {
+      a.addEventListener('click', function(e) { e.preventDefault(); onPage(p); });
+    }
+    li.appendChild(a);
+    ul.appendChild(li);
+  }
+  addPage('&laquo;', page - 1, page === 1, false);
+  let pStart = Math.max(1, page - 2);
+  let pEnd = Math.min(totalPages, pStart + 4);
+  if (pEnd - pStart < 4) pStart = Math.max(1, pEnd - 4);
+  if (pStart > 1) { addPage('1', 1, false, false); if (pStart > 2) addPage('&hellip;', null, true, false); }
+  for (let p = pStart; p <= pEnd; p++) addPage(p, p, false, p === page);
+  if (pEnd < totalPages) { if (pEnd < totalPages - 1) addPage('&hellip;', null, true, false); addPage(totalPages, totalPages, false, false); }
+  addPage('&raquo;', page + 1, page === totalPages, false);
+}
+
+// ── User filter + pagination ────────────────────────────────────────────────
+
+let _filteredUserRows = [];
+let _currentUserPage = 1;
+
+function updateRoleFilterLabel() {
+  const checked = [...document.querySelectorAll('.role-filter-check:checked')];
+  const labelEl = document.getElementById('roleFilterLabel');
+  if (checked.length === 0) {
+    labelEl.textContent = 'All Roles';
+  } else if (checked.length === 1) {
+    const lbl = document.querySelector('label[for="' + checked[0].id + '"]');
+    labelEl.textContent = lbl ? lbl.textContent.trim() : '1 selected';
+  } else {
+    labelEl.textContent = checked.length + ' roles selected';
+  }
+}
+
+function clearRoleFilter() {
+  document.querySelectorAll('.role-filter-check:checked').forEach(function(cb) { cb.checked = false; });
+  filterUsers();
+}
+
 function filterUsers() {
   const q = document.getElementById('userSearch').value.toLowerCase();
-  const role = document.getElementById('roleFilter').value;
+  const checkedRoles = [...document.querySelectorAll('.role-filter-check:checked')].map(function(c) { return c.value; });
   const showInactive = document.getElementById('showInactive').checked;
 
+  const visibleRows = [];
   document.querySelectorAll('#userTable .user-row').forEach(function(row) {
     const isActive = row.dataset.isActive === 'true';
-    if (!isActive && !showInactive) { row.style.display = 'none'; return; }
+    if (!isActive && !showInactive) return;
 
     const matchSearch = !q || row.dataset.search.includes(q);
     let matchRole = true;
-    if (role === '__none__') matchRole = row.dataset.hasRole === 'no';
-    else if (role) matchRole = row.dataset.groups.split(' ').includes(role);
+    if (checkedRoles.length > 0) {
+      const userGroups = row.dataset.groups.trim().split(/\s+/).filter(Boolean);
+      matchRole = checkedRoles.some(function(role) {
+        if (role === '__none__') return userGroups.length === 0;
+        return userGroups.includes(role);
+      });
+    }
 
-    row.style.display = (matchSearch && matchRole) ? '' : 'none';
+    if (matchSearch && matchRole) visibleRows.push(row);
   });
-}
-document.getElementById('userSearch').addEventListener('input', filterUsers);
-document.getElementById('roleFilter').addEventListener('change', filterUsers);
-document.getElementById('showInactive').addEventListener('change', filterUsers);
 
-// Edit panel — open from data attributes on the row
+  _filteredUserRows = visibleRows;
+  renderUserPage(1);
+  updateRoleFilterLabel();
+}
+
+function renderUserPage(page) {
+  const total = _filteredUserRows.length;
+  const totalPages = Math.ceil(total / USER_PAGE_SIZE) || 1;
+  page = Math.max(1, Math.min(page, totalPages));
+  _currentUserPage = page;
+
+  const start = (page - 1) * USER_PAGE_SIZE;
+  const end = start + USER_PAGE_SIZE;
+
+  // Hide all rows first, then reveal only the current page
+  document.querySelectorAll('#userTable .user-row').forEach(function(row) { row.style.display = 'none'; });
+  _filteredUserRows.forEach(function(row, i) {
+    row.style.display = (i >= start && i < end) ? '' : 'none';
+  });
+
+  const infoEl = document.getElementById('userPaginationInfo');
+  const paginEl = document.getElementById('userPagination');
+
+  infoEl.textContent = total === 0
+    ? 'No users found'
+    : 'Showing ' + (start + 1) + '–' + Math.min(end, total) + ' of ' + total + ' user' + (total === 1 ? '' : 's');
+
+  paginEl.innerHTML = '';
+  if (totalPages > 1) buildPagination(paginEl, page, totalPages, renderUserPage);
+}
+
+document.getElementById('userSearch').addEventListener('input', filterUsers);
+document.getElementById('showInactive').addEventListener('change', filterUsers);
+document.querySelectorAll('.role-filter-check').forEach(function(cb) {
+  cb.addEventListener('change', filterUsers);
+});
+
+// ── Edit panel ──────────────────────────────────────────────────────────────
+
 function openEditPanelFromRow(row) {
   const groupIds = row.dataset.groupIds ? row.dataset.groupIds.split(',').map(Number).filter(Boolean) : [];
   openEditPanel(
-    row.dataset.userId,
-    row.dataset.first,
-    row.dataset.last,
-    row.dataset.email,
-    row.dataset.isStaff === 'true',
-    row.dataset.isSuperuser === 'true',
-    groupIds
+    row.dataset.userId, row.dataset.first, row.dataset.last,
+    row.dataset.email, row.dataset.isStaff === 'true',
+    row.dataset.isSuperuser === 'true', groupIds
   );
 }
 
@@ -769,7 +1021,7 @@ function closeEditPanel() {
 
 function saveUser() {
   const id = document.getElementById('editUserId').value;
-  const groupIds = [...document.querySelectorAll('.edit-group-check:checked')].map(c => c.value);
+  const groupIds = [...document.querySelectorAll('.edit-group-check:checked')].map(function(c) { return c.value; });
   const superEl = document.getElementById('editIsSuperuser');
 
   postJSON('/accounts/admin/edit_user/' + id + '/', {
@@ -783,23 +1035,20 @@ function saveUser() {
     if (data.success) {
       showToast('User saved.', false);
       closeEditPanel();
-      // Update row data attributes and displayed name in-place
-      const id = document.getElementById('editUserId').value;
-      const row = document.querySelector('[data-user-id="' + id + '"]');
+      const uid = document.getElementById('editUserId').value;
+      const row = document.querySelector('[data-user-id="' + uid + '"]');
       if (row) {
         const fn = document.getElementById('editFirstName').value.trim();
         const ln = document.getElementById('editLastName').value.trim();
-        const email = document.getElementById('editEmail').value.trim();
+        const em = document.getElementById('editEmail').value.trim();
         row.dataset.first = fn;
         row.dataset.last = ln;
-        row.dataset.email = email;
-        row.dataset.search = (row.dataset.username + ' ' + fn + ' ' + ln + ' ' + email).toLowerCase();
-        // Update displayed name cell (first td, second div inside flex)
+        row.dataset.email = em;
+        row.dataset.search = (row.dataset.username + ' ' + fn + ' ' + ln + ' ' + em).toLowerCase();
         const nameDiv = row.querySelector('.user-display-name');
         if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || nameDiv.textContent;
-        // Update email cell (second td)
         const cells = row.querySelectorAll('td');
-        if (cells[1]) cells[1].textContent = email || '—';
+        if (cells[1]) cells[1].textContent = em || '—';
       }
     } else {
       const el = document.getElementById('editPanelError');
@@ -809,7 +1058,8 @@ function saveUser() {
   });
 }
 
-// Toggle active
+// ── Toggle active ───────────────────────────────────────────────────────────
+
 function toggleUser(id) {
   postJSON('/accounts/admin/toggle_user/' + id + '/', {}).then(function(data) {
     if (data.success) {
@@ -818,12 +1068,10 @@ function toggleUser(id) {
       if (row) {
         row.dataset.isActive = data.is_active ? 'true' : 'false';
         row.classList.toggle('inactive-row', !data.is_active);
-        // Update status badge (5th td)
         const cells = row.querySelectorAll('td');
         if (cells[4]) cells[4].innerHTML = data.is_active
           ? '<span class="badge bg-success">Active</span>'
           : '<span class="badge bg-secondary">Inactive</span>';
-        // Update toggle button
         const btn = document.getElementById('toggle-btn-' + id);
         if (btn) {
           btn.className = 'btn btn-sm ' + (data.is_active ? 'btn-outline-warning' : 'btn-outline-success');
@@ -831,13 +1079,15 @@ function toggleUser(id) {
           btn.innerHTML = '<i class="bi ' + (data.is_active ? 'bi-pause-circle' : 'bi-play-circle') + '"></i>';
         }
       }
+      filterUsers(); // re-apply filter (inactive toggle may change visible set)
     } else {
       showToast(data.error, true);
     }
   });
 }
 
-// Delete
+// ── Delete user ─────────────────────────────────────────────────────────────
+
 let _deleteId = null;
 function openDeleteModal(btn) {
   _deleteId = btn.dataset.deleteId;
@@ -852,6 +1102,7 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', function()
       showToast('User deleted.', false);
       const row = document.querySelector('[data-user-id="' + _deleteId + '"]');
       if (row) row.remove();
+      filterUsers();
     } else {
       showToast(data.error, true);
     }
@@ -859,7 +1110,8 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', function()
   });
 });
 
-// Impersonate (start — returns JSON)
+// ── Impersonate ─────────────────────────────────────────────────────────────
+
 function impersonateUser(id) {
   if (!confirm('You will be logged in as this user. Continue?')) return;
   postJSON('/accounts/admin/impersonate/' + id + '/', {}).then(function(data) {
@@ -868,12 +1120,12 @@ function impersonateUser(id) {
   });
 }
 
-// Impersonate exit — submit as regular form POST (view returns a redirect)
 function exitImpersonation() {
   document.getElementById('impersonateExitForm').submit();
 }
 
-// Roles tab — switch to user row and open edit panel
+// ── Roles tab ───────────────────────────────────────────────────────────────
+
 function switchToUserRow(link) {
   const memberId = link.dataset.memberId;
   const usersTab = document.getElementById('tab-users-btn');
@@ -885,7 +1137,13 @@ function switchToUserRow(link) {
   usersTab.click();
 }
 
-// Roles management
+function expandRoleMembers(roleId) {
+  const extra = document.getElementById('role-extra-' + roleId);
+  const moreLink = document.getElementById('role-more-' + roleId);
+  if (extra) extra.style.display = '';
+  if (moreLink) moreLink.style.display = 'none';
+}
+
 function createRole() {
   const nameInput = document.getElementById('newRoleName');
   const name = nameInput.value.trim();
@@ -936,10 +1194,7 @@ function startRenameRole(id, el) {
 
   function finishRename() {
     const newName = input.value.trim();
-    if (!newName || newName === currentName) {
-      input.replaceWith(el);
-      return;
-    }
+    if (!newName || newName === currentName) { input.replaceWith(el); return; }
     postJSON('/accounts/admin/rename_role/' + id + '/', {name: newName}).then(function(data) {
       if (data.success) {
         el.textContent = data.name;
@@ -958,18 +1213,110 @@ function startRenameRole(id, el) {
   });
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// ── Labs: filter + pagination ───────────────────────────────────────────────
+
+let _labFilter = 'all';
+const labPageState = {
+  simulation: { page: 1, rows: [] },
+  remote_lab:  { page: 1, rows: [] },
+  vr_lab:      { page: 1, rows: [] },
+};
+
+function setLabFilter(type) {
+  _labFilter = type;
+  const btnIds = {all: 'labFilterAll', simulation: 'labFilterSim', remote_lab: 'labFilterRemote', vr_lab: 'labFilterVR'};
+  Object.values(btnIds).forEach(function(id) { document.getElementById(id).classList.remove('active'); });
+  document.getElementById(btnIds[type]).classList.add('active');
+
+  const sections = {simulation: 'simSection', remote_lab: 'remoteLabSection', vr_lab: 'vrLabSection'};
+  Object.entries(sections).forEach(function([k, id]) {
+    document.getElementById(id).style.display = (type === 'all' || type === k) ? '' : 'none';
+  });
+
+  filterAndPaginateLabs();
 }
 
-// ── Lab panel ─────────────────────────────────────────────────────────────
+function filterAndPaginateLabs() {
+  const q = (document.getElementById('labSearch').value || '').toLowerCase();
+  const simLang = (document.getElementById('simLangFilter').value || '').toLowerCase();
+
+  // Reset to page 1 on any filter change
+  Object.keys(labPageState).forEach(function(k) { labPageState[k].page = 1; });
+
+  if (_labFilter === 'all' || _labFilter === 'simulation') {
+    const allRows = [...document.querySelectorAll('.sim-row')];
+    labPageState.simulation.rows = allRows.filter(function(row) {
+      const nameMatch = !q || row.dataset.name.toLowerCase().includes(q);
+      const langMatch = !simLang || (row.dataset.language || '') === simLang;
+      return nameMatch && langMatch;
+    });
+    renderLabPage('simulation');
+  }
+
+  if (_labFilter === 'all' || _labFilter === 'remote_lab') {
+    const allRows = [...document.querySelectorAll('.remote-lab-row')];
+    labPageState.remote_lab.rows = allRows.filter(function(row) {
+      return !q || row.dataset.name.toLowerCase().includes(q);
+    });
+    renderLabPage('remote_lab');
+  }
+
+  if (_labFilter === 'all' || _labFilter === 'vr_lab') {
+    const allRows = [...document.querySelectorAll('.vr-lab-row')];
+    labPageState.vr_lab.rows = allRows.filter(function(row) {
+      return !q || row.dataset.name.toLowerCase().includes(q);
+    });
+    renderLabPage('vr_lab');
+  }
+}
+
+function renderLabPage(type) {
+  const state = labPageState[type];
+  const rows = state.rows;
+  const total = rows.length;
+  const totalPages = Math.ceil(total / LAB_PAGE_SIZE) || 1;
+  const page = Math.max(1, Math.min(state.page, totalPages));
+  state.page = page;
+
+  const start = (page - 1) * LAB_PAGE_SIZE;
+  const end = start + LAB_PAGE_SIZE;
+
+  const selMap = {simulation: '.sim-row', remote_lab: '.remote-lab-row', vr_lab: '.vr-lab-row'};
+  document.querySelectorAll(selMap[type]).forEach(function(r) { r.style.display = 'none'; });
+  rows.forEach(function(row, i) { row.style.display = (i >= start && i < end) ? '' : 'none'; });
+
+  const infoIds = {simulation: 'simPaginationInfo', remote_lab: 'remoteLabPaginationInfo', vr_lab: 'vrLabPaginationInfo'};
+  const paginIds = {simulation: 'simPagination', remote_lab: 'remoteLabPagination', vr_lab: 'vrLabPagination'};
+
+  const infoEl = document.getElementById(infoIds[type]);
+  const paginEl = document.getElementById(paginIds[type]);
+  if (!infoEl || !paginEl) return;
+
+  infoEl.textContent = total === 0
+    ? 'No results'
+    : total <= LAB_PAGE_SIZE
+      ? total + ' item' + (total === 1 ? '' : 's')
+      : 'Showing ' + (start + 1) + '–' + Math.min(end, total) + ' of ' + total;
+
+  paginEl.innerHTML = '';
+  if (totalPages > 1) {
+    buildPagination(paginEl, page, totalPages, function(p) {
+      labPageState[type].page = p;
+      renderLabPage(type);
+    });
+  }
+}
+
+document.getElementById('labSearch').addEventListener('input', filterAndPaginateLabs);
+
+// ── Lab panel (add / edit) ──────────────────────────────────────────────────
+
 let _labDeleteType = null, _labDeleteId = null;
 
 function openLabPanel(type, row) {
   const isEdit = !!row;
   document.getElementById('labPanelType').value = type;
 
-  // resolve row ID based on type-specific data attribute
   let rowId = '';
   if (isEdit) {
     if (type === 'simulation') rowId = row.dataset.simId;
@@ -987,6 +1334,7 @@ function openLabPanel(type, row) {
   if (type === 'simulation') {
     document.getElementById('simFields').style.display = '';
     document.getElementById('simName').value = isEdit ? row.dataset.name : '';
+    document.getElementById('simLanguage').value = isEdit ? (row.dataset.language || '') : '';
     document.getElementById('simIframeUrl').value = isEdit ? row.dataset.iframeUrl : '';
     document.getElementById('simWidth').value = isEdit ? row.dataset.width : '800';
     document.getElementById('simHeight').value = isEdit ? row.dataset.height : '600';
@@ -1033,6 +1381,7 @@ function saveLabPanel() {
     url  = id ? '/accounts/admin/simulations/' + id + '/edit/' : '/accounts/admin/simulations/create/';
     data = {
       name: document.getElementById('simName').value,
+      language: document.getElementById('simLanguage').value,
       iframe_url: document.getElementById('simIframeUrl').value,
       width: document.getElementById('simWidth').value,
       height: document.getElementById('simHeight').value,
@@ -1066,6 +1415,7 @@ function saveLabPanel() {
     showToast('Saved.', false);
     closeLabPanel();
     if (id) { updateLabRow(type, res); } else { prependLabRow(type, res); }
+    filterAndPaginateLabs();
   });
 }
 
@@ -1079,15 +1429,17 @@ function updateLabRow(type, res) {
     row.dataset.width = res.width;
     row.dataset.height = res.height;
     row.dataset.allowFullscreen = res.allow_fullscreen ? 'true' : 'false';
+    row.dataset.language = (res.language || '').toLowerCase();
     cells = row.querySelectorAll('td');
     cells[0].textContent = res.name;
-    cells[0].style.fontWeight = '600';
-    cells[0].style.fontSize = '13px';
-    cells[0].style.color = '#012970';
-    const urlSpan = cells[1].querySelector('span');
+    cells[0].style.cssText = 'padding:12px 16px;font-weight:600;font-size:13px;color:#012970;';
+    cells[1].innerHTML = res.language
+      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language) + '</span>'
+      : '<span style="color:#aaa;font-size:12px;">—</span>';
+    const urlSpan = cells[2].querySelector('span');
     if (urlSpan) { urlSpan.textContent = res.iframe_url; urlSpan.title = res.iframe_url; }
-    cells[2].textContent = res.width + '\xd7' + res.height + 'px';
-    cells[3].innerHTML = res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+    cells[3].textContent = res.width + '\xd7' + res.height + 'px';
+    cells[4].innerHTML = res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
   } else if (type === 'remote_lab') {
     row = document.querySelector('[data-rlab-id="' + res.id + '"]');
     if (!row) return;
@@ -1128,11 +1480,16 @@ function prependLabRow(type, res) {
   if (type === 'simulation') {
     tbody   = document.getElementById('simTableBody');
     emptyId = 'simEmptyRow';
+    const langBadge = res.language
+      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language) + '</span>'
+      : '<span style="color:#aaa;font-size:12px;">—</span>';
     html = '<tr class="sim-row" data-sim-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
       ' data-iframe-url="' + escHtml(res.iframe_url) + '" data-width="' + res.width + '"' +
-      ' data-height="' + res.height + '" data-allow-fullscreen="' + (res.allow_fullscreen ? 'true' : 'false') + '">' +
+      ' data-height="' + res.height + '" data-allow-fullscreen="' + (res.allow_fullscreen ? 'true' : 'false') + '"' +
+      ' data-language="' + escHtml((res.language || '').toLowerCase()) + '">' +
       '<td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">' + escHtml(res.name) + '</td>' +
-      '<td><span class="text-truncate d-inline-block" style="max-width:280px;font-size:12px;color:#666;" title="' + escHtml(res.iframe_url) + '">' + escHtml(res.iframe_url) + '</span></td>' +
+      '<td>' + langBadge + '</td>' +
+      '<td><span class="text-truncate d-inline-block" style="max-width:220px;font-size:12px;color:#666;" title="' + escHtml(res.iframe_url) + '">' + escHtml(res.iframe_url) + '</span></td>' +
       '<td style="font-size:13px;">' + res.width + '\xd7' + res.height + 'px</td>' +
       '<td>' + (res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>') + '</td>' +
       '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
@@ -1165,7 +1522,7 @@ function prependLabRow(type, res) {
       : '<span class="text-muted" style="font-size:12px;">—</span>';
     html = '<tr class="vr-lab-row" data-vr-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
       ' data-description="' + escHtml(res.description || '') + '" data-launch-url="' + escHtml(res.launch_url) + '"' +
-      ' data-qr-url="' + (res.qr_code_url || '') + '">' +
+      ' data-qr-url="' + escHtml(res.qr_code_url || '') + '">' +
       '<td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">' + escHtml(res.name) + '</td>' +
       '<td><span style="font-size:12px;color:#666;">' + escHtml(vrDesc) + '</span></td>' +
       '<td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="' + escHtml(res.launch_url) + '">' + escHtml(res.launch_url) + '</span></td>' +
@@ -1206,12 +1563,18 @@ document.getElementById('deleteLabConfirmBtn').addEventListener('click', functio
       showToast('Deleted.', false);
       const row = document.querySelector(selMap[_labDeleteType]);
       if (row) row.remove();
+      filterAndPaginateLabs();
     } else {
       showToast(data.error, true);
     }
     _labDeleteType = null; _labDeleteId = null;
   });
 });
+
+// ── Init ────────────────────────────────────────────────────────────────────
+
+filterUsers();
+filterAndPaginateLabs();
 </script>
 
 {% endblock atcontent %}

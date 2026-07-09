@@ -148,6 +148,7 @@ class Simulation(models.Model):
     width = models.PositiveIntegerField(default=800)
     height = models.PositiveIntegerField(default=600)
     allow_fullscreen = models.BooleanField(default=True)
+    language = models.CharField(max_length=100, blank=True, default='')
 
     class Meta:
         verbose_name = "Simulation"

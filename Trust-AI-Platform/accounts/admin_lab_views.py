@@ -27,14 +27,17 @@ def admin_create_simulation(request):
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Width and height must be numbers.'})
     allow_fullscreen = request.POST.get('allow_fullscreen') == 'true'
+    language = request.POST.get('language', '').strip()
     sim = Simulation.objects.create(
         name=name, iframe_url=iframe_url,
         width=width, height=height, allow_fullscreen=allow_fullscreen,
+        language=language,
     )
     return JsonResponse({
         'success': True, 'id': sim.id, 'name': sim.name,
         'iframe_url': sim.iframe_url, 'width': sim.width,
         'height': sim.height, 'allow_fullscreen': sim.allow_fullscreen,
+        'language': sim.language,
     })
 
 
@@ -56,11 +59,13 @@ def admin_edit_simulation(request, sim_id):
     sim.width = width
     sim.height = height
     sim.allow_fullscreen = request.POST.get('allow_fullscreen') == 'true'
+    sim.language = request.POST.get('language', '').strip()
     sim.save()
     return JsonResponse({
         'success': True, 'id': sim.id, 'name': sim.name,
         'iframe_url': sim.iframe_url, 'width': sim.width,
         'height': sim.height, 'allow_fullscreen': sim.allow_fullscreen,
+        'language': sim.language,
     })
 
 
