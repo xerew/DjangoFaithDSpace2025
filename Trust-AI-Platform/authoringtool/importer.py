@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import uuid
 import zipfile
 
@@ -79,6 +80,7 @@ class ScenarioImporter:
 
         self._wb_file = file_obj          # replaced with xlsx BytesIO if ZIP uploaded
         self._image_url_map = {}          # 'images/name.ext' -> '/media/tinymce/uuid.ext'
+        self._prefix_images = {}          # img_prefix -> [(num, server_url), ...]
 
         self.scenario_data = {}
         self.phases = []
@@ -156,6 +158,15 @@ class ScenarioImporter:
                     with open(os.path.join(dest_dir, new_name), 'wb') as f:
                         f.write(zf.read(zip_path))
                     self._image_url_map[zip_path] = f'{media_url}/tinymce/{new_name}'
+
+                # Group images by naming prefix so they can be auto-appended
+                # to activities that don't yet reference them in their HTML.
+                for zip_path, server_url in self._image_url_map.items():
+                    img_name = zip_path.split('/')[-1]
+                    m = re.match(r'^(.+)_image_(\d+)(\.\w+)?$', img_name)
+                    if m:
+                        prefix, num = m.group(1), int(m.group(2))
+                        self._prefix_images.setdefault(prefix, []).append((num, server_url))
         except zipfile.BadZipFile:
             self._add_error('File', 0, '-', 'Cannot read ZIP file — the file may be corrupted.')
         except Exception as exc:
@@ -487,6 +498,15 @@ class ScenarioImporter:
                         html = html.replace(f'src="{zip_path}"', f'src="{server_url}"')
                 else:
                     html = _md(act.get('Text', ''))
+
+                # Auto-append images placed in the ZIP under this activity's
+                # naming prefix that are not already referenced in the HTML.
+                phase_slug = re.sub(r'[^\w]+', '_', (act.get('Phase Name', '') or '').strip()).strip('_').lower()
+                act_slug = re.sub(r'[^\w]+', '_', (act['Activity Name'] or '').strip()).strip('_').lower()
+                img_prefix = f'phase_{phase_slug}_activity_{act_slug}'
+                for _num, server_url in sorted(self._prefix_images.get(img_prefix, [])):
+                    if server_url not in html:
+                        html = html.rstrip() + f'<p><img src="{server_url}"></p>'
                 obj = Activity.objects.create(
                     name=act['Activity Name'],
                     text=html,
