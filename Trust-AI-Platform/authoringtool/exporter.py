@@ -249,16 +249,12 @@ class ScenarioExporter:
             if pair in seen_routing:
                 continue
             seen_routing.add(pair)
-            next_phase = (
-                r.next_activity.phase.name
-                if r.next_activity and r.next_activity.phase else ''
-            )
+            # Source Phase / Next Phase are left as VLOOKUP formulas from the
+            # template so they auto-update when teachers edit the file in Excel.
             _write_row(ws_next, cols_next, row_num, {
                 'Source Activity Name': r.activity.name,
                 'Answer Key': ans_key,
                 'Next Activity Name': r.next_activity.name if r.next_activity else '',
-                'Source Phase': src_phase,
-                'Next Phase': next_phase,
             })
             row_num += 1
 
