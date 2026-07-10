@@ -23,6 +23,30 @@
   .csp-item.csp-selected:hover { background: #e0e7ff; }
   .csp-item.csp-clear { color: #888; font-size: 12.5px; border-bottom: 1px solid #eee; }
   .csp-item.csp-clear:hover { background: #fff5f5; color: #dc2626; }
+
+  /* ── Section headers ── */
+  .dash-section-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; color: #1e3a8a;
+    border-bottom: 2px solid #e8edf5;
+    padding-bottom: 8px; margin: 28px 0 16px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .dash-section-header i { font-size: 15px; color: #1a56db; }
+
+  /* ── Page-level empty state ── */
+  #dash-empty-state {
+    text-align: center; padding: 60px 20px 40px;
+  }
+  #dash-empty-state .dash-empty-icon {
+    font-size: 3rem; color: #d1d9e0; display: block; margin-bottom: 16px;
+  }
+  #dash-empty-state h5 {
+    color: #374151; font-weight: 700; font-size: 16px; margin-bottom: 8px;
+  }
+  #dash-empty-state p {
+    color: #9ca3af; font-size: 14px; margin: 0;
+  }
 </style>
   <main id="main" class="main">
     <!-- ── Hero ── -->
@@ -381,6 +405,23 @@
             </div>
           </div>
         </div>
+      </div><!-- /row (filter only) -->
+
+      <!-- ── Page-level empty state ── -->
+      <div id="dash-empty-state">
+        <i class="bi bi-bar-chart-line dash-empty-icon"></i>
+        <h5>Select a scenario to view analytics</h5>
+        <p>Use the filter above to choose a scenario, then click Apply.</p>
+      </div>
+
+      <!-- ── Charts wrapper (hidden until scenario applied) ── -->
+      <div id="dash-charts-wrapper" style="display:none;">
+
+        <!-- ── Flow ── -->
+        <div class="dash-section-header">
+          <i class="bi bi-diagram-3"></i><span>Flow</span>
+        </div>
+        <div class="row">
         <div class="col-12">
           <div class="card">
             <div class="card-body pb-0">
@@ -725,9 +766,13 @@
 
 
 	</div>
-  </div>
-      
-      <div class="row">
+        </div><!-- /row Flow -->
+
+        <!-- ── Performance ── -->
+        <div class="dash-section-header">
+          <i class="bi bi-graph-up"></i><span>Performance</span>
+        </div>
+        <div class="row">
         <div class="col-12 col-lg-6">
           <div class="row">
             <div class="col-12">
@@ -1531,8 +1576,13 @@
           
 
       </div>
+        </div><!-- /row Performance -->
 
-      
+        <!-- ── Engagement ── -->
+        <div class="dash-section-header">
+          <i class="bi bi-clock-history"></i><span>Engagement</span>
+        </div>
+        <div class="row">
         <div class="col-12 col-lg-6">
 
           <div class="card">
@@ -1948,13 +1998,8 @@
             </div>
           </div>
           
-        </div>          
-        
-          
-        <div class="col-lg-12">
-        
         </div>
-      </div>
+        </div><!-- /row Engagement -->
 
       <div class="card">
         <div class="card-body">
@@ -2161,12 +2206,33 @@
         }
     });
     </script>
-    
-    
-        
-        
-      </div>        
+
+      </div><!-- /dash-charts-wrapper -->
     </section>
+  <script>
+  (function () {
+    function showCharts() {
+      document.getElementById('dash-empty-state').style.display = 'none';
+      document.getElementById('dash-charts-wrapper').style.display = '';
+    }
+    function showEmpty() {
+      document.getElementById('dash-empty-state').style.display = '';
+      document.getElementById('dash-charts-wrapper').style.display = 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      var scenarioSelect = document.getElementById('scenarioSelect');
+      var filterForm = document.getElementById('filter-form');
+      var resetBtn = document.getElementById('reset-button');
+      showEmpty();
+      filterForm.addEventListener('submit', function () {
+        if (scenarioSelect.value) { showCharts(); } else { showEmpty(); }
+      });
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function () { showEmpty(); });
+      }
+    });
+  }());
+  </script>
 	<script>
 	document.addEventListener("DOMContentLoaded", () => {
 	  const startDateInput = document.getElementById('start-date-input');

@@ -1,8 +1,10 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', RedirectView.as_view(pattern_name='index', permanent=False)),
+    path('dashboard/', views.index, name='index'),
     path('scenarios/', views.scenarios, name='scenarios'),
     path('scenarios/createScenario/', views.createScenario, name='createScenario'),
     path('scenarios/createScenario/createScenarioData/', views.createScenarioData, name='createScenarioData'),
