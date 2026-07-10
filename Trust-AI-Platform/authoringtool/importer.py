@@ -81,6 +81,7 @@ class ScenarioImporter:
         self._wb_file = file_obj          # replaced with xlsx BytesIO if ZIP uploaded
         self._image_url_map = {}          # 'images/name.ext' -> '/media/tinymce/uuid.ext'
         self._prefix_images = {}          # img_prefix -> [(num, server_url), ...]
+        self._cover_image_data = None     # (ext, bytes) for scenario cover, applied after creation
 
         self.scenario_data = {}
         self.phases = []
@@ -154,6 +155,10 @@ class ScenarioImporter:
                     if '/' in img_name:
                         continue
                     ext = os.path.splitext(img_name)[1].lower() or '.jpg'
+                    # Scenario cover: store separately, not as a tinymce media file
+                    if img_name.lower().startswith('scenario_cover'):
+                        self._cover_image_data = (ext, zf.read(zip_path))
+                        continue
                     new_name = f'{uuid.uuid4().hex}{ext}'
                     with open(os.path.join(dest_dir, new_name), 'wb') as f:
                         f.write(zf.read(zip_path))
@@ -465,6 +470,12 @@ class ScenarioImporter:
                 raise ValueError(
                     f'A scenario named "{self.scenario_data["Name"].strip()}" already exists (created concurrently).'
                 )
+
+            # 1b. Cover image (from ZIP)
+            if self._cover_image_data:
+                from django.core.files.base import ContentFile
+                ext, img_bytes = self._cover_image_data
+                scenario.image.save(f'scenario_cover{ext}', ContentFile(img_bytes), save=True)
 
             # 1b. Subjects M2M
             subject_objs = [
