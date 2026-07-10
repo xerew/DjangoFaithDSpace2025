@@ -238,13 +238,26 @@ def generate_blank_template(simulations=(), remote_labs=(), vr_labs=(), subjects
     for _row in range(2, 201):
         ans_ws.cell(row=_row, column=2, value=f'=IF(A{_row}="","","ans_"&(ROW()-1))')
 
-    _write_sheet(wb, 'Next Activity', [
+    _GREY_FILL = PatternFill('solid', fgColor='6B7280')
+    next_ws = _write_sheet(wb, 'Next Activity', [
         ('Source Activity Name', True), ('Answer Key', False), ('Next Activity Name', False),
+        ('Source Phase', False), ('Next Phase', False),
     ], list_cols={
         'Source Activity Name': 'Activities!$A$2:$A$200',
         'Answer Key': 'Answers!$B$2:$B$200',
         'Next Activity Name': 'Activities!$A$2:$A$200',
     })
+    # Style phase headers grey (auto-computed, not user-entered)
+    for col_offset, label in ((4, 'Source Phase — auto'), (5, 'Next Phase — auto')):
+        hdr = next_ws.cell(row=1, column=col_offset)
+        hdr.fill = _GREY_FILL
+        hdr.value = ('Source Phase', 'Next Phase')[col_offset - 4]
+    # Pre-fill VLOOKUP formulas: selecting an activity auto-fills its phase
+    for _row in range(2, 201):
+        next_ws.cell(row=_row, column=4,
+                     value=f'=IFERROR(VLOOKUP(A{_row},Activities!$A:$B,2,FALSE),"")')
+        next_ws.cell(row=_row, column=5,
+                     value=f'=IFERROR(VLOOKUP(C{_row},Activities!$A:$B,2,FALSE),"")')
 
     eval_cols = (
         [('Primary Activity Name', True), ('Grouped Activity 1', True)]

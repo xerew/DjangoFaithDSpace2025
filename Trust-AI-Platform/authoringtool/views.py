@@ -33,7 +33,7 @@ from .tasks import compute_sankey_data, compute_time_spent_by_performer_type, co
 from .utils import get_last_answers
 from celery.result import AsyncResult
 from django.conf import settings
-import csv, os, json
+import csv, os, json, uuid
 from pathlib import Path
 from django.views.decorators.http import require_POST
 import markdown
@@ -2266,14 +2266,18 @@ def ai_metrics(request, scenario_id):
                 flags_grouped.append(seen[act])
             seen[act]['rows'].append(row)
 
+    implementation_count = UserScenarioScore.objects.filter(scenario=scenario).values('user').distinct().count()
+
     return render(request, 'authoringtool/ai_metrics_scenario.html', {
-        'myScenario':      scenario,
-        'PhasesData':      phases_data,
-        'can_edit':        can_edit,
-        'metrics_grouped': metrics_grouped,
-        'flags_grouped':   flags_grouped,
-        'has_metrics':     bool(metrics_grouped),
-        'has_flags':       bool(flags_grouped),
+        'myScenario':           scenario,
+        'PhasesData':           phases_data,
+        'can_edit':             can_edit,
+        'metrics_grouped':      metrics_grouped,
+        'flags_grouped':        flags_grouped,
+        'has_metrics':          bool(metrics_grouped),
+        'has_flags':            bool(flags_grouped),
+        'implementation_count': implementation_count,
+        'min_implementations':  scenario.ai_metrics_min_implementations,
     })
 
 def category_metrics_view(request, scenario_id):
@@ -2459,7 +2463,8 @@ def reject_proposal(request, pk, scenario_id):
         proposal=proposal,
         user=request.user
     )
-    review.reject()
+    reasons = request.POST.getlist('rejection_reasons')
+    review.reject(reasons=reasons)
     return redirect('proposal_list', scenario_id=scenario_id)
 
 @login_required
@@ -2538,9 +2543,9 @@ def import_scenario(request):
         return JsonResponse({'success': False, 'errors': [
             {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'No file uploaded.'}
         ]})
-    if not uploaded.name.endswith('.xlsx'):
+    if not (uploaded.name.endswith('.xlsx') or uploaded.name.endswith('.zip')):
         return JsonResponse({'success': False, 'errors': [
-            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'Only .xlsx files are supported.'}
+            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'Only .xlsx or .zip files are supported.'}
         ]})
     importer = ScenarioImporter(uploaded, request.user)
     scenario, errors = importer.run()
@@ -2555,3 +2560,41 @@ def import_scenario(request):
         'scenario_id': scenario.id,
         'redirect': reverse('viewScenario', args=[scenario.id]),
     })
+
+
+@group_required('teachers')
+def export_scenario(request, scenario_id):
+    from .exporter import ScenarioExporter
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    safe_name = re.sub(r'[^\w\s-]', '', scenario.name).strip().replace(' ', '_')
+    base = safe_name[:60]
+    exporter = ScenarioExporter(scenario)
+    zip_bytes = exporter.to_zip_bytes(f'{base}_template.xlsx')
+    response = HttpResponse(zip_bytes, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{base}_zip.zip"'
+    return response
+
+
+@login_required
+@require_POST
+def tinymce_image_upload(request):
+    """Accept a single image from TinyMCE, save it to media/tinymce/, return its URL."""
+    file = request.FILES.get('file')
+    if not file:
+        return JsonResponse({'error': 'No file provided.'}, status=400)
+    if not file.content_type.startswith('image/'):
+        return JsonResponse({'error': 'Only image files are allowed.'}, status=400)
+    max_bytes = 8 * 1024 * 1024  # 8 MB per image
+    if file.size > max_bytes:
+        return JsonResponse({'error': 'Image exceeds the 8 MB size limit.'}, status=413)
+
+    ext = os.path.splitext(file.name)[1].lower() or '.jpg'
+    filename = f"{uuid.uuid4().hex}{ext}"
+    dest_dir = os.path.join(settings.MEDIA_ROOT, 'tinymce')
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, filename)
+    with open(dest_path, 'wb+') as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+
+    return JsonResponse({'location': f"{settings.MEDIA_URL}tinymce/{filename}"})

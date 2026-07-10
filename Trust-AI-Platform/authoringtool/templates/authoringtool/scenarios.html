@@ -422,7 +422,7 @@
 
 <!-- ── Create Scenario Modal ── -->
 <div class="modal fade" id="createScenarioModal" tabindex="-1" aria-labelledby="createScenarioModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:660px;">
     <div class="modal-content" style="border-radius:14px;overflow:hidden;">
       <div class="modal-header" style="background:#1D4ED8;padding:16px 24px;">
         <h5 class="modal-title" id="createScenarioModalLabel" style="color:#fff;font-size:16px;font-weight:700;margin:0;">
@@ -461,16 +461,42 @@
               </div>
             </div>
 
+            <!-- Drop zone header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12.5px;font-weight:700;color:#374151;">
+                <i class="bi bi-file-earmark-arrow-up me-1" style="color:#1a56db;"></i>Template File
+              </span>
+              <button type="button" id="zipInfoBtn"
+                      style="background:none;border:none;padding:0;cursor:pointer;color:#6b7280;font-size:13px;display:flex;align-items:center;gap:4px;">
+                <i class="bi bi-info-circle"></i> What can I upload?
+              </button>
+            </div>
+
+            <!-- Info panel (hidden by default) -->
+            <div id="zipInfoPanel" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:12.5px;color:#0c4a6e;line-height:1.6;">
+              <strong>Option A — Excel template only (.xlsx)</strong><br>
+              Fill in the blank template and upload it. Images will not be included.<br><br>
+              <strong>Option B — ZIP file with images (.zip)</strong><br>
+              Upload a ZIP exported from this platform, or build your own with this structure:
+              <pre style="background:#e0f2fe;border-radius:6px;padding:8px 10px;margin:8px 0 0;font-size:11.5px;color:#075985;overflow-x:auto;">your_scenario_zip.zip
+├── scenario_template.xlsx
+└── images/
+    ├── phase_engagement_activity_intro_image_1.png
+    └── phase_exploration_activity_quiz_image_1.jpg</pre>
+              The <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">.xlsx</code> must be at the root of the ZIP. Images in the <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">images/</code> folder are automatically linked to the activities.
+            </div>
+
             <!-- Drop zone -->
             <label for="templateFileInput"
-                   style="display:block;border:2px dashed #93c5fd;border-radius:10px;padding:32px 16px;text-align:center;cursor:pointer;background:#eff6ff;transition:background 0.15s;"
+                   style="display:block;border:2px dashed #93c5fd;border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;background:#eff6ff;transition:background 0.15s;"
                    id="dropZoneLabel">
-              <i class="bi bi-file-earmark-excel" style="font-size:2rem;color:#2563eb;display:block;margin-bottom:8px;"></i>
+              <i class="bi bi-file-earmark-zip" style="font-size:2rem;color:#2563eb;display:block;margin-bottom:8px;"></i>
               <span style="font-size:14px;color:#1e40af;font-weight:600;" id="dropZoneText">
-                Drop your .xlsx file here or click to browse
+                Click to browse or drag &amp; drop
               </span>
+              <span style="display:block;font-size:12px;color:#6b7280;margin-top:4px;">Accepts <strong>.xlsx</strong> (template only) or <strong>.zip</strong> (template + images)</span>
             </label>
-            <input type="file" id="templateFileInput" accept=".xlsx" class="d-none">
+            <input type="file" id="templateFileInput" accept=".xlsx,.zip" class="d-none">
 
             <!-- Cover image (optional) -->
             <div style="margin-top:20px;">
@@ -550,6 +576,14 @@
 
   if (!fileInput) return;  // guard: this script only runs on the scenarios page
 
+  // Info panel toggle
+  document.getElementById('zipInfoBtn').addEventListener('click', function () {
+    const panel = document.getElementById('zipInfoPanel');
+    const visible = panel.style.display !== 'none';
+    panel.style.display = visible ? 'none' : 'block';
+    this.style.color = visible ? '#6b7280' : '#1a56db';
+  });
+
   // Show selected filename in xlsx drop zone
   fileInput.addEventListener('change', function () {
     if (fileInput.files.length) {
@@ -557,6 +591,36 @@
       dropLabel.style.background = '#d1fae5';
       dropLabel.style.borderColor = '#6ee7b7';
     }
+  });
+
+  // Drag-and-drop support for the xlsx/zip drop zone
+  dropLabel.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropLabel.style.background = '#dbeafe';
+    dropLabel.style.borderColor = '#3b82f6';
+  });
+  dropLabel.addEventListener('dragleave', function () {
+    dropLabel.style.background = '#eff6ff';
+    dropLabel.style.borderColor = '#93c5fd';
+  });
+  dropLabel.addEventListener('drop', function (e) {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'zip') {
+      dropLabel.style.background = '#fee2e2';
+      dropLabel.style.borderColor = '#fca5a5';
+      dropText.textContent = 'Only .xlsx or .zip files are supported';
+      return;
+    }
+    // Assign to the file input so FormData picks it up
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    fileInput.files = dt.files;
+    dropText.textContent = f.name;
+    dropLabel.style.background = '#d1fae5';
+    dropLabel.style.borderColor = '#6ee7b7';
   });
 
   // Image picker — preview on select
@@ -580,7 +644,9 @@
     errBox.classList.add('d-none');
     errList.innerHTML = '';
     fileInput.value = '';
-    dropText.textContent = 'Drop your .xlsx file here or click to browse';
+    document.getElementById('zipInfoPanel').style.display = 'none';
+    document.getElementById('zipInfoBtn').style.color = '#6b7280';
+    dropText.textContent = 'Click to browse or drag & drop';
     dropLabel.style.background = '#eff6ff';
     dropLabel.style.borderColor = '#93c5fd';
     imgInput.value = '';

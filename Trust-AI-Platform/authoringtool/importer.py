@@ -1,5 +1,11 @@
+import io
+import os
+import uuid
+import zipfile
+
 import openpyxl
 import markdown2
+from django.conf import settings
 from django.utils.html import strip_tags
 from psycopg2.extras import NumericRange
 
@@ -71,6 +77,9 @@ class ScenarioImporter:
         self.user = user
         self.errors = []
 
+        self._wb_file = file_obj          # replaced with xlsx BytesIO if ZIP uploaded
+        self._image_url_map = {}          # 'images/name.ext' -> '/media/tinymce/uuid.ext'
+
         self.scenario_data = {}
         self.phases = []
         self.activities = []
@@ -88,7 +97,9 @@ class ScenarioImporter:
 
     def run(self):
         """Parse, validate, create. Returns (Scenario | None, errors list)."""
-        self._parse()
+        self._prepare_source()
+        if not self.errors:
+            self._parse()
         if not self.errors:
             self._validate()
         if not self.errors:
@@ -98,6 +109,58 @@ class ScenarioImporter:
                 return None, [{'sheet': 'Scenario', 'row': 2, 'column': 'Name', 'message': str(exc)}]
         return None, self.errors
 
+    def _prepare_source(self):
+        """Detect ZIP upload: extract xlsx + save images, build URL rewrite map."""
+        # XLSX files are also ZIP archives (PK magic bytes), so distinguish by extension
+        name = getattr(self.file_obj, 'name', '') or ''
+        if not name.lower().endswith('.zip'):
+            return  # plain xlsx — nothing to do
+
+        try:
+            raw = self.file_obj.read()
+            self.file_obj.seek(0)
+        except Exception:
+            self._add_error('File', 0, '-', 'Cannot read ZIP file.')
+            return
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+                names = zf.namelist()
+
+                # Find xlsx — prefer root level, fall back to any level in the ZIP
+                xlsx_names = [n for n in names if n.lower().endswith('.xlsx') and '/' not in n]
+                if not xlsx_names:
+                    xlsx_names = [n for n in names if n.lower().endswith('.xlsx')]
+                if not xlsx_names:
+                    self._add_error('File', 0, '-', 'No .xlsx file found in the ZIP.')
+                    return
+                xlsx_entry = xlsx_names[0]
+                self._wb_file = io.BytesIO(zf.read(xlsx_entry))
+
+                # Derive the images/ prefix relative to the xlsx location
+                xlsx_dir = xlsx_entry.rsplit('/', 1)[0] + '/' if '/' in xlsx_entry else ''
+                images_prefix = xlsx_dir + 'images/'
+
+                # Save images and build URL map
+                media_url = getattr(settings, 'MEDIA_URL', '/media/').rstrip('/')
+                dest_dir = os.path.join(settings.MEDIA_ROOT, 'tinymce')
+                os.makedirs(dest_dir, exist_ok=True)
+                for zip_path in names:
+                    if not zip_path.startswith(images_prefix) or zip_path.endswith('/'):
+                        continue
+                    img_name = zip_path[len(images_prefix):]
+                    if '/' in img_name:
+                        continue
+                    ext = os.path.splitext(img_name)[1].lower() or '.jpg'
+                    new_name = f'{uuid.uuid4().hex}{ext}'
+                    with open(os.path.join(dest_dir, new_name), 'wb') as f:
+                        f.write(zf.read(zip_path))
+                    self._image_url_map[zip_path] = f'{media_url}/tinymce/{new_name}'
+        except zipfile.BadZipFile:
+            self._add_error('File', 0, '-', 'Cannot read ZIP file — the file may be corrupted.')
+        except Exception as exc:
+            self._add_error('File', 0, '-', f'Error reading ZIP: {exc}')
+
     def _add_error(self, sheet, row, column, message):
         self.errors.append({'sheet': sheet, 'row': row, 'column': column, 'message': message})
 
@@ -105,7 +168,7 @@ class ScenarioImporter:
 
     def _parse(self):
         try:
-            wb = openpyxl.load_workbook(self.file_obj, read_only=True, data_only=True)
+            wb = openpyxl.load_workbook(self._wb_file, read_only=True, data_only=True)
         except Exception:
             self._add_error('File', 0, '-', 'Cannot read file. Ensure it is a valid .xlsx file.')
             return
@@ -416,7 +479,14 @@ class ScenarioImporter:
             # 3. Activities (row order preserved)
             activity_obj_map = {}
             for act in self.activities:
-                html = _md(act.get('Text', ''))
+                html_col = act.get('Text HTML', '').strip()
+                if html_col:
+                    # Restore image URLs from ZIP-relative paths to server media URLs
+                    html = html_col
+                    for zip_path, server_url in self._image_url_map.items():
+                        html = html.replace(f'src="{zip_path}"', f'src="{server_url}"')
+                else:
+                    html = _md(act.get('Text', ''))
                 obj = Activity.objects.create(
                     name=act['Activity Name'],
                     text=html,
@@ -434,6 +504,18 @@ class ScenarioImporter:
                     updated_by=self.user,
                 )
                 activity_obj_map[act['Activity Name']] = obj
+                # compound key so same name in different phases resolves correctly
+                phase_name = act.get('Phase Name', '').strip()
+                if phase_name:
+                    activity_obj_map[(phase_name, act['Activity Name'])] = obj
+
+            def _act(name, phase=''):
+                """Look up an activity by (phase, name), falling back to name only."""
+                name = (name or '').strip()
+                phase = (phase or '').strip()
+                if phase and (phase, name) in activity_obj_map:
+                    return activity_obj_map[(phase, name)]
+                return activity_obj_map.get(name)
 
             # 4. Answers  (keyed by Answer Key for routing lookups)
             answer_obj_map = {}
@@ -455,24 +537,27 @@ class ScenarioImporter:
 
             # 5. NextQuestionLogic
             for r in self.routing:
-                src = activity_obj_map[r['Source Activity Name'].strip()]
+                src_name = r['Source Activity Name'].strip()
+                src_phase = r.get('Source Phase', '').strip()
+                src = _act(src_name, src_phase)
                 ans_key = r.get('Answer Key', '').strip()
                 ans_obj = (
-                    answer_obj_map.get((r['Source Activity Name'].strip(), ans_key))
+                    answer_obj_map.get((src_name, ans_key))
                     if ans_key else None
                 )
                 next_name = r.get('Next Activity Name', '').strip()
+                next_phase = r.get('Next Phase', '').strip()
                 NextQuestionLogic.objects.create(
                     activity=src,
                     answer=ans_obj,
-                    next_activity=activity_obj_map.get(next_name),
+                    next_activity=_act(next_name, next_phase) if next_name else None,
                 )
 
             # 6. QuestionBunch + EvQuestionBranching with fixed thresholds
             for ev in self.evaluation:
-                primary = activity_obj_map[ev['Primary Activity Name'].strip()]
+                primary = _act(ev['Primary Activity Name'])
                 grouped = _grouped_acts(ev)
-                grouped_ids = [activity_obj_map[n].id for n in grouped]
+                grouped_ids = [_act(n).id for n in grouped if _act(n)]
                 QuestionBunch.objects.create(
                     activity_primary=primary,
                     activity_ids=grouped_ids,
@@ -482,9 +567,9 @@ class ScenarioImporter:
                 mod_name  = ev.get('Moderate Performers Activity', '').strip()
                 low_name  = ev.get('Low Performers Activity', '').strip()
 
-                high_act = activity_obj_map.get(high_name)
-                mod_act  = activity_obj_map.get(mod_name)
-                low_act  = activity_obj_map.get(low_name)
+                high_act = _act(high_name)
+                mod_act  = _act(mod_name)
+                low_act  = _act(low_name)
 
                 EvQuestionBranching.objects.create(
                     activity=primary,
