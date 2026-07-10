@@ -213,6 +213,9 @@
         <a href="{% url 'scenarios' %}" class="btn btn-sm hero-btn-ghost">
           <i class="bi bi-arrow-left me-1"></i> Scenarios
         </a>
+        <a href="{% url 'export_scenario' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
+          <i class="bi bi-file-earmark-arrow-down me-1"></i> Export
+        </a>
         {% if can_edit %}
           <a href="{% url 'updateScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-amber">
             <i class="bi bi-pencil me-1"></i> Edit
@@ -227,10 +230,17 @@
             </span>
           {% endif %}
         {% endif %}
-        {% if implementation_count >= myScenario.ai_metrics_min_implementations or can_edit %}
-          <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-outline">
-            <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
-          </a>
+        {% if can_edit %}
+          {% if implementation_count >= myScenario.ai_metrics_min_implementations %}
+            <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-outline">
+              <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
+            </a>
+          {% else %}
+            <button type="button" class="btn btn-sm hero-btn-outline"
+                    data-bs-toggle="modal" data-bs-target="#lowDataWarningModal">
+              <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
+            </button>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -531,6 +541,38 @@
 
   </section>
 </main>
+
+<!-- ── Low-data warning modal (shown when implementations < threshold) ── -->
+{% if can_edit and implementation_count < myScenario.ai_metrics_min_implementations %}
+<div class="modal fade" id="lowDataWarningModal" tabindex="-1" aria-labelledby="lowDataWarningLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="lowDataWarningLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Not Enough Data Yet
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-2">
+          This scenario has <strong>{{ implementation_count }}</strong> student implementation{{ implementation_count|pluralize }}.
+          For accurate AI metrics and reliable proposals you need at least
+          <strong>{{ myScenario.ai_metrics_min_implementations }}</strong>.
+        </p>
+        <p class="text-muted small mb-0">
+          Proceeding with limited data means the AI recommendations and metrics charts may not reflect real learning patterns and could be misleading.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm btn-warning">
+          <i class="bi bi-bar-chart-line me-1"></i>Continue Anyway
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- ── Phase Delete Modals ── -->
 {% if can_edit %}

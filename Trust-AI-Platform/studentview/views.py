@@ -30,8 +30,10 @@ def scenario_viewer(request, scenario_id):
     
 @login_required
 def scenario_form(request, scenario_id):
+    return redirect('studentView', scenario_id=scenario_id)
+
     scenario = get_object_or_404(Scenario, pk=scenario_id)
-    
+
     # Map canonical scenario language to language code (see Scenario.LANGUAGE_CHOICES)
     language_mapping = {
         'Greek':      'gr',

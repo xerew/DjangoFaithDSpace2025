@@ -78,4 +78,6 @@ urlpatterns = [
     path("rag_pdfs/scenario_<int:scenario_id>/<str:filename>", views.serve_rag_pdf, name="serve_rag_pdf"),
     path('template/download/', views.download_template, name='download_template'),
     path('import/', views.import_scenario, name='import_scenario'),
+    path('scenarios/<int:scenario_id>/export/', views.export_scenario, name='export_scenario'),
+    path('tinymce/upload/', views.tinymce_image_upload, name='tinymce_image_upload'),
 ]

@@ -142,12 +142,30 @@
         <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
           <i class="bi bi-arrow-left me-1"></i> Back to Scenario
         </a>
-        <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
-          <i class="bi bi-lightbulb me-1"></i> Proposals
-        </a>
+        {% if implementation_count >= min_implementations %}
+          <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
+            <i class="bi bi-lightbulb me-1"></i> Proposals
+          </a>
+        {% else %}
+          <button type="button" class="btn btn-sm hero-btn-solid"
+                  data-bs-toggle="modal" data-bs-target="#lowDataProposalModal">
+            <i class="bi bi-lightbulb me-1"></i> Proposals
+          </button>
+        {% endif %}
       </div>
     </div>
   </div>
+
+  <!-- ── Low-data warning banner ── -->
+  {% if implementation_count < min_implementations %}
+  <div style="margin:16px 0 0; padding:12px 18px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; display:flex; align-items:flex-start; gap:12px;">
+    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
+    <div style="font-size:13.5px; color:#92400e;">
+      <strong>Limited data:</strong> this scenario has <strong>{{ implementation_count }}</strong> implementation{{ implementation_count|pluralize }} — at least <strong>{{ min_implementations }}</strong> are needed for reliable metrics and AI proposals.
+      Results shown below may not reflect real learning patterns.
+    </div>
+  </div>
+  {% endif %}
 
   <section class="section">
 
@@ -331,6 +349,38 @@
 
   </section>
 </main>
+
+<!-- ── Low-data proposal warning modal ── -->
+{% if implementation_count < min_implementations %}
+<div class="modal fade" id="lowDataProposalModal" tabindex="-1" aria-labelledby="lowDataProposalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="lowDataProposalLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Proposals May Not Be Accurate
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-2">
+          This scenario has <strong>{{ implementation_count }}</strong> student implementation{{ implementation_count|pluralize }}.
+          AI proposals are designed to work with at least <strong>{{ min_implementations }}</strong>.
+        </p>
+        <p class="text-muted small mb-0">
+          With limited data the Q-learning system hasn't observed enough student behaviour to make reliable recommendations.
+          The generated proposals may be inaccurate or misleading.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm btn-warning">
+          <i class="bi bi-lightbulb me-1"></i>View Proposals Anyway
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <script>
 // ── Metrics ──────────────────────────────────────────────────────────────────

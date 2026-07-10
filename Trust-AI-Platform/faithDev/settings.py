@@ -183,6 +183,10 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = '/media/' #'/usr/share/nginx/html/trust-ai-lab.eu/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Allow larger POST payloads (e.g. TinyMCE image uploads)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 # MEDIA_ROOT = '/usr/share/nginx/html/trust-ai-lab.eu/media/' 2026
 
 # 2026

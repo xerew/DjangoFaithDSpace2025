@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.contrib.auth.models import User
+from .models import UserProfile, COUNTRY_CHOICES
 from django.contrib.auth.hashers import make_password, check_password
 from django.http import JsonResponse
 from django.contrib.auth.password_validation import validate_password
@@ -166,9 +167,12 @@ def profile_view(request):
         action = request.POST.get('action')
 
         if action == 'update_info':
-            first_name = request.POST.get('first_name', '').strip()
-            last_name = request.POST.get('last_name', '').strip()
-            email = request.POST.get('email', '').strip()
+            first_name  = request.POST.get('first_name', '').strip()
+            last_name   = request.POST.get('last_name', '').strip()
+            email       = request.POST.get('email', '').strip()
+            country     = request.POST.get('country', '').strip()
+            institution = request.POST.get('institution', '').strip()
+            bio         = request.POST.get('bio', '').strip()
 
             errors = {}
             if not first_name:
@@ -179,15 +183,25 @@ def profile_view(request):
                 errors['email'] = 'Email is required.'
             elif User.objects.filter(email=email).exclude(pk=user.pk).exists():
                 errors['email'] = 'This email is already in use by another account.'
+            if len(bio) > 500:
+                errors['bio'] = 'Bio must be 500 characters or fewer.'
 
             if errors:
                 return JsonResponse({'success': False, 'errors': errors})
 
             user.first_name = first_name
-            user.last_name = last_name
-            user.email = email
+            user.last_name  = last_name
+            user.email      = email
             user.save(update_fields=['first_name', 'last_name', 'email'])
-            return JsonResponse({'success': True, 'message': 'Profile updated successfully.'})
+
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.country     = country
+            profile.institution = institution
+            profile.bio         = bio
+            profile.save(update_fields=['country', 'institution', 'bio'])
+
+            return JsonResponse({'success': True, 'message': 'Profile updated successfully.',
+                                 'country': country, 'institution': institution})
 
         elif action == 'change_password':
             current_password = request.POST.get('current_password', '')
@@ -234,9 +248,13 @@ def profile_view(request):
         badge = BADGE_MAP.get(group.name, (group.name.replace('_', ' ').title(), 'secondary'))
         roles.append({'label': badge[0], 'color': badge[1]})
 
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
     context = {
-        'admin_orgs': list(admin_orgs),
-        'member_orgs': list(member_orgs),
-        'roles': roles,
+        'admin_orgs':      list(admin_orgs),
+        'member_orgs':     list(member_orgs),
+        'roles':           roles,
+        'profile':         profile,
+        'country_choices': COUNTRY_CHOICES,
     }
     return render(request, 'accounts/profile.html', context)

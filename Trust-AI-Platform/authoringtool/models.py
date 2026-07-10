@@ -85,8 +85,8 @@ class Scenario(models.Model):
 
     # Minimum implementations before Scenario Metrics & AI button is shown
     ai_metrics_min_implementations = models.PositiveIntegerField(
-        default=300,
-        help_text="Minimum number of student implementations required before the Scenario Metrics & AI button is shown."
+        default=200,
+        help_text="Minimum number of student implementations required before Metrics & AI / Proposals are shown without a warning."
     )
 
     class Meta:
@@ -526,6 +526,25 @@ class CategoryTag(models.Model):
     def __str__(self):
         return self.name
 
+REJECTION_REASON_CHOICES = [
+    ('wrong_action_create',  'Wrong action — should be Create'),
+    ('wrong_action_revise',  'Wrong action — should be Revise'),
+    ('wrong_action_skip',    'Wrong action — should be Skip'),
+    ('poor_content',         'Poor content quality'),
+    ('not_relevant',         'Not relevant to this scenario'),
+    ('already_covered',      'Already covered elsewhere'),
+    ('difficulty_mismatch',  'Difficulty mismatch'),
+]
+
+# Rejection reason → (alternative action to nudge, positive reward magnitude)
+_REASON_TO_POSITIVE_ACTION = {
+    'wrong_action_create': ('create', 0.5),
+    'wrong_action_revise': ('revise', 0.5),
+    'wrong_action_skip':   ('skip',   0.5),
+    'not_relevant':        ('skip',   0.3),
+    'already_covered':     ('skip',   0.3),
+}
+
 def update_q_value(flag_type, category, action, reward, ALPHA=0.2):
     qv, _ = QValue.objects.get_or_create(
         flag_type=flag_type,
@@ -653,41 +672,26 @@ class UserProposalReview(models.Model):
     )
     reviewed_at = models.DateTimeField(auto_now=True)
     teacher_edited_json = models.JSONField(null=True, blank=True)
+    rejection_reasons = models.JSONField(default=list, blank=True)
 
     class Meta:
         unique_together = ('proposal', 'user')  # one review per user per proposal
 
     def accept(self):
-        """Transition any status -> ACCEPTED; updates Q-values (+1) for each attached flag."""
+        """Transition any status -> ACCEPTED. Q-update (+1) handled by post_save signal."""
         if self.status == 'accepted':
             return
         self.status = 'accepted'
         self.save(update_fields=['status', 'reviewed_at'])
 
-        prop = self.proposal
-        if not prop.flag.exists():
-            return
-
-        def _on_commit():
-            for f in prop.flag.all():
-                update_q_value(f.flag_type, f.category, prop.proposal_type, reward=1)
-        transaction.on_commit(_on_commit)
-
-    def reject(self):
-        """Transition any status -> REJECTED; updates Q-values (−1) for each attached flag."""
+    def reject(self, reasons=None):
+        """Transition any status -> REJECTED, recording reasons.
+        Q-update (−1 on chosen action, positive nudges per reason) handled by post_save signal."""
         if self.status == 'rejected':
             return
+        self.rejection_reasons = reasons or []
         self.status = 'rejected'
-        self.save(update_fields=['status', 'reviewed_at'])
-
-        prop = self.proposal
-        if not prop.flag.exists():
-            return
-
-        def _on_commit():
-            for f in prop.flag.all():
-                update_q_value(f.flag_type, f.category, prop.proposal_type, reward=-1)
-        transaction.on_commit(_on_commit)
+        self.save(update_fields=['status', 'reviewed_at', 'rejection_reasons'])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Signals: ensure Q-value updates even if status set directly in admin/UI
@@ -721,10 +725,18 @@ def _reward_on_review_status_change(sender, instance, created, **kwargs):
         return
 
     reward = 1 if new == 'accepted' else -1
+    reasons = list(instance.rejection_reasons or [])
 
     def _on_commit():
         for f in prop.flag.all():
             update_q_value(f.flag_type, f.category, prop.proposal_type, reward=reward)
+        if new == 'rejected':
+            for reason in reasons:
+                entry = _REASON_TO_POSITIVE_ACTION.get(reason)
+                if entry:
+                    alt_action, nudge = entry
+                    for f in prop.flag.all():
+                        update_q_value(f.flag_type, f.category, alt_action, reward=nudge)
     transaction.on_commit(_on_commit)
 
 User.add_to_class('school_department', models.ForeignKey(SchoolDepartment, on_delete=models.SET_NULL, null=True, blank=True))

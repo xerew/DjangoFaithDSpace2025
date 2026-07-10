@@ -66,13 +66,46 @@
                 <span class="text-muted small">Member since</span>
                 <span class="fw-semibold small">{{ user.date_joined|date:"d M Y" }}</span>
               </div>
-              <div class="d-flex justify-content-between py-2">
+              <div class="d-flex justify-content-between py-2 border-bottom">
                 <span class="text-muted small">Last login</span>
                 <span class="fw-semibold small">
                   {% if user.last_login %}{{ user.last_login|date:"d M Y, H:i" }}{% else %}—{% endif %}
                 </span>
               </div>
+              {% if profile.country %}
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span class="text-muted small">Country</span>
+                <span class="fw-semibold small" id="card-country">{{ profile.country }}</span>
+              </div>
+              {% else %}
+              <div class="d-flex justify-content-between py-2 border-bottom" id="card-country-row" style="display:none!important;">
+                <span class="text-muted small">Country</span>
+                <span class="fw-semibold small" id="card-country"></span>
+              </div>
+              {% endif %}
+              {% if profile.institution %}
+              <div class="d-flex justify-content-between py-2">
+                <span class="text-muted small">Institution</span>
+                <span class="fw-semibold small text-end" id="card-institution" style="max-width:60%;">{{ profile.institution }}</span>
+              </div>
+              {% else %}
+              <div class="d-flex justify-content-between py-2" id="card-institution-row" style="display:none!important;">
+                <span class="text-muted small">Institution</span>
+                <span class="fw-semibold small text-end" id="card-institution" style="max-width:60%;"></span>
+              </div>
+              {% endif %}
             </div>
+            {% if profile.bio %}
+            <div class="w-100 mt-3 pt-2 border-top">
+              <p class="text-muted small mb-1 fw-semibold">About</p>
+              <p class="small" id="card-bio" style="color:#444;line-height:1.5;">{{ profile.bio }}</p>
+            </div>
+            {% else %}
+            <div class="w-100 mt-3 pt-2 border-top" id="card-bio-row" style="display:none!important;">
+              <p class="text-muted small mb-1 fw-semibold">About</p>
+              <p class="small" id="card-bio" style="color:#444;line-height:1.5;"></p>
+            </div>
+            {% endif %}
           </div>
         </div>
 
@@ -171,6 +204,40 @@
                     <div class="col-md-8">
                       <input type="text" class="form-control bg-light" value="{{ user.username }}" disabled>
                       <div class="form-text text-muted">Username cannot be changed.</div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Country</label>
+                    <div class="col-md-8">
+                      <select class="form-select" name="country" id="country">
+                        {% for value, label in country_choices %}
+                        <option value="{{ value }}" {% if profile.country == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Institution</label>
+                    <div class="col-md-8">
+                      <input type="text" class="form-control" name="institution" id="institution"
+                             placeholder="e.g. University of Athens"
+                             value="{{ profile.institution }}">
+                      <div class="form-text text-muted">School or university you work at.</div>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">About</label>
+                    <div class="col-md-8">
+                      <textarea class="form-control" name="bio" id="bio" rows="3"
+                                maxlength="500"
+                                placeholder="A short bio…">{{ profile.bio }}</textarea>
+                      <div class="d-flex justify-content-between mt-1">
+                        <div class="invalid-feedback d-block" id="bio-error"></div>
+                        <span class="form-text text-muted ms-auto" id="bio-count">{{ profile.bio|length }} / 500</span>
+                      </div>
                     </div>
                   </div>
 
@@ -318,10 +385,15 @@ function showAlert(alertId, success, message) {
   setTimeout(() => el.classList.add('d-none'), 5000);
 }
 
+// --- Bio character counter ---
+document.getElementById('bio').addEventListener('input', function () {
+  document.getElementById('bio-count').textContent = this.value.length + ' / 500';
+});
+
 // --- Personal info form ---
 document.getElementById('infoForm').addEventListener('submit', function (e) {
   e.preventDefault();
-  clearErrors(['first_name', 'last_name', 'email']);
+  clearErrors(['first_name', 'last_name', 'email', 'bio']);
   const btn = document.getElementById('saveInfoBtn');
   const spinner = document.getElementById('saveInfoSpinner');
   btn.disabled = true;
@@ -339,10 +411,28 @@ document.getElementById('infoForm').addEventListener('submit', function (e) {
     spinner.classList.add('d-none');
     if (res.success) {
       showAlert('info-alert', true, res.message);
-      // Update the displayed name in the left panel
+      // Update name in left panel
       const fn = document.getElementById('first_name').value.trim();
       const ln = document.getElementById('last_name').value.trim();
       document.querySelector('.profile-card h5.card-title').textContent = fn + ' ' + ln;
+      // Update country row
+      const country = res.country || '';
+      const countryEl = document.getElementById('card-country');
+      const countryRow = document.getElementById('card-country-row');
+      if (countryEl) countryEl.textContent = country;
+      if (countryRow) countryRow.style.display = country ? '' : 'none';
+      // Update institution row
+      const inst = res.institution || '';
+      const instEl = document.getElementById('card-institution');
+      const instRow = document.getElementById('card-institution-row');
+      if (instEl) instEl.textContent = inst;
+      if (instRow) instRow.style.display = inst ? '' : 'none';
+      // Update bio row
+      const bio = document.getElementById('bio').value.trim();
+      const bioEl = document.getElementById('card-bio');
+      const bioRow = document.getElementById('card-bio-row');
+      if (bioEl) bioEl.textContent = bio;
+      if (bioRow) bioRow.style.display = bio ? '' : 'none';
     } else {
       showAlert('info-alert', false, 'Please fix the errors below.');
       if (res.errors) {

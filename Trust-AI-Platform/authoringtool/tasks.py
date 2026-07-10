@@ -2360,35 +2360,62 @@ def chunk_and_index_pdfs(scenario_id):
 
 ACTIONS = ["create", "revise", "skip"]
 
-def select_action(flag_type, category, epsilon=0.1):
+# Phase thresholds for the exploration schedule.
+# Below EXPLORE_UNTIL: pure random (building the Q-table).
+# Between EXPLORE_UNTIL and EXPLOIT_FROM: linear decay.
+# Above EXPLOIT_FROM: near-pure exploitation (5% residual).
+_EXPLORE_UNTIL = 200
+_EXPLOIT_FROM  = 500
+
+def _get_exploration_rate():
+    """Dynamic epsilon based on total accepted/rejected reviews so far."""
+    total = UserProposalReview.objects.filter(
+        status__in=['accepted', 'rejected']
+    ).count()
+    if total < _EXPLORE_UNTIL:
+        return 1.0
+    if total >= _EXPLOIT_FROM:
+        return 0.05
+    progress = (total - _EXPLORE_UNTIL) / (_EXPLOIT_FROM - _EXPLORE_UNTIL)
+    return 1.0 - progress * 0.95  # 1.0 → 0.05
+
+def select_action(flag_type, category):
     """
-    Choose an action based on Q-values using an ε-greedy policy.
-    - With probability ε, choose a random action (exploration).
-    - Otherwise, choose the action with the highest Q-value (exploitation).
+    ε-greedy action selection with a phase-based schedule:
+    - Phase 1 (<200 reviews): always random — pure exploration.
+    - Phase 2 (200-500): linearly decaying ε, mix of explore/exploit.
+    - Phase 3 (>500): mostly exploit the learned Q-values (ε=0.05).
     """
+    epsilon = _get_exploration_rate()
     if random.random() < epsilon:
         return random.choice(ACTIONS)
 
     q_values = QValue.objects.filter(flag_type=flag_type, category=category)
     if not q_values.exists():
-        # No values yet: pick randomly to initialize
         return random.choice(ACTIONS)
 
-    # Pick the action with highest Q-value
-    best_q = q_values.order_by('-q_value').first()
-    return best_q.action
+    return q_values.order_by('-q_value').first().action
 
 def get_best_q_action(flag_list):
+    """
+    Same phase-based schedule applied to multi-flag aggregated Q-scores.
+    During exploration phases picks randomly; during exploitation uses argmax.
+    """
     scores = {'create': 0.0, 'revise': 0.0, 'skip': 0.0}
     has_data = False
     for flag in flag_list:
         for action in scores:
-            qv = QValue.objects.filter(flag_type=flag.flag_type, category=flag.category, action=action).first()
+            qv = QValue.objects.filter(
+                flag_type=flag.flag_type, category=flag.category, action=action
+            ).first()
             if qv:
                 scores[action] += qv.q_value
                 has_data = True
-    if not has_data:
+
+    epsilon = _get_exploration_rate()
+    if not has_data or random.random() < epsilon:
         return random.choice(ACTIONS)
+
     return max(scores, key=scores.get)
 
 # OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
