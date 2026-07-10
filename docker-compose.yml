@@ -66,6 +66,8 @@ services:
       - db
       - redis
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   rasa:
     image: rasa/rasa:3.6.0
