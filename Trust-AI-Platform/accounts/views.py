@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.contrib.auth.models import User
@@ -256,5 +256,52 @@ def profile_view(request):
         'roles':           roles,
         'profile':         profile,
         'country_choices': COUNTRY_CHOICES,
+        'profile_user':    user,
+        'is_own_profile':  True,
+    }
+    return render(request, 'accounts/profile.html', context)
+
+
+def _is_valid_target(user):
+    return user.is_staff or user.is_superuser or user.groups.filter(name='teachers').exists()
+
+
+@group_required('teachers')
+def view_profile(request, user_id):
+    from organization.models import Organization
+
+    target = get_object_or_404(User, pk=user_id)
+    if target == request.user:
+        return redirect('profile')
+    if not _is_valid_target(target):
+        from django.http import Http404
+        raise Http404("No such profile.")
+
+    admin_orgs = Organization.objects.filter(admins=target).values('id', 'name', 'short_name', 'country')
+    member_orgs = Organization.objects.filter(members=target).exclude(admins=target).values('id', 'name', 'short_name', 'country')
+
+    BADGE_MAP = {
+        'teachers':       ('Teacher',        'primary'),
+        'dspace_partners':('DSpace Partner',  'info'),
+    }
+    roles = []
+    if target.is_superuser:
+        roles.append({'label': 'Superuser', 'color': 'danger'})
+    if target.is_staff and not target.is_superuser:
+        roles.append({'label': 'Admin', 'color': 'warning'})
+    for group in target.groups.all():
+        badge = BADGE_MAP.get(group.name, (group.name.replace('_', ' ').title(), 'secondary'))
+        roles.append({'label': badge[0], 'color': badge[1]})
+
+    profile, _ = UserProfile.objects.get_or_create(user=target)
+
+    context = {
+        'admin_orgs':      list(admin_orgs),
+        'member_orgs':     list(member_orgs),
+        'roles':           roles,
+        'profile':         profile,
+        'country_choices': COUNTRY_CHOICES,
+        'profile_user':    target,
+        'is_own_profile':  False,
     }
     return render(request, 'accounts/profile.html', context)

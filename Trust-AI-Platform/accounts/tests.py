@@ -177,3 +177,45 @@ class AdminLabViewsTest(TestCase):
         data = json.loads(r.content)
         self.assertTrue(data['success'])
         self.assertFalse(VRARExperiment.objects.filter(id=vr.id).exists())
+
+
+class ViewProfileTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.alice = User.objects.create_user('alice_prof', password='pass', first_name='Alice', last_name='A')
+        self.bob = User.objects.create_user('bob_prof', password='pass', first_name='Bob', last_name='B')
+        self.alice.groups.add(teachers)
+        self.bob.groups.add(teachers)
+        self.student = User.objects.create_user('stu_prof', password='pass')
+        self.client.login(username='alice_prof', password='pass')
+
+    def test_view_other_teacher_profile(self):
+        r = self.client.get(reverse('view_profile', args=[self.bob.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.context['is_own_profile'])
+        self.assertEqual(r.context['profile_user'], self.bob)
+
+    def test_view_own_profile_via_view_profile_redirects(self):
+        r = self.client.get(reverse('view_profile', args=[self.alice.id]))
+        self.assertRedirects(r, reverse('profile'))
+
+    def test_view_student_profile_404s(self):
+        r = self.client.get(reverse('view_profile', args=[self.student.id]))
+        self.assertEqual(r.status_code, 404)
+
+    def test_own_profile_page_marks_is_own_profile_true(self):
+        r = self.client.get(reverse('profile'))
+        self.assertTrue(r.context['is_own_profile'])
+        self.assertEqual(r.context['profile_user'], self.alice)
+
+    def test_student_cannot_view_other_profile(self):
+        self.client.logout()
+        self.client.login(username='stu_prof', password='pass')
+        r = self.client.get(reverse('view_profile', args=[self.bob.id]))
+        self.assertEqual(r.status_code, 403)
+
+    def test_other_profile_shows_message_button_not_edit_form(self):
+        r = self.client.get(reverse('view_profile', args=[self.bob.id]))
+        self.assertContains(r, 'Send Bob a message')
+        self.assertNotContains(r, 'id="infoForm"')

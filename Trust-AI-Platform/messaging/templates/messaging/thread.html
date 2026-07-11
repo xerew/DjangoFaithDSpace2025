@@ -23,6 +23,7 @@
     </div>
     <div>
       <h2 style="margin:0;font-size:18px;font-weight:700;">{{ partner.get_full_name|default:partner.username }}</h2>
+      <a href="{% url 'view_profile' partner.id %}" style="font-size:12px;color:rgba(255,255,255,0.75);">View profile</a>
     </div>
   </div>
 

@@ -25,6 +25,7 @@ urlpatterns = [
     path('documentation/', views.documentation_view, name='documentation_and_tutorials'),
     path('tos/', views.tos_view, name='tos'),
     path('profile/', views.profile_view, name='profile'),
+    path('profile/<int:user_id>/', views.view_profile, name='view_profile'),
     path('admin/', admin_views.admin_dashboard, name='admin_dashboard'),
     path('admin/edit_user/<int:user_id>/', admin_views.admin_edit_user, name='admin_edit_user'),
     path('admin/delete_user/<int:user_id>/', admin_views.admin_delete_user, name='admin_delete_user'),

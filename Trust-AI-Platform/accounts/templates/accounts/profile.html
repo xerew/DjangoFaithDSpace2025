@@ -29,7 +29,7 @@
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Account</div>
         <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">My Profile</h2>
-        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ user.get_full_name|default:user.username }}</div>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ profile_user.get_full_name|default:profile_user.username }}</div>
         <nav><ol class="breadcrumb">
           <li class="breadcrumb-item active">Account Settings</li>
         </ol></nav>
@@ -47,8 +47,8 @@
             <div class="profile-avatar mb-3">
               <i class="bi bi-person-circle" style="font-size: 5rem; color: #012970;"></i>
             </div>
-            <h5 class="card-title">{{ user.first_name }} {{ user.last_name }}</h5>
-            <h6 class="text-muted small">@{{ user.username }}</h6>
+            <h5 class="card-title">{{ profile_user.first_name }} {{ profile_user.last_name }}</h5>
+            <h6 class="text-muted small">@{{ profile_user.username }}</h6>
             <div class="d-flex flex-wrap gap-1 justify-content-center mt-1 mb-3">
               {% for role in roles %}
               <span class="badge bg-{{ role.color }}">{{ role.label }}</span>
@@ -60,16 +60,16 @@
             <div class="w-100 mt-2">
               <div class="d-flex justify-content-between py-2 border-bottom">
                 <span class="text-muted small">Username</span>
-                <span class="fw-semibold small">{{ user.username }}</span>
+                <span class="fw-semibold small">{{ profile_user.username }}</span>
               </div>
               <div class="d-flex justify-content-between py-2 border-bottom">
                 <span class="text-muted small">Member since</span>
-                <span class="fw-semibold small">{{ user.date_joined|date:"d M Y" }}</span>
+                <span class="fw-semibold small">{{ profile_user.date_joined|date:"d M Y" }}</span>
               </div>
               <div class="d-flex justify-content-between py-2 border-bottom">
                 <span class="text-muted small">Last login</span>
                 <span class="fw-semibold small">
-                  {% if user.last_login %}{{ user.last_login|date:"d M Y, H:i" }}{% else %}—{% endif %}
+                  {% if profile_user.last_login %}{{ profile_user.last_login|date:"d M Y, H:i" }}{% else %}—{% endif %}
                 </span>
               </div>
               {% if profile.country %}
@@ -149,6 +149,7 @@
 
       <!-- Right column: forms -->
       <div class="col-12 col-md-7 col-xl-8">
+      {% if is_own_profile %}
 
         <!-- Personal info form -->
         <div class="card">
@@ -315,11 +316,25 @@
           </div>
         </div><!-- End Forms Card -->
 
+      {% else %}
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-chat-dots" style="font-size:2.5rem;color:#94a3b8;"></i>
+            <h5 class="mt-3 mb-1">Send {{ profile_user.first_name|default:profile_user.username }} a message</h5>
+            <p class="text-muted small mb-4">Start a conversation with this teacher.</p>
+            <a href="{% url 'thread' profile_user.id %}" class="btn btn-primary">
+              <i class="bi bi-send me-1"></i> Message
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
       </div><!-- End Right Column -->
     </div>
   </section>
 </main>
 
+{% if is_own_profile %}
 <script>
 // --- Toggle password visibility ---
 document.querySelectorAll('.toggle-pw').forEach(btn => {
@@ -486,4 +501,5 @@ document.getElementById('passwordForm').addEventListener('submit', function (e) 
   });
 });
 </script>
+{% endif %}
 {% endblock %}
