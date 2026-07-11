@@ -22,7 +22,7 @@
 <div id="new-message-toast-container" style="position:fixed;bottom:20px;right:16px;z-index:9999;width:calc(100% - 32px);max-width:420px;"></div>
 <script>
 (function () {
-  let lastSeenMessageId = 0;
+  let lastSeenMessageId = null;
 
   function renderToast(latest) {
     const container = document.getElementById('new-message-toast-container');
@@ -69,7 +69,7 @@
       .then(function (data) {
         updateBadge(data.unread_count);
         if (data.latest && data.latest.id !== lastSeenMessageId) {
-          if (lastSeenMessageId !== 0) {
+          if (lastSeenMessageId !== null) {
             renderToast(data.latest);
           }
           lastSeenMessageId = data.latest.id;
