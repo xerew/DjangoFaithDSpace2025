@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
-from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, UserProposalReview, Language, Subject
+from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, UserProposalReview, Language, Subject
 from psycopg2.extras import NumericRange
 from django.urls import reverse
 from django.utils.html import strip_tags
@@ -2474,6 +2474,25 @@ def create_personal_scenario(request, scenario_id):
     messages.success(request, "Your personalized scenario is being created. It will appear in your scenarios shortly.")
     return redirect('proposal_list', scenario_id=scenario_id)
 
+def _string_field_diff(old_val, new_val):
+    old_val = old_val or ""
+    new_val = new_val or ""
+    return {
+        "changed": old_val != new_val,
+        "char_delta": len(new_val) - len(old_val),
+    }
+
+
+def _answers_field_diff(old_answers, new_answers):
+    old_texts = [a.get("text", "") for a in (old_answers or [])]
+    new_texts = [a.get("text", "") for a in (new_answers or [])]
+    return {
+        "changed": old_texts != new_texts,
+        "char_delta": sum(len(t) for t in new_texts) - sum(len(t) for t in old_texts),
+        "count_delta": len(new_texts) - len(old_texts),
+    }
+
+
 @group_required('teachers')
 def edit_proposal_json(request, scenario_id, pk):
     proposal = get_object_or_404(ActivityProposal, pk=pk)
@@ -2500,17 +2519,41 @@ def edit_proposal_json(request, scenario_id, pk):
         if val:
             data["answers"].append({"text": val.strip()})
 
+    # Log this revision as an edit event, diffed against the previous
+    # revision (or the original LLM proposal for the first edit).
+    if review.edit_count == 0:
+        base_raw = proposal.json_translated_action or proposal.json_action
+        try:
+            baseline = json.loads(base_raw) if isinstance(base_raw, str) else (base_raw or {})
+        except (json.JSONDecodeError, TypeError):
+            baseline = {}
+    else:
+        last_event = review.edit_events.order_by('-edit_number').first()
+        baseline = last_event.edited_json if last_event else {}
+
+    changed_fields = {
+        "activity_name": _string_field_diff(baseline.get("activity_name"), data.get("activity_name")),
+        "content": _string_field_diff(baseline.get("content"), data.get("content")),
+        "explanation": _string_field_diff(baseline.get("explanation"), data.get("explanation")),
+        "answers": _answers_field_diff(baseline.get("answers"), data.get("answers")),
+    }
+
+    ActivityProposalEditEvent.objects.create(
+        review=review,
+        edit_number=review.edit_count + 1,
+        edited_json=data,
+        changed_fields=changed_fields,
+    )
+    review.edit_count += 1
+    review.was_edited = True
+
     review.teacher_edited_json = data
 
-    print("✅ Type of final data:", type(data))  # should be <class 'dict'>
-    print("✅ Dumped JSON string:", json.dumps(data, ensure_ascii=False))
-
-    # ✅ Keep review visible after editing
+    # Keep review visible after editing
     if review.status not in ['accepted', 'rejected']:
         review.status = 'new'
 
     review.save()
-    print("RAW saved value:", review.teacher_edited_json)
     return redirect("proposal_list", scenario_id=scenario_id)
 
 

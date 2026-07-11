@@ -607,3 +607,92 @@ class ActivityProposalEditEventModelTests(TestCase):
                 ActivityProposalEditEvent.objects.create(
                     review=self.review, edit_number=1, edited_json={}, changed_fields={},
                 )
+
+
+class EditProposalJsonViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('teacher_edit2', password='pass')
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.user.groups.add(g)
+        self.client.login(username='teacher_edit2', password='pass')
+
+        self.scenario = Scenario.objects.create(
+            name='Edit View Scenario', created_by=self.user, updated_by=self.user
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1', scenario=self.scenario, created_by=self.user, updated_by=self.user
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation', created_by=self.user, updated_by=self.user
+        )
+        self.activity = Activity.objects.create(
+            name='Act 1', text='Hello', scenario=self.scenario, phase=self.phase,
+            activity_type=self.activity_type, created_by=self.user, updated_by=self.user,
+        )
+        self.proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='raw', translated_action='raw',
+            json_action=json.dumps({
+                "activity_name": "Act 1",
+                "content": "Original content",
+                "explanation": "Original explanation",
+                "answers": [{"text": "A. Old answer", "is_correct": True, "weight": 3}],
+            }),
+            json_translated_action='',
+        )
+
+    def _post_edit(self, **overrides):
+        data = {
+            'activity_name': 'Act 1',
+            'content': 'Original content',
+            'explanation': 'Original explanation',
+            'answer_text_1': 'A. Old answer',
+        }
+        data.update(overrides)
+        url = reverse('edit_proposal_json', args=[self.scenario.id, self.proposal.id])
+        return self.client.post(url, data)
+
+    def test_first_edit_creates_event_diffed_against_original_proposal(self):
+        self._post_edit(content='Revised content is longer now')
+
+        review = UserProposalReview.objects.get(proposal=self.proposal, user=self.user)
+        self.assertTrue(review.was_edited)
+        self.assertEqual(review.edit_count, 1)
+
+        events = list(review.edit_events.order_by('edit_number'))
+        self.assertEqual(len(events), 1)
+        event = events[0]
+        self.assertEqual(event.edit_number, 1)
+        self.assertTrue(event.changed_fields['content']['changed'])
+        self.assertFalse(event.changed_fields['explanation']['changed'])
+        self.assertFalse(event.changed_fields['answers']['changed'])
+
+    def test_second_edit_diffs_against_previous_edit_not_original(self):
+        self._post_edit(content='First revision')
+        self._post_edit(content='First revision, refined further')
+
+        review = UserProposalReview.objects.get(proposal=self.proposal, user=self.user)
+        self.assertEqual(review.edit_count, 2)
+
+        events = list(review.edit_events.order_by('edit_number'))
+        self.assertEqual(len(events), 2)
+
+        second_event = events[1]
+        expected_delta = len('First revision, refined further') - len('First revision')
+        self.assertEqual(second_event.changed_fields['content']['char_delta'], expected_delta)
+
+    def test_answers_count_delta_tracks_added_answer(self):
+        self._post_edit(answer_text_1='A. Old answer', answer_text_2='B. New second answer')
+
+        review = UserProposalReview.objects.get(proposal=self.proposal, user=self.user)
+        event = review.edit_events.get(edit_number=1)
+        self.assertEqual(event.changed_fields['answers']['count_delta'], 1)
+        self.assertTrue(event.changed_fields['answers']['changed'])
+
+    def test_teacher_edited_json_still_holds_latest_state_only(self):
+        self._post_edit(content='First revision')
+        self._post_edit(content='Second revision')
+
+        review = UserProposalReview.objects.get(proposal=self.proposal, user=self.user)
+        self.assertEqual(review.teacher_edited_json['content'], 'Second revision')
