@@ -16,6 +16,7 @@
 - Notification detection is polling (`setInterval`+`fetch`), not WebSockets — no new infrastructure (no Django Channels, no Redis pub/sub, no ASGI changes).
 - Any teacher/staff user may message any other teacher/staff user platform-wide — not scoped to shared Organization/UserGroup.
 - A target user who is not in the `teachers` group and not staff/superuser must 404 on profile view and be rejected (400/redirect) as a message recipient — this is what keeps students out of the entire feature even via a guessed URL.
+- **Responsive & mobile-first:** every new template/CSS in this plan must work correctly on phones (≥320px) and tablets (≥768px) — no new fixed pixel widths on outer containers, use Bootstrap's responsive grid and relative/`calc()` units. This applies to all three tasks' templates (thread list, thread view, profile CTA, sidebar badge, toast banner), matching the same bar already applied to the dashboard UX work earlier on this branch.
 
 ---
 
@@ -340,6 +341,11 @@
     .chat-bubble.mine { align-self: flex-end; background: #1a56db; color: #fff; border-bottom-right-radius: 4px; }
     .chat-bubble.theirs { align-self: flex-start; background: #f0f4ff; color: #1e293b; border-bottom-left-radius: 4px; }
     .chat-bubble .chat-time { font-size: 10.5px; opacity: 0.7; margin-top: 4px; display: block; }
+    @media (max-width: 576px) {
+      .chat-hero { padding: 16px 20px; }
+      .chat-body { padding: 14px; }
+      .chat-bubble { max-width: 85%; }
+    }
   </style>
 
   <main id="main" class="main">
@@ -370,8 +376,8 @@
         <div class="card-body border-top pt-3">
           <form id="composeForm" class="d-flex gap-2">
             {% csrf_token %}
-            <input type="text" class="form-control" id="composeBody" placeholder="Type a message…" autocomplete="off" required>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+            <input type="text" class="form-control flex-grow-1" id="composeBody" placeholder="Type a message…" autocomplete="off" required>
+            <button type="submit" class="btn btn-primary flex-shrink-0"><i class="bi bi-send"></i></button>
           </form>
         </div>
       </div>
@@ -537,6 +543,8 @@
   python manage.py runserver
   ```
   As a teacher user, navigate directly to `/messaging/` (empty state), then to `/messaging/<other-teacher-id>/`, send a message, confirm it appears as a right-aligned bubble without a page reload. Confirm `/messaging/<student-id>/` redirects to `/messaging/`.
+
+  Also check both pages at 375px (phone) and 768px (tablet) viewport widths in browser DevTools: no horizontal scroll, chat bubbles widen to ~85% on phone width, the compose input/button stay on one row, thread-list rows don't overflow.
 
   If no such environment is available, Step 11's automated test suite is the load-bearing verification for this task — note the skip and why, rather than fabricating results.
 
@@ -876,6 +884,8 @@
   ```
   As a teacher, visit `/accounts/profile/<other-teacher-id>/` — confirm the edit form/password tabs are gone, a "Message" button appears, and clicking it opens the Task 1 thread view. Visit your own `/accounts/profile/` and confirm nothing changed (edit form still works, password change still works).
 
+  Also check the other-profile view at 375px and 768px — the existing `col-12 col-md-7 col-xl-8` grid should already stack the Message CTA card full-width on phone without any change, but confirm no horizontal scroll appears.
+
   If no such environment is available, Step 8's automated test suite is the load-bearing verification for this task.
 
 - [ ] **Step 10: Commit**
@@ -1005,7 +1015,7 @@
   {% include 'head.html' %}
 
   {% if messages %}
-  <div style="position:fixed;top:76px;right:16px;z-index:9999;min-width:300px;max-width:420px;">
+  <div style="position:fixed;top:76px;right:16px;z-index:9999;width:calc(100% - 32px);max-width:420px;">
     {% for message in messages %}
     <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
       {{ message }}
@@ -1021,7 +1031,7 @@
 
   {% load group_tags %}
   {% if request.user.is_authenticated and request.user|has_group:"teachers" %}
-  <div id="new-message-toast-container" style="position:fixed;bottom:20px;right:16px;z-index:9999;min-width:300px;max-width:420px;"></div>
+  <div id="new-message-toast-container" style="position:fixed;bottom:20px;right:16px;z-index:9999;width:calc(100% - 32px);max-width:420px;"></div>
   <script>
   (function () {
     let lastSeenMessageId = 0;
@@ -1090,6 +1100,8 @@
   ```
 
   Note on behavior: `lastSeenMessageId` starts at `0` and the first poll only establishes the baseline silently (no toast on page load for a pre-existing unread message) — a toast only fires when a *newer* unread message is detected on a later poll than the one that established the baseline. This avoids re-showing a toast for the same already-known unread message on every page navigation.
+
+  Note on responsiveness: both the flash-message container and the new toast container use `width:calc(100% - 32px); max-width:420px;` instead of a fixed `min-width:300px`. The original flash-message block (pre-existing code, being touched here anyway since the whole file is replaced) had `min-width:300px` combined with `right:16px`, which overflows the viewport on phones ≤332px wide (300 + 16 + 16 > 320) — fixed as part of this edit since it's the same class of bug the new toast container would otherwise repeat.
 
 - [ ] **Step 4: Write tests for the template wiring**
 
@@ -1173,6 +1185,8 @@
   python manage.py runserver
   ```
   With two teacher accounts in two browser sessions (or one incognito): from the Organization member list, click a colleague's name (goes to their profile), click Message (goes to the thread), send a message. In the other account's session, wait up to ~20s and confirm the sidebar "Messages" badge updates and a toast appears bottom-right; click the toast and confirm it navigates to the thread. Confirm a student account never sees the "Messages" sidebar item or the toast script, and gets 403 on any `/messaging/` or `/accounts/profile/<id>/` URL.
+
+  Also check the Organization member list and the toast/badge at 375px and 768px viewport widths: the new "View profile" link and Message icon button shouldn't cause the member row to overflow or wrap awkwardly beyond how the row already behaves with its existing action buttons, the toast should stay fully within the viewport (no clipped edges) at 320px, and the sidebar's collapsed/burger-menu mobile behavior should still work with the new "Messages" item present.
 
   If no such environment is available, Step 5's automated tests are the load-bearing verification for this task.
 
