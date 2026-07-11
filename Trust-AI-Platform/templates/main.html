@@ -3,7 +3,7 @@
 {% include 'head.html' %}
 
 {% if messages %}
-<div style="position:fixed;top:76px;right:16px;z-index:9999;min-width:300px;max-width:420px;">
+<div style="position:fixed;top:76px;right:16px;z-index:9999;width:calc(100% - 32px);max-width:420px;">
   {% for message in messages %}
   <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
     {{ message }}
@@ -16,5 +16,72 @@
 {% block atcontent %}
 
 {% endblock %}
+
+{% load group_tags %}
+{% if request.user.is_authenticated and request.user|has_group:"teachers" %}
+<div id="new-message-toast-container" style="position:fixed;bottom:20px;right:16px;z-index:9999;width:calc(100% - 32px);max-width:420px;"></div>
+<script>
+(function () {
+  let lastSeenMessageId = 0;
+
+  function renderToast(latest) {
+    const container = document.getElementById('new-message-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-info alert-dismissible fade show shadow-sm';
+    toast.setAttribute('role', 'alert');
+    toast.style.cursor = 'pointer';
+
+    const strong = document.createElement('strong');
+    strong.textContent = 'New message from ' + latest.sender_name;
+    toast.appendChild(strong);
+    toast.appendChild(document.createElement('br'));
+    toast.appendChild(document.createTextNode(latest.snippet));
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close';
+    closeBtn.setAttribute('data-bs-dismiss', 'alert');
+    closeBtn.setAttribute('aria-label', 'Close');
+    toast.appendChild(closeBtn);
+
+    toast.addEventListener('click', function (e) {
+      if (e.target === closeBtn) return;
+      window.location.href = '/messaging/' + latest.sender_id + '/';
+    });
+    container.appendChild(toast);
+  }
+
+  function updateBadge(count) {
+    const badge = document.getElementById('sidebar-unread-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function poll() {
+    fetch('/messaging/unread_status/')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        updateBadge(data.unread_count);
+        if (data.latest && data.latest.id !== lastSeenMessageId) {
+          if (lastSeenMessageId !== 0) {
+            renderToast(data.latest);
+          }
+          lastSeenMessageId = data.latest.id;
+        }
+      })
+      .catch(function () {});
+  }
+
+  poll();
+  setInterval(poll, 20000);
+}());
+</script>
+{% endif %}
 
 {% include 'footer.html' %}

@@ -172,6 +172,14 @@
           <span>Student Groups</span>
         </a>
       </li>
+
+      <li class="nav-item">
+        <a class="nav-link collapsed d-flex align-items-center" href="{% url 'message_threads' %}">
+          <i class="bi bi-chat-dots-fill"></i>
+          <span>Messages</span>
+          <span id="sidebar-unread-badge" class="badge bg-danger ms-auto me-2" style="display:none;"></span>
+        </a>
+      </li>
 	{% endif %}
 
       <li class="nav-item">

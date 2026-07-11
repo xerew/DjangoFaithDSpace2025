@@ -219,3 +219,25 @@ class ViewProfileTests(TestCase):
         r = self.client.get(reverse('view_profile', args=[self.bob.id]))
         self.assertContains(r, 'Send Bob a message')
         self.assertNotContains(r, 'id="infoForm"')
+
+
+class SidebarMessagingIntegrationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.teacher = User.objects.create_user('sidebar_teacher', password='pass')
+        self.teacher.groups.add(teachers)
+        self.student = User.objects.create_user('sidebar_student', password='pass')
+
+    def test_teacher_sees_messages_nav_and_polling_script(self):
+        self.client.login(username='sidebar_teacher', password='pass')
+        r = self.client.get(reverse('profile'))
+        self.assertContains(r, reverse('message_threads'))
+        self.assertContains(r, 'sidebar-unread-badge')
+        self.assertContains(r, 'new-message-toast-container')
+
+    def test_student_does_not_see_messages_nav_or_polling_script(self):
+        self.client.login(username='sidebar_student', password='pass')
+        r = self.client.get(reverse('studentScenarios'))
+        self.assertNotContains(r, 'sidebar-unread-badge')
+        self.assertNotContains(r, 'new-message-toast-container')
