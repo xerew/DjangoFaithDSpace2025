@@ -696,3 +696,8 @@ class EditProposalJsonViewTests(TestCase):
 
         review = UserProposalReview.objects.get(proposal=self.proposal, user=self.user)
         self.assertEqual(review.teacher_edited_json['content'], 'Second revision')
+
+    def test_get_request_does_not_create_edit_event(self):
+        url = reverse('edit_proposal_json', args=[self.scenario.id, self.proposal.id])
+        response = self.client.get(url)
+        self.assertFalse(UserProposalReview.objects.filter(proposal=self.proposal, user=self.user).exists())

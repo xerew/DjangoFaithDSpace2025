@@ -2493,6 +2493,7 @@ def _answers_field_diff(old_answers, new_answers):
     }
 
 
+@require_POST
 @group_required('teachers')
 def edit_proposal_json(request, scenario_id, pk):
     proposal = get_object_or_404(ActivityProposal, pk=pk)
