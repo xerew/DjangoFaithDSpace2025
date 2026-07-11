@@ -321,3 +321,84 @@ class RegisterAccountGenderTests(TestCase):
         self.assertTrue(data['success'])
         user = User.objects.get(username='testuser_nogender')
         self.assertEqual(user.profile.gender, '')
+
+
+class ProfileEditGenderAvatarTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.user = User.objects.create_user(
+            'profile_edit_user', password='pass', first_name='Pat', last_name='Doe',
+            email='pat@example.com',
+        )
+        self.user.groups.add(teachers)
+        self.client.login(username='profile_edit_user', password='pass')
+
+    def _update_info(self, **overrides):
+        data = {
+            'action': 'update_info',
+            'first_name': 'Pat',
+            'last_name': 'Doe',
+            'email': 'pat@example.com',
+            'country': '',
+            'institution': '',
+            'bio': '',
+            'gender': 'male',
+        }
+        data.update(overrides)
+        return self.client.post(
+            reverse('profile'), data,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+    def test_update_info_sets_gender(self):
+        r = self._update_info(gender='female')
+        self.assertTrue(r.json()['success'])
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(profile.gender, 'female')
+
+    def test_update_info_uploads_picture(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        tiny_gif = (
+            b'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00'
+            b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        upload = SimpleUploadedFile('avatar.gif', tiny_gif, content_type='image/gif')
+        r = self._update_info(picture=upload)
+        self.assertTrue(r.json()['success'])
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertTrue(profile.picture.name)
+
+    def test_update_info_without_new_picture_keeps_existing(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        tiny_gif = (
+            b'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00'
+            b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        profile = UserProfile.objects.create(
+            user=self.user,
+            picture=SimpleUploadedFile('original.gif', tiny_gif, content_type='image/gif'),
+        )
+        original_name = profile.picture.name
+        r = self._update_info()
+        self.assertTrue(r.json()['success'])
+        profile.refresh_from_db()
+        self.assertEqual(profile.picture.name, original_name)
+
+    def test_profile_page_renders_avatar_img_when_picture_set(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        tiny_gif = (
+            b'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00'
+            b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        UserProfile.objects.create(
+            user=self.user,
+            picture=SimpleUploadedFile('portrait.gif', tiny_gif, content_type='image/gif'),
+        )
+        r = self.client.get(reverse('profile'))
+        self.assertContains(r, '<img src="/media/profile_pictures/portrait')
+
+    def test_profile_page_falls_back_to_icon_without_picture_or_gender(self):
+        UserProfile.objects.create(user=self.user)
+        r = self.client.get(reverse('profile'))
+        self.assertContains(r, 'bi-person-circle')

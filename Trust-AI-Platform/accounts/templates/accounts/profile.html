@@ -44,8 +44,15 @@
       <div class="col-12 col-md-5 col-xl-4">
         <div class="card">
           <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
+            {% load profile_tags %}
             <div class="profile-avatar mb-3">
+              {% with avatar=profile_user|avatar_url %}
+              {% if avatar %}
+              <img src="{{ avatar }}" alt="" style="width:5rem;height:5rem;border-radius:50%;object-fit:cover;">
+              {% else %}
               <i class="bi bi-person-circle" style="font-size: 5rem; color: #012970;"></i>
+              {% endif %}
+              {% endwith %}
             </div>
             <h5 class="card-title">{{ profile_user.first_name }} {{ profile_user.last_name }}</h5>
             <h6 class="text-muted small">@{{ profile_user.username }}</h6>
@@ -216,6 +223,25 @@
                         <option value="{{ value }}" {% if profile.country == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                       </select>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Gender</label>
+                    <div class="col-md-8">
+                      <select class="form-select" name="gender" id="gender">
+                        <option value="" {% if not profile.gender %}selected{% endif %}>Prefer not to say</option>
+                        <option value="male" {% if profile.gender == 'male' %}selected{% endif %}>Male</option>
+                        <option value="female" {% if profile.gender == 'female' %}selected{% endif %}>Female</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <label class="col-md-4 col-form-label">Profile Picture</label>
+                    <div class="col-md-8">
+                      <input type="file" class="form-control" name="picture" id="picture" accept="image/*">
+                      <div class="form-text text-muted">Leave blank to keep your current picture (or gender default).</div>
                     </div>
                   </div>
 

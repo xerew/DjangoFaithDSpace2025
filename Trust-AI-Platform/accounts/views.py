@@ -175,6 +175,8 @@ def profile_view(request):
             country     = request.POST.get('country', '').strip()
             institution = request.POST.get('institution', '').strip()
             bio         = request.POST.get('bio', '').strip()
+            gender      = request.POST.get('gender', '').strip()
+            picture     = request.FILES.get('picture')
 
             errors = {}
             if not first_name:
@@ -200,7 +202,12 @@ def profile_view(request):
             profile.country     = country
             profile.institution = institution
             profile.bio         = bio
-            profile.save(update_fields=['country', 'institution', 'bio'])
+            profile.gender      = gender
+            update_fields = ['country', 'institution', 'bio', 'gender']
+            if picture:
+                profile.picture = picture
+                update_fields.append('picture')
+            profile.save(update_fields=update_fields)
 
             return JsonResponse({'success': True, 'message': 'Profile updated successfully.',
                                  'country': country, 'institution': institution})
