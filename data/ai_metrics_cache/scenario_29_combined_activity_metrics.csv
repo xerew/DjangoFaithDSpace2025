@@ -1,0 +1,187 @@
+Phase,Activity,Type,Category,Total,Correct,Wrong,% Correct,% Wrong,Avg Time,Next Low,Next Moderate,Next High
+Engagement,Introduction,Explanation,High,115,,,0.0,0.0,53.8,Planck hypothesis,Planck hypothesis,Planck hypothesis
+Engagement,Introduction,Explanation,Moderate,144,,,0.0,0.0,39.8,Planck hypothesis,Planck hypothesis,Planck hypothesis
+Engagement,Introduction,Explanation,Low,17,,,0.0,0.0,29.6,Planck hypothesis,Planck hypothesis,Planck hypothesis
+Engagement,Planck hypothesis,Question,High,115,74,41,64.3,35.7,75.5,Current in the amperometer,Current in the amperometer,Current in the amperometer
+Engagement,Planck hypothesis,Question,Moderate,144,58,86,40.3,59.7,51.4,Current in the amperometer,Current in the amperometer,Current in the amperometer
+Engagement,Planck hypothesis,Question,Low,17,0,17,0.0,100.0,65.1,Current in the amperometer,Current in the amperometer,Current in the amperometer
+Engagement,Current in the amperometer,Question,High,115,106,9,92.2,7.8,64.8,Explanations on Planck hypothesis,Guidance on Planck hypothesis,Mental experiment
+Engagement,Current in the amperometer,Question,Moderate,144,49,95,34.0,66.0,46.3,Explanations on Planck hypothesis,Guidance on Planck hypothesis,Mental experiment
+Engagement,Current in the amperometer,Question,Low,16,0,16,0.0,100.0,49.7,Explanations on Planck hypothesis,Guidance on Planck hypothesis,Mental experiment
+Engagement,Explanations on Planck hypothesis,Explanation,High,16,,,0.0,0.0,75.4,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis
+Engagement,Explanations on Planck hypothesis,Explanation,Moderate,135,,,0.0,0.0,29.5,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis
+Engagement,Explanations on Planck hypothesis,Explanation,Low,16,,,0.0,0.0,32.8,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis,Question after explanation on Planck hypothesis
+Engagement,Guidance on Planck hypothesis,Guidance,High,50,,,0.0,0.0,39.3,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis
+Engagement,Guidance on Planck hypothesis,Guidance,Moderate,3,,,0.0,0.0,12.0,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis
+Engagement,Guidance on Planck hypothesis,Guidance,Low,1,,,0.0,0.0,15.0,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis,Question after guidance on Planck hypothesis
+Engagement,Question after explanation on Planck hypothesis,Question,High,15,13,2,86.7,13.3,28.7,General explanations on Planck hypothesis,General explanations on Planck hypothesis,Mental experiment
+Engagement,Question after explanation on Planck hypothesis,Question,Moderate,134,97,37,72.4,27.6,53.5,General explanations on Planck hypothesis,General explanations on Planck hypothesis,Mental experiment
+Engagement,Question after explanation on Planck hypothesis,Question,Low,16,13,3,81.2,18.8,24.7,General explanations on Planck hypothesis,General explanations on Planck hypothesis,Mental experiment
+Engagement,Question after guidance on Planck hypothesis,Question,High,49,34,15,69.4,30.6,58.4,Explanations on Planck hypothesis,Explanations on Planck hypothesis,Mental experiment
+Engagement,Question after guidance on Planck hypothesis,Question,Moderate,2,2,0,100.0,0.0,37.0,Explanations on Planck hypothesis,Explanations on Planck hypothesis,Mental experiment
+Engagement,Question after guidance on Planck hypothesis,Question,Low,1,0,1,0.0,100.0,110.0,Explanations on Planck hypothesis,Explanations on Planck hypothesis,Mental experiment
+Engagement,General explanations on Planck hypothesis,Explanation,High,2,,,0.0,0.0,5.0,Mental experiment,Mental experiment,Mental experiment
+Engagement,General explanations on Planck hypothesis,Explanation,Moderate,35,,,0.0,0.0,21.5,Mental experiment,Mental experiment,Mental experiment
+Engagement,General explanations on Planck hypothesis,Explanation,Low,3,,,0.0,0.0,11.7,Mental experiment,Mental experiment,Mental experiment
+Hypothesis,Mental experiment,Explanation,High,163,,,0.0,0.0,20.1,Question 1 on mental experiment,Question 1 on mental experiment,Question 1 on mental experiment
+Hypothesis,Mental experiment,Explanation,Moderate,99,,,0.0,0.0,22.0,Question 1 on mental experiment,Question 1 on mental experiment,Question 1 on mental experiment
+Hypothesis,Mental experiment,Explanation,Low,11,,,0.0,0.0,7.3,Question 1 on mental experiment,Question 1 on mental experiment,Question 1 on mental experiment
+Hypothesis,Question 1 on mental experiment,Question,High,163,115,48,70.6,29.4,46.4,Question 2 on mental experiment,Question 2 on mental experiment,Question 2 on mental experiment
+Hypothesis,Question 1 on mental experiment,Question,Moderate,99,45,54,45.5,54.5,45.7,Question 2 on mental experiment,Question 2 on mental experiment,Question 2 on mental experiment
+Hypothesis,Question 1 on mental experiment,Question,Low,10,0,10,0.0,100.0,21.2,Question 2 on mental experiment,Question 2 on mental experiment,Question 2 on mental experiment
+Hypothesis,Question 2 on mental experiment,Question,High,163,163,0,100.0,0.0,39.6,Explanations on mental experiment,Explanations on mental experiment,Experiment 1 - Kinetic energy vs light frequency
+Hypothesis,Question 2 on mental experiment,Question,Moderate,99,20,79,20.2,79.8,39.1,Explanations on mental experiment,Explanations on mental experiment,Experiment 1 - Kinetic energy vs light frequency
+Hypothesis,Question 2 on mental experiment,Question,Low,10,0,10,0.0,100.0,22.8,Explanations on mental experiment,Explanations on mental experiment,Experiment 1 - Kinetic energy vs light frequency
+Hypothesis,Explanations on mental experiment,Explanation,High,47,,,0.0,0.0,80.3,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency
+Hypothesis,Explanations on mental experiment,Explanation,Moderate,95,,,0.0,0.0,56.8,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency
+Hypothesis,Explanations on mental experiment,Explanation,Low,10,,,0.0,0.0,52.8,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency,Experiment 1 - Kinetic energy vs light frequency
+Experiment,Experiment 1 - Kinetic energy vs light frequency,Experiment,High,59,,,0.0,0.0,357.4,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency
+Experiment,Experiment 1 - Kinetic energy vs light frequency,Experiment,Moderate,192,,,0.0,0.0,182.7,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency
+Experiment,Experiment 1 - Kinetic energy vs light frequency,Experiment,Low,19,,,0.0,0.0,330.2,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency,Question 1 - Kinetic energy vs light frequency
+Experiment,Question 1 - Kinetic energy vs light frequency,Question,High,59,42,17,71.2,28.8,54.6,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency
+Experiment,Question 1 - Kinetic energy vs light frequency,Question,Moderate,192,86,106,44.8,55.2,38.4,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency
+Experiment,Question 1 - Kinetic energy vs light frequency,Question,Low,17,1,16,5.9,94.1,55.2,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency,Question 2 - Kinetic energy vs light frequency
+Experiment,Question 2 - Kinetic energy vs light frequency,Question,High,59,59,0,100.0,0.0,34.6,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency
+Experiment,Question 2 - Kinetic energy vs light frequency,Question,Moderate,192,133,59,69.3,30.7,28.3,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency
+Experiment,Question 2 - Kinetic energy vs light frequency,Question,Low,17,2,15,11.8,88.2,24.2,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency,Question 3 - Kinetic energy vs light frequency
+Experiment,Question 3 - Kinetic energy vs light frequency,Question,High,59,43,16,72.9,27.1,32.5,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency
+Experiment,Question 3 - Kinetic energy vs light frequency,Question,Moderate,192,109,83,56.8,43.2,23.1,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency
+Experiment,Question 3 - Kinetic energy vs light frequency,Question,Low,16,3,13,18.8,81.2,17.4,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency,Question 4 - Kinetic energy vs light frequency
+Experiment,Question 4 - Kinetic energy vs light frequency,Question,High,59,52,7,88.1,11.9,101.0,Explanations on Experiment 1,Guidance on Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Question 4 - Kinetic energy vs light frequency,Question,Moderate,192,91,101,47.4,52.6,52.7,Explanations on Experiment 1,Guidance on Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Question 4 - Kinetic energy vs light frequency,Question,Low,16,4,12,25.0,75.0,27.4,Explanations on Experiment 1,Guidance on Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Explanations on Experiment 1,Explanation,High,4,,,0.0,0.0,30.5,Repetetion of Experiment 1,Repetetion of Experiment 1,Repetetion of Experiment 1
+Experiment,Explanations on Experiment 1,Explanation,Moderate,106,,,0.0,0.0,29.0,Repetetion of Experiment 1,Repetetion of Experiment 1,Repetetion of Experiment 1
+Experiment,Explanations on Experiment 1,Explanation,Low,16,,,0.0,0.0,75.8,Repetetion of Experiment 1,Repetetion of Experiment 1,Repetetion of Experiment 1
+Experiment,Guidance on Experiment 1,Guidance,High,26,,,0.0,0.0,21.5,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1
+Experiment,Guidance on Experiment 1,Guidance,Moderate,67,,,0.0,0.0,21.0,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1
+Experiment,Guidance on Experiment 1,Guidance,Low,1,,,0.0,0.0,7.0,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1
+Experiment,Repetetion of Experiment 1,Experiment,High,4,,,0.0,0.0,21.5,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1
+Experiment,Repetetion of Experiment 1,Experiment,Moderate,105,,,0.0,0.0,58.5,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1
+Experiment,Repetetion of Experiment 1,Experiment,Low,14,,,0.0,0.0,74.2,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1,Question 1 after repeating Experiment 1
+Experiment,Question 1 after repeating Experiment 1,Question,High,4,4,0,100.0,0.0,44.5,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1
+Experiment,Question 1 after repeating Experiment 1,Question,Moderate,105,31,74,29.5,70.5,31.7,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1
+Experiment,Question 1 after repeating Experiment 1,Question,Low,14,4,10,28.6,71.4,17.0,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1,Question 2 after repeating Experiment 1
+Experiment,Question 2 after repeating Experiment 1,Question,High,4,0,4,0.0,100.0,22.0,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Question 2 after repeating Experiment 1,Question,Moderate,105,46,59,43.8,56.2,28.5,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Question 2 after repeating Experiment 1,Question,Low,14,3,11,21.4,78.6,22.1,Quick demonstration of Experiment 1,Quick demonstration of Experiment 1,Experiment 2 - Intensity vs recorded current
+Experiment,Quick demonstration of Experiment 1,Guidance,High,30,,,0.0,0.0,36.2,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current
+Experiment,Quick demonstration of Experiment 1,Guidance,Moderate,157,,,0.0,0.0,45.2,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current
+Experiment,Quick demonstration of Experiment 1,Guidance,Low,11,,,0.0,0.0,12.9,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current,Experiment 2 - Intensity vs recorded current
+Experiment,Experiment 2 - Intensity vs recorded current,Experiment,High,59,,,0.0,0.0,200.3,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current
+Experiment,Experiment 2 - Intensity vs recorded current,Experiment,Moderate,192,,,0.0,0.0,92.2,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current
+Experiment,Experiment 2 - Intensity vs recorded current,Experiment,Low,12,,,0.0,0.0,105.1,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current,Question 1 - Intensity vs recorded current
+Experiment,Question 1 - Intensity vs recorded current,Question,High,59,58,1,98.3,1.7,30.8,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current
+Experiment,Question 1 - Intensity vs recorded current,Question,Moderate,192,118,74,61.5,38.5,27.1,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current
+Experiment,Question 1 - Intensity vs recorded current,Question,Low,11,5,6,45.5,54.5,11.4,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current,Question 2 - Intensity vs recorded current
+Experiment,Question 2 - Intensity vs recorded current,Question,High,59,42,17,71.2,28.8,30.0,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current
+Experiment,Question 2 - Intensity vs recorded current,Question,Moderate,192,42,150,21.9,78.1,24.0,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current
+Experiment,Question 2 - Intensity vs recorded current,Question,Low,10,1,9,10.0,90.0,12.7,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current,Question 3 - Intensity vs recorded current
+Experiment,Question 3 - Intensity vs recorded current,Question,High,59,47,12,79.7,20.3,37.3,Explanations on Experiment 2,Guidance on Experiment 2,Experiment 3 - Voltage
+Experiment,Question 3 - Intensity vs recorded current,Question,Moderate,192,114,78,59.4,40.6,26.8,Explanations on Experiment 2,Guidance on Experiment 2,Experiment 3 - Voltage
+Experiment,Question 3 - Intensity vs recorded current,Question,Low,9,4,5,44.4,55.6,42.6,Explanations on Experiment 2,Guidance on Experiment 2,Experiment 3 - Voltage
+Experiment,Explanations on Experiment 2,Explanation,High,25,,,0.0,0.0,43.8,Repetition of Experiment 2,Repetition of Experiment 2,Repetition of Experiment 2
+Experiment,Explanations on Experiment 2,Explanation,Moderate,173,,,0.0,0.0,16.1,Repetition of Experiment 2,Repetition of Experiment 2,Repetition of Experiment 2
+Experiment,Explanations on Experiment 2,Explanation,Low,9,,,0.0,0.0,9.4,Repetition of Experiment 2,Repetition of Experiment 2,Repetition of Experiment 2
+Experiment,Guidance on Experiment 2,Guidance,High,2,,,0.0,0.0,33.5,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Guidance on Experiment 2,Guidance,Moderate,4,,,0.0,0.0,20.0,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Guidance on Experiment 2,Guidance,Low,0,,,,,,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Repetition of Experiment 2,Experiment,High,25,,,0.0,0.0,89.5,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2
+Experiment,Repetition of Experiment 2,Experiment,Moderate,171,,,0.0,0.0,40.5,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2
+Experiment,Repetition of Experiment 2,Experiment,Low,8,,,0.0,0.0,24.2,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2,Question 1 after repeating Experiment 2
+Experiment,Question 1 after repeating Experiment 2,Question,High,25,20,5,80.0,20.0,40.8,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2
+Experiment,Question 1 after repeating Experiment 2,Question,Moderate,170,53,117,31.2,68.8,23.8,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2
+Experiment,Question 1 after repeating Experiment 2,Question,Low,8,4,4,50.0,50.0,11.0,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2,Question 2 after repeating Experiment 2
+Experiment,Question 2 after repeating Experiment 2,Question,High,25,22,3,88.0,12.0,37.4,Additional explanations on Experiment 2,Additional explanations on Experiment 2,Experiment 3 - Voltage
+Experiment,Question 2 after repeating Experiment 2,Question,Moderate,170,83,87,48.8,51.2,35.3,Additional explanations on Experiment 2,Additional explanations on Experiment 2,Experiment 3 - Voltage
+Experiment,Question 2 after repeating Experiment 2,Question,Low,8,2,6,25.0,75.0,16.8,Additional explanations on Experiment 2,Additional explanations on Experiment 2,Experiment 3 - Voltage
+Experiment,Additional explanations on Experiment 2,Explanation,High,6,,,0.0,0.0,43.0,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Additional explanations on Experiment 2,Explanation,Moderate,139,,,0.0,0.0,23.4,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Additional explanations on Experiment 2,Explanation,Low,6,,,0.0,0.0,10.2,Experiment 3 - Voltage,Experiment 3 - Voltage,Experiment 3 - Voltage
+Experiment,Experiment 3 - Voltage,Experiment,High,59,,,0.0,0.0,397.7,Question 1 - Voltage,Question 1 - Voltage,Question 1 - Voltage
+Experiment,Experiment 3 - Voltage,Experiment,Moderate,188,,,0.0,0.0,130.5,Question 1 - Voltage,Question 1 - Voltage,Question 1 - Voltage
+Experiment,Experiment 3 - Voltage,Experiment,Low,7,,,0.0,0.0,66.3,Question 1 - Voltage,Question 1 - Voltage,Question 1 - Voltage
+Experiment,Question 1 - Voltage,Question,High,59,28,31,47.5,52.5,53.3,Question 2 - Voltage,Question 2 - Voltage,Question 2 - Voltage
+Experiment,Question 1 - Voltage,Question,Moderate,188,80,108,42.6,57.4,36.6,Question 2 - Voltage,Question 2 - Voltage,Question 2 - Voltage
+Experiment,Question 1 - Voltage,Question,Low,7,0,7,0.0,100.0,12.9,Question 2 - Voltage,Question 2 - Voltage,Question 2 - Voltage
+Experiment,Question 2 - Voltage,Question,High,59,49,10,83.1,16.9,37.0,Question 3 - Voltage,Question 3 - Voltage,Question 3 - Voltage
+Experiment,Question 2 - Voltage,Question,Moderate,188,89,99,47.3,52.7,21.1,Question 3 - Voltage,Question 3 - Voltage,Question 3 - Voltage
+Experiment,Question 2 - Voltage,Question,Low,7,0,7,0.0,100.0,9.6,Question 3 - Voltage,Question 3 - Voltage,Question 3 - Voltage
+Experiment,Question 3 - Voltage,Question,High,59,55,4,93.2,6.8,47.3,Explanations on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Question 3 - Voltage,Question,Moderate,187,74,113,39.6,60.4,26.9,Explanations on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Question 3 - Voltage,Question,Low,7,1,6,14.3,85.7,8.1,Explanations on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Explanations on Experiment 3,Experiment,High,0,,,,,,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3
+Experiment,Explanations on Experiment 3,Experiment,Moderate,0,,,,,,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3
+Experiment,Explanations on Experiment 3,Experiment,Low,0,,,,,,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3,Additional question 1 on Experiment 3
+Experiment,Guidance on Experiment 3,Guidance,High,39,,,0.0,0.0,23.9,Demonstration - Voltage,Demonstration - Voltage,Demonstration - Voltage
+Experiment,Guidance on Experiment 3,Guidance,Moderate,170,,,0.0,0.0,20.6,Demonstration - Voltage,Demonstration - Voltage,Demonstration - Voltage
+Experiment,Guidance on Experiment 3,Guidance,Low,7,,,0.0,0.0,25.7,Demonstration - Voltage,Demonstration - Voltage,Demonstration - Voltage
+Experiment,Additional question 1 on Experiment 3,Question,High,0,,,,,,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3
+Experiment,Additional question 1 on Experiment 3,Question,Moderate,0,,,,,,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3
+Experiment,Additional question 1 on Experiment 3,Question,Low,0,,,,,,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3,Additional question 2 on Experiment 3
+Experiment,Additional question 2 on Experiment 3,Question,High,0,,,,,,Guidance on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Additional question 2 on Experiment 3,Question,Moderate,0,,,,,,Guidance on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Additional question 2 on Experiment 3,Question,Low,0,,,,,,Guidance on Experiment 3,Guidance on Experiment 3,Classical theory: Intensity & kinetic energy
+Experiment,Demonstration - Voltage,Experiment,High,39,,,0.0,0.0,83.9,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy
+Experiment,Demonstration - Voltage,Experiment,Moderate,166,,,0.0,0.0,37.2,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy
+Experiment,Demonstration - Voltage,Experiment,Low,7,,,0.0,0.0,38.6,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy,Classical theory: Intensity & kinetic energy
+Analysis,Classical theory: Intensity & kinetic energy,Explanation,High,84,,,0.0,0.0,24.7,Classical theory: Frequency and current,Classical theory: Frequency and current,Classical theory: Frequency and current
+Analysis,Classical theory: Intensity & kinetic energy,Explanation,Moderate,141,,,0.0,0.0,42.0,Classical theory: Frequency and current,Classical theory: Frequency and current,Classical theory: Frequency and current
+Analysis,Classical theory: Intensity & kinetic energy,Explanation,Low,24,,,0.0,0.0,52.3,Classical theory: Frequency and current,Classical theory: Frequency and current,Classical theory: Frequency and current
+Analysis,Classical theory: Frequency and current,Explanation,High,84,,,0.0,0.0,16.5,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings
+Analysis,Classical theory: Frequency and current,Explanation,Moderate,141,,,0.0,0.0,36.1,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings
+Analysis,Classical theory: Frequency and current,Explanation,Low,23,,,0.0,0.0,26.0,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings,Question 1 - Classical theory & experimental findings
+Analysis,Question 1 - Classical theory & experimental findings,Question,High,84,64,20,76.2,23.8,26.3,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings
+Analysis,Question 1 - Classical theory & experimental findings,Question,Moderate,141,45,96,31.9,68.1,40.4,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings
+Analysis,Question 1 - Classical theory & experimental findings,Question,Low,23,2,21,8.7,91.3,40.9,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings,Question 2: Classical theory & experimental findings
+Analysis,Question 2: Classical theory & experimental findings,Question,High,84,43,41,51.2,48.8,35.2,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings
+Analysis,Question 2: Classical theory & experimental findings,Question,Moderate,141,34,107,24.1,75.9,34.0,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings
+Analysis,Question 2: Classical theory & experimental findings,Question,Low,23,3,20,13.0,87.0,27.1,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings,Question 3: Classical theory & experimental findings
+Analysis,Question 3: Classical theory & experimental findings,Question,High,84,35,49,41.7,58.3,23.7,Experiment - kinetic energy and frequency,Explanation on classical theory & experimental findings,Explanation of photoelectric effect
+Analysis,Question 3: Classical theory & experimental findings,Question,Moderate,141,26,115,18.4,81.6,58.9,Experiment - kinetic energy and frequency,Explanation on classical theory & experimental findings,Explanation of photoelectric effect
+Analysis,Question 3: Classical theory & experimental findings,Question,Low,22,4,18,18.2,81.8,47.6,Experiment - kinetic energy and frequency,Explanation on classical theory & experimental findings,Explanation of photoelectric effect
+Analysis,Experiment - kinetic energy and frequency,Experiment,High,43,,,0.0,0.0,30.1,Experiment: Intensity and current,Experiment: Intensity and current,Experiment: Intensity and current
+Analysis,Experiment - kinetic energy and frequency,Experiment,Moderate,125,,,0.0,0.0,74.8,Experiment: Intensity and current,Experiment: Intensity and current,Experiment: Intensity and current
+Analysis,Experiment - kinetic energy and frequency,Experiment,Low,20,,,0.0,0.0,105.0,Experiment: Intensity and current,Experiment: Intensity and current,Experiment: Intensity and current
+Analysis,Experiment: Intensity and current,Experiment,High,42,,,0.0,0.0,27.8,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Experiment: Intensity and current,Experiment,Moderate,125,,,0.0,0.0,50.3,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Experiment: Intensity and current,Experiment,Low,19,,,0.0,0.0,41.0,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Explanation on classical theory & experimental findings,Explanation,High,30,,,0.0,0.0,13.4,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Explanation on classical theory & experimental findings,Explanation,Moderate,14,,,0.0,0.0,24.6,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Explanation on classical theory & experimental findings,Explanation,Low,0,,,,,,Explanation of photoelectric effect,Explanation of photoelectric effect,Explanation of photoelectric effect
+Analysis,Explanation of photoelectric effect,Explanation,High,84,,,0.0,0.0,26.2,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect
+Analysis,Explanation of photoelectric effect,Explanation,Moderate,141,,,0.0,0.0,41.3,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect
+Analysis,Explanation of photoelectric effect,Explanation,Low,16,,,0.0,0.0,34.6,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect,Question 1 on the photoelectric effect
+Analysis,Question 1 on the photoelectric effect,Question,High,84,75,9,89.3,10.7,27.9,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect
+Analysis,Question 1 on the photoelectric effect,Question,Moderate,141,85,56,60.3,39.7,29.6,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect
+Analysis,Question 1 on the photoelectric effect,Question,Low,12,1,11,8.3,91.7,18.9,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect,Question 2 on the photoelectric effect
+Analysis,Question 2 on the photoelectric effect,Question,High,84,79,5,94.0,6.0,38.3,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect
+Analysis,Question 2 on the photoelectric effect,Question,Moderate,140,66,74,47.1,52.9,31.3,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect
+Analysis,Question 2 on the photoelectric effect,Question,Low,11,0,11,0.0,100.0,15.6,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect,Question 3 on the photoelectric effect
+Analysis,Question 3 on the photoelectric effect,Question,High,84,74,10,88.1,11.9,17.9,Additional explanations on classical theory and experimental findings,Additional explanations on classical theory and experimental findings,Q1 - maximum kinetic energy & cutoff voltage
+Analysis,Question 3 on the photoelectric effect,Question,Moderate,136,51,85,37.5,62.5,19.4,Additional explanations on classical theory and experimental findings,Additional explanations on classical theory and experimental findings,Q1 - maximum kinetic energy & cutoff voltage
+Analysis,Question 3 on the photoelectric effect,Question,Low,11,0,11,0.0,100.0,9.0,Additional explanations on classical theory and experimental findings,Additional explanations on classical theory and experimental findings,Q1 - maximum kinetic energy & cutoff voltage
+Analysis,Additional explanations on classical theory and experimental findings,Explanation,High,24,,,0.0,0.0,28.1,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage
+Analysis,Additional explanations on classical theory and experimental findings,Explanation,Moderate,125,,,0.0,0.0,33.1,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage
+Analysis,Additional explanations on classical theory and experimental findings,Explanation,Low,11,,,0.0,0.0,9.5,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage,Q1 - maximum kinetic energy & cutoff voltage
+Reflection,Q1 - maximum kinetic energy & cutoff voltage,Question,High,38,31,7,81.6,18.4,62.0,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​
+Reflection,Q1 - maximum kinetic energy & cutoff voltage,Question,Moderate,146,27,119,18.5,81.5,34.3,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​
+Reflection,Q1 - maximum kinetic energy & cutoff voltage,Question,Low,44,2,42,4.5,95.5,75.6,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​,Q2 - Maximum kinetic energy – cutoff voltage​
+Reflection,Q2 - Maximum kinetic energy – cutoff voltage​,Question,High,38,35,3,92.1,7.9,49.6,Explanations on maximum kinetic energy & cutoff voltage,Explanations on maximum kinetic energy & cutoff voltage,Applications of the photoelectric effect
+Reflection,Q2 - Maximum kinetic energy – cutoff voltage​,Question,Moderate,146,53,93,36.3,63.7,30.8,Explanations on maximum kinetic energy & cutoff voltage,Explanations on maximum kinetic energy & cutoff voltage,Applications of the photoelectric effect
+Reflection,Q2 - Maximum kinetic energy – cutoff voltage​,Question,Low,42,3,39,7.1,92.9,33.8,Explanations on maximum kinetic energy & cutoff voltage,Explanations on maximum kinetic energy & cutoff voltage,Applications of the photoelectric effect
+Reflection,Applications of the photoelectric effect,Question,High,38,33,5,86.8,13.2,115.1,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2
+Reflection,Applications of the photoelectric effect,Question,Moderate,145,90,55,62.1,37.9,58.8,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2
+Reflection,Applications of the photoelectric effect,Question,Low,37,2,35,5.4,94.6,45.2,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2,Applications of the photoelectric effect 2
+Reflection,Applications of the photoelectric effect 2,Question,High,38,25,13,65.8,34.2,31.2,Explanations on the photon energy,Explanations on the photon energy,End of the scenario
+Reflection,Applications of the photoelectric effect 2,Question,Moderate,143,41,102,28.7,71.3,40.7,Explanations on the photon energy,Explanations on the photon energy,End of the scenario
+Reflection,Applications of the photoelectric effect 2,Question,Low,34,0,34,0.0,100.0,26.9,Explanations on the photon energy,Explanations on the photon energy,End of the scenario
+Reflection,Explanations on maximum kinetic energy & cutoff voltage,Explanation,High,9,,,0.0,0.0,26.7,Applications of the photoelectric effect,Applications of the photoelectric effect,Applications of the photoelectric effect
+Reflection,Explanations on maximum kinetic energy & cutoff voltage,Explanation,Moderate,130,,,0.0,0.0,19.9,Applications of the photoelectric effect,Applications of the photoelectric effect,Applications of the photoelectric effect
+Reflection,Explanations on maximum kinetic energy & cutoff voltage,Explanation,Low,39,,,0.0,0.0,27.8,Applications of the photoelectric effect,Applications of the photoelectric effect,Applications of the photoelectric effect
+Reflection,End of the scenario,Explanation,High,15,,,0.0,0.0,9.3,,,
+Reflection,End of the scenario,Explanation,Moderate,96,,,0.0,0.0,12.8,,,
+Reflection,End of the scenario,Explanation,Low,20,,,0.0,0.0,7.0,,,
+Reflection,Explanations on the photon energy,Explanation,High,6,,,0.0,0.0,10.8,End of the scenario,End of the scenario,End of the scenario
+Reflection,Explanations on the photon energy,Explanation,Moderate,83,,,0.0,0.0,8.5,End of the scenario,End of the scenario,End of the scenario
+Reflection,Explanations on the photon energy,Explanation,Low,20,,,0.0,0.0,8.0,End of the scenario,End of the scenario,End of the scenario
