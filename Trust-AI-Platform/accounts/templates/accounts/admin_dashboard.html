@@ -1,6 +1,7 @@
 {% extends "main.html" %}
 {% block page_title %}<title>Trust AI Lab — User Management</title>{% endblock %}
 {% load static %}
+{% load profile_tags %}
 {% block atcontent %}
 
 <style>
@@ -256,7 +257,13 @@
                     style="display:none;">
                   <td style="padding:12px 16px;">
                     <div class="d-flex align-items-center gap-2">
+                      {% with avatar=u|avatar_url %}
+                      {% if avatar %}
+                      <img src="{{ avatar }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                      {% else %}
                       <div class="user-avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
+                      {% endif %}
+                      {% endwith %}
                       <div>
                         <div class="user-display-name" style="font-weight:600;font-size:13px;color:#012970;">{{ u.get_full_name|default:u.username }}</div>
                         <div style="font-size:11px;color:#888;">@{{ u.username }}</div>

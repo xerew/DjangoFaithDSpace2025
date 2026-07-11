@@ -77,7 +77,14 @@
         <li class="nav-item dropdown pe-3">
 
           <a class="nav-link nav-profile d-flex align-items-center pe-0 gap-2" href="#" data-bs-toggle="dropdown">
+            {% load profile_tags %}
+            {% with avatar=user|avatar_url %}
+            {% if avatar %}
+            <img src="{{ avatar }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+            {% else %}
             <span class="nav-profile-avatar">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
+            {% endif %}
+            {% endwith %}
             <span class="d-none d-md-block dropdown-toggle nav-profile-name">{{ user.get_full_name|default:user.username }}</span>
           </a><!-- End Profile Image Icon -->
 
@@ -85,7 +92,13 @@
 
             <!-- ── Gradient profile header ── -->
             <li class="dropdown-header">
+              {% with avatar=user|avatar_url %}
+              {% if avatar %}
+              <img src="{{ avatar }}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+              {% else %}
               <div class="profile-avatar-initial">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</div>
+              {% endif %}
+              {% endwith %}
               <h6>{{ user.get_full_name|default:user.username }}</h6>
               <span class="profile-role-badge"><span class="profile-role-dot"></span>Active</span>
             </li>

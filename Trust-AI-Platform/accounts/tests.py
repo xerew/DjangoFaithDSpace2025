@@ -402,3 +402,30 @@ class ProfileEditGenderAvatarTests(TestCase):
         UserProfile.objects.create(user=self.user)
         r = self.client.get(reverse('profile'))
         self.assertContains(r, 'bi-person-circle')
+
+
+class AvatarRenderSitesTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.staff = User.objects.create_user('avatar_sites_staff', password='pass', is_staff=True)
+        self.staff.groups.add(teachers)
+        UserProfile.objects.create(user=self.staff, gender='male')
+        self.client.login(username='avatar_sites_staff', password='pass')
+
+    def test_head_nav_renders_gender_default_avatar_img(self):
+        r = self.client.get(reverse('profile'))
+        self.assertContains(r, '/static/img/profile_d_man.webp')
+
+    def test_admin_dashboard_renders_gender_default_avatar_img(self):
+        r = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(r, '/static/img/profile_d_man.webp')
+
+    def test_user_without_gender_or_picture_falls_back_to_initials_in_nav(self):
+        plain_user = User.objects.create_user('avatar_plain', password='pass')
+        plain_user.groups.add(Group.objects.get(name='teachers'))
+        self.client.logout()
+        self.client.login(username='avatar_plain', password='pass')
+        r = self.client.get(reverse('profile'))
+        self.assertNotContains(r, '/static/img/profile_d_')
+        self.assertContains(r, 'nav-profile-avatar')
