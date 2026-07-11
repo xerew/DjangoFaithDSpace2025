@@ -277,3 +277,47 @@ class AvatarUrlFilterTests(TestCase):
         url = avatar_url_filter(self.user)
         self.assertTrue(url.startswith('/media/profile_pictures/test'))
         self.assertNotIn('profile_d_woman', url)
+
+
+class RegisterAccountGenderTests(TestCase):
+    # accounts/views.py:14 imports TEACHER_ACCESS_CODE_HASHED at module load time
+    # (`from faithDev.settings import TEACHER_ACCESS_CODE_HASHED`), so patching
+    # django.conf.settings at test time would NOT affect the check at views.py:118 —
+    # that name is a plain module attribute, not looked up dynamically. Simpler and
+    # robust: settings.py:18 hashes this literal plaintext default whenever the
+    # TEACHER_ACCESS_CODE_HASHED env var isn't set (the normal case in this test
+    # environment), so just submit the real default plaintext code directly.
+    VALID_ACCESS_CODE = r"}{80s%3B\x/+"
+
+    def setUp(self):
+        self.client = Client()
+
+    def _register(self, **overrides):
+        data = {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'email': 'testuser@example.com',
+            'username': 'testuser_gender',
+            'password': 'SuperSecret123!',
+            'access_code': self.VALID_ACCESS_CODE,
+            'gender': 'female',
+        }
+        data.update(overrides)
+        return self.client.post(
+            reverse('register'), data,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+    def test_register_creates_userprofile_with_gender(self):
+        r = self._register()
+        data = r.json()
+        self.assertTrue(data['success'])
+        user = User.objects.get(username='testuser_gender')
+        self.assertEqual(user.profile.gender, 'female')
+
+    def test_register_without_gender_defaults_to_blank(self):
+        r = self._register(gender='', username='testuser_nogender')
+        data = r.json()
+        self.assertTrue(data['success'])
+        user = User.objects.get(username='testuser_nogender')
+        self.assertEqual(user.profile.gender, '')

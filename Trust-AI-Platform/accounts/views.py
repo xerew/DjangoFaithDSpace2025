@@ -99,6 +99,7 @@ def registerAccount(request):
             username = request.POST.get('username')
             password = request.POST.get('password')
             access_code = request.POST.get('access_code')  # New field for access code
+            gender = request.POST.get('gender', '').strip()
 
             errors = {}
             if User.objects.filter(username=username).exists():
@@ -128,6 +129,7 @@ def registerAccount(request):
 
             # Create a new user with the assigned role
             user = User.objects.create(username=username, first_name=first_name, last_name=last_name, email=email, password=hashed_password)
+            UserProfile.objects.create(user=user, gender=gender)
 
             # Add user to "Teacher" group
             teacher_group = Group.objects.get_or_create(name="teachers")[0]
