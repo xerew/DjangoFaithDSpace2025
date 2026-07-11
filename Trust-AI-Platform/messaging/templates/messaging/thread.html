@@ -1,0 +1,91 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ partner.get_full_name|default:partner.username }}</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .chat-hero { background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%); border-radius: 14px; padding: 20px 30px; color: #fff; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,86,219,0.18); display: flex; align-items: center; gap: 14px; }
+  .chat-body { height: 55vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-bubble { max-width: 65%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; }
+  .chat-bubble.mine { align-self: flex-end; background: #1a56db; color: #fff; border-bottom-right-radius: 4px; }
+  .chat-bubble.theirs { align-self: flex-start; background: #f0f4ff; color: #1e293b; border-bottom-left-radius: 4px; }
+  .chat-bubble .chat-time { font-size: 10.5px; opacity: 0.7; margin-top: 4px; display: block; }
+  @media (max-width: 576px) {
+    .chat-hero { padding: 16px 20px; }
+    .chat-body { padding: 14px; }
+    .chat-bubble { max-width: 85%; }
+  }
+</style>
+
+<main id="main" class="main">
+  <div class="chat-hero">
+    <div style="background:rgba(255,255,255,0.18);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">
+      {{ partner.first_name|default:partner.username|slice:":1"|upper }}{{ partner.last_name|slice:":1"|upper }}
+    </div>
+    <div>
+      <h2 style="margin:0;font-size:18px;font-weight:700;">{{ partner.get_full_name|default:partner.username }}</h2>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="card">
+      <div class="chat-body" id="chatBody">
+        {% for m in thread_messages %}
+        <div class="chat-bubble {% if m.sender_id == request.user.id %}mine{% else %}theirs{% endif %}">
+          {{ m.body }}
+          <span class="chat-time">{{ m.created_at|date:"d M, H:i" }}</span>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-chat-dots" style="font-size:2rem;color:#d1d9e0;"></i>
+          <p class="mt-2 mb-0">No messages yet. Say hello!</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-body border-top pt-3">
+        <form id="composeForm" class="d-flex gap-2">
+          {% csrf_token %}
+          <input type="text" class="form-control flex-grow-1" id="composeBody" placeholder="Type a message…" autocomplete="off" required>
+          <button type="submit" class="btn btn-primary flex-shrink-0"><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const chatBody = document.getElementById('chatBody');
+  const form = document.getElementById('composeForm');
+  const input = document.getElementById('composeBody');
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const body = input.value.trim();
+    if (!body) return;
+    const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('{% url "send_message" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'recipient_id={{ partner.id }}&body=' + encodeURIComponent(body),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res.success) { return; }
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble mine';
+      bubble.appendChild(document.createTextNode(res.message.body));
+      bubble.appendChild(document.createElement('br'));
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'chat-time';
+      timeSpan.textContent = res.message.created_at;
+      bubble.appendChild(timeSpan);
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      input.value = '';
+    });
+  });
+});
+</script>
+{% endblock %}

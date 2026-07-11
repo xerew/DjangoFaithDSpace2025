@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_redis',
     'home',
+    'messaging',
 ]
 
 MIDDLEWARE = [
