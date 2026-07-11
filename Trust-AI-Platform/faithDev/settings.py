@@ -99,6 +99,7 @@ TEMPLATES = [
             ],
             'libraries': {
                 'group_tags': 'templatetags.group_tags',
+                'profile_tags': 'templatetags.profile_tags',
             }
         },
     },

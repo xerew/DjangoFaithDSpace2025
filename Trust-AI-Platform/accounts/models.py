@@ -39,11 +39,20 @@ COUNTRY_CHOICES = [
 ]
 
 
+GENDER_CHOICES = [
+    ('', '— Prefer not to say —'),
+    ('male', 'Male'),
+    ('female', 'Female'),
+]
+
+
 class UserProfile(models.Model):
     user        = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     country     = models.CharField(max_length=100, blank=True, choices=COUNTRY_CHOICES)
     institution = models.CharField(max_length=255, blank=True, help_text="School or university you work at")
     bio         = models.TextField(max_length=500, blank=True, help_text="A short bio (max 500 characters)")
+    gender      = models.CharField(max_length=10, blank=True, choices=GENDER_CHOICES)
+    picture     = models.ImageField(upload_to='profile_pictures', null=True, blank=True)
 
     def __str__(self):
         return f"Profile of {self.user.username}"

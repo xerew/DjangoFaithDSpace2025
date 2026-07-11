@@ -3,6 +3,8 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
+from accounts.models import UserProfile
+from templatetags.profile_tags import avatar_url as avatar_url_filter
 
 
 class AdminDashboardAccessTest(TestCase):
@@ -241,3 +243,37 @@ class SidebarMessagingIntegrationTests(TestCase):
         r = self.client.get(reverse('studentScenarios'))
         self.assertNotContains(r, 'sidebar-unread-badge')
         self.assertNotContains(r, 'new-message-toast-container')
+
+
+class AvatarUrlFilterTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('avatar_user', password='pass')
+
+    def test_no_profile_returns_empty_string(self):
+        self.assertEqual(avatar_url_filter(self.user), '')
+
+    def test_gender_male_returns_default_static_path(self):
+        UserProfile.objects.create(user=self.user, gender='male')
+        self.assertEqual(avatar_url_filter(self.user), '/static/img/profile_d_man.webp')
+
+    def test_gender_female_returns_default_static_path(self):
+        UserProfile.objects.create(user=self.user, gender='female')
+        self.assertEqual(avatar_url_filter(self.user), '/static/img/profile_d_woman.jpg')
+
+    def test_blank_gender_returns_empty_string(self):
+        UserProfile.objects.create(user=self.user, gender='')
+        self.assertEqual(avatar_url_filter(self.user), '')
+
+    def test_custom_picture_takes_priority_over_gender(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        tiny_gif = (
+            b'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00'
+            b'\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        profile = UserProfile.objects.create(
+            user=self.user, gender='female',
+            picture=SimpleUploadedFile('test.gif', tiny_gif, content_type='image/gif'),
+        )
+        url = avatar_url_filter(self.user)
+        self.assertTrue(url.startswith('/media/profile_pictures/test'))
+        self.assertNotIn('profile_d_woman', url)
