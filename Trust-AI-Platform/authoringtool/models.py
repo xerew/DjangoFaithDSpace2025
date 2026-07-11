@@ -673,6 +673,8 @@ class UserProposalReview(models.Model):
     reviewed_at = models.DateTimeField(auto_now=True)
     teacher_edited_json = models.JSONField(null=True, blank=True)
     rejection_reasons = models.JSONField(default=list, blank=True)
+    was_edited = models.BooleanField(default=False)
+    edit_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('proposal', 'user')  # one review per user per proposal
@@ -692,6 +694,29 @@ class UserProposalReview(models.Model):
         self.rejection_reasons = reasons or []
         self.status = 'rejected'
         self.save(update_fields=['status', 'reviewed_at', 'rejection_reasons'])
+
+
+class ActivityProposalEditEvent(models.Model):
+    review = models.ForeignKey(
+        'UserProposalReview', on_delete=models.CASCADE, related_name='edit_events'
+    )
+    edit_number = models.PositiveIntegerField()
+    edited_json = models.JSONField()
+    changed_fields = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Activity Proposal Edit Event"
+        verbose_name_plural = "Activity Proposal Edit Events"
+        ordering = ['review', 'edit_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['review', 'edit_number'], name='unique_review_edit_number'
+            )
+        ]
+
+    def __str__(self):
+        return f"Edit #{self.edit_number} on review {self.review_id}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Signals: ensure Q-value updates even if status set directly in admin/UI

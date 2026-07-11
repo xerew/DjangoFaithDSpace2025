@@ -5,11 +5,14 @@ import openpyxl
 
 from django.contrib.auth.models import User, Group
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import TestCase, Client
 from django.urls import reverse
 
 from authoringtool.models import (
     Activity,
+    ActivityProposal,
+    ActivityProposalEditEvent,
     ActivityType,
     Answer,
     AnswerFeedback,
@@ -18,6 +21,7 @@ from authoringtool.models import (
     Scenario,
     SchoolDepartment,
     UserAnswer,
+    UserProposalReview,
     UserScenarioScore,
 )
 from authoringtool.tasks import compute_student_performance_metrics
@@ -546,3 +550,60 @@ class ImportViewTest(TestCase):
         data = json.loads(r.content)
         self.assertFalse(data['success'])
         self.assertTrue(any('already exists' in e['message'] for e in data['errors']))
+
+
+class ActivityProposalEditEventModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('teacher_edit1', password='pass')
+        self.scenario = Scenario.objects.create(
+            name='Edit Event Scenario', created_by=self.user, updated_by=self.user
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1', scenario=self.scenario, created_by=self.user, updated_by=self.user
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation', created_by=self.user, updated_by=self.user
+        )
+        self.activity = Activity.objects.create(
+            name='Act 1', text='Hello', scenario=self.scenario, phase=self.phase,
+            activity_type=self.activity_type, created_by=self.user, updated_by=self.user,
+        )
+        self.proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='raw', translated_action='raw',
+            json_action=json.dumps({
+                "activity_name": "Act 1", "content": "Old content",
+                "explanation": "Old exp", "answers": [],
+            }),
+            json_translated_action=json.dumps({
+                "activity_name": "Act 1", "content": "Old content",
+                "explanation": "Old exp", "answers": [],
+            }),
+        )
+        self.review = UserProposalReview.objects.create(proposal=self.proposal, user=self.user)
+
+    def test_review_defaults(self):
+        self.assertFalse(self.review.was_edited)
+        self.assertEqual(self.review.edit_count, 0)
+
+    def test_create_edit_event(self):
+        event = ActivityProposalEditEvent.objects.create(
+            review=self.review, edit_number=1,
+            edited_json={
+                "activity_name": "Act 1", "content": "New content",
+                "explanation": "Old exp", "answers": [],
+            },
+            changed_fields={"content": {"changed": True, "char_delta": 3}},
+        )
+        self.assertEqual(self.review.edit_events.count(), 1)
+        self.assertEqual(event.edit_number, 1)
+
+    def test_unique_edit_number_per_review(self):
+        ActivityProposalEditEvent.objects.create(
+            review=self.review, edit_number=1, edited_json={}, changed_fields={},
+        )
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ActivityProposalEditEvent.objects.create(
+                    review=self.review, edit_number=1, edited_json={}, changed_fields={},
+                )

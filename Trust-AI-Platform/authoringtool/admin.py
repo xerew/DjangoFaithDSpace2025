@@ -13,7 +13,7 @@ from .models import (
     QuestionBunch, Simulation, SchoolDepartment, ExperimentLL,
     RemoteLabSession, VRARExperiment, UserScenarioScore, UserAnswer,
     PhetLabSessions, MultilingualQuestion, MultilingualAnswer,
-    ActivityFlag, ActivityProposal, QValue, UserProposalReview, Language,
+    ActivityFlag, ActivityProposal, ActivityProposalEditEvent, QValue, UserProposalReview, Language,
 )
 from usergroups.models import UserGroupMembership
 
@@ -632,10 +632,22 @@ class QValueAdmin(admin.ModelAdmin):
 
 @admin.register(UserProposalReview)
 class UserProposalReviewAdmin(admin.ModelAdmin):
-    list_display = ('id', 'proposal', 'user', 'status', 'reviewed_at')
+    list_display = ('id', 'proposal', 'user', 'status', 'was_edited', 'edit_count', 'reviewed_at')
     list_filter = ('status', 'reviewed_at')
     search_fields = ('user__username', 'proposal__id')
     ordering = ('-reviewed_at',)
+
+
+# ─── ActivityProposalEditEvent ─────────────────────────────────────────────────
+
+@admin.register(ActivityProposalEditEvent)
+class ActivityProposalEditEventAdmin(admin.ModelAdmin):
+    list_display = ('id', 'review', 'edit_number', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('review__user__username', 'review__proposal__id')
+    raw_id_fields = ('review',)
+    readonly_fields = ('created_at',)
+    date_hierarchy = 'created_at'
 
 
 # ─── User (Custom) ────────────────────────────────────────────────────────────
