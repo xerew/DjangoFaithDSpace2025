@@ -189,6 +189,21 @@ def profile_view(request):
                 errors['email'] = 'This email is already in use by another account.'
             if len(bio) > 500:
                 errors['bio'] = 'Bio must be 500 characters or fewer.'
+            if picture:
+                allowed_extensions = ('jpg', 'jpeg', 'png', 'webp', 'gif')
+                ext = picture.name.rsplit('.', 1)[-1].lower() if '.' in picture.name else ''
+                if ext not in allowed_extensions:
+                    errors['picture'] = 'Unsupported file type. Use JPG, PNG, WEBP, or GIF.'
+                elif picture.size > 5 * 1024 * 1024:
+                    errors['picture'] = 'Image must be 5MB or smaller.'
+                else:
+                    from PIL import Image
+                    try:
+                        Image.open(picture).verify()
+                    except Exception:
+                        errors['picture'] = 'Uploaded file is not a valid image.'
+                    finally:
+                        picture.seek(0)
 
             if errors:
                 return JsonResponse({'success': False, 'errors': errors})

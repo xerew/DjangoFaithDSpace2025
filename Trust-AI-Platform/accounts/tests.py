@@ -385,6 +385,40 @@ class ProfileEditGenderAvatarTests(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.picture.name, original_name)
 
+    def test_update_info_rejects_non_image_content_with_image_extension(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        fake_image = SimpleUploadedFile(
+            'avatar.png', b'this is not actually image data, just plain text bytes',
+            content_type='image/png',
+        )
+        r = self._update_info(picture=fake_image)
+        data = r.json()
+        self.assertFalse(data['success'])
+        self.assertIn('picture', data['errors'])
+        self.assertFalse(UserProfile.objects.filter(user=self.user, picture__gt='').exists())
+
+    def test_update_info_rejects_disallowed_extension(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad_file = SimpleUploadedFile(
+            'avatar.exe', b'MZ some fake executable bytes', content_type='application/octet-stream',
+        )
+        r = self._update_info(picture=bad_file)
+        data = r.json()
+        self.assertFalse(data['success'])
+        self.assertIn('picture', data['errors'])
+        self.assertFalse(UserProfile.objects.filter(user=self.user, picture__gt='').exists())
+
+    def test_update_info_rejects_oversized_image(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        oversized = SimpleUploadedFile(
+            'avatar.png', b'\x00' * (5 * 1024 * 1024 + 1), content_type='image/png',
+        )
+        r = self._update_info(picture=oversized)
+        data = r.json()
+        self.assertFalse(data['success'])
+        self.assertIn('picture', data['errors'])
+        self.assertFalse(UserProfile.objects.filter(user=self.user, picture__gt='').exists())
+
     def test_profile_page_renders_avatar_img_when_picture_set(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
         tiny_gif = (
