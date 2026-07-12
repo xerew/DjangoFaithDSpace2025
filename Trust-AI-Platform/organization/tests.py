@@ -219,3 +219,65 @@ class OrgChatMessageModelTests(TestCase):
         m = OrgChatMessage.objects.create(organization=self.org, sender=self.user, body='Bye')
         self.user.delete()
         self.assertFalse(OrgChatMessage.objects.filter(id=m.id).exists())
+
+
+class OrgChatViewsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.member1 = User.objects.create_user('chat_member1', password='pass')
+        self.member2 = User.objects.create_user('chat_member2', password='pass')
+        self.outsider = User.objects.create_user('chat_outsider', password='pass')
+        self.org = Organization.objects.create(
+            name='Chat Views Org', short_name='CVO', created_by=self.member1,
+        )
+        self.org.admins.add(self.member1)
+        self.org.members.add(self.member1, self.member2)
+
+    def test_member_can_view_chat_room(self):
+        self.client.login(username='chat_member1', password='pass')
+        r = self.client.get(reverse('org_chat', args=[self.org.id]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_non_member_redirected_from_chat_room(self):
+        self.client.login(username='chat_outsider', password='pass')
+        r = self.client.get(reverse('org_chat', args=[self.org.id]))
+        self.assertRedirects(r, reverse('organization_detail', args=[self.org.id]))
+
+    def test_member_can_send_message(self):
+        self.client.login(username='chat_member1', password='pass')
+        r = self.client.post(reverse('send_org_chat_message', args=[self.org.id]), {'body': 'Hi team'})
+        data = r.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(OrgChatMessage.objects.filter(organization=self.org, body='Hi team').count(), 1)
+
+    def test_non_member_cannot_send_message(self):
+        self.client.login(username='chat_outsider', password='pass')
+        r = self.client.post(reverse('send_org_chat_message', args=[self.org.id]), {'body': 'Sneaky'})
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(OrgChatMessage.objects.filter(body='Sneaky').exists())
+
+    def test_send_rejects_empty_body(self):
+        self.client.login(username='chat_member1', password='pass')
+        r = self.client.post(reverse('send_org_chat_message', args=[self.org.id]), {'body': '   '})
+        data = r.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(OrgChatMessage.objects.count(), 0)
+
+    def test_send_requires_post(self):
+        self.client.login(username='chat_member1', password='pass')
+        r = self.client.get(reverse('send_org_chat_message', args=[self.org.id]))
+        self.assertEqual(r.status_code, 405)
+
+    def test_poll_returns_only_messages_after_since_id(self):
+        m1 = OrgChatMessage.objects.create(organization=self.org, sender=self.member1, body='First')
+        OrgChatMessage.objects.create(organization=self.org, sender=self.member2, body='Second')
+        self.client.login(username='chat_member1', password='pass')
+        r = self.client.get(reverse('org_chat_poll', args=[self.org.id]), {'since_id': m1.id})
+        data = r.json()
+        self.assertEqual(len(data['messages']), 1)
+        self.assertEqual(data['messages'][0]['body'], 'Second')
+
+    def test_poll_blocks_non_member(self):
+        self.client.login(username='chat_outsider', password='pass')
+        r = self.client.get(reverse('org_chat_poll', args=[self.org.id]))
+        self.assertEqual(r.status_code, 403)

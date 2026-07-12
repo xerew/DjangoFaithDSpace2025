@@ -1,0 +1,137 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ organization.name }} Team Chat</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .chat-hero { background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%); border-radius: 14px; padding: 20px 30px; color: #fff; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,86,219,0.18); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .chat-hero-icon { background: rgba(255,255,255,0.18); border-radius: 10px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .chat-hero-back { background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.4); font-weight: 600; font-size: 13px; border-radius: 8px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+  .chat-hero-back:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .chat-body { height: 55vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-msg { max-width: 70%; }
+  .chat-msg.mine { align-self: flex-end; }
+  .chat-msg.theirs { align-self: flex-start; }
+  .chat-msg-sender { font-size: 11.5px; font-weight: 600; color: #4154f1; margin-bottom: 3px; padding: 0 4px; }
+  .chat-msg.mine .chat-msg-sender { text-align: right; }
+  .chat-bubble { padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+  .chat-msg.mine .chat-bubble { background: #1a56db; color: #fff; border-bottom-right-radius: 4px; }
+  .chat-msg.theirs .chat-bubble { background: #f0f4ff; color: #1e293b; border-bottom-left-radius: 4px; }
+  .chat-bubble .chat-time { font-size: 10.5px; opacity: 0.7; margin-top: 4px; display: block; }
+  @media (max-width: 576px) {
+    .chat-hero { padding: 16px 20px; }
+    .chat-body { padding: 14px; }
+    .chat-msg { max-width: 88%; }
+  }
+</style>
+
+<main id="main" class="main">
+  <div class="chat-hero">
+    <div class="chat-hero-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="flex-grow-1">
+      <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Team Chat</div>
+      <h2 style="margin:0;font-size:18px;font-weight:700;">{{ organization.name }}</h2>
+    </div>
+    <a href="{% url 'organization_detail' organization.id %}" class="chat-hero-back">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+  </div>
+
+  <section class="section">
+    <div class="card">
+      <div class="chat-body" id="chatBody">
+        {% for m in chat_messages %}
+        <div class="chat-msg {% if m.sender_id == request.user.id %}mine{% else %}theirs{% endif %}" data-msg-id="{{ m.id }}">
+          <div class="chat-msg-sender">{{ m.sender.get_full_name|default:m.sender.username }}</div>
+          <div class="chat-bubble">
+            {{ m.body }}
+            <span class="chat-time">{{ m.created_at|date:"d M, H:i" }}</span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-chat-dots" style="font-size:2rem;color:#d1d9e0;"></i>
+          <p class="mt-2 mb-0">No messages yet. Say hello to the team!</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-body border-top pt-3">
+        <form id="composeForm" class="d-flex gap-2">
+          {% csrf_token %}
+          <input type="text" class="form-control flex-grow-1" id="composeBody" placeholder="Message the team…" autocomplete="off" required>
+          <button type="submit" class="btn btn-primary flex-shrink-0"><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const chatBody = document.getElementById('chatBody');
+  const form = document.getElementById('composeForm');
+  const input = document.getElementById('composeBody');
+  const myUserId = {{ request.user.id }};
+  let lastId = 0;
+  chatBody.querySelectorAll('[data-msg-id]').forEach(function (el) {
+    const id = parseInt(el.getAttribute('data-msg-id'), 10);
+    if (id > lastId) lastId = id;
+  });
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  function appendMessage(m) {
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ' + (m.sender_id === myUserId ? 'mine' : 'theirs');
+    wrap.setAttribute('data-msg-id', m.id);
+
+    const senderEl = document.createElement('div');
+    senderEl.className = 'chat-msg-sender';
+    senderEl.textContent = m.sender_name;
+    wrap.appendChild(senderEl);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.appendChild(document.createTextNode(m.body));
+    bubble.appendChild(document.createElement('br'));
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'chat-time';
+    timeSpan.textContent = m.created_at;
+    bubble.appendChild(timeSpan);
+    wrap.appendChild(bubble);
+
+    chatBody.appendChild(wrap);
+    if (m.id > lastId) lastId = m.id;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const body = input.value.trim();
+    if (!body) return;
+    const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('{% url "send_org_chat_message" organization.id %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'body=' + encodeURIComponent(body),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res.success) { return; }
+      appendMessage(res.message);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      input.value = '';
+    });
+  });
+
+  function poll() {
+    fetch('{% url "org_chat_poll" organization.id %}?since_id=' + lastId)
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.success || !res.messages.length) return;
+        res.messages.forEach(appendMessage);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      });
+  }
+  setInterval(poll, 20000);
+});
+</script>
+{% endblock %}

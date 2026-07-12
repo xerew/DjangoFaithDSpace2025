@@ -19,4 +19,7 @@ urlpatterns = [
     path('organization/<int:org_id>/announcements/create/', views.create_announcement, name='create_announcement'),
     path('organization/<int:org_id>/announcements/<int:announcement_id>/edit/', views.edit_announcement, name='edit_announcement'),
     path('organization/<int:org_id>/announcements/<int:announcement_id>/delete/', views.delete_announcement, name='delete_announcement'),
+    path('organization/<int:org_id>/chat/', views.org_chat, name='org_chat'),
+    path('organization/<int:org_id>/chat/send/', views.send_org_chat_message, name='send_org_chat_message'),
+    path('organization/<int:org_id>/chat/poll/', views.org_chat_poll, name='org_chat_poll'),
 ]

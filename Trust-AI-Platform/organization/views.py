@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseForbidden
-from django.views.decorators.http import require_POST
+from django.http import HttpResponseForbidden, JsonResponse
+from django.views.decorators.http import require_POST, require_GET
 from django.contrib import messages
 from functools import wraps
 from django.utils.html import strip_tags
 from html import unescape
-from .models import Organization, JoinRequest, Announcement
+from .models import Organization, JoinRequest, Announcement, OrgChatMessage
 from django.contrib.auth.models import User
 from .forms import OrganizationForm, AnnouncementForm
 from authoringtool.models import Language
@@ -386,3 +386,68 @@ def delete_announcement(request, org_id, announcement_id):
         announcement.delete()
         messages.success(request, "Announcement deleted.")
     return redirect('organization_detail', org_id=org_id)
+
+
+@login_required
+def org_chat(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    if not organization.members.filter(id=request.user.id).exists():
+        return redirect('organization_detail', org_id=org_id)
+
+    chat_messages = organization.chat_messages.select_related('sender')
+    return render(request, 'organization/org_chat.html', {
+        'organization': organization,
+        'chat_messages': chat_messages,
+    })
+
+
+@require_POST
+@login_required
+def send_org_chat_message(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    if not organization.members.filter(id=request.user.id).exists():
+        return JsonResponse({'success': False, 'error': 'Not a member.'}, status=403)
+
+    body = (request.POST.get('body') or '').strip()
+    if not body:
+        return JsonResponse({'success': False, 'error': 'Message cannot be empty.'}, status=400)
+
+    msg = OrgChatMessage.objects.create(organization=organization, sender=request.user, body=body)
+    return JsonResponse({
+        'success': True,
+        'message': {
+            'id': msg.id,
+            'body': msg.body,
+            'created_at': msg.created_at.strftime('%d %b %Y, %H:%M'),
+            'sender_id': msg.sender_id,
+            'sender_name': msg.sender.get_full_name() or msg.sender.username,
+        },
+    })
+
+
+@require_GET
+@login_required
+def org_chat_poll(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    if not organization.members.filter(id=request.user.id).exists():
+        return JsonResponse({'success': False, 'error': 'Not a member.'}, status=403)
+
+    try:
+        since_id = int(request.GET.get('since_id', '0'))
+    except ValueError:
+        since_id = 0
+
+    new_messages = organization.chat_messages.select_related('sender').filter(id__gt=since_id)
+    return JsonResponse({
+        'success': True,
+        'messages': [
+            {
+                'id': m.id,
+                'body': m.body,
+                'created_at': m.created_at.strftime('%d %b %Y, %H:%M'),
+                'sender_id': m.sender_id,
+                'sender_name': m.sender.get_full_name() or m.sender.username,
+            }
+            for m in new_messages
+        ],
+    })
