@@ -74,6 +74,7 @@ def organization_detail(request, org_id):
         'is_admin': is_admin,
         'join_request': join_request,
         'pending_requests': pending_requests,
+        'announcements': organization.announcements.select_related('created_by'),
     })
 
 

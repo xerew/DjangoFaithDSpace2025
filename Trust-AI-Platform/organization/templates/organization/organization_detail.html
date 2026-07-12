@@ -273,6 +273,57 @@
 
     </div><!-- /row -->
 
+    <div class="row g-3 mt-2">
+      <div class="col-12">
+        <div class="card" style="border-radius:12px;">
+          <div class="card-body p-0">
+            <div class="d-flex align-items-center justify-content-between gap-2 px-4 pt-4 pb-3 border-bottom flex-wrap">
+              <h5 style="color:#012970; font-weight:700; margin:0;">
+                <i class="bi bi-megaphone-fill me-2"></i>Announcements
+              </h5>
+              {% if is_admin %}
+              <a href="{% url 'create_announcement' organization.id %}" class="hero-btn-solid" style="background:#1a56db;color:#fff;">
+                <i class="bi bi-plus-lg"></i> New Announcement
+              </a>
+              {% endif %}
+            </div>
+            <div>
+              {% for announcement in announcements %}
+              <div class="px-4 py-3 border-bottom">
+                <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+                  <h6 style="color:#012970; font-weight:700; margin:0;">{{ announcement.title }}</h6>
+                  {% if is_admin %}
+                  <div class="d-flex gap-1 flex-shrink-0">
+                    <a href="{% url 'edit_announcement' organization.id announcement.id %}" class="action-btn" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="{% url 'delete_announcement' organization.id announcement.id %}" class="action-form" onsubmit="return confirm('Delete this announcement?');">
+                      {% csrf_token %}
+                      <button type="submit" class="action-btn remove" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="member-meta mb-2">
+                  {{ announcement.created_by.get_full_name|default:announcement.created_by.username|default:"Unknown" }}
+                  · {{ announcement.created_on|date:"d M Y, H:i" }}
+                </div>
+                <div style="font-size:14px; color:#333; line-height:1.6; word-wrap:break-word;">{{ announcement.body|safe }}</div>
+              </div>
+              {% empty %}
+              <div class="px-4 py-4 text-center text-muted" style="font-size:14px;">
+                <i class="bi bi-megaphone" style="font-size:28px; display:block; margin-bottom:8px;"></i>
+                No announcements yet.
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /row Announcements -->
+
     {% if is_admin and pending_requests %}
     <div class="row g-3 mt-2">
       <div class="col-12">

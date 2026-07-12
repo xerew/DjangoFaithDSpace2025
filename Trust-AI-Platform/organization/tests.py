@@ -149,3 +149,46 @@ class AnnouncementViewsTests(TestCase):
         r = self.client.get(reverse('delete_announcement', args=[self.org.id, a.id]))
         self.assertEqual(r.status_code, 405)
         self.assertTrue(Announcement.objects.filter(id=a.id).exists())
+
+
+class AnnouncementCardTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user('card_admin', password='pass')
+        self.member = User.objects.create_user('card_member', password='pass')
+        self.org = Organization.objects.create(
+            name='Card Org', short_name='CO', created_by=self.admin,
+        )
+        self.org.admins.add(self.admin)
+        self.org.members.add(self.admin, self.member)
+        self.announcement = Announcement.objects.create(
+            organization=self.org, title='Kickoff Meeting',
+            body='<p>Join us <b>Monday</b> at 10am.</p>',
+            plain_text='Join us Monday at 10am.', created_by=self.admin,
+        )
+
+    def test_announcement_visible_to_admin_with_controls(self):
+        self.client.login(username='card_admin', password='pass')
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertContains(r, 'Kickoff Meeting')
+        self.assertContains(r, reverse('edit_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertContains(r, reverse('delete_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertContains(r, reverse('create_announcement', args=[self.org.id]))
+
+    def test_announcement_visible_to_member_without_controls(self):
+        self.client.login(username='card_member', password='pass')
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertContains(r, 'Kickoff Meeting')
+        self.assertNotContains(r, reverse('edit_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertNotContains(r, reverse('delete_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertNotContains(r, reverse('create_announcement', args=[self.org.id]))
+
+    def test_no_announcements_shows_empty_state(self):
+        empty_org = Organization.objects.create(
+            name='Empty Org', short_name='EO', created_by=self.admin,
+        )
+        empty_org.admins.add(self.admin)
+        empty_org.members.add(self.admin)
+        self.client.login(username='card_admin', password='pass')
+        r = self.client.get(reverse('organization_detail', args=[empty_org.id]))
+        self.assertContains(r, 'No announcements yet')
