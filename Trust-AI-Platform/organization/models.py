@@ -65,3 +65,16 @@ class Announcement(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.organization.short_name})"
+
+
+class OrgChatMessage(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='chat_messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='org_chat_messages')
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+
+    def __str__(self):
+        return f"{self.sender} @ {self.organization.short_name}: {self.body[:30]}"

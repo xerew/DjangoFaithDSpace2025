@@ -192,3 +192,30 @@ class AnnouncementCardTests(TestCase):
         self.client.login(username='card_admin', password='pass')
         r = self.client.get(reverse('organization_detail', args=[empty_org.id]))
         self.assertContains(r, 'No announcements yet')
+
+
+from .models import OrgChatMessage
+
+
+class OrgChatMessageModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('chat_owner', password='pass')
+        self.org = Organization.objects.create(
+            name='Chat Org', short_name='CHO', created_by=self.user,
+        )
+
+    def test_create_message(self):
+        m = OrgChatMessage.objects.create(organization=self.org, sender=self.user, body='Hello team')
+        self.assertEqual(m.organization, self.org)
+        self.assertIn(m, self.org.chat_messages.all())
+
+    def test_messages_ordered_oldest_first(self):
+        OrgChatMessage.objects.create(organization=self.org, sender=self.user, body='First')
+        OrgChatMessage.objects.create(organization=self.org, sender=self.user, body='Second')
+        bodies = list(self.org.chat_messages.values_list('body', flat=True))
+        self.assertEqual(bodies, ['First', 'Second'])
+
+    def test_message_deleted_with_sender(self):
+        m = OrgChatMessage.objects.create(organization=self.org, sender=self.user, body='Bye')
+        self.user.delete()
+        self.assertFalse(OrgChatMessage.objects.filter(id=m.id).exists())

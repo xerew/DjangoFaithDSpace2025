@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Organization, Announcement
+from .models import Organization, Announcement, OrgChatMessage
 
 
 @admin.register(Organization)
@@ -35,3 +35,13 @@ class AnnouncementAdmin(admin.ModelAdmin):
     raw_id_fields = ('organization', 'created_by')
     readonly_fields = ('created_on', 'updated_on')
     date_hierarchy = 'created_on'
+
+
+@admin.register(OrgChatMessage)
+class OrgChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'organization', 'sender', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('organization__name', 'organization__short_name', 'sender__username', 'body')
+    raw_id_fields = ('organization', 'sender')
+    readonly_fields = ('created_at',)
+    date_hierarchy = 'created_at'
