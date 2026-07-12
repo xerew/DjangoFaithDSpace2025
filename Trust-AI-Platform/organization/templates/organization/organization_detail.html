@@ -103,6 +103,11 @@
         <a href="{% url 'list_organizations' %}" class="hero-btn-ghost">
           <i class="bi bi-arrow-left"></i> Back
         </a>
+        {% if is_member %}
+        <a href="{% url 'org_chat' organization.id %}" class="hero-btn-ghost">
+          <i class="bi bi-chat-dots"></i> Team Chat
+        </a>
+        {% endif %}
         {% if is_admin %}
         <a href="{% url 'add_member_to_org' organization.id %}" class="hero-btn-ghost">
           <i class="bi bi-person-plus"></i> Add Member

@@ -31,6 +31,8 @@ def _is_valid_target(user):
 
 @group_required('teachers')
 def message_threads(request):
+    from organization.models import Organization
+
     me = request.user
     sent_to = Message.objects.filter(sender=me).values_list('recipient_id', flat=True)
     received_from = Message.objects.filter(recipient=me).values_list('sender_id', flat=True)
@@ -45,7 +47,9 @@ def message_threads(request):
         threads.append({'partner': partner, 'latest': latest, 'unread': unread})
     threads.sort(key=lambda t: (t['latest'].created_at, t['latest'].id), reverse=True)
 
-    return render(request, 'messaging/thread_list.html', {'threads': threads})
+    organizations = Organization.objects.filter(members=me).order_by('name')
+
+    return render(request, 'messaging/thread_list.html', {'threads': threads, 'organizations': organizations})
 
 
 @group_required('teachers')

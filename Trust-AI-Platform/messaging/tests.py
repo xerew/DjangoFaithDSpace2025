@@ -95,3 +95,32 @@ class MessagingViewsTests(TestCase):
         self.client.login(username='stu_msg', password='pass')
         r = self.client.get(reverse('message_threads'))
         self.assertEqual(r.status_code, 403)
+
+
+from organization.models import Organization
+
+
+class MessageThreadsOrganizationChatsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.alice = User.objects.create_user('alice_orgchat', password='pass')
+        self.alice.groups.add(teachers)
+        self.org = Organization.objects.create(name='Chat Link Org', short_name='CLO', created_by=self.alice)
+        self.org.members.add(self.alice)
+        Organization.objects.create(name='Not Mine Org', short_name='NMO', created_by=self.alice)
+        self.client.login(username='alice_orgchat', password='pass')
+
+    def test_message_threads_lists_my_organizations(self):
+        r = self.client.get(reverse('message_threads'))
+        orgs = list(r.context['organizations'])
+        self.assertEqual(orgs, [self.org])
+
+    def test_message_threads_links_to_org_chat(self):
+        r = self.client.get(reverse('message_threads'))
+        self.assertContains(r, reverse('org_chat', args=[self.org.id]))
+
+    def test_message_threads_shows_empty_state_for_no_orgs(self):
+        self.org.members.remove(self.alice)
+        r = self.client.get(reverse('message_threads'))
+        self.assertContains(r, 'not part of any organization')

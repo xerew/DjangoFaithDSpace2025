@@ -281,3 +281,24 @@ class OrgChatViewsTests(TestCase):
         self.client.login(username='chat_outsider', password='pass')
         r = self.client.get(reverse('org_chat_poll', args=[self.org.id]))
         self.assertEqual(r.status_code, 403)
+
+
+class OrganizationDetailTeamChatButtonTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.member = User.objects.create_user('chatbtn_member', password='pass')
+        self.outsider = User.objects.create_user('chatbtn_outsider', password='pass')
+        self.org = Organization.objects.create(
+            name='Chat Button Org', short_name='CBO', created_by=self.member,
+        )
+        self.org.members.add(self.member)
+
+    def test_member_sees_team_chat_button(self):
+        self.client.login(username='chatbtn_member', password='pass')
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertContains(r, reverse('org_chat', args=[self.org.id]))
+
+    def test_non_member_does_not_see_team_chat_button(self):
+        self.client.login(username='chatbtn_outsider', password='pass')
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertNotContains(r, reverse('org_chat', args=[self.org.id]))

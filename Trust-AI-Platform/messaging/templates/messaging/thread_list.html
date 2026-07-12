@@ -27,8 +27,29 @@
   </div>
 
   <section class="section">
+    <div class="card mb-3">
+      <div class="card-body p-0">
+        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Organization Chats</div>
+        {% for org in organizations %}
+        <a href="{% url 'org_chat' org.id %}" class="thread-row">
+          <div class="thread-avatar">{{ org.short_name|default:org.name|slice:":2"|upper }}</div>
+          <div class="flex-grow-1 min-width-0">
+            <div class="thread-name">{{ org.name }}</div>
+            <div class="thread-snippet">Team chat</div>
+          </div>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-people" style="font-size:2rem;color:#d1d9e0;"></i>
+          <p class="mt-2 mb-0 small">You're not part of any organization yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-body p-0">
+        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Messages</div>
         {% for t in threads %}
         <a href="{% url 'thread' t.partner.id %}" class="thread-row">
           <div class="thread-avatar">{{ t.partner.first_name|default:t.partner.username|slice:":1"|upper }}{{ t.partner.last_name|slice:":1"|upper }}</div>
