@@ -16,4 +16,7 @@ urlpatterns = [
     path('organization/<int:org_id>/request_to_join/', views.request_to_join, name='request_to_join'),
     path('join_request/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
     path('join_request/<int:request_id>/reject/', views.reject_join_request, name='reject_join_request'),
+    path('organization/<int:org_id>/announcements/create/', views.create_announcement, name='create_announcement'),
+    path('organization/<int:org_id>/announcements/<int:announcement_id>/edit/', views.edit_announcement, name='edit_announcement'),
+    path('organization/<int:org_id>/announcements/<int:announcement_id>/delete/', views.delete_announcement, name='delete_announcement'),
 ]

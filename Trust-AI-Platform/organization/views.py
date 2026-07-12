@@ -5,10 +5,17 @@ from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from functools import wraps
-from .models import Organization, JoinRequest
+from django.utils.html import strip_tags
+from html import unescape
+from .models import Organization, JoinRequest, Announcement
 from django.contrib.auth.models import User
-from .forms import OrganizationForm
+from .forms import OrganizationForm, AnnouncementForm
 from authoringtool.models import Language
+
+
+def strip_html_tags(html_content):
+    text = strip_tags(html_content)
+    return unescape(text)
 
 def group_required(group_name):
     def decorator(view_func):
@@ -312,3 +319,69 @@ def list_organizations(request):
         'selected_language': language,
         'sort': sort,
     })
+
+
+def _is_org_admin(user, organization):
+    is_site_admin = user.is_staff or user.is_superuser
+    return organization.admins.filter(id=user.id).exists() or is_site_admin
+
+
+@login_required
+def create_announcement(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    if not _is_org_admin(request.user, organization):
+        return redirect('organization_detail', org_id=org_id)
+
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST)
+        if form.is_valid():
+            announcement = form.save(commit=False)
+            announcement.organization = organization
+            announcement.created_by = request.user
+            announcement.plain_text = strip_html_tags(announcement.body)
+            announcement.save()
+            messages.success(request, "Announcement posted.")
+            return redirect('organization_detail', org_id=org_id)
+    else:
+        form = AnnouncementForm()
+
+    return render(request, 'organization/create_announcement.html', {
+        'form': form,
+        'organization': organization,
+    })
+
+
+@login_required
+def edit_announcement(request, org_id, announcement_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    announcement = get_object_or_404(Announcement, id=announcement_id, organization=organization)
+    if not _is_org_admin(request.user, organization):
+        return redirect('organization_detail', org_id=org_id)
+
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST, instance=announcement)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.plain_text = strip_html_tags(updated.body)
+            updated.save()
+            messages.success(request, "Announcement updated.")
+            return redirect('organization_detail', org_id=org_id)
+    else:
+        form = AnnouncementForm(instance=announcement)
+
+    return render(request, 'organization/edit_announcement.html', {
+        'form': form,
+        'organization': organization,
+        'announcement': announcement,
+    })
+
+
+@require_POST
+@login_required
+def delete_announcement(request, org_id, announcement_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    announcement = get_object_or_404(Announcement, id=announcement_id, organization=organization)
+    if _is_org_admin(request.user, organization):
+        announcement.delete()
+        messages.success(request, "Announcement deleted.")
+    return redirect('organization_detail', org_id=org_id)
