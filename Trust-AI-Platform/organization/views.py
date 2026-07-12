@@ -418,7 +418,7 @@ def send_org_chat_message(request, org_id):
         'message': {
             'id': msg.id,
             'body': msg.body,
-            'created_at': msg.created_at.strftime('%d %b %Y, %H:%M'),
+            'created_at': msg.created_at.strftime('%d %b, %H:%M'),
             'sender_id': msg.sender_id,
             'sender_name': msg.sender.get_full_name() or msg.sender.username,
         },
@@ -444,7 +444,7 @@ def org_chat_poll(request, org_id):
             {
                 'id': m.id,
                 'body': m.body,
-                'created_at': m.created_at.strftime('%d %b %Y, %H:%M'),
+                'created_at': m.created_at.strftime('%d %b, %H:%M'),
                 'sender_id': m.sender_id,
                 'sender_name': m.sender.get_full_name() or m.sender.username,
             }
