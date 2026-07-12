@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Organization
+from .models import Organization, Announcement
 
 
 @admin.register(Organization)
@@ -25,3 +25,13 @@ class OrganizationAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'organization', 'created_by', 'created_on')
+    list_filter = ('created_on',)
+    search_fields = ('title', 'organization__name', 'organization__short_name')
+    raw_id_fields = ('organization', 'created_by')
+    readonly_fields = ('created_on', 'updated_on')
+    date_hierarchy = 'created_on'

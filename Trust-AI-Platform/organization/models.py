@@ -49,3 +49,19 @@ class Organization(models.Model):
     
 #User.add_to_class('organization', models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True, related_name='members'))
 #User.add_to_class('is_org_admin', models.BooleanField(default=False))
+
+
+class Announcement(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='announcements')
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    plain_text = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='org_announcements')
+    created_on = models.DateTimeField(auto_now_add=True)
+    updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_on', '-pk']
+
+    def __str__(self):
+        return f"{self.title} ({self.organization.short_name})"
