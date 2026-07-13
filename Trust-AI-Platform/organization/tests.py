@@ -48,6 +48,24 @@ class AnnouncementModelTests(TestCase):
         self.assertEqual(a.organization, self.org)
         self.assertIn(a, self.org.announcements.all())
 
+    def test_announcements_ordered_newest_first(self):
+        older = Announcement.objects.create(
+            organization=self.org, title='Older', body='<p>a</p>', created_by=self.user,
+        )
+        newer = Announcement.objects.create(
+            organization=self.org, title='Newer', body='<p>b</p>', created_by=self.user,
+        )
+        titles = list(self.org.announcements.values_list('title', flat=True))
+        self.assertEqual(titles, ['Newer', 'Older'])
+
+    def test_announcement_survives_creator_deletion(self):
+        a = Announcement.objects.create(
+            organization=self.org, title='Orphan-safe', body='<p>x</p>', created_by=self.user,
+        )
+        self.user.delete()
+        a.refresh_from_db()
+        self.assertIsNone(a.created_by)
+
 
 class AnnouncementDetailViewTests(TestCase):
     def setUp(self):
@@ -100,24 +118,6 @@ class AnnouncementDetailViewTests(TestCase):
         self.client.login(username='detail_member', password='pass')
         r = self.client.get(reverse('announcement_detail', args=[self.other_org.id, self.announcement.id]))
         self.assertEqual(r.status_code, 404)
-
-    def test_announcements_ordered_newest_first(self):
-        older = Announcement.objects.create(
-            organization=self.org, title='Older', body='<p>a</p>', created_by=self.user,
-        )
-        newer = Announcement.objects.create(
-            organization=self.org, title='Newer', body='<p>b</p>', created_by=self.user,
-        )
-        titles = list(self.org.announcements.values_list('title', flat=True))
-        self.assertEqual(titles, ['Newer', 'Older'])
-
-    def test_announcement_survives_creator_deletion(self):
-        a = Announcement.objects.create(
-            organization=self.org, title='Orphan-safe', body='<p>x</p>', created_by=self.user,
-        )
-        self.user.delete()
-        a.refresh_from_db()
-        self.assertIsNone(a.created_by)
 
 
 class AnnouncementViewsTests(TestCase):
