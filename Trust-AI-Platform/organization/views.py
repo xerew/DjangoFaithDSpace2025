@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib import messages
@@ -11,6 +12,25 @@ from .models import Organization, JoinRequest, Announcement, OrgChatMessage
 from django.contrib.auth.models import User
 from .forms import OrganizationForm, AnnouncementForm
 from authoringtool.models import Language
+
+
+def _smart_page_range(page_obj):
+    """Returns a list of page numbers with None representing an ellipsis."""
+    current = page_obj.number
+    total = page_obj.paginator.num_pages
+    pages = set()
+    pages.add(1)
+    pages.add(total)
+    for i in range(max(1, current - 2), min(total, current + 2) + 1):
+        pages.add(i)
+    result = []
+    prev = None
+    for p in sorted(pages):
+        if prev is not None and p - prev > 1:
+            result.append(None)  # ellipsis
+        result.append(p)
+        prev = p
+    return result
 
 
 def strip_html_tags(html_content):
@@ -68,13 +88,19 @@ def organization_detail(request, org_id):
             organization=organization, status='pending'
         ).select_related('user')
 
+    announcements_qs = organization.announcements.select_related('created_by')
+    announcements_paginator = Paginator(announcements_qs, 5)
+    announcements_page = announcements_paginator.get_page(request.GET.get('page'))
+    announcement_page_range = _smart_page_range(announcements_page)
+
     return render(request, 'organization/organization_detail.html', {
         'organization': organization,
         'is_member': is_member,
         'is_admin': is_admin,
         'join_request': join_request,
         'pending_requests': pending_requests,
-        'announcements': organization.announcements.select_related('created_by'),
+        'announcements': announcements_page,
+        'announcement_page_range': announcement_page_range,
     })
 
 

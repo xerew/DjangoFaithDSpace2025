@@ -355,3 +355,71 @@ class OrganizationDetailTeamChatButtonTests(TestCase):
         self.client.login(username='chatbtn_outsider', password='pass')
         r = self.client.get(reverse('organization_detail', args=[self.org.id]))
         self.assertNotContains(r, reverse('org_chat', args=[self.org.id]))
+
+
+class AnnouncementPaginationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user('page_admin', password='pass')
+        self.org = Organization.objects.create(
+            name='Pagination Org', short_name='PO', created_by=self.admin,
+        )
+        self.org.admins.add(self.admin)
+        self.org.members.add(self.admin)
+        for i in range(7):
+            Announcement.objects.create(
+                organization=self.org, title=f'Announcement {i}', body=f'<p>Body {i}</p>',
+                plain_text=f'Body {i}', created_by=self.admin,
+            )
+        self.client.login(username='page_admin', password='pass')
+
+    def test_first_page_shows_five_newest(self):
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertEqual(len(r.context['announcements']), 5)
+        self.assertContains(r, 'Announcement 6')
+        self.assertNotContains(r, 'Announcement 1')
+
+    def test_second_page_shows_remaining_two(self):
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]), {'page': 2})
+        self.assertEqual(len(r.context['announcements']), 2)
+        self.assertContains(r, 'Announcement 1')
+        self.assertContains(r, 'Announcement 0')
+
+    def test_pagination_controls_hidden_for_single_page(self):
+        Announcement.objects.filter(organization=self.org).delete()
+        Announcement.objects.create(
+            organization=self.org, title='Only One', body='<p>x</p>',
+            plain_text='x', created_by=self.admin,
+        )
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertNotContains(r, 'pagination')
+
+    def test_pagination_controls_shown_for_multiple_pages(self):
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertContains(r, 'pagination')
+
+
+class AnnouncementPreviewLinkTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user('link_admin', password='pass')
+        self.org = Organization.objects.create(
+            name='Link Org', short_name='LO', created_by=self.admin,
+        )
+        self.org.admins.add(self.admin)
+        self.org.members.add(self.admin)
+        self.announcement = Announcement.objects.create(
+            organization=self.org, title='Link Me',
+            body='<p>' + ('word ' * 100) + '</p>',
+            plain_text='word ' * 100, created_by=self.admin,
+        )
+        self.client.login(username='link_admin', password='pass')
+
+    def test_title_links_to_detail_page(self):
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        self.assertContains(r, reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+
+    def test_preview_is_truncated(self):
+        r = self.client.get(reverse('organization_detail', args=[self.org.id]))
+        full_plain_text = 'word ' * 100
+        self.assertNotContains(r, full_plain_text)
