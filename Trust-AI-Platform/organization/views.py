@@ -451,3 +451,16 @@ def org_chat_poll(request, org_id):
             for m in new_messages
         ],
     })
+
+
+@login_required
+def announcement_detail(request, org_id, announcement_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    announcement = get_object_or_404(Announcement, id=announcement_id, organization=organization)
+    is_admin = _is_org_admin(request.user, organization)
+
+    return render(request, 'organization/announcement_detail.html', {
+        'organization': organization,
+        'announcement': announcement,
+        'is_admin': is_admin,
+    })

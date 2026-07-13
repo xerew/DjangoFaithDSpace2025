@@ -48,6 +48,59 @@ class AnnouncementModelTests(TestCase):
         self.assertEqual(a.organization, self.org)
         self.assertIn(a, self.org.announcements.all())
 
+
+class AnnouncementDetailViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user('detail_admin', password='pass')
+        self.member = User.objects.create_user('detail_member', password='pass')
+        self.outsider = User.objects.create_user('detail_outsider', password='pass')
+        self.org = Organization.objects.create(
+            name='Detail Org', short_name='DO', created_by=self.admin,
+        )
+        self.org.admins.add(self.admin)
+        self.org.members.add(self.admin, self.member)
+        self.announcement = Announcement.objects.create(
+            organization=self.org, title='Full Detail', body='<p>Full <b>content</b> here.</p>',
+            plain_text='Full content here.', created_by=self.admin,
+        )
+        self.other_org = Organization.objects.create(
+            name='Other Org', short_name='OO', created_by=self.outsider,
+        )
+
+    def test_member_can_view_full_announcement(self):
+        self.client.login(username='detail_member', password='pass')
+        r = self.client.get(reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Full Detail')
+        self.assertContains(r, 'Full <b>content</b> here.')
+
+    def test_non_member_can_still_view(self):
+        self.client.login(username='detail_outsider', password='pass')
+        r = self.client.get(reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_login_required(self):
+        r = self.client.get(reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        self.assertEqual(r.status_code, 302)
+
+    def test_admin_sees_edit_delete_controls(self):
+        self.client.login(username='detail_admin', password='pass')
+        r = self.client.get(reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        self.assertContains(r, reverse('edit_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertContains(r, reverse('delete_announcement', args=[self.org.id, self.announcement.id]))
+
+    def test_non_admin_does_not_see_edit_delete_controls(self):
+        self.client.login(username='detail_member', password='pass')
+        r = self.client.get(reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        self.assertNotContains(r, reverse('edit_announcement', args=[self.org.id, self.announcement.id]))
+        self.assertNotContains(r, reverse('delete_announcement', args=[self.org.id, self.announcement.id]))
+
+    def test_announcement_from_wrong_org_404s(self):
+        self.client.login(username='detail_member', password='pass')
+        r = self.client.get(reverse('announcement_detail', args=[self.other_org.id, self.announcement.id]))
+        self.assertEqual(r.status_code, 404)
+
     def test_announcements_ordered_newest_first(self):
         older = Announcement.objects.create(
             organization=self.org, title='Older', body='<p>a</p>', created_by=self.user,
