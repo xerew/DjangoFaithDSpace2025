@@ -417,7 +417,8 @@ class AnnouncementPreviewLinkTests(TestCase):
 
     def test_title_links_to_detail_page(self):
         r = self.client.get(reverse('organization_detail', args=[self.org.id]))
-        self.assertContains(r, reverse('announcement_detail', args=[self.org.id, self.announcement.id]))
+        detail_url = reverse('announcement_detail', args=[self.org.id, self.announcement.id])
+        self.assertContains(r, f'href="{detail_url}"')
 
     def test_preview_is_truncated(self):
         r = self.client.get(reverse('organization_detail', args=[self.org.id]))
