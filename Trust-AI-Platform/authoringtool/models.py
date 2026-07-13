@@ -557,6 +557,36 @@ def update_q_value(flag_type, category, action, reward, ALPHA=0.2):
     qv.save()
     print(f"✅ Q-value updated for ({flag_type}, {category}, {action}): {old:.2f} → {qv.q_value:.2f}")
 
+class ProposalGenerationRun(models.Model):
+    scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposal_generation_runs')
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='triggered_proposal_generation_runs')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_current = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Proposal Generation Run"
+        verbose_name_plural = "Proposal Generation Runs"
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['scenario'],
+                condition=models.Q(is_current=True),
+                name='unique_current_run_per_scenario',
+            ),
+        ]
+
+    def __str__(self):
+        status = 'current' if self.is_current else 'archived'
+        return f"Run for '{self.scenario.name}' @ {self.created_at:%Y-%m-%d %H:%M} ({status})"
+
+    @classmethod
+    def start_new(cls, scenario, created_by):
+        """Archive the scenario's current run (if any) and start a new current one, atomically."""
+        with transaction.atomic():
+            cls.objects.filter(scenario=scenario, is_current=True).update(is_current=False)
+            return cls.objects.create(scenario=scenario, created_by=created_by, is_current=True)
+
+
 class ActivityProposal(models.Model):
     STATUS_CHOICES = [
         ('new', 'New'),
@@ -568,8 +598,11 @@ class ActivityProposal(models.Model):
         ('revise', 'Revise Activity'),
         ('skip', 'Skip Activity'),
     ]
-    
+
     scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposals', db_index=True)
+    generation_run = models.ForeignKey(
+        'ProposalGenerationRun', on_delete=models.CASCADE, null=True, blank=True, related_name='proposals',
+    )
     phase = models.ForeignKey('Phase', on_delete=models.CASCADE, related_name='proposals')
     activity = models.ForeignKey('Activity', on_delete=models.CASCADE, related_name='proposals')
     flag = models.ManyToManyField('ActivityFlag', blank=True, related_name='proposals')

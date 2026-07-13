@@ -18,6 +18,7 @@ from authoringtool.models import (
     AnswerFeedback,
     NextQuestionLogic,
     Phase,
+    ProposalGenerationRun,
     Scenario,
     SchoolDepartment,
     UserAnswer,
@@ -701,3 +702,42 @@ class EditProposalJsonViewTests(TestCase):
         url = reverse('edit_proposal_json', args=[self.scenario.id, self.proposal.id])
         response = self.client.get(url)
         self.assertFalse(UserProposalReview.objects.filter(proposal=self.proposal, user=self.user).exists())
+
+
+class ProposalGenerationRunModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('run_owner', password='pass')
+        self.scenario = Scenario.objects.create(
+            name='Run Scenario', created_by=self.user, updated_by=self.user
+        )
+
+    def test_start_new_creates_current_run(self):
+        run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.assertTrue(run.is_current)
+        self.assertEqual(run.scenario, self.scenario)
+        self.assertEqual(run.created_by, self.user)
+
+    def test_start_new_archives_previous_current_run(self):
+        first_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        second_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+
+        first_run.refresh_from_db()
+        self.assertFalse(first_run.is_current)
+        self.assertTrue(second_run.is_current)
+
+    def test_only_one_current_run_per_scenario(self):
+        ProposalGenerationRun.start_new(self.scenario, self.user)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ProposalGenerationRun.objects.create(
+                    scenario=self.scenario, created_by=self.user, is_current=True,
+                )
+
+    def test_different_scenarios_can_each_have_a_current_run(self):
+        other_scenario = Scenario.objects.create(
+            name='Other Run Scenario', created_by=self.user, updated_by=self.user
+        )
+        run1 = ProposalGenerationRun.start_new(self.scenario, self.user)
+        run2 = ProposalGenerationRun.start_new(other_scenario, self.user)
+        self.assertTrue(run1.is_current)
+        self.assertTrue(run2.is_current)

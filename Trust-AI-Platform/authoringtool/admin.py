@@ -13,7 +13,7 @@ from .models import (
     QuestionBunch, Simulation, SchoolDepartment, ExperimentLL,
     RemoteLabSession, VRARExperiment, UserScenarioScore, UserAnswer,
     PhetLabSessions, MultilingualQuestion, MultilingualAnswer,
-    ActivityFlag, ActivityProposal, ActivityProposalEditEvent, QValue, UserProposalReview, Language,
+    ActivityFlag, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, QValue, UserProposalReview, Language,
 )
 from usergroups.models import UserGroupMembership
 
@@ -550,6 +550,18 @@ class ActivityFlagAdmin(admin.ModelAdmin):
     list_select_related = ('activity', 'scenario')
     readonly_fields = ('flagged_on',)
     date_hierarchy = 'flagged_on'
+
+
+# ─── ProposalGenerationRun ─────────────────────────────────────────────────────
+
+@admin.register(ProposalGenerationRun)
+class ProposalGenerationRunAdmin(admin.ModelAdmin):
+    list_display = ('id', 'scenario', 'created_by', 'created_at', 'is_current')
+    list_filter = ('is_current', 'created_at')
+    search_fields = ('scenario__name',)
+    raw_id_fields = ('scenario', 'created_by')
+    readonly_fields = ('created_at',)
+    date_hierarchy = 'created_at'
 
 
 # ─── ActivityProposal ─────────────────────────────────────────────────────────
