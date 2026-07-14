@@ -741,3 +741,143 @@ class ProposalGenerationRunModelTests(TestCase):
         run2 = ProposalGenerationRun.start_new(other_scenario, self.user)
         self.assertTrue(run1.is_current)
         self.assertTrue(run2.is_current)
+
+
+class TriggerLlmContextTaskPermissionTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.owner = User.objects.create_user('gen_owner', password='pass')
+        self.other_teacher = User.objects.create_user('gen_other', password='pass')
+        self.admin = User.objects.create_user('gen_admin', password='pass', is_staff=True)
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.owner.groups.add(g)
+        self.other_teacher.groups.add(g)
+        self.admin.groups.add(g)
+        self.scenario = Scenario.objects.create(
+            name='Gen Perm Scenario', created_by=self.owner, updated_by=self.owner
+        )
+
+    def test_non_owner_teacher_forbidden(self):
+        self.client.login(username='gen_other', password='pass')
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_non_teacher_forbidden(self):
+        non_teacher = User.objects.create_user('gen_notteacher', password='pass')
+        self.client.login(username='gen_notteacher', password='pass')
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_trigger(self):
+        from unittest.mock import patch
+        self.client.login(username='gen_owner', password='pass')
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+        with patch('authoringtool.views.generate_llm_context_for_scenario.delay') as mock_delay:
+            mock_delay.return_value.id = 'fake-task-id'
+            response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        mock_delay.assert_called_once_with(self.scenario.id, force_rebuild=False, triggered_by_id=self.owner.id)
+
+    def test_admin_can_trigger(self):
+        from unittest.mock import patch
+        self.client.login(username='gen_admin', password='pass')
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+        with patch('authoringtool.views.generate_llm_context_for_scenario.delay') as mock_delay:
+            mock_delay.return_value.id = 'fake-task-id'
+            response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        mock_delay.assert_called_once()
+
+
+class ProposalListViewCurrentRunScopingTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('scope_owner', password='pass')
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.user.groups.add(g)
+        self.client.login(username='scope_owner', password='pass')
+
+        self.scenario = Scenario.objects.create(
+            name='Scope Scenario', created_by=self.user, updated_by=self.user
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1', scenario=self.scenario, created_by=self.user, updated_by=self.user
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation', created_by=self.user, updated_by=self.user
+        )
+        self.activity = Activity.objects.create(
+            name='Act 1', text='Hello', scenario=self.scenario, phase=self.phase,
+            activity_type=self.activity_type, created_by=self.user, updated_by=self.user,
+        )
+
+        self.old_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.old_proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.old_run, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='old', translated_action='old',
+            json_action='{}', json_translated_action='{}',
+        )
+
+        self.current_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.current_proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.current_run, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='current', translated_action='current',
+            json_action='{}', json_translated_action='{}',
+        )
+
+    def test_proposal_list_only_shows_current_run(self):
+        url = reverse('proposal_list', args=[self.scenario.id])
+        response = self.client.get(url)
+        proposals = list(response.context['proposals'])
+        self.assertEqual(proposals, [self.current_proposal])
+
+    def test_old_run_is_archived(self):
+        self.old_run.refresh_from_db()
+        self.current_run.refresh_from_db()
+        self.assertFalse(self.old_run.is_current)
+        self.assertTrue(self.current_run.is_current)
+
+
+class AcceptedReviewsForPersonalScenarioScopingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('accepted_scope_owner', password='pass')
+        self.scenario = Scenario.objects.create(
+            name='Accepted Scope Scenario', created_by=self.user, updated_by=self.user
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1', scenario=self.scenario, created_by=self.user, updated_by=self.user
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation', created_by=self.user, updated_by=self.user
+        )
+        self.activity = Activity.objects.create(
+            name='Act 1', text='Hello', scenario=self.scenario, phase=self.phase,
+            activity_type=self.activity_type, created_by=self.user, updated_by=self.user,
+        )
+
+        self.old_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.old_proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.old_run, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='old', translated_action='old',
+            json_action='{}', json_translated_action='{}',
+        )
+        self.old_review = UserProposalReview.objects.create(
+            proposal=self.old_proposal, user=self.user, status='accepted',
+        )
+
+        self.current_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.current_proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.current_run, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='current', translated_action='current',
+            json_action='{}', json_translated_action='{}',
+        )
+        self.current_review = UserProposalReview.objects.create(
+            proposal=self.current_proposal, user=self.user, status='accepted',
+        )
+
+    def test_only_current_run_accepted_reviews_are_returned(self):
+        from authoringtool.tasks import get_accepted_reviews_for_personal_scenario
+        reviews = list(get_accepted_reviews_for_personal_scenario(self.scenario, self.user))
+        self.assertEqual(reviews, [self.current_review])

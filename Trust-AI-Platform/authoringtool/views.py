@@ -2339,13 +2339,15 @@ def risk_flags_status(request, task_id):
     
     return JsonResponse({'status': r.state})
 
-@login_required
+@group_required('teachers')
 def trigger_llm_context_task(request, scenario_id):
     if request.method == "POST":
         try:
             scenario = Scenario.objects.get(id=scenario_id)
+            if scenario.created_by != request.user and not is_admin_user(request.user):
+                return JsonResponse({"error": "You don't own this scenario."}, status=403)
             force = request.GET.get("force", "false").lower() == "true"
-            task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force)
+            task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
             return JsonResponse({"status": "started", "task_id": task.id})
         except Scenario.DoesNotExist:
             return JsonResponse({"error": "Scenario not found"}, status=404)
@@ -2371,8 +2373,8 @@ def get_llm_context_task_status(request, task_id):
 def proposal_list_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
 
-    # 1. Fetch all shared proposals for the scenario
-    proposals = ActivityProposal.objects.filter(scenario=myScenario)\
+    # 1. Fetch all shared proposals for the scenario's current generation run
+    proposals = ActivityProposal.objects.filter(scenario=myScenario, generation_run__is_current=True)\
         .select_related('activity', 'phase', 'scenario')\
         .prefetch_related('flag', 'categories_in_risk')\
         .order_by('-created_at')

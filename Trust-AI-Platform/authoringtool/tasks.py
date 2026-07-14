@@ -2,7 +2,7 @@ from celery import shared_task
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from .models import Scenario, Phase, Activity, UserAnswer, Answer, QuestionBunch, ActivityType, NextQuestionLogic, EvQuestionBranching, ActivityFlag, ActivityProposal, CategoryTag, QValue, UserProposalReview
+from .models import Scenario, Phase, Activity, UserAnswer, Answer, QuestionBunch, ActivityType, NextQuestionLogic, EvQuestionBranching, ActivityFlag, ActivityProposal, CategoryTag, QValue, UserProposalReview, ProposalGenerationRun
 from django.core.cache import cache
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
@@ -2422,8 +2422,9 @@ def get_best_q_action(flag_list):
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
 
 @shared_task
-def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
+def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggered_by_id=None):
     scenario = Scenario.objects.get(id=scenario_id)
+    triggered_by = User.objects.filter(id=triggered_by_id).first() if triggered_by_id else scenario.created_by
     print(f"\n▶️ Starting LLM context generation for SCENARIO: '{scenario.name}' (ID: {scenario_id})")
 
     # 0️⃣ Build or refresh RAG index from scenario PDFs
@@ -2595,11 +2596,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         activity.save()
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
-    # — clean out old proposals & reviews —
-    ActivityProposal.objects.filter(scenario=scenario).delete()
-    print(f"Deleted Proposals")
-    UserProposalReview.objects.filter(proposal__scenario=scenario).delete()
-    print(f"Deleted User Proposals")
+    # — archive the previous run (if any) and start a fresh current one —
+    generation_run = ProposalGenerationRun.start_new(scenario, triggered_by)
+    print(f"Started new ProposalGenerationRun {generation_run.id} for scenario {scenario_id}")
 
     flags = ActivityFlag.objects.filter(activity__phase__scenario=scenario)
     print(f"Found Flags")
@@ -2744,6 +2743,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False):
         # — save the proposal —
         prop = ActivityProposal.objects.create(
             scenario=scenario,
+            generation_run=generation_run,
             phase=phase,
             activity=activity,
             proposal_type=proposal_type,
@@ -3074,16 +3074,21 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
         print(traceback.format_exc())
         return "scenario error"
     
+def get_accepted_reviews_for_personal_scenario(original_scenario, user):
+    return UserProposalReview.objects.filter(
+        user=user,
+        proposal__scenario=original_scenario,
+        proposal__generation_run__is_current=True,
+        status='accepted'
+    ).select_related('proposal', 'proposal__activity', 'proposal__phase')
+
+
 def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity_mapping, user,
                                        default_simulation=None, default_experiment_ll=None, default_vr_ar_experiment=None):
 
     refactor_all_proposals_to_json()
 
-    accepted_reviews = UserProposalReview.objects.filter(
-        user=user,
-        proposal__scenario=original_scenario,
-        status='accepted'
-    ).select_related('proposal', 'proposal__activity', 'proposal__phase')
+    accepted_reviews = get_accepted_reviews_for_personal_scenario(original_scenario, user)
 
     for review in accepted_reviews:
         proposal = review.proposal
