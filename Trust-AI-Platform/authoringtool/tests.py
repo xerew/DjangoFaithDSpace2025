@@ -758,17 +758,23 @@ class TriggerLlmContextTaskPermissionTests(TestCase):
         )
 
     def test_non_owner_teacher_forbidden(self):
+        from unittest.mock import patch
         self.client.login(username='gen_other', password='pass')
         url = reverse('generate_llm_context', args=[self.scenario.id])
-        response = self.client.post(url)
+        with patch('authoringtool.views.generate_llm_context_for_scenario.delay') as mock_delay:
+            response = self.client.post(url)
         self.assertEqual(response.status_code, 403)
+        mock_delay.assert_not_called()
 
     def test_non_teacher_forbidden(self):
+        from unittest.mock import patch
         non_teacher = User.objects.create_user('gen_notteacher', password='pass')
         self.client.login(username='gen_notteacher', password='pass')
         url = reverse('generate_llm_context', args=[self.scenario.id])
-        response = self.client.post(url)
+        with patch('authoringtool.views.generate_llm_context_for_scenario.delay') as mock_delay:
+            response = self.client.post(url)
         self.assertEqual(response.status_code, 403)
+        mock_delay.assert_not_called()
 
     def test_owner_can_trigger(self):
         from unittest.mock import patch
