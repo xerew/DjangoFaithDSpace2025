@@ -1,0 +1,102 @@
+{% extends "main.html" %}
+{% load group_tags %}
+{% block page_title %}<title>Trust AI Lab — Proposal History — {{ run.created_at|date:"d M Y" }} — {{ myScenario.name }}</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .pr-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .pr-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .pr-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .pr-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .pr-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .pr-hero .breadcrumb-item a:hover { color:#fff; }
+  .pr-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); font-weight:600; font-size:13px; border-radius:8px; padding:7px 16px; display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap; }
+  .hero-btn-ghost:hover { background:rgba(255,255,255,0.25); color:#fff; }
+  @media (max-width:575.98px) {
+    .pr-hero { padding:14px 16px 12px; }
+    .pr-hero > .d-flex { flex-wrap:wrap; }
+    .pr-hero-icon { display:none; }
+    .pr-hero h2 { font-size:15px !important; }
+  }
+
+  .proposal-card {
+    border-radius:12px; border:1px solid #e8edf5; background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:12px;
+    padding:16px 20px;
+  }
+  .proposal-card[data-status="accepted"] { border-left:4px solid #16a34a; }
+  .proposal-card[data-status="rejected"] { border-left:4px solid #dc2626; }
+  .proposal-card[data-status="new"]      { border-left:4px solid #d97706; }
+  .proposal-card-title { font-weight:700; color:#012970; font-size:14px; margin:0; }
+  .proposal-card-meta { font-size:12px; color:#888; margin-top:2px; }
+  .status-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+  .status-badge.accepted { background:#dcfce7; color:#166534; }
+  .status-badge.rejected { background:#fee2e2; color:#991b1b; }
+  .status-badge.new      { background:#fef3c7; color:#92400e; }
+  .proposal-card-body { font-size:13px; color:#333; margin-top:10px; line-height:1.5; white-space:pre-wrap; }
+  .rejection-reasons { margin-top:8px; font-size:12px; color:#991b1b; }
+</style>
+
+<main id="main" class="main">
+  <div class="pr-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="pr-hero-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Proposals</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ run.created_at|date:"d M Y, H:i" }}</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">Proposals</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'proposal_history' myScenario.id %}">History</a></li>
+          <li class="breadcrumb-item active">{{ run.created_at|date:"d M Y" }}</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'proposal_history' myScenario.id %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    {% for proposal in proposals %}
+    {% with review=user_reviews|dict_get:proposal.id %}
+    <div class="proposal-card" data-status="{{ review.status|default:'new' }}">
+      <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+        <h6 class="proposal-card-title">{{ proposal.get_proposal_type_display }} — {{ proposal.activity.name }}</h6>
+        <span class="status-badge {{ review.status|default:'new' }}">
+          {% if review.status == 'accepted' %}Accepted{% elif review.status == 'rejected' %}Rejected{% else %}Never decided{% endif %}
+        </span>
+      </div>
+      <div class="proposal-card-meta">
+        {{ proposal.phase.name }}
+        {% if review.status == 'accepted' or review.status == 'rejected' %} · Decided {{ review.reviewed_at|date:"d M Y, H:i" }}{% endif %}
+        {% if review.was_edited %} · Edited {{ review.edit_count }} time{{ review.edit_count|pluralize }}{% endif %}
+      </div>
+      <div class="proposal-card-body">{{ proposal.suggested_action }}</div>
+      {% if review.status == 'rejected' and review.rejection_reasons %}
+      <div class="rejection-reasons">
+        <strong>Rejection reasons:</strong> {{ review.rejection_reasons|join:", " }}
+      </div>
+      {% endif %}
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-inbox" style="font-size:2.5rem;color:#d1d9e0;"></i>
+      <p class="mt-2 mb-0">No proposals in this run.</p>
+    </div>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

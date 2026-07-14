@@ -1,0 +1,92 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Proposal History — {{ myScenario.name }}</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .pr-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .pr-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .pr-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .pr-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .pr-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .pr-hero .breadcrumb-item a:hover { color:#fff; }
+  .pr-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); font-weight:600; font-size:13px; border-radius:8px; padding:7px 16px; display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap; }
+  .hero-btn-ghost:hover { background:rgba(255,255,255,0.25); color:#fff; }
+  @media (max-width:575.98px) {
+    .pr-hero { padding:14px 16px 12px; }
+    .pr-hero > .d-flex { flex-wrap:wrap; }
+    .pr-hero-icon { display:none; }
+    .pr-hero h2 { font-size:15px !important; }
+  }
+
+  .run-card {
+    border-radius:12px; border:1px solid #e8edf5; background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:12px;
+    padding:16px 20px; display:flex; align-items:center; justify-content:space-between;
+    gap:14px; flex-wrap:wrap; text-decoration:none; color:inherit; transition:box-shadow .15s;
+  }
+  .run-card:hover { box-shadow:0 4px 16px rgba(26,86,219,0.09); border-color:#c5d0f0; }
+  .run-card-date { font-weight:700; color:#012970; font-size:14px; }
+  .run-card-meta { font-size:12px; color:#888; margin-top:2px; }
+  .run-stats { display:flex; gap:8px; flex-wrap:wrap; }
+  .run-stat { font-size:12px; font-weight:600; padding:3px 10px; border-radius:12px; }
+  .run-stat.accepted { background:#dcfce7; color:#166534; }
+  .run-stat.rejected { background:#fee2e2; color:#991b1b; }
+  .run-stat.pending  { background:#fef3c7; color:#92400e; }
+</style>
+
+<main id="main" class="main">
+  <div class="pr-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="pr-hero-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Proposals</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Proposal History</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">Proposals</a></li>
+          <li class="breadcrumb-item active">History</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'proposal_list' myScenario.id %}" class="hero-btn-ghost">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    {% for summary in run_summaries %}
+    <a href="{% url 'proposal_history_run_detail' myScenario.id summary.run.id %}" class="run-card">
+      <div>
+        <div class="run-card-date">{{ summary.run.created_at|date:"d M Y, H:i" }}</div>
+        <div class="run-card-meta">
+          Triggered by {{ summary.run.created_by.get_full_name|default:summary.run.created_by.username|default:"Unknown" }}
+          · {{ summary.total }} proposal{{ summary.total|pluralize }}
+        </div>
+      </div>
+      <div class="run-stats">
+        <span class="run-stat accepted">{{ summary.accepted }} accepted</span>
+        <span class="run-stat rejected">{{ summary.rejected }} rejected</span>
+        <span class="run-stat pending">{{ summary.never_decided }} never decided</span>
+      </div>
+    </a>
+    {% empty %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-clock-history" style="font-size:2.5rem;color:#d1d9e0;"></i>
+      <p class="mt-2 mb-0">No past generations yet.</p>
+      <p class="small">History appears here after you regenerate proposals for this scenario.</p>
+    </div>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

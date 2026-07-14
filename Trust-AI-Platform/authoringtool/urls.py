@@ -70,6 +70,8 @@ urlpatterns = [
     path('scenarios/llm_context_status/<str:task_id>/', views.get_llm_context_task_status, name='llm_context_status'),
     # Proposals
     path('scenarios/<int:scenario_id>/proposals/', views.proposal_list_view, name='proposal_list'),
+    path('scenarios/<int:scenario_id>/proposals/history/', views.proposal_history_view, name='proposal_history'),
+    path('scenarios/<int:scenario_id>/proposals/history/<int:run_id>/', views.proposal_history_run_detail_view, name='proposal_history_run_detail'),
     path('scenarios/<int:scenario_id>/proposals/<int:pk>/accept/', views.accept_proposal, name='accept_proposal'),
     path('scenarios/<int:scenario_id>/proposals/<int:pk>/reject/', views.reject_proposal, name='reject_proposal'),
     path('proposals/<int:scenario_id>/create/', views.create_personal_scenario, name='create_personal_scenario'),

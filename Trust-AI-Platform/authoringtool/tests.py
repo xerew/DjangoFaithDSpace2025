@@ -887,3 +887,92 @@ class AcceptedReviewsForPersonalScenarioScopingTests(TestCase):
         from authoringtool.tasks import get_accepted_reviews_for_personal_scenario
         reviews = list(get_accepted_reviews_for_personal_scenario(self.scenario, self.user))
         self.assertEqual(reviews, [self.current_review])
+
+
+class ProposalHistoryViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('history_user', password='pass')
+        g, _ = Group.objects.get_or_create(name='teachers')
+        self.user.groups.add(g)
+        self.client.login(username='history_user', password='pass')
+
+        self.scenario = Scenario.objects.create(
+            name='History Scenario', created_by=self.user, updated_by=self.user
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1', scenario=self.scenario, created_by=self.user, updated_by=self.user
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation', created_by=self.user, updated_by=self.user
+        )
+        self.activity = Activity.objects.create(
+            name='Act 1', text='Hello', scenario=self.scenario, phase=self.phase,
+            activity_type=self.activity_type, created_by=self.user, updated_by=self.user,
+        )
+
+        self.old_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.old_proposal_accepted = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.old_run, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='Old accepted proposal', translated_action='x',
+            json_action='{}', json_translated_action='{}',
+        )
+        UserProposalReview.objects.create(
+            proposal=self.old_proposal_accepted, user=self.user, status='accepted',
+        )
+        self.old_proposal_rejected = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.old_run, phase=self.phase, activity=self.activity,
+            proposal_type='skip', suggested_action='Old rejected proposal', translated_action='x',
+            json_action='{}', json_translated_action='{}',
+        )
+        UserProposalReview.objects.create(
+            proposal=self.old_proposal_rejected, user=self.user, status='rejected', rejection_reasons=['not relevant'],
+        )
+
+        self.current_run = ProposalGenerationRun.start_new(self.scenario, self.user)
+        self.current_proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, generation_run=self.current_run, phase=self.phase, activity=self.activity,
+            proposal_type='create', suggested_action='Current proposal', translated_action='x',
+            json_action='{}', json_translated_action='{}',
+        )
+
+    def test_history_index_lists_only_past_runs(self):
+        url = reverse('proposal_history', args=[self.scenario.id])
+        response = self.client.get(url)
+        run_summaries = response.context['run_summaries']
+        self.assertEqual(len(run_summaries), 1)
+        self.assertEqual(run_summaries[0]['run'], self.old_run)
+
+    def test_history_index_shows_decision_counts(self):
+        url = reverse('proposal_history', args=[self.scenario.id])
+        response = self.client.get(url)
+        summary = response.context['run_summaries'][0]
+        self.assertEqual(summary['accepted'], 1)
+        self.assertEqual(summary['rejected'], 1)
+        self.assertEqual(summary['total'], 2)
+
+    def test_run_detail_shows_that_runs_proposals_only(self):
+        url = reverse('proposal_history_run_detail', args=[self.scenario.id, self.old_run.id])
+        response = self.client.get(url)
+        self.assertContains(response, 'Old accepted proposal')
+        self.assertContains(response, 'Old rejected proposal')
+        self.assertNotContains(response, 'Current proposal')
+
+    def test_run_detail_shows_rejection_reasons(self):
+        url = reverse('proposal_history_run_detail', args=[self.scenario.id, self.old_run.id])
+        response = self.client.get(url)
+        self.assertContains(response, 'not relevant')
+
+    def test_run_from_wrong_scenario_404s(self):
+        other_scenario = Scenario.objects.create(
+            name='Other History Scenario', created_by=self.user, updated_by=self.user
+        )
+        url = reverse('proposal_history_run_detail', args=[other_scenario.id, self.old_run.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_login_required_for_history(self):
+        self.client.logout()
+        url = reverse('proposal_history', args=[self.scenario.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)

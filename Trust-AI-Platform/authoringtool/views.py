@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
-from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, UserProposalReview, Language, Subject
+from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, UserProposalReview, Language, Subject
 from psycopg2.extras import NumericRange
 from django.urls import reverse
 from django.utils.html import strip_tags
@@ -2644,3 +2644,55 @@ def tinymce_image_upload(request):
             f.write(chunk)
 
     return JsonResponse({'location': f"{settings.MEDIA_URL}tinymce/{filename}"})
+
+
+@login_required
+def proposal_history_view(request, scenario_id):
+    myScenario = get_object_or_404(Scenario, id=scenario_id)
+    past_runs = ProposalGenerationRun.objects.filter(
+        scenario=myScenario, is_current=False
+    ).order_by('-created_at')
+
+    run_summaries = []
+    for run in past_runs:
+        reviews = UserProposalReview.objects.filter(
+            user=request.user, proposal__generation_run=run
+        )
+        total = run.proposals.count()
+        accepted = sum(1 for r in reviews if r.status == 'accepted')
+        rejected = sum(1 for r in reviews if r.status == 'rejected')
+        decided_ids = {r.proposal_id for r in reviews if r.status in ('accepted', 'rejected')}
+        never_decided = total - len(decided_ids)
+        run_summaries.append({
+            'run': run,
+            'total': total,
+            'accepted': accepted,
+            'rejected': rejected,
+            'never_decided': never_decided,
+        })
+
+    return render(request, 'authoringtool/proposal_history.html', {
+        'myScenario': myScenario,
+        'run_summaries': run_summaries,
+    })
+
+
+@login_required
+def proposal_history_run_detail_view(request, scenario_id, run_id):
+    myScenario = get_object_or_404(Scenario, id=scenario_id)
+    run = get_object_or_404(ProposalGenerationRun, id=run_id, scenario=myScenario)
+
+    proposals = run.proposals.select_related('activity', 'phase')\
+        .prefetch_related('flag', 'categories_in_risk')\
+        .order_by('-created_at')
+    user_reviews = {
+        review.proposal_id: review
+        for review in UserProposalReview.objects.filter(user=request.user, proposal__generation_run=run)
+    }
+
+    return render(request, 'authoringtool/proposal_history_run_detail.html', {
+        'myScenario': myScenario,
+        'run': run,
+        'proposals': proposals,
+        'user_reviews': user_reviews,
+    })
