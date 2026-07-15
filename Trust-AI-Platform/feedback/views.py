@@ -1,7 +1,7 @@
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
@@ -19,6 +19,11 @@ def staff_required(view_func):
             return HttpResponseForbidden("Access denied.")
         return view_func(request, *args, **kwargs)
     return _wrapped
+
+
+def _clean_answer(answers, question):
+    raw = answers.get(str(question.id))
+    return raw.strip() if isinstance(raw, str) else ''
 
 
 @require_POST
@@ -43,20 +48,25 @@ def submit_feedback(request, form_id, scenario_id):
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON.'}, status=400)
     answers = payload.get('answers') or {}
+    if not isinstance(answers, dict):
+        return JsonResponse({'success': False, 'error': 'Invalid answers payload.'}, status=400)
 
     questions = list(form.questions.all())
     for question in questions:
-        raw = (answers.get(str(question.id)) or '').strip()
+        raw = _clean_answer(answers, question)
         if question.is_required and not raw:
             return JsonResponse({'success': False, 'error': f'Question "{question.text}" is required.'}, status=400)
         if raw and question.question_type == 'choice' and raw not in question.options:
             return JsonResponse({'success': False, 'error': f'Invalid option for "{question.text}".'}, status=400)
 
-    with transaction.atomic():
-        response = FeedbackResponse.objects.create(form=form, user=request.user, scenario=scenario)
-        for question in questions:
-            raw = (answers.get(str(question.id)) or '').strip()
-            if raw:
-                FeedbackAnswer.objects.create(response=response, question=question, answer_text=raw)
+    try:
+        with transaction.atomic():
+            response = FeedbackResponse.objects.create(form=form, user=request.user, scenario=scenario)
+            for question in questions:
+                raw = _clean_answer(answers, question)
+                if raw:
+                    FeedbackAnswer.objects.create(response=response, question=question, answer_text=raw)
+    except IntegrityError:
+        return JsonResponse({'success': False, 'error': 'You have already submitted this form.'}, status=400)
 
     return JsonResponse({'success': True})

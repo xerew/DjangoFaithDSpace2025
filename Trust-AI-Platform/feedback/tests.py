@@ -142,6 +142,30 @@ class FeedbackSubmitEndpointTests(TestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 405)
 
+    def test_non_dict_answers_payload_rejected(self):
+        self.client.login(username='fb_student', password='pass')
+        url = reverse('feedback_submit', args=[self.student_form.id, self.scenario.id])
+        r = self.client.post(url, json.dumps({'answers': 'bogus'}), content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(FeedbackResponse.objects.exists())
+
+    def test_non_string_answer_value_treated_as_missing(self):
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit(self.student_form, {str(self.q_choice.id): 42})
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(FeedbackResponse.objects.exists())
+
+    def test_integrity_error_on_race_returns_friendly_error(self):
+        from unittest.mock import patch
+        self.client.login(username='fb_student', password='pass')
+        with patch('feedback.views.FeedbackResponse.objects') as mock_manager:
+            mock_manager.filter.return_value.exists.return_value = False
+            from django.db import IntegrityError as IE
+            mock_manager.create.side_effect = IE('duplicate')
+            r = self._submit(self.student_form, {str(self.q_choice.id): 'Yes'})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('already', r.json()['error'].lower())
+
 
 class FeedbackUtilsTests(TestCase):
     def setUp(self):
