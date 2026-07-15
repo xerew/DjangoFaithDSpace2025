@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'django_redis',
     'home',
     'messaging',
+    'feedback',
 ]
 
 MIDDLEWARE = [
