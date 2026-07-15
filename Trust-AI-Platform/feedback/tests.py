@@ -319,3 +319,61 @@ class FeedbackManagementViewTests(TestCase):
         m2 = re.search(r'<option value="student"[^>]*>', content)
         self.assertIsNotNone(m2)
         self.assertIn('selected', m2.group(0))
+
+
+class FeedbackResponsesAndExportTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.staff = User.objects.create_user('fb_exp_staff', password='pass', is_staff=True)
+        self.responder = User.objects.create_user('fb_exp_user', password='pass', first_name='Resp', last_name='Onder')
+        self.scenario = Scenario.objects.create(name='FB Export Scenario', created_by=self.staff, updated_by=self.staff)
+        self.form = FeedbackForm.objects.create(title='Export form', audience='student', created_by=self.staff)
+        self.q1 = FeedbackQuestion.objects.create(form=self.form, text='Useful?', question_type='choice', options=['Yes', 'No'], order=1)
+        self.q2 = FeedbackQuestion.objects.create(form=self.form, text='Comments', question_type='text', order=2)
+        self.response = FeedbackResponse.objects.create(form=self.form, user=self.responder, scenario=self.scenario)
+        FeedbackAnswer.objects.create(response=self.response, question=self.q1, answer_text='Yes')
+        FeedbackAnswer.objects.create(response=self.response, question=self.q2, answer_text='Nice tool')
+        self.client.login(username='fb_exp_staff', password='pass')
+
+    def test_responses_page_lists_answers(self):
+        r = self.client.get(reverse('feedback_form_responses', args=[self.form.id]))
+        self.assertContains(r, 'fb_exp_user')
+        self.assertContains(r, 'Nice tool')
+
+    def test_delete_response(self):
+        r = self.client.post(reverse('feedback_response_delete', args=[self.response.id]))
+        self.assertRedirects(r, reverse('feedback_form_responses', args=[self.form.id]))
+        self.assertFalse(FeedbackResponse.objects.filter(id=self.response.id).exists())
+        self.assertFalse(FeedbackAnswer.objects.exists())
+
+    def test_delete_response_requires_post(self):
+        r = self.client.get(reverse('feedback_response_delete', args=[self.response.id]))
+        self.assertEqual(r.status_code, 405)
+
+    def test_csv_export_uses_comma_and_contains_answers(self):
+        r = self.client.get(reverse('feedback_form_export_csv', args=[self.form.id]))
+        self.assertEqual(r['Content-Type'], 'text/csv')
+        content = r.content.decode('utf-8')
+        header = content.splitlines()[0]
+        self.assertIn('Username,', header)
+        self.assertIn('Useful?', header)
+        self.assertIn('Nice tool', content)
+
+    def test_xlsx_export_contains_answers(self):
+        import io
+        import openpyxl
+        r = self.client.get(reverse('feedback_form_export_xlsx', args=[self.form.id]))
+        self.assertEqual(r['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        wb = openpyxl.load_workbook(io.BytesIO(r.content))
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        self.assertEqual(rows[0][0], 'Username')
+        self.assertIn('Useful?', rows[0])
+        self.assertIn('Yes', rows[1])
+        self.assertIn('Nice tool', rows[1])
+
+    def test_exports_blocked_for_non_staff(self):
+        self.client.logout()
+        self.client.login(username='fb_exp_user', password='pass')
+        r = self.client.get(reverse('feedback_form_export_csv', args=[self.form.id]))
+        self.assertEqual(r.status_code, 403)

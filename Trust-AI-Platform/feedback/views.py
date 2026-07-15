@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.contrib import messages
 from django.db.models import Count
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from functools import wraps
@@ -209,4 +209,75 @@ def feedback_form_delete(request, form_id):
 @staff_required
 def feedback_form_responses(request, form_id):
     form = get_object_or_404(FeedbackForm, id=form_id)
-    return render(request, 'feedback/form_responses.html', {'form_obj': form, 'responses': form.responses.select_related('user', 'scenario')})
+    questions = list(form.questions.all())
+    responses = form.responses.select_related('user', 'scenario').prefetch_related('answers__question')
+    response_rows = []
+    for response in responses:
+        answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
+        response_rows.append({
+            'response': response,
+            'answers': [(q, answer_map.get(q.id, '')) for q in questions],
+        })
+    return render(request, 'feedback/form_responses.html', {
+        'form_obj': form,
+        'questions': questions,
+        'response_rows': response_rows,
+    })
+
+
+@require_POST
+@staff_required
+def feedback_response_delete(request, response_id):
+    response = get_object_or_404(FeedbackResponse, id=response_id)
+    form_id = response.form_id
+    response.delete()
+    messages.success(request, 'Response deleted.')
+    return redirect('feedback_form_responses', form_id=form_id)
+
+
+def _export_rows(form):
+    """Header row + one row per response, question columns in question order."""
+    questions = list(form.questions.all())
+    header = ['Username', 'Scenario', 'Submitted'] + [q.text for q in questions]
+    rows = [header]
+    responses = form.responses.select_related('user', 'scenario').prefetch_related('answers')
+    for response in responses:
+        answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
+        rows.append(
+            [response.user.username, response.scenario.name, response.submitted_at.strftime('%Y-%m-%d %H:%M')]
+            + [answer_map.get(q.id, '') for q in questions]
+        )
+    return rows
+
+
+@staff_required
+def feedback_form_export_csv(request, form_id):
+    import csv
+    form = get_object_or_404(FeedbackForm, id=form_id)
+    http_response = HttpResponse(content_type='text/csv')
+    http_response['Content-Disposition'] = f'attachment; filename="feedback_form_{form.id}_responses.csv"'
+    writer = csv.writer(http_response)  # default delimiter: comma (deliberate; spec requirement)
+    for row in _export_rows(form):
+        writer.writerow(row)
+    return http_response
+
+
+@staff_required
+def feedback_form_export_xlsx(request, form_id):
+    import io
+    import openpyxl
+    form = get_object_or_404(FeedbackForm, id=form_id)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Responses'
+    for row in _export_rows(form):
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    http_response = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    http_response['Content-Disposition'] = f'attachment; filename="feedback_form_{form.id}_responses.xlsx"'
+    return http_response
