@@ -167,6 +167,7 @@ def feedback_form_create(request):
             'form_obj': None, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
             'questions_json': request.POST.get('questions_json') or '[]',
             'posted': request.POST,
+            'posted_scenario_ids': {int(s) for s in request.POST.getlist('scenarios') if s.isdigit()},
         })
     return render(request, 'feedback/form_edit.html', {
         'form_obj': None, 'scenarios': Scenario.objects.order_by('name'), 'questions_json': '[]',
@@ -185,6 +186,7 @@ def feedback_form_edit(request, form_id):
             'form_obj': form, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
             'questions_json': request.POST.get('questions_json') or '[]',
             'posted': request.POST,
+            'posted_scenario_ids': {int(s) for s in request.POST.getlist('scenarios') if s.isdigit()},
         })
     questions_json = json.dumps([
         {'text': q.text, 'type': q.question_type, 'options': q.options, 'required': q.is_required}

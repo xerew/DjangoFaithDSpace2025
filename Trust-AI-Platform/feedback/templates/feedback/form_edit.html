@@ -74,14 +74,14 @@
             <div class="col-12 col-md-6">
               <label class="field-label">Audience</label>
               <select name="audience" class="form-select">
-                <option value="teacher" {% if form_obj and form_obj.audience == 'teacher' %}selected{% endif %}>Teachers (after creating a personalized scenario)</option>
-                <option value="student" {% if form_obj and form_obj.audience == 'student' %}selected{% endif %}>Students (after finishing a scenario)</option>
+                <option value="teacher" {% if posted %}{% if posted.audience == 'teacher' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'teacher' %}selected{% endif %}>Teachers (after creating a personalized scenario)</option>
+                <option value="student" {% if posted %}{% if posted.audience == 'student' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'student' %}selected{% endif %}>Students (after finishing a scenario)</option>
               </select>
             </div>
             <div class="col-12 col-md-6 d-flex align-items-end">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
-                       {% if not form_obj or form_obj.is_active %}checked{% endif %}>
+                       {% if posted %}{% if posted.is_active %}checked{% endif %}{% elif not form_obj or form_obj.is_active %}checked{% endif %}>
                 <label class="form-check-label" for="isActive" style="font-size:13.5px;">Active (shown to users)</label>
               </div>
             </div>
@@ -99,7 +99,7 @@
           <label class="field-label">Scenario assignment</label>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="assign_to_all" id="assignAll"
-                   {% if not form_obj or form_obj.assign_to_all %}checked{% endif %}>
+                   {% if posted %}{% if posted.assign_to_all %}checked{% endif %}{% elif not form_obj or form_obj.assign_to_all %}checked{% endif %}>
             <label class="form-check-label" for="assignAll" style="font-size:13.5px;">
               Assign to <strong>all scenarios</strong> (includes scenarios created in the future)
             </label>
@@ -109,13 +109,15 @@
             {% for scenario in scenarios %}
             <div class="form-check">
               <input class="form-check-input scenario-cb" type="checkbox" name="scenarios" value="{{ scenario.id }}" id="sc{{ scenario.id }}"
-                {% if form_obj %}
+                {% if posted %}
+                  {% if scenario.id in posted_scenario_ids %}checked{% endif %}
+                {% elif form_obj %}
                   {% if form_obj.assign_to_all %}
                     {% if scenario not in form_obj.excluded_scenarios.all %}checked{% endif %}
                   {% else %}
                     {% if scenario in form_obj.included_scenarios.all %}checked{% endif %}
                   {% endif %}
-                {% endif %}>
+                {% else %}checked{% endif %}>
               <label class="form-check-label" for="sc{{ scenario.id }}" style="font-size:13.5px;">{{ scenario.name }}</label>
             </div>
             {% empty %}

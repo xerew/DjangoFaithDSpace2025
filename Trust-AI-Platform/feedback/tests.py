@@ -294,3 +294,28 @@ class FeedbackManagementViewTests(TestCase):
         })
         self.assertEqual(r.status_code, 200)  # re-rendered with error, not redirected
         self.assertFalse(FeedbackForm.objects.filter(title='Bad').exists())
+
+    def test_new_form_page_defaults_all_scenarios_checked(self):
+        import re
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.get(reverse('feedback_form_create'))
+        m = re.search(r'<input[^>]*id="sc%d"[^>]*>' % self.scenario.id, r.content.decode('utf-8'))
+        self.assertIsNotNone(m)
+        self.assertIn('checked', m.group(0))
+
+    def test_error_rerender_preserves_scenario_and_audience_selection(self):
+        import re
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.post(reverse('feedback_form_create'), {
+            'title': 'Bad', 'audience': 'student',
+            'scenarios': [str(self.scenario.id)],
+            'questions_json': json.dumps([{'text': 'Q', 'type': 'choice', 'options': [], 'required': True}]),
+        })
+        self.assertEqual(r.status_code, 200)
+        content = r.content.decode('utf-8')
+        m = re.search(r'<input[^>]*id="sc%d"[^>]*>' % self.scenario.id, content)
+        self.assertIsNotNone(m)
+        self.assertIn('checked', m.group(0))
+        m2 = re.search(r'<option value="student"[^>]*>', content)
+        self.assertIsNotNone(m2)
+        self.assertIn('selected', m2.group(0))
