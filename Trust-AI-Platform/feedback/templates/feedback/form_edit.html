@@ -1,0 +1,219 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {% if form_obj %}Edit{% else %}New{% endif %} Feedback Form</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .fb-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .fb-hero-icon { background: rgba(255,255,255,0.18); border-radius: 10px; width: 50px; height: 50px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .fb-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .fb-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .fb-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .fb-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:1.5px solid rgba(255,255,255,0.4); font-weight:600; font-size:13px; border-radius:8px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap; }
+  .hero-btn-ghost:hover { background:rgba(255,255,255,0.25); color:#fff; }
+  @media (max-width: 575.98px) {
+    .fb-hero { padding: 14px 16px 12px; }
+    .fb-hero > .d-flex { flex-wrap: wrap; }
+    .fb-hero-icon { display: none; }
+    .fb-hero h2 { font-size: 15px !important; }
+  }
+  .form-card { max-width: 860px; margin: 0 auto; }
+  .field-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 5px; }
+  .question-row { border:1px solid #e8edf5; border-radius:10px; padding:14px; margin-bottom:10px; background:#fafbff; }
+  .question-row .remove-q { color:#c62828; background:none; border:none; cursor:pointer; }
+  .scenario-box { max-height: 260px; overflow-y: auto; border:1px solid #e8edf5; border-radius:10px; padding:12px 14px; }
+  .warn-banner { background:#fef3c7; color:#92400e; border-radius:8px; padding:10px 14px; font-size:13px; margin-bottom:14px; }
+</style>
+
+<main id="main" class="main">
+  <div class="fb-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="fb-hero-icon"><i class="bi bi-clipboard-plus-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if form_obj %}Edit Feedback Form{% else %}New Feedback Form{% endif %}</h2>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'feedback_form_list' %}">Feedback Forms</a></li>
+          <li class="breadcrumb-item active">{% if form_obj %}Edit{% else %}New{% endif %}</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'feedback_form_list' %}" class="hero-btn-ghost"><i class="bi bi-arrow-left"></i> Back</a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="card form-card">
+      <div class="card-body p-4">
+        {% if form_obj and form_obj.responses.exists %}
+        <div class="warn-banner"><i class="bi bi-exclamation-triangle-fill me-1"></i>
+          This form already has responses. Changing or removing questions affects how historical answers line up in exports.
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger py-2" style="font-size:13.5px;">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" id="feedbackFormEditor">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="field-label">Title</label>
+            <input type="text" name="title" class="form-control" required
+                   value="{% if posted %}{{ posted.title }}{% elif form_obj %}{{ form_obj.title }}{% endif %}">
+          </div>
+          <div class="mb-3">
+            <label class="field-label">Description (shown above the questions)</label>
+            <textarea name="description" class="form-control" rows="2">{% if posted %}{{ posted.description }}{% elif form_obj %}{{ form_obj.description }}{% endif %}</textarea>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="field-label">Audience</label>
+              <select name="audience" class="form-select">
+                <option value="teacher" {% if form_obj and form_obj.audience == 'teacher' %}selected{% endif %}>Teachers (after creating a personalized scenario)</option>
+                <option value="student" {% if form_obj and form_obj.audience == 'student' %}selected{% endif %}>Students (after finishing a scenario)</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6 d-flex align-items-end">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                       {% if not form_obj or form_obj.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="isActive" style="font-size:13.5px;">Active (shown to users)</label>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <label class="field-label mb-0">Questions</label>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addQuestionBtn"><i class="bi bi-plus-lg"></i> Add question</button>
+          </div>
+          <div id="questionList"></div>
+          <input type="hidden" name="questions_json" id="questionsJson">
+
+          <hr>
+          <label class="field-label">Scenario assignment</label>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="assign_to_all" id="assignAll"
+                   {% if not form_obj or form_obj.assign_to_all %}checked{% endif %}>
+            <label class="form-check-label" for="assignAll" style="font-size:13.5px;">
+              Assign to <strong>all scenarios</strong> (includes scenarios created in the future)
+            </label>
+          </div>
+          <div class="text-muted small mb-2" id="scenarioHint"></div>
+          <div class="scenario-box">
+            {% for scenario in scenarios %}
+            <div class="form-check">
+              <input class="form-check-input scenario-cb" type="checkbox" name="scenarios" value="{{ scenario.id }}" id="sc{{ scenario.id }}"
+                {% if form_obj %}
+                  {% if form_obj.assign_to_all %}
+                    {% if scenario not in form_obj.excluded_scenarios.all %}checked{% endif %}
+                  {% else %}
+                    {% if scenario in form_obj.included_scenarios.all %}checked{% endif %}
+                  {% endif %}
+                {% endif %}>
+              <label class="form-check-label" for="sc{{ scenario.id }}" style="font-size:13.5px;">{{ scenario.name }}</label>
+            </div>
+            {% empty %}
+            <div class="text-muted small">No scenarios exist yet.</div>
+            {% endfor %}
+          </div>
+
+          <div class="text-end mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% if form_obj %}Save Changes{% else %}Create Form{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+{{ questions_json|json_script:"initialQuestions" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const list = document.getElementById('questionList');
+  const addBtn = document.getElementById('addQuestionBtn');
+  const hiddenInput = document.getElementById('questionsJson');
+  const assignAll = document.getElementById('assignAll');
+  const hint = document.getElementById('scenarioHint');
+  const editorForm = document.getElementById('feedbackFormEditor');
+
+  function updateHint() {
+    hint.textContent = assignAll.checked
+      ? 'All scenarios are covered. Uncheck a scenario below to EXCLUDE it (new scenarios are always covered).'
+      : 'Only the CHECKED scenarios below get this form.';
+  }
+  assignAll.addEventListener('change', function () {
+    updateHint();
+    if (assignAll.checked) {
+      document.querySelectorAll('.scenario-cb').forEach(function (cb) { cb.checked = true; });
+    }
+  });
+  updateHint();
+
+  function questionRow(q) {
+    const row = document.createElement('div');
+    row.className = 'question-row';
+    row.innerHTML =
+      '<div class="d-flex gap-2 align-items-start flex-wrap">' +
+      '  <input type="text" class="form-control flex-grow-1 q-text" placeholder="Question text" style="min-width:200px;">' +
+      '  <select class="form-select q-type" style="width:auto;">' +
+      '    <option value="choice">Multiple choice</option>' +
+      '    <option value="text">Free text</option>' +
+      '  </select>' +
+      '  <div class="form-check align-self-center">' +
+      '    <input class="form-check-input q-required" type="checkbox" checked>' +
+      '    <label class="form-check-label" style="font-size:12.5px;">Required</label>' +
+      '  </div>' +
+      '  <button type="button" class="remove-q" title="Remove question"><i class="bi bi-x-lg"></i></button>' +
+      '</div>' +
+      '<div class="mt-2 q-options-wrap">' +
+      '  <label style="font-size:12px;color:#666;">Options (one per line)</label>' +
+      '  <textarea class="form-control q-options" rows="3" placeholder="Very useful\nSomewhat useful\nNot useful"></textarea>' +
+      '</div>';
+    row.querySelector('.q-text').value = q.text || '';
+    row.querySelector('.q-type').value = q.type || 'choice';
+    row.querySelector('.q-required').checked = q.required !== false;
+    row.querySelector('.q-options').value = (q.options || []).join('\n');
+    function syncOptionsVisibility() {
+      row.querySelector('.q-options-wrap').style.display =
+        row.querySelector('.q-type').value === 'choice' ? '' : 'none';
+    }
+    row.querySelector('.q-type').addEventListener('change', syncOptionsVisibility);
+    row.querySelector('.remove-q').addEventListener('click', function () { row.remove(); });
+    syncOptionsVisibility();
+    return row;
+  }
+
+  addBtn.addEventListener('click', function () {
+    list.appendChild(questionRow({}));
+  });
+
+  const initial = JSON.parse(JSON.parse(document.getElementById('initialQuestions').textContent));
+  if (initial.length === 0) {
+    list.appendChild(questionRow({}));
+  } else {
+    initial.forEach(function (q) { list.appendChild(questionRow(q)); });
+  }
+
+  editorForm.addEventListener('submit', function () {
+    const questions = [];
+    list.querySelectorAll('.question-row').forEach(function (row) {
+      questions.push({
+        text: row.querySelector('.q-text').value,
+        type: row.querySelector('.q-type').value,
+        options: row.querySelector('.q-options').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean),
+        required: row.querySelector('.q-required').checked,
+      });
+    });
+    hiddenInput.value = JSON.stringify(questions);
+  });
+});
+</script>
+{% endblock %}

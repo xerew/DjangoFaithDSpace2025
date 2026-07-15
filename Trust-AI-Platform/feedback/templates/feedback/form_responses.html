@@ -1,0 +1,13 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Responses — {{ form_obj.title }}</title>{% endblock %}
+{% block atcontent %}
+<main id="main" class="main">
+  <section class="section">
+    <div class="card"><div class="card-body">
+      <h5>{{ form_obj.title }} — {{ responses|length }} response(s)</h5>
+      <p class="text-muted">Full responses view arrives in the next task.</p>
+      <a href="{% url 'feedback_form_list' %}">Back</a>
+    </div></div>
+  </section>
+</main>
+{% endblock %}

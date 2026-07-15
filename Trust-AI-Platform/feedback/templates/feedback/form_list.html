@@ -1,0 +1,104 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Feedback Forms</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .fb-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 26px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .fb-hero-icon {
+    background: rgba(255,255,255,0.18); border-radius: 10px;
+    width: 50px; height: 50px; display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .fb-hero .breadcrumb { background:none; margin:10px 0 0; padding:0; font-size:12px; }
+  .fb-hero .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,0.5); }
+  .fb-hero .breadcrumb-item a { color:rgba(255,255,255,0.72); text-decoration:none; }
+  .fb-hero .breadcrumb-item.active { color:rgba(255,255,255,0.92); }
+  .hero-btn-solid { background:#fff; color:#1a56db; border:none; font-weight:600; font-size:13px; border-radius:8px; padding:7px 16px; display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap; cursor:pointer; }
+  .hero-btn-solid:hover { background:#eef3ff; color:#1a56db; }
+  @media (max-width: 575.98px) {
+    .fb-hero { padding: 14px 16px 12px; }
+    .fb-hero > .d-flex { flex-wrap: wrap; }
+    .fb-hero-icon { display: none; }
+    .fb-hero h2 { font-size: 15px !important; }
+  }
+  .audience-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; text-transform:uppercase; }
+  .audience-badge.teacher { background:#ede9fe; color:#7c3aed; }
+  .audience-badge.student { background:#cffafe; color:#0891b2; }
+  .inactive-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; background:#f3f4f6; color:#6b7280; }
+  .action-btn { background:none; border:none; padding:4px 6px; border-radius:4px; cursor:pointer; font-size:15px; line-height:1; color:#333; text-decoration:none; }
+  .action-btn:hover { background:#f0f4ff; }
+  .action-btn.remove { color:#888; }
+  .action-btn.remove:hover { color:#c62828; background:#ffebee; }
+  .action-form { display:inline; }
+</style>
+
+<main id="main" class="main">
+  <div class="fb-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="fb-hero-icon"><i class="bi bi-clipboard-check-fill"></i></div>
+      <div class="flex-grow-1">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Feedback Forms</h2>
+        <nav><ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">User Management</a></li>
+          <li class="breadcrumb-item active">Feedback Forms</li>
+        </ol></nav>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'feedback_form_create' %}" class="hero-btn-solid">
+          <i class="bi bi-plus-lg"></i> New Form
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="card" style="border-radius:12px; overflow:hidden;">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Audience</th>
+              <th>Status</th>
+              <th class="text-center">Questions</th>
+              <th class="text-center">Responses</th>
+              <th>Created</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in forms %}
+            <tr>
+              <td style="font-weight:600; color:#012970;">{{ form.title }}</td>
+              <td><span class="audience-badge {{ form.audience }}">{{ form.get_audience_display }}</span></td>
+              <td>{% if form.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="inactive-badge">Inactive</span>{% endif %}</td>
+              <td class="text-center">{{ form.question_count }}</td>
+              <td class="text-center">{{ form.response_count }}</td>
+              <td class="text-muted small">{{ form.created_on|date:"d M Y" }}</td>
+              <td class="text-end" style="white-space:nowrap;">
+                <a href="{% url 'feedback_form_responses' form.id %}" class="action-btn" title="View responses"><i class="bi bi-inbox"></i></a>
+                <a href="{% url 'feedback_form_edit' form.id %}" class="action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{% url 'feedback_form_delete' form.id %}" class="action-form" onsubmit="return confirm('Delete this form and ALL its responses?');">
+                  {% csrf_token %}
+                  <button type="submit" class="action-btn remove" title="Delete"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-5">
+              <i class="bi bi-clipboard-check" style="font-size:2rem;color:#d1d9e0;display:block;margin-bottom:8px;"></i>
+              No feedback forms yet.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -193,3 +193,104 @@ class FeedbackUtilsTests(TestCase):
         self.assertEqual(len(data['questions']), 1)
         self.assertEqual(data['questions'][0]['options'], ['A', 'B'])
         self.assertEqual(data['questions'][0]['type'], 'choice')
+
+
+class FeedbackManagementViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.staff = User.objects.create_user('fb_staff', password='pass', is_staff=True)
+        self.plain = User.objects.create_user('fb_plain', password='pass')
+        self.scenario = Scenario.objects.create(name='FB Manage Scenario', created_by=self.staff, updated_by=self.staff)
+
+    def test_non_staff_forbidden(self):
+        self.client.login(username='fb_plain', password='pass')
+        r = self.client.get(reverse('feedback_form_list'))
+        self.assertEqual(r.status_code, 403)
+
+    def test_staff_sees_form_list_with_response_counts(self):
+        form = FeedbackForm.objects.create(title='Counted', audience='student', created_by=self.staff)
+        FeedbackResponse.objects.create(form=form, user=self.plain, scenario=self.scenario)
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.get(reverse('feedback_form_list'))
+        self.assertContains(r, 'Counted')
+        self.assertEqual(r.context['forms'][0].response_count, 1)
+
+    def test_create_form_with_questions(self):
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.post(reverse('feedback_form_create'), {
+            'title': 'New Form',
+            'description': 'Desc',
+            'audience': 'teacher',
+            'is_active': 'on',
+            'assign_to_all': 'on',
+            'scenarios': [str(self.scenario.id)],
+            'questions_json': json.dumps([
+                {'text': 'Useful?', 'type': 'choice', 'options': ['Yes', 'No'], 'required': True},
+                {'text': 'Comments', 'type': 'text', 'options': [], 'required': False},
+            ]),
+        })
+        self.assertRedirects(r, reverse('feedback_form_list'))
+        form = FeedbackForm.objects.get(title='New Form')
+        self.assertEqual(form.questions.count(), 2)
+        self.assertTrue(form.assign_to_all)
+        self.assertEqual(form.excluded_scenarios.count(), 0)
+
+    def test_create_assign_to_all_unchecked_scenario_becomes_exclusion(self):
+        other = Scenario.objects.create(name='FB Other Scenario', created_by=self.staff, updated_by=self.staff)
+        self.client.login(username='fb_staff', password='pass')
+        self.client.post(reverse('feedback_form_create'), {
+            'title': 'Partial', 'audience': 'student', 'is_active': 'on', 'assign_to_all': 'on',
+            'scenarios': [str(self.scenario.id)],  # `other` left unchecked -> excluded
+            'questions_json': json.dumps([{'text': 'Q', 'type': 'text', 'options': [], 'required': True}]),
+        })
+        form = FeedbackForm.objects.get(title='Partial')
+        self.assertTrue(form.applies_to(self.scenario))
+        self.assertFalse(form.applies_to(other))
+
+    def test_create_without_assign_to_all_checked_scenarios_are_inclusions(self):
+        other = Scenario.objects.create(name='FB Incl Scenario', created_by=self.staff, updated_by=self.staff)
+        self.client.login(username='fb_staff', password='pass')
+        self.client.post(reverse('feedback_form_create'), {
+            'title': 'Incl', 'audience': 'student', 'is_active': 'on',
+            'scenarios': [str(self.scenario.id)],
+            'questions_json': json.dumps([{'text': 'Q', 'type': 'text', 'options': [], 'required': True}]),
+        })
+        form = FeedbackForm.objects.get(title='Incl')
+        self.assertFalse(form.assign_to_all)
+        self.assertTrue(form.applies_to(self.scenario))
+        self.assertFalse(form.applies_to(other))
+
+    def test_edit_replaces_questions(self):
+        form = FeedbackForm.objects.create(title='Editable', audience='student', created_by=self.staff)
+        FeedbackQuestion.objects.create(form=form, text='Old Q', question_type='text', order=1)
+        self.client.login(username='fb_staff', password='pass')
+        self.client.post(reverse('feedback_form_edit', args=[form.id]), {
+            'title': 'Editable v2', 'audience': 'student', 'is_active': 'on', 'assign_to_all': 'on',
+            'questions_json': json.dumps([{'text': 'New Q', 'type': 'text', 'options': [], 'required': True}]),
+        })
+        form.refresh_from_db()
+        self.assertEqual(form.title, 'Editable v2')
+        self.assertEqual(list(form.questions.values_list('text', flat=True)), ['New Q'])
+
+    def test_delete_form(self):
+        form = FeedbackForm.objects.create(title='Doomed', audience='student', created_by=self.staff)
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.post(reverse('feedback_form_delete', args=[form.id]))
+        self.assertRedirects(r, reverse('feedback_form_list'))
+        self.assertFalse(FeedbackForm.objects.filter(id=form.id).exists())
+
+    def test_delete_requires_post(self):
+        form = FeedbackForm.objects.create(title='Get-safe', audience='student', created_by=self.staff)
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.get(reverse('feedback_form_delete', args=[form.id]))
+        self.assertEqual(r.status_code, 405)
+        self.assertTrue(FeedbackForm.objects.filter(id=form.id).exists())
+
+    def test_create_rejects_choice_question_without_options(self):
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.post(reverse('feedback_form_create'), {
+            'title': 'Bad', 'audience': 'student', 'is_active': 'on', 'assign_to_all': 'on',
+            'questions_json': json.dumps([{'text': 'Q', 'type': 'choice', 'options': [], 'required': True}]),
+        })
+        self.assertEqual(r.status_code, 200)  # re-rendered with error, not redirected
+        self.assertFalse(FeedbackForm.objects.filter(title='Bad').exists())
