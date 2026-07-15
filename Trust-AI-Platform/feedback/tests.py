@@ -337,7 +337,7 @@ class FeedbackResponsesAndExportTests(TestCase):
 
     def test_responses_page_lists_answers(self):
         r = self.client.get(reverse('feedback_form_responses', args=[self.form.id]))
-        self.assertContains(r, 'fb_exp_user')
+        self.assertContains(r, 'Resp Onder')
         self.assertContains(r, 'Nice tool')
 
     def test_delete_response(self):
