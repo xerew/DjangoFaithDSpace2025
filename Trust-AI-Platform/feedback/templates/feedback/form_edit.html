@@ -52,7 +52,7 @@
       <div class="card-body p-4">
         {% if form_obj and form_obj.responses.exists %}
         <div class="warn-banner"><i class="bi bi-exclamation-triangle-fill me-1"></i>
-          This form already has responses. Changing or removing questions affects how historical answers line up in exports.
+          This form already has responses. Saving will replace all questions and <strong>permanently erase the answers already collected</strong> — export the responses first if you need them.
         </div>
         {% endif %}
         {% if error %}
