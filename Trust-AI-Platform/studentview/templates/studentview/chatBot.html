@@ -282,6 +282,11 @@
           activityId: event.detail.activityId,
         }, window.location.origin);
       });
+
+      // Relay scenario-completion signal to parent page
+      window.addEventListener('scenarioEnded', function() {
+        parent.postMessage({ type: 'scenarioEnded' }, window.location.origin);
+      });
     </script>
   </body>
 </html>

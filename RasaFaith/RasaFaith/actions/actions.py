@@ -658,6 +658,7 @@ class ActionEndScenario(Action):
             dispatcher.utter_message(text="Ευχαριστούμε για την συμμετοχή σου!")
         else:
             dispatcher.utter_message(text="Thank you for participating!")
+        dispatcher.utter_message(json_message={'scenario_ended': True})
         return [AllSlotsReset()]
 
 

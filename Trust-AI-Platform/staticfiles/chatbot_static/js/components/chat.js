@@ -271,7 +271,11 @@ async function send(message) {
           const activityEvent = new CustomEvent('activityIdReceived', { detail: { activityId: message.custom.activity_id } });
           window.dispatchEvent(activityEvent);
         }
-    
+
+        if (message.custom && message.custom.scenario_ended) {
+          window.dispatchEvent(new CustomEvent('scenarioEnded'));
+        }
+
         if (message.text) {
           setBotResponse(message.text);
         }

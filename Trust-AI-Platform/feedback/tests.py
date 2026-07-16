@@ -419,3 +419,45 @@ class TeacherFeedbackTriggerTests(TestCase):
         self._create_personal()
         r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
         self.assertIsNone(r.context['feedback_form_json'])
+
+
+class StudentFeedbackTriggerTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.teacher = User.objects.create_user('fb_sv_teacher', password='pass')
+        self.teacher.groups.add(teachers)
+        self.student = User.objects.create_user('fb_sv_student', password='pass')
+        self.scenario = Scenario.objects.create(name='FB SV Scenario', created_by=self.teacher, updated_by=self.teacher)
+        from authoringtool.models import ActivityType, Phase, Activity
+        phase = Phase.objects.create(name='P1', scenario=self.scenario, created_by=self.teacher, updated_by=self.teacher)
+        atype = ActivityType.objects.create(name='Explanation', created_by=self.teacher, updated_by=self.teacher)
+        Activity.objects.create(name='A1', text='x', scenario=self.scenario, phase=phase,
+                                activity_type=atype, created_by=self.teacher, updated_by=self.teacher)
+        self.form = FeedbackForm.objects.create(title='Post-scenario form', audience='student', created_by=self.teacher)
+        FeedbackQuestion.objects.create(form=self.form, text='Fun?', question_type='choice', options=['Yes', 'No'], order=1)
+
+    def test_student_gets_feedback_form_in_context(self):
+        self.client.login(username='fb_sv_student', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        self.assertIsNotNone(r.context['feedback_form_json'])
+        self.assertContains(r, 'feedbackModal')
+
+    def test_teacher_gets_no_feedback_form(self):
+        self.client.login(username='fb_sv_teacher', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        self.assertIsNone(r.context['feedback_form_json'])
+        self.assertNotContains(r, 'id="feedbackModal"')
+
+    def test_already_responded_student_gets_no_form(self):
+        FeedbackResponse.objects.create(form=self.form, user=self.student, scenario=self.scenario)
+        self.client.login(username='fb_sv_student', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        self.assertIsNone(r.context['feedback_form_json'])
+
+    def test_no_applicable_form_gives_none(self):
+        self.form.is_active = False
+        self.form.save()
+        self.client.login(username='fb_sv_student', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        self.assertIsNone(r.context['feedback_form_json'])

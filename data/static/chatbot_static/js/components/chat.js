@@ -197,6 +197,9 @@ async function send(message) {
           detail: { activityId: msg.custom.activity_id }
         }));
       }
+      if (msg.custom?.scenario_ended) {
+        window.dispatchEvent(new CustomEvent('scenarioEnded'));
+      }
       if (msg.buttons) {
         msg.buttons.forEach((btn) => {
           if (btn.activity_id !== undefined) {

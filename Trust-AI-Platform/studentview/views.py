@@ -26,8 +26,19 @@ def scenario_viewer(request, scenario_id):
     is_teacher = user.groups.filter(name="teachers").exists()
     if not first_activity:
         return render(request, 'error_page.html', {'error': 'No activities found in this scenario.'})
-    return render(request, 'studentview/scenarioView.html', {'activity': first_activity, 'myScenario': scenario, 'user': user, 'is_teacher': is_teacher})
-    
+
+    feedback_form_json = None
+    if not is_teacher:
+        from feedback.utils import get_applicable_form, serialize_form, user_has_responded
+        fb_form = get_applicable_form(scenario, 'student')
+        if fb_form and not user_has_responded(fb_form, user, scenario):
+            feedback_form_json = json.dumps(serialize_form(fb_form), ensure_ascii=False)
+
+    return render(request, 'studentview/scenarioView.html', {
+        'activity': first_activity, 'myScenario': scenario, 'user': user,
+        'is_teacher': is_teacher, 'feedback_form_json': feedback_form_json,
+    })
+
 @login_required
 def scenario_form(request, scenario_id):
     return redirect('studentView', scenario_id=scenario_id)
