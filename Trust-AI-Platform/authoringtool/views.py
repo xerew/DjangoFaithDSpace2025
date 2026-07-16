@@ -2419,6 +2419,13 @@ def proposal_list_view(request, scenario_id):
         else:
             review.teacher_edited_json_str = None
 
+    feedback_form_json = None
+    if request.session.pop('feedback_prompt_scenario_id', None) == myScenario.id:
+        from feedback.utils import get_applicable_form, serialize_form, user_has_responded
+        fb_form = get_applicable_form(myScenario, 'teacher')
+        if fb_form and not user_has_responded(fb_form, request.user, myScenario):
+            feedback_form_json = _json.dumps(serialize_form(fb_form), ensure_ascii=False)
+
     return render(request, 'authoringtool/proposal_list.html', {
         'proposals':         proposals,
         'myScenario':        myScenario,
@@ -2428,6 +2435,7 @@ def proposal_list_view(request, scenario_id):
         'accepted_count':    accepted_count,
         'rejected_count':    rejected_count,
         'pending_count':     pending_count,
+        'feedback_form_json': feedback_form_json,
     })
 
 # @login_required
@@ -2474,6 +2482,7 @@ def create_personal_scenario(request, scenario_id):
     print(f"SCENARIO IS : {scenario_id}")
     apply_user_proposals_to_new_scenario.delay(scenario_id, request.user.id)
     messages.success(request, "Your personalized scenario is being created. It will appear in your scenarios shortly.")
+    request.session['feedback_prompt_scenario_id'] = scenario_id
     return redirect('proposal_list', scenario_id=scenario_id)
 
 def _string_field_diff(old_val, new_val):

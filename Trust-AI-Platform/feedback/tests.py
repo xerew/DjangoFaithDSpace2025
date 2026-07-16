@@ -377,3 +377,45 @@ class FeedbackResponsesAndExportTests(TestCase):
         self.client.login(username='fb_exp_user', password='pass')
         r = self.client.get(reverse('feedback_form_export_csv', args=[self.form.id]))
         self.assertEqual(r.status_code, 403)
+
+
+class TeacherFeedbackTriggerTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.teacher = User.objects.create_user('fb_trig_teacher', password='pass')
+        self.teacher.groups.add(teachers)
+        self.scenario = Scenario.objects.create(name='FB Trigger Scenario', created_by=self.teacher, updated_by=self.teacher)
+        self.form = FeedbackForm.objects.create(title='Post-creation form', audience='teacher', created_by=self.teacher)
+        FeedbackQuestion.objects.create(form=self.form, text='Good proposals?', question_type='choice', options=['Yes', 'No'], order=1)
+        self.client.login(username='fb_trig_teacher', password='pass')
+
+    def _create_personal(self):
+        from unittest.mock import patch
+        with patch('authoringtool.views.apply_user_proposals_to_new_scenario.delay') as mock_delay:
+            return self.client.get(reverse('create_personal_scenario', args=[self.scenario.id]), follow=True)
+
+    def test_modal_context_present_after_creation(self):
+        r = self._create_personal()
+        self.assertIsNotNone(r.context['feedback_form_json'])
+        self.assertContains(r, 'feedbackModal')
+
+    def test_no_modal_without_creation_flow(self):
+        r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
+        self.assertIsNone(r.context['feedback_form_json'])
+
+    def test_no_modal_when_already_responded(self):
+        FeedbackResponse.objects.create(form=self.form, user=self.teacher, scenario=self.scenario)
+        r = self._create_personal()
+        self.assertIsNone(r.context['feedback_form_json'])
+
+    def test_no_modal_when_no_applicable_form(self):
+        self.form.is_active = False
+        self.form.save()
+        r = self._create_personal()
+        self.assertIsNone(r.context['feedback_form_json'])
+
+    def test_session_flag_consumed_after_one_render(self):
+        self._create_personal()
+        r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
+        self.assertIsNone(r.context['feedback_form_json'])
