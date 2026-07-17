@@ -21,7 +21,9 @@ def staff_required(view_func):
 
 @staff_required
 def admin_dashboard(request):
-    users = User.objects.all().prefetch_related('groups').order_by('username')
+    users = User.objects.filter(
+        Q(groups__isnull=False) | Q(is_staff=True) | Q(is_superuser=True)
+    ).distinct().prefetch_related('groups').order_by('username')
     groups = Group.objects.annotate(member_count=Count('user')).order_by('name')
     agg = User.objects.aggregate(
         total=Count('id'),

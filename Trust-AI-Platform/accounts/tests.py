@@ -463,3 +463,48 @@ class AvatarRenderSitesTests(TestCase):
         r = self.client.get(reverse('profile'))
         self.assertNotContains(r, '/static/img/profile_d_')
         self.assertContains(r, 'nav-profile-avatar')
+
+
+class AdminDashboardUserListTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.staff = User.objects.create_user('list_staff', password='pass', is_staff=True)
+        self.client.login(username='list_staff', password='pass')
+
+    def test_no_role_user_not_listed(self):
+        User.objects.create_user('list_student', password='pass')
+        r = self.client.get(reverse('admin_dashboard'))
+        usernames = [u.username for u in r.context['all_users']]
+        self.assertNotIn('list_student', usernames)
+
+    def test_grouped_user_listed(self):
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        teacher = User.objects.create_user('list_teacher', password='pass')
+        teacher.groups.add(teachers)
+        r = self.client.get(reverse('admin_dashboard'))
+        usernames = [u.username for u in r.context['all_users']]
+        self.assertIn('list_teacher', usernames)
+
+    def test_staff_without_group_listed(self):
+        r = self.client.get(reverse('admin_dashboard'))
+        usernames = [u.username for u in r.context['all_users']]
+        self.assertIn('list_staff', usernames)
+
+    def test_multi_group_user_listed_once(self):
+        g1, _ = Group.objects.get_or_create(name='teachers')
+        g2, _ = Group.objects.get_or_create(name='dspace_partners')
+        multi = User.objects.create_user('list_multi', password='pass')
+        multi.groups.add(g1, g2)
+        r = self.client.get(reverse('admin_dashboard'))
+        usernames = [u.username for u in r.context['all_users']]
+        self.assertEqual(usernames.count('list_multi'), 1)
+
+    def test_stats_still_count_all_accounts(self):
+        User.objects.create_user('list_student2', password='pass')
+        r = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(r.context['stats']['total'], User.objects.count())
+        self.assertEqual(r.context['stats']['no_role'], 1)
+
+    def test_no_role_filter_option_removed(self):
+        r = self.client.get(reverse('admin_dashboard'))
+        self.assertNotContains(r, 'id="rfNone"')

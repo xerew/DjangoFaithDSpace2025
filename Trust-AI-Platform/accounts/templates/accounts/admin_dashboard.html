@@ -209,13 +209,6 @@
                 {% endif %}
                 <li><hr class="dropdown-divider my-1"></li>
                 <li>
-                  <div class="form-check mb-1">
-                    <input class="form-check-input role-filter-check" type="checkbox" value="__none__" id="rfNone">
-                    <label class="form-check-label" for="rfNone" style="font-size:13px;color:#888;">No Role</label>
-                  </div>
-                </li>
-                <li><hr class="dropdown-divider my-1"></li>
-                <li>
                   <button type="button" class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
                           onclick="clearRoleFilter()">Clear filter</button>
                 </li>
@@ -953,7 +946,6 @@ function filterUsers() {
     if (checkedRoles.length > 0) {
       const userGroups = row.dataset.groups.trim().split(/\s+/).filter(Boolean);
       matchRole = checkedRoles.some(function(role) {
-        if (role === '__none__') return userGroups.length === 0;
         return userGroups.includes(role);
       });
     }
