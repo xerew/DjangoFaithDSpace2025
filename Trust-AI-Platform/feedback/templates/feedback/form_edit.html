@@ -105,6 +105,7 @@
             </label>
           </div>
           <div class="text-muted small mb-2" id="scenarioHint"></div>
+          <input type="text" class="form-control form-control-sm mb-2" id="scenarioSearch" placeholder="Search scenarios…" autocomplete="off">
           <div class="scenario-box">
             {% for scenario in scenarios %}
             <div class="form-check">
@@ -123,6 +124,7 @@
             {% empty %}
             <div class="text-muted small">No scenarios exist yet.</div>
             {% endfor %}
+            <div class="text-muted small" id="scenarioNoMatch" style="display:none;">No scenarios match.</div>
           </div>
 
           <div class="text-end mt-4">
@@ -153,11 +155,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   assignAll.addEventListener('change', function () {
     updateHint();
-    if (assignAll.checked) {
-      document.querySelectorAll('.scenario-cb').forEach(function (cb) { cb.checked = true; });
-    }
+    const checkAll = assignAll.checked;
+    document.querySelectorAll('.scenario-cb').forEach(function (cb) { cb.checked = checkAll; });
   });
   updateHint();
+
+  const scenarioSearch = document.getElementById('scenarioSearch');
+  if (scenarioSearch) {
+    scenarioSearch.addEventListener('input', function () {
+      const q = scenarioSearch.value.trim().toLowerCase();
+      let anyVisible = false;
+      document.querySelectorAll('.scenario-box .form-check').forEach(function (row) {
+        const label = row.querySelector('.form-check-label');
+        if (!label) return;
+        const match = !q || label.textContent.toLowerCase().includes(q);
+        row.style.display = match ? '' : 'none';
+        if (match) anyVisible = true;
+      });
+      const noMatch = document.getElementById('scenarioNoMatch');
+      if (noMatch) noMatch.style.display = anyVisible ? 'none' : '';
+    });
+  }
 
   function questionRow(q) {
     const row = document.createElement('div');

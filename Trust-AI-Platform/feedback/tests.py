@@ -461,3 +461,19 @@ class StudentFeedbackTriggerTests(TestCase):
         self.client.login(username='fb_sv_student', password='pass')
         r = self.client.get(reverse('studentView', args=[self.scenario.id]))
         self.assertIsNone(r.context['feedback_form_json'])
+
+
+class FormEditorScenarioControlsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.staff = User.objects.create_user('editor_staff', password='pass', is_staff=True)
+        Scenario.objects.create(name='Editor Scenario', created_by=self.staff, updated_by=self.staff)
+        self.client.login(username='editor_staff', password='pass')
+
+    def test_scenario_search_input_rendered(self):
+        r = self.client.get(reverse('feedback_form_create'))
+        self.assertContains(r, 'id="scenarioSearch"')
+
+    def test_no_match_hint_rendered(self):
+        r = self.client.get(reverse('feedback_form_create'))
+        self.assertContains(r, 'id="scenarioNoMatch"')
