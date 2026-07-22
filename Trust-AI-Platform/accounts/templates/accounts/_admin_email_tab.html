@@ -1,0 +1,360 @@
+<!-- Email campaigns tab -->
+<div class="tab-pane fade" id="tab-email" role="tabpanel">
+  <style>
+    .email-target-card { border:1px solid #e3e8f4; border-radius:10px; padding:12px 14px; cursor:pointer; transition:.15s; }
+    .email-target-card:hover { border-color:#9aabef; background:#f8faff; }
+    .email-target-card:has(input:checked) { border-color:#4154f1; background:#f4f6ff; box-shadow:0 0 0 1px #4154f1; }
+    .email-selection-list { border:1px solid #e3e8f4; border-radius:10px; max-height:310px; overflow-y:auto; background:#fff; }
+    .email-selection-row { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-bottom:1px solid #eef1f7; }
+    .email-selection-row:last-child { border-bottom:0; }
+    .email-selection-row:hover { background:#f8faff; }
+    .email-selection-row label { cursor:pointer; min-width:0; flex:1; }
+    .email-history td { font-size:12px; vertical-align:middle; }
+  </style>
+
+  <div class="alert alert-primary d-flex gap-2 align-items-start" style="font-size:13px;">
+    <i class="bi bi-shield-check mt-1"></i>
+    <div>
+      Messages are sent individually to <strong>active users with the Teacher role and a valid email address</strong>.
+      Recipient addresses are never shared, and duplicate email addresses receive only one copy.
+    </div>
+  </div>
+
+  <form id="bulkEmailForm" novalidate>
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-12 col-xl-7">
+        <div class="card h-100" style="border-radius:12px;">
+          <div class="card-body p-4">
+            <h5 style="color:#012970;font-size:16px;font-weight:700;margin-bottom:18px;">
+              <i class="bi bi-envelope-paper-fill me-2"></i>Compose message
+            </h5>
+            <div class="mb-3">
+              <label for="bulkEmailSubject" class="form-label fw-semibold" style="font-size:13px;">Subject</label>
+              <input id="bulkEmailSubject" name="subject" class="form-control" maxlength="200" required
+                     placeholder="What should teachers know?">
+              <div class="form-text">Maximum 200 characters.</div>
+            </div>
+            <div>
+              <label for="bulkEmailBody" class="form-label fw-semibold" style="font-size:13px;">Message</label>
+              <textarea id="bulkEmailBody" name="body_html" class="email-tinymce-editor"
+                        placeholder="Write your message…"></textarea>
+              <div class="form-text">Images, formatted text, tables, and links are supported.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-5">
+        <div class="card h-100" style="border-radius:12px;">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 style="color:#012970;font-size:16px;font-weight:700;margin-bottom:16px;">
+              <i class="bi bi-people-fill me-2"></i>Choose recipients
+            </h5>
+
+            <div class="d-grid gap-2 mb-3">
+              <label class="email-target-card">
+                <span class="d-flex align-items-start gap-2">
+                  <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
+                         value="all_teachers" checked>
+                  <span>
+                    <strong style="font-size:13px;color:#012970;">All teachers</strong>
+                    <small class="d-block text-muted">{{ email_teacher_count }} unique deliverable address{{ email_teacher_count|pluralize:"es" }}</small>
+                  </span>
+                </span>
+              </label>
+              <label class="email-target-card">
+                <span class="d-flex align-items-start gap-2">
+                  <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
+                         value="selected_teachers">
+                  <span>
+                    <strong style="font-size:13px;color:#012970;">Selected teachers</strong>
+                    <small class="d-block text-muted">Search and choose individual teachers.</small>
+                  </span>
+                </span>
+              </label>
+              <label class="email-target-card">
+                <span class="d-flex align-items-start gap-2">
+                  <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
+                         value="organizations">
+                  <span>
+                    <strong style="font-size:13px;color:#012970;">Selected organizations</strong>
+                    <small class="d-block text-muted">Email Teacher-role members of chosen organizations.</small>
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div id="selectedTeachersPanel" class="email-target-panel d-none mb-3">
+              <div class="input-group input-group-sm mb-2">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" id="emailTeacherSearch" class="form-control" placeholder="Search teacher, email, or organization">
+              </div>
+              <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('teacher', true)">Select visible</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('teacher')">Clear</button>
+              </div>
+              <div class="email-selection-list" id="emailTeacherList">
+                {% for teacher in email_teachers %}
+                <div class="email-selection-row email-teacher-option"
+                     data-search="{{ teacher.get_full_name|default:teacher.username|lower }} {{ teacher.username|lower }} {{ teacher.email|lower }} {% for org in teacher.member_of_organizations.all %}{{ org.name|lower }} {{ org.short_name|lower }} {% endfor %}">
+                  <input class="form-check-input email-teacher-check" type="checkbox" name="teacher_ids"
+                         value="{{ teacher.id }}" id="emailTeacher{{ teacher.id }}">
+                  <label for="emailTeacher{{ teacher.id }}">
+                    <span class="d-block fw-semibold text-truncate" style="font-size:13px;color:#012970;">{{ teacher.get_full_name|default:teacher.username }}</span>
+                    <span class="d-block text-muted text-truncate" style="font-size:11px;">{{ teacher.email }}</span>
+                    {% if teacher.member_of_organizations.all %}
+                    <span class="d-block mt-1">
+                      {% for org in teacher.member_of_organizations.all %}<span class="badge bg-light text-dark border me-1" style="font-size:9px;">{{ org.short_name }}</span>{% endfor %}
+                    </span>
+                    {% endif %}
+                  </label>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center p-3" style="font-size:12px;">No teachers with email addresses found.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div id="organizationsPanel" class="email-target-panel d-none mb-3">
+              <div class="input-group input-group-sm mb-2">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" id="emailOrganizationSearch" class="form-control" placeholder="Search name, country, or language">
+              </div>
+              <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('organization', true)">Select visible</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('organization')">Clear</button>
+              </div>
+              <div class="email-selection-list" id="emailOrganizationList">
+                {% for org in email_organizations %}
+                <div class="email-selection-row email-organization-option"
+                     data-search="{{ org.name|lower }} {{ org.short_name|lower }} {{ org.country|default:''|lower }} {{ org.language|default:''|lower }}">
+                  <input class="form-check-input email-organization-check" type="checkbox" name="organization_ids"
+                         value="{{ org.id }}" id="emailOrganization{{ org.id }}">
+                  <label for="emailOrganization{{ org.id }}">
+                    <span class="d-flex justify-content-between gap-2">
+                      <span class="fw-semibold text-truncate" style="font-size:13px;color:#012970;">{{ org.name }}</span>
+                      <span class="badge bg-primary rounded-pill">{{ org.email_teacher_count }}</span>
+                    </span>
+                    <span class="d-block text-muted" style="font-size:11px;">
+                      {{ org.short_name }}{% if org.country %} · {{ org.country }}{% endif %}{% if org.language %} · {{ org.language }}{% endif %}
+                    </span>
+                  </label>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center p-3" style="font-size:12px;">No organizations found.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="alert alert-light border mt-auto mb-3 py-2 px-3 d-flex justify-content-between align-items-center">
+              <span style="font-size:12px;color:#555;">Unique recipients</span>
+              <strong id="bulkEmailRecipientCount" style="font-size:20px;color:#012970;">{{ email_teacher_count }}</strong>
+            </div>
+            <button type="button" id="reviewBulkEmailBtn" class="btn btn-primary w-100" onclick="reviewBulkEmail()">
+              <i class="bi bi-send-fill me-1"></i>Review and send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="card mt-4" style="border-radius:12px;overflow:hidden;">
+    <div class="card-header bg-white px-4 py-3">
+      <h5 class="mb-0" style="font-size:15px;font-weight:700;color:#012970;"><i class="bi bi-clock-history me-2"></i>Recent campaigns</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 email-history">
+        <thead style="background:#f8faff;">
+          <tr><th class="px-4">Subject</th><th>Audience</th><th>Delivery</th><th>Status</th><th>Created</th></tr>
+        </thead>
+        <tbody>
+          {% for campaign in recent_email_campaigns %}
+          <tr>
+            <td class="px-4"><strong style="color:#012970;">{{ campaign.subject }}</strong><br><span class="text-muted">by {{ campaign.created_by.get_full_name|default:campaign.created_by.username|default:"Deleted admin" }}</span></td>
+            <td>{{ campaign.target_summary }}<br><span class="text-muted">{{ campaign.recipient_count }} recipient{{ campaign.recipient_count|pluralize }}</span></td>
+            <td><span class="text-success">{{ campaign.sent_count }} sent</span>{% if campaign.failed_count %}<br><span class="text-danger">{{ campaign.failed_count }} failed</span>{% endif %}</td>
+            <td>
+              {% if campaign.status == 'completed' %}<span class="badge bg-success">Completed</span>
+              {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">With errors</span>
+              {% elif campaign.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+              {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
+              {% else %}<span class="badge bg-secondary">Queued</span>{% endif %}
+            </td>
+            <td>{{ campaign.created_at|date:"d M Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No campaigns have been sent yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="bulkEmailConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+      <div class="modal-header" style="background:#f8faff;">
+        <h5 class="modal-title" style="font-size:16px;font-weight:700;color:#012970;"><i class="bi bi-envelope-check me-2"></i>Confirm campaign</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="mb-2">Send <strong id="bulkEmailConfirmSubject"></strong> to:</p>
+        <div class="text-center p-3 rounded" style="background:#f4f6ff;">
+          <strong id="bulkEmailConfirmCount" style="display:block;font-size:30px;color:#012970;"></strong>
+          <span class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;">unique teacher recipients</span>
+        </div>
+        <p class="text-muted mt-3 mb-0" style="font-size:12px;">This action queues individual emails and cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmBulkEmailBtn" onclick="sendBulkEmailCampaign()"><i class="bi bi-send-fill me-1"></i>Queue emails</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const countUrl = '{% url "admin_bulk_email_recipient_count" %}';
+  const sendUrl = '{% url "admin_send_bulk_email" %}';
+  let recipientCountTimer = null;
+
+  window.currentEmailTargetType = function () {
+    const checked = document.querySelector('.email-target-radio:checked');
+    return checked ? checked.value : 'all_teachers';
+  };
+
+  function selectedValues(selector) {
+    return Array.from(document.querySelectorAll(selector + ':checked')).map(function (box) { return box.value; });
+  }
+
+  function selectionPayload() {
+    return {
+      target_type: window.currentEmailTargetType(),
+      teacher_ids: selectedValues('.email-teacher-check'),
+      organization_ids: selectedValues('.email-organization-check')
+    };
+  }
+
+  window.refreshBulkEmailRecipientCount = function () {
+    return postJSON(countUrl, selectionPayload()).then(function (data) {
+      if (!data.success) throw new Error(data.error || 'Could not count recipients.');
+      document.getElementById('bulkEmailRecipientCount').textContent = data.recipient_count;
+      return data.recipient_count;
+    }).catch(function (error) {
+      document.getElementById('bulkEmailRecipientCount').textContent = '—';
+      showToast(error.message, true);
+      return 0;
+    });
+  };
+
+  function scheduleRecipientCount() {
+    window.clearTimeout(recipientCountTimer);
+    recipientCountTimer = window.setTimeout(window.refreshBulkEmailRecipientCount, 180);
+  }
+
+  function updateTargetPanels() {
+    const type = window.currentEmailTargetType();
+    document.getElementById('selectedTeachersPanel').classList.toggle('d-none', type !== 'selected_teachers');
+    document.getElementById('organizationsPanel').classList.toggle('d-none', type !== 'organizations');
+    scheduleRecipientCount();
+  }
+
+  function filterOptions(inputId, optionSelector) {
+    const query = document.getElementById(inputId).value.trim().toLowerCase();
+    document.querySelectorAll(optionSelector).forEach(function (row) {
+      row.style.display = !query || row.dataset.search.indexOf(query) !== -1 ? '' : 'none';
+    });
+  }
+
+  window.setVisibleEmailOptions = function (kind, checked) {
+    const optionSelector = kind === 'teacher' ? '.email-teacher-option' : '.email-organization-option';
+    const checkboxSelector = kind === 'teacher' ? '.email-teacher-check' : '.email-organization-check';
+    document.querySelectorAll(optionSelector).forEach(function (row) {
+      if (row.style.display !== 'none') row.querySelector(checkboxSelector).checked = checked;
+    });
+    scheduleRecipientCount();
+  };
+
+  window.clearEmailOptions = function (kind) {
+    const selector = kind === 'teacher' ? '.email-teacher-check' : '.email-organization-check';
+    document.querySelectorAll(selector).forEach(function (box) { box.checked = false; });
+    scheduleRecipientCount();
+  };
+
+  window.reviewBulkEmail = function () {
+    if (window.tinymce) tinymce.triggerSave();
+    const subject = document.getElementById('bulkEmailSubject').value.trim();
+    const body = document.getElementById('bulkEmailBody').value.trim();
+    if (!subject) return showToast('Enter an email subject.', true);
+    if (!body) return showToast('Write the email message.', true);
+    window.refreshBulkEmailRecipientCount().then(function (count) {
+      if (!count) return showToast('The selection has no deliverable teacher addresses.', true);
+      document.getElementById('bulkEmailConfirmSubject').textContent = '“' + subject + '”';
+      document.getElementById('bulkEmailConfirmCount').textContent = count;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkEmailConfirmModal')).show();
+    });
+  };
+
+  window.sendBulkEmailCampaign = function () {
+    if (window.tinymce) tinymce.triggerSave();
+    const button = document.getElementById('confirmBulkEmailBtn');
+    const payload = selectionPayload();
+    payload.subject = document.getElementById('bulkEmailSubject').value.trim();
+    payload.body_html = document.getElementById('bulkEmailBody').value;
+    payload.confirmed = 'true';
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Queueing…';
+    postJSON(sendUrl, payload).then(function (data) {
+      if (!data.success) throw new Error(data.error || 'Could not queue campaign.');
+      bootstrap.Modal.getInstance(document.getElementById('bulkEmailConfirmModal')).hide();
+      showToast('Campaign queued for ' + data.recipient_count + ' recipients.', false);
+      window.setTimeout(function () { window.location.href = '{% url "admin_dashboard" %}?tab=email'; }, 900);
+    }).catch(function (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-send-fill me-1"></i>Queue emails';
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.email-target-radio').forEach(function (radio) { radio.addEventListener('change', updateTargetPanels); });
+    document.querySelectorAll('.email-teacher-check, .email-organization-check').forEach(function (box) { box.addEventListener('change', scheduleRecipientCount); });
+    document.getElementById('emailTeacherSearch').addEventListener('input', function () { filterOptions('emailTeacherSearch', '.email-teacher-option'); });
+    document.getElementById('emailOrganizationSearch').addEventListener('input', function () { filterOptions('emailOrganizationSearch', '.email-organization-option'); });
+    updateTargetPanels();
+
+    if (window.tinymce) {
+      tinymce.init({
+        selector: '.email-tinymce-editor',
+        height: 390,
+        menubar: false,
+        plugins: 'lists link image table code',
+        toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image table | code',
+        content_style: 'body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-size:15px; line-height:1.7; } img { max-width:100%; height:auto; }',
+        automatic_uploads: true,
+        images_upload_handler: function (blobInfo) {
+          return new Promise(function (resolve, reject) {
+            const formData = new FormData();
+            formData.append('file', blobInfo.blob(), blobInfo.filename());
+            fetch('{% url "tinymce_image_upload" %}', {
+              method: 'POST', headers: {'X-CSRFToken': CSRF}, body: formData, credentials: 'same-origin'
+            }).then(function (response) {
+              if (!response.ok) return response.json().then(function (data) { throw new Error(data.error || 'Upload failed.'); });
+              return response.json();
+            }).then(function (data) { resolve(data.location); }).catch(function (error) { reject(error.message); });
+          });
+        },
+        setup: function (editor) { editor.on('change', function () { editor.save(); }); }
+      });
+    }
+
+    if (new URLSearchParams(window.location.search).get('tab') === 'email') {
+      bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-email-btn')).show();
+    }
+  });
+}());
+</script>

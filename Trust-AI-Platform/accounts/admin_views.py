@@ -5,8 +5,20 @@ from django.contrib.auth import login as auth_login
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db.models import Count, Q
+from django.conf import settings
+from django.utils.html import strip_tags
 from functools import wraps
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
+from organization.models import Organization
+
+from .bulk_email import (
+    absolutize_content_urls,
+    eligible_teacher_users,
+    resolve_campaign_recipients,
+    unique_valid_email_users,
+)
+from .models import BulkEmailCampaign
+from .tasks import send_bulk_email_campaign
 
 
 def staff_required(view_func):
@@ -45,6 +57,30 @@ def admin_dashboard(request):
     remote_labs = list(ExperimentLL.objects.all().order_by('name'))
     vr_labs = list(VRARExperiment.objects.all().order_by('name'))
     sim_languages = sorted({s.language for s in simulations if s.language})
+    email_teachers = list(
+        eligible_teacher_users()
+        .prefetch_related('member_of_organizations')
+        .order_by('first_name', 'last_name', 'username')
+    )
+    email_teacher_count = len(unique_valid_email_users(eligible_teacher_users()))
+    email_organizations = (
+        Organization.objects.annotate(
+            email_teacher_count=Count(
+                'members',
+                filter=(
+                    Q(members__is_active=True)
+                    & Q(members__groups__name__iexact='teachers')
+                    & ~Q(members__email='')
+                ),
+                distinct=True,
+            )
+        )
+        .order_by('name')
+    )
+    recent_email_campaigns = (
+        BulkEmailCampaign.objects.select_related('created_by')
+        .prefetch_related('organizations')[:10]
+    )
     return render(request, 'accounts/admin_dashboard.html', {
         'all_users': users,
         'groups': groups,
@@ -55,6 +91,106 @@ def admin_dashboard(request):
         'vr_labs': vr_labs,
         'lab_count': len(simulations) + len(remote_labs) + len(vr_labs),
         'sim_languages': sim_languages,
+        'email_teachers': email_teachers,
+        'email_teacher_count': email_teacher_count,
+        'email_organizations': email_organizations,
+        'recent_email_campaigns': recent_email_campaigns,
+    })
+
+
+def _bulk_email_selection(request):
+    target_type = request.POST.get('target_type', '').strip()
+    recipients, organizations = resolve_campaign_recipients(
+        target_type,
+        teacher_ids=request.POST.getlist('teacher_ids'),
+        organization_ids=request.POST.getlist('organization_ids'),
+    )
+    return target_type, recipients, organizations
+
+
+@require_POST
+@staff_required
+def admin_bulk_email_recipient_count(request):
+    try:
+        target_type, recipients, organizations = _bulk_email_selection(request)
+    except ValueError as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+    return JsonResponse({
+        'success': True,
+        'target_type': target_type,
+        'recipient_count': len(recipients),
+        'organization_count': organizations.count(),
+    })
+
+
+@require_POST
+@staff_required
+def admin_send_bulk_email(request):
+    if request.POST.get('confirmed') != 'true':
+        return JsonResponse({
+            'success': False,
+            'error': 'Confirm the recipient count before sending.',
+        }, status=400)
+
+    subject = request.POST.get('subject', '').strip()
+    body_html = request.POST.get('body_html', '').strip()
+    if not subject:
+        return JsonResponse({'success': False, 'error': 'Subject is required.'}, status=400)
+    if len(subject) > 200:
+        return JsonResponse({
+            'success': False,
+            'error': 'Subject must be 200 characters or fewer.',
+        }, status=400)
+    if '\r' in subject or '\n' in subject:
+        return JsonResponse({'success': False, 'error': 'Subject contains invalid characters.'}, status=400)
+    if not strip_tags(body_html).strip() and '<img' not in body_html.lower():
+        return JsonResponse({'success': False, 'error': 'Message content is required.'}, status=400)
+
+    try:
+        target_type, recipients, organizations = _bulk_email_selection(request)
+    except ValueError as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+    if not recipients:
+        return JsonResponse({
+            'success': False,
+            'error': 'No active teachers with valid email addresses match this selection.',
+        }, status=400)
+
+    configured_site_url = getattr(settings, 'SITE_URL', '').strip()
+    site_url = configured_site_url or request.build_absolute_uri('/').rstrip('/')
+    body_html = absolutize_content_urls(body_html, site_url)
+    campaign = BulkEmailCampaign.objects.create(
+        created_by=request.user,
+        target_type=target_type,
+        subject=subject,
+        body_html=body_html,
+        site_url=site_url,
+        recipient_count=len(recipients),
+    )
+    campaign.recipients.set(recipients)
+    campaign.organizations.set(organizations)
+
+    try:
+        async_result = send_bulk_email_campaign.delay(campaign.id)
+    except Exception as exc:
+        campaign.status = BulkEmailCampaign.STATUS_FAILED
+        campaign.error_summary = f'Could not queue campaign: {exc}'
+        campaign.save(update_fields=['status', 'error_summary'])
+        return JsonResponse({
+            'success': False,
+            'error': 'The campaign could not be queued. Check the Celery worker and broker.',
+        }, status=503)
+
+    campaign.celery_task_id = async_result.id or ''
+    campaign.save(update_fields=['celery_task_id'])
+    campaign.refresh_from_db(fields=['status', 'sent_count', 'failed_count'])
+    return JsonResponse({
+        'success': True,
+        'campaign_id': campaign.id,
+        'recipient_count': campaign.recipient_count,
+        'status': campaign.status,
+        'sent_count': campaign.sent_count,
+        'failed_count': campaign.failed_count,
     })
 
 

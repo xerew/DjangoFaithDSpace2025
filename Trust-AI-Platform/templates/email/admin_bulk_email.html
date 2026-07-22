@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ campaign.subject }} — Trust AI Lab</title>
+  <style>
+    .message-content img { max-width:100% !important; height:auto !important; }
+    .message-content a { color:#1a56db; }
+    .message-content table { max-width:100%; }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f0f2f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
+          <tr>
+            <td align="center" style="background-color:#1a56db;border-radius:12px 12px 0 0;padding:36px 40px;">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;">Trust AI Lab</p>
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,.75);letter-spacing:1px;text-transform:uppercase;">Platform Announcement</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;padding:40px 48px 32px;">
+              <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1a1a2e;">Hello {{ recipient.first_name|default:recipient.get_username }},</p>
+              <h1 style="margin:22px 0 18px;font-size:22px;line-height:1.35;color:#012970;">{{ campaign.subject }}</h1>
+              <div class="message-content" style="font-size:15px;color:#555;line-height:1.7;word-break:break-word;">
+                {{ campaign.body_html|safe }}
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#f8f9fc;border-radius:0 0 12px 12px;padding:24px 48px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#444;">ICCS Team — Information Management Unit</p>
+              <p style="margin:0;font-size:12px;color:#aaa;"><a href="{{ site_url }}" style="color:#1a56db;text-decoration:none;">{{ site_url }}</a></p>
+              <p style="margin:16px 0 0;font-size:11px;color:#aaa;">This message was sent by a Trust AI Lab administrator.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

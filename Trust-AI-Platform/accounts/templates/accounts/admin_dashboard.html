@@ -155,6 +155,12 @@
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ lab_count }}</span>
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-email-btn" data-bs-toggle="tab" data-bs-target="#tab-email" type="button" role="tab">
+          <i class="bi bi-envelope-paper me-1"></i> Email
+          <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ email_teacher_count }}</span>
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content pt-4">
@@ -614,6 +620,8 @@
         </div><!-- /vrLabSection -->
 
       </div><!-- /tab-labs -->
+
+      {% include 'accounts/_admin_email_tab.html' %}
 
     </div><!-- /tab-content -->
 

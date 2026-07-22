@@ -1,9 +1,12 @@
 import json
+from django.core import mail
 from django.test import TestCase, Client
+from django.test import override_settings
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
-from accounts.models import UserProfile
+from accounts.models import BulkEmailCampaign, UserProfile
+from organization.models import Organization
 from templatetags.profile_tags import avatar_url as avatar_url_filter
 
 
@@ -508,3 +511,171 @@ class AdminDashboardUserListTests(TestCase):
     def test_no_role_filter_option_removed(self):
         r = self.client.get(reverse('admin_dashboard'))
         self.assertNotContains(r, 'id="rfNone"')
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    DEFAULT_FROM_EMAIL='Trust AI Lab <noreply@trust-ai.test>',
+    SITE_URL='https://platform.test',
+    CELERY_TASK_ALWAYS_EAGER=True,
+    CELERY_TASK_EAGER_PROPAGATES=True,
+)
+class AdminBulkEmailTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.staff = User.objects.create_user(
+            'email_staff', password='pass', email='staff@example.com', is_staff=True,
+        )
+        self.regular = User.objects.create_user(
+            'email_regular', password='pass', email='regular@example.com',
+        )
+        self.teacher_one = User.objects.create_user(
+            'email_teacher_one', password='pass', email='teacher@example.com',
+            first_name='Alice',
+        )
+        self.teacher_duplicate = User.objects.create_user(
+            'email_teacher_duplicate', password='pass', email='TEACHER@example.com',
+        )
+        self.teacher_two = User.objects.create_user(
+            'email_teacher_two', password='pass', email='second@example.com',
+            first_name='Bob',
+        )
+        self.inactive_teacher = User.objects.create_user(
+            'email_teacher_inactive', password='pass', email='inactive@example.com',
+            is_active=False,
+        )
+        self.no_email_teacher = User.objects.create_user(
+            'email_teacher_blank', password='pass', email='',
+        )
+        for teacher in (
+            self.teacher_one,
+            self.teacher_duplicate,
+            self.teacher_two,
+            self.inactive_teacher,
+            self.no_email_teacher,
+        ):
+            teacher.groups.add(self.teachers)
+
+        self.org_one = Organization.objects.create(
+            name='Email Organization One', short_name='EO1', created_by=self.staff,
+        )
+        self.org_two = Organization.objects.create(
+            name='Email Organization Two', short_name='EO2', created_by=self.staff,
+        )
+        self.org_one.members.add(self.teacher_one, self.teacher_duplicate, self.regular)
+        self.org_two.members.add(self.teacher_two, self.inactive_teacher)
+        self.client.login(username='email_staff', password='pass')
+
+    def _send(self, **overrides):
+        data = {
+            'target_type': 'all_teachers',
+            'subject': 'Important platform update',
+            'body_html': (
+                '<p>Please read the <a href="/accounts/documentation/">guide</a>.</p>'
+                '<img src="/media/tinymce/update.png">'
+            ),
+            'confirmed': 'true',
+        }
+        data.update(overrides)
+        return self.client.post(reverse('admin_send_bulk_email'), data)
+
+    def test_dashboard_has_email_composer_and_filters(self):
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="tab-email-btn"')
+        self.assertContains(response, 'class="email-tinymce-editor"')
+        self.assertContains(response, 'Email Organization One')
+        self.assertContains(response, 'email_teacher_one')
+        self.assertEqual(response.context['email_teacher_count'], 2)
+
+    def test_recipient_count_deduplicates_and_excludes_ineligible_users(self):
+        response = self.client.post(
+            reverse('admin_bulk_email_recipient_count'),
+            {'target_type': 'all_teachers'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['recipient_count'], 2)
+
+        response = self.client.post(
+            reverse('admin_bulk_email_recipient_count'),
+            {'target_type': 'organizations', 'organization_ids': [self.org_one.id]},
+        )
+        self.assertEqual(response.json()['recipient_count'], 1)
+        self.assertEqual(response.json()['organization_count'], 1)
+
+    def test_all_teacher_campaign_sends_individual_branded_html_messages(self):
+        response = self._send()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(response.json()['recipient_count'], 2)
+
+        campaign = BulkEmailCampaign.objects.get()
+        self.assertEqual(campaign.status, BulkEmailCampaign.STATUS_COMPLETED)
+        self.assertEqual(campaign.sent_count, 2)
+        self.assertEqual(campaign.failed_count, 0)
+        self.assertEqual(campaign.recipients.count(), 2)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertTrue(all(len(message.to) == 1 for message in mail.outbox))
+        self.assertEqual(
+            {message.to[0].casefold() for message in mail.outbox},
+            {'teacher@example.com', 'second@example.com'},
+        )
+
+        html_message = mail.outbox[0].alternatives[0].content
+        self.assertIn('background-color:#1a56db', html_message)
+        self.assertIn('Platform Announcement', html_message)
+        self.assertIn('https://platform.test/accounts/documentation/', html_message)
+        self.assertIn('https://platform.test/media/tinymce/update.png', html_message)
+
+    def test_selected_teacher_campaign_only_targets_checked_teacher(self):
+        response = self._send(
+            target_type='selected_teachers',
+            teacher_ids=[self.teacher_two.id],
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['second@example.com'])
+
+    def test_organization_campaign_only_targets_teacher_members(self):
+        response = self._send(
+            target_type='organizations',
+            organization_ids=[self.org_one.id],
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['teacher@example.com'])
+        campaign = BulkEmailCampaign.objects.get()
+        self.assertEqual(list(campaign.organizations.all()), [self.org_one])
+
+    def test_confirmation_and_content_are_required(self):
+        response = self._send(confirmed='false')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+        self.assertEqual(BulkEmailCampaign.objects.count(), 0)
+
+        response = self._send(confirmed='true', body_html='')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(BulkEmailCampaign.objects.count(), 0)
+
+    def test_empty_selection_and_invalid_subject_are_rejected(self):
+        response = self._send(target_type='selected_teachers', teacher_ids=[])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('No active teachers', response.json()['error'])
+
+        response = self._send(subject='Unsafe\nBcc: somebody@example.com')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('invalid characters', response.json()['error'])
+        self.assertEqual(BulkEmailCampaign.objects.count(), 0)
+
+    def test_regular_user_cannot_count_or_send_campaign(self):
+        self.client.logout()
+        self.client.login(username='email_regular', password='pass')
+        count_response = self.client.post(
+            reverse('admin_bulk_email_recipient_count'),
+            {'target_type': 'all_teachers'},
+        )
+        send_response = self._send()
+        self.assertEqual(count_response.status_code, 403)
+        self.assertEqual(send_response.status_code, 403)
+        self.assertEqual(BulkEmailCampaign.objects.count(), 0)

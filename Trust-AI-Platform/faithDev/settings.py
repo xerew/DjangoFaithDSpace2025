@@ -228,6 +228,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'trust.ai.lab.eu@gmail.com'
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+SITE_URL = os.environ.get('SITE_URL', 'https://trust-ai-lab.eu').rstrip('/')
 
 # Use SMTP when password is available, fall back to console in development
 if EMAIL_HOST_PASSWORD:
