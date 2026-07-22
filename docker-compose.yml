@@ -14,6 +14,29 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
 
+  ollama-tunnel:
+    build:
+      context: ./deploy/ollama-tunnel
+      dockerfile: Dockerfile
+    environment:
+      SSH_HOST: ${OLLAMA_SSH_HOST:-147.102.17.66}
+      SSH_PORT: ${OLLAMA_SSH_PORT:-22}
+      SSH_USER: ${OLLAMA_SSH_USER:-ngrammatikos}
+      REMOTE_OLLAMA_HOST: ${OLLAMA_REMOTE_HOST:-127.0.0.1}
+      REMOTE_OLLAMA_PORT: ${OLLAMA_REMOTE_PORT:-11434}
+      LOCAL_OLLAMA_PORT: "11434"
+    volumes:
+      - ollama_ssh:/root/.ssh
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://127.0.0.1:11434/api/tags >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 10s
+    restart: unless-stopped
+
   web:
     build:
       context: ./Trust-AI-Platform
@@ -43,6 +66,8 @@ services:
       context: ./Trust-AI-Platform
       dockerfile: Dockerfile
     env_file: .env
+    environment:
+      OLLAMA_URL: http://ollama-tunnel:11434
     command: celery -A faithDev worker -l info
     volumes:
       - ./data:/data
@@ -50,6 +75,7 @@ services:
     depends_on:
       - db
       - redis
+      - ollama-tunnel
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -128,3 +154,4 @@ services:
 
 volumes:
   pgdata:
+  ollama_ssh:
