@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.list_organizations, name='list_organizations'),
     path('create_organization/', views.create_organization, name='create_organization'),
     path('organization/<int:org_id>/', views.organization_detail, name='organization_detail'),
+    path('organization/<int:org_id>/report/', views.download_organization_report, name='download_organization_report'),
     path('organization/<int:org_id>/make_admin/<int:user_id>/', views.make_admin, name='make_admin'),
     path('organization/<int:org_id>/delete/', views.delete_organization, name='delete_organization'),
     path('add_member/<int:org_id>/', views.add_member_to_org, name='add_member_to_org'),

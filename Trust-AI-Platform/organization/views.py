@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib import messages
 from functools import wraps
@@ -12,6 +12,10 @@ from .models import Organization, JoinRequest, Announcement, OrgChatMessage
 from django.contrib.auth.models import User
 from .forms import OrganizationForm, AnnouncementForm
 from authoringtool.models import Language
+from django.utils.text import slugify
+
+from .reports import build_organization_report
+from .statistics import get_organization_statistics
 
 
 def _smart_page_range(page_obj):
@@ -92,6 +96,7 @@ def organization_detail(request, org_id):
     announcements_paginator = Paginator(announcements_qs, 5)
     announcements_page = announcements_paginator.get_page(request.GET.get('page'))
     announcement_page_range = _smart_page_range(announcements_page)
+    organization_stats = get_organization_statistics(organization)
 
     return render(request, 'organization/organization_detail.html', {
         'organization': organization,
@@ -101,7 +106,26 @@ def organization_detail(request, org_id):
         'pending_requests': pending_requests,
         'announcements': announcements_page,
         'announcement_page_range': announcement_page_range,
+        'organization_stats': organization_stats,
     })
+
+
+@require_GET
+@login_required
+def download_organization_report(request, org_id):
+    organization = get_object_or_404(Organization, id=org_id)
+    report = build_organization_report(organization)
+    filename = slugify(organization.short_name or organization.name) or f'organization-{org_id}'
+    response = HttpResponse(
+        report.getvalue(),
+        content_type=(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ),
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename="{filename}-data-report.xlsx"'
+    )
+    return response
 
 
 @require_POST

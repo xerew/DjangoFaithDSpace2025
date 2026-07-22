@@ -1,8 +1,14 @@
+import io
+
+import openpyxl
 from django.contrib.auth.models import Group, User
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from .models import Organization
+
+from authoringtool.models import Activity, ActivityType, Scenario, Subject, UserScenarioScore
+from usergroups.models import UserGroup, UserGroupMembership
 
 
 class OrganizationDetailMessagingLinksTests(TestCase):
@@ -424,3 +430,131 @@ class AnnouncementPreviewLinkTests(TestCase):
         r = self.client.get(reverse('organization_detail', args=[self.org.id]))
         full_plain_text = 'word ' * 100
         self.assertNotContains(r, full_plain_text)
+
+
+class OrganizationStatisticsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.teacher = User.objects.create_user(
+            'stats_teacher', password='pass', first_name='Tina', last_name='Teacher',
+        )
+        self.other_teacher = User.objects.create_user('stats_other_teacher', password='pass')
+        self.viewer = User.objects.create_user('stats_viewer', password='pass')
+        self.teacher.groups.add(teachers)
+        self.other_teacher.groups.add(teachers)
+
+        self.org = Organization.objects.create(
+            name='Statistics Organization', short_name='STATS', created_by=self.teacher,
+        )
+        self.org.members.add(self.teacher)
+
+        self.student_one = User.objects.create_user('stats_student_1', password='pass')
+        self.student_two = User.objects.create_user('stats_student_2', password='pass')
+        self.group = UserGroup.objects.create(
+            name='Class Alpha', prefix='alpha', number_of_users=2,
+            created_by=self.teacher,
+        )
+        UserGroupMembership.objects.create(group=self.group, user=self.student_one)
+        UserGroupMembership.objects.create(group=self.group, user=self.student_two)
+
+        self.stem = Subject.objects.create(name='Statistics Physics', category='STEM')
+        self.arts = Subject.objects.create(name='Statistics Art', category='Arts')
+        self.scenario_one = Scenario.objects.create(
+            name='Statistics Scenario One', created_by=self.teacher,
+            updated_by=self.teacher, visibility_status='org', language='English',
+        )
+        self.scenario_two = Scenario.objects.create(
+            name='Statistics Scenario Two', created_by=self.teacher,
+            updated_by=self.teacher, visibility_status='public', language='Greek',
+        )
+        self.scenario_one.subjects.add(self.stem)
+        self.scenario_two.subjects.add(self.arts)
+        self.group.assigned_scenarios.add(self.scenario_one, self.scenario_two)
+
+        question_type = ActivityType.objects.create(
+            name='Statistics Question', created_by=self.teacher, updated_by=self.teacher,
+        )
+        Activity.objects.create(
+            name='Statistics Activity', text='Question', scenario=self.scenario_one,
+            activity_type=question_type, created_by=self.teacher, updated_by=self.teacher,
+        )
+
+        UserScenarioScore.objects.create(user=self.student_one, scenario=self.scenario_one)
+        UserScenarioScore.objects.create(user=self.student_two, scenario=self.scenario_one)
+        UserScenarioScore.objects.create(user=self.student_one, scenario=self.scenario_two)
+        # A duplicate legacy row must not inflate distinct implementations.
+        UserScenarioScore.objects.create(user=self.student_one, scenario=self.scenario_one)
+
+        outsider_student = User.objects.create_user('stats_outsider_student', password='pass')
+        outsider_group = UserGroup.objects.create(
+            name='Other Organization Class', prefix='other', number_of_users=1,
+            created_by=self.other_teacher,
+        )
+        UserGroupMembership.objects.create(group=outsider_group, user=outsider_student)
+        UserScenarioScore.objects.create(user=outsider_student, scenario=self.scenario_one)
+
+    def test_detail_page_shows_organization_statistics(self):
+        self.client.login(username='stats_teacher', password='pass')
+        response = self.client.get(reverse('organization_detail', args=[self.org.id]))
+
+        self.assertEqual(response.status_code, 200)
+        stats = response.context['organization_stats']
+        self.assertEqual(stats['teacher_count'], 1)
+        self.assertEqual(stats['group_count'], 1)
+        self.assertEqual(stats['student_count'], 2)
+        self.assertEqual(stats['active_student_count'], 2)
+        self.assertEqual(stats['implementation_count'], 3)
+        self.assertEqual(stats['scenario_count'], 2)
+        self.assertEqual(stats['assigned_scenario_count'], 2)
+        self.assertContains(response, 'Organization Data')
+        self.assertContains(
+            response, reverse('download_organization_report', args=[self.org.id])
+        )
+        self.assertContains(response, 'STEM')
+        self.assertContains(response, 'Arts')
+
+    def test_download_returns_anonymized_workbook(self):
+        self.client.login(username='stats_viewer', password='pass')
+        response = self.client.get(
+            reverse('download_organization_report', args=[self.org.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        self.assertIn('stats-data-report.xlsx', response['Content-Disposition'])
+
+        workbook = openpyxl.load_workbook(io.BytesIO(response.content), data_only=True)
+        self.assertEqual(
+            workbook.sheetnames,
+            [
+                'Summary', 'Scenario Usage', 'Scenario Categories',
+                'Activity Types', 'Student Groups',
+            ],
+        )
+        summary_values = {
+            row[0].value: row[1].value
+            for row in workbook['Summary'].iter_rows(min_row=7, max_row=13)
+        }
+        self.assertEqual(summary_values['Implementations'], 3)
+        self.assertEqual(summary_values['Registered students'], 2)
+        usage_rows = list(workbook['Scenario Usage'].iter_rows(values_only=True))
+        self.assertIn(('Statistics Scenario One', 2, 'Org', 'English'), usage_rows)
+        all_cell_values = {
+            str(cell.value)
+            for worksheet in workbook.worksheets
+            for row in worksheet.iter_rows()
+            for cell in row
+            if cell.value is not None
+        }
+        self.assertNotIn(self.student_one.username, all_cell_values)
+        self.assertNotIn(self.student_two.username, all_cell_values)
+
+    def test_download_requires_login(self):
+        response = self.client.get(
+            reverse('download_organization_report', args=[self.org.id])
+        )
+        self.assertEqual(response.status_code, 302)

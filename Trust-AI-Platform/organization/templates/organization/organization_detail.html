@@ -69,6 +69,11 @@
   .action-btn.remove  { color: #888; }
   .action-btn.remove:hover { color: #c62828; background: #ffebee; }
   .announcement-body img { max-width: 100%; height: auto; }
+  .org-data-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .org-data-stat { background: #f6f8ff; border: 1px solid #e4e9fb; border-radius: 9px; padding: 12px; }
+  .org-data-stat strong { display: block; color: #012970; font-size: 22px; line-height: 1.05; }
+  .org-data-stat span { display: block; color: #6b7280; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: .35px; }
+  .org-type-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: #eaf0ff; color: #1e40af; font-size: 11px; font-weight: 600; }
 </style>
 
 <main id="main" class="main">
@@ -175,6 +180,56 @@
                 <span style="font-size:13px;"><strong>Created by:</strong> {{ organization.created_by.get_full_name|default:organization.created_by.username }}</span>
               </div>
             </div>
+
+            <hr style="margin:22px 0; border-color:#e8edf5; opacity:1;">
+
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <h5 style="color:#012970; font-weight:700; margin:0; font-size:16px;">
+                <i class="bi bi-bar-chart-line-fill me-2"></i>Organization Data
+              </h5>
+              <a href="{% url 'download_organization_report' organization.id %}"
+                 class="btn btn-sm btn-outline-primary" title="Download organization data report">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Report
+              </a>
+            </div>
+
+            <div class="org-data-grid">
+              <div class="org-data-stat">
+                <strong>{{ organization_stats.teacher_count }}</strong>
+                <span>Teachers</span>
+              </div>
+              <div class="org-data-stat">
+                <strong>{{ organization_stats.student_count }}</strong>
+                <span>Students</span>
+              </div>
+              <div class="org-data-stat">
+                <strong>{{ organization_stats.implementation_count }}</strong>
+                <span>Implementations</span>
+              </div>
+              <div class="org-data-stat">
+                <strong>{{ organization_stats.scenario_count }}</strong>
+                <span>Scenarios used</span>
+              </div>
+            </div>
+
+            <div style="font-size:12px;color:#6b7280;line-height:1.6;margin-top:12px;">
+              {{ organization_stats.group_count }} student group{{ organization_stats.group_count|pluralize }}
+              &middot; {{ organization_stats.active_student_count }} active student{{ organization_stats.active_student_count|pluralize }}
+              &middot; {{ organization_stats.assigned_scenario_count }} assigned scenario{{ organization_stats.assigned_scenario_count|pluralize }}
+            </div>
+
+            {% if organization_stats.category_rows %}
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:15px;margin-bottom:7px;">Scenario kinds</div>
+            <div class="d-flex flex-wrap gap-1">
+              {% for row in organization_stats.category_rows %}
+              <span class="org-type-chip">{{ row.category }} <strong>{{ row.scenario_count }}</strong></span>
+              {% endfor %}
+            </div>
+            {% elif organization_stats.teacher_count == 0 %}
+            <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:12px;color:#6b7280;">
+              Statistics will appear when teacher members create student groups and run scenarios.
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
