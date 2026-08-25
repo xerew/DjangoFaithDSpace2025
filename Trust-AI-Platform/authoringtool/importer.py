@@ -485,6 +485,7 @@ class ScenarioImporter:
             ]
             if subject_objs:
                 scenario.subjects.set(subject_objs)
+                scenario.family.subjects.set(subject_objs)
 
             # 2. Phases (row order preserved)
             phase_obj_map = {}
@@ -617,4 +618,8 @@ class ScenarioImporter:
                 if low_act:
                     Activity.objects.filter(pk=low_act.pk).update(score_limit=_SCORE_LOW)
 
+        scenario.ensure_current_version(
+            created_by=self.user,
+            change_summary='Initial imported scenario definition',
+        )
         return scenario

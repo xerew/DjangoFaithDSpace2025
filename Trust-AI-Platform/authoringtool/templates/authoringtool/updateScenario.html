@@ -143,6 +143,62 @@
     <div class="row justify-content-center">
       <div class="col-12 col-lg-9">
 
+        {% if has_student_evidence and not revision_draft %}
+          <div class="alert alert-warning shadow-sm mb-4" role="alert">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-shield-lock fs-4"></i>
+              <div class="flex-grow-1">
+                <div class="fw-bold">Published evidence is protected</div>
+                <div class="small mt-1">
+                  This scenario already has student implementations. Open a
+                  revision draft before editing it. Student access is paused
+                  while a draft is open, then resumes on the newly published
+                  revision.
+                </div>
+                <form method="post"
+                      action="{% url 'begin_scenario_revision' scenario_id=Scenario.id %}"
+                      class="mt-3">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-warning btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>
+                    Start Revision Draft
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% elif revision_draft %}
+          <div class="alert alert-info shadow-sm mb-4" role="alert">
+            <div class="fw-bold">
+              <i class="bi bi-pencil-square me-1"></i>
+              Revision draft in progress
+            </div>
+            <div class="small mt-1">
+              Based on published version
+              {{ revision_draft.base_version.version_number }}. Student access
+              is paused while the draft is open. Save this form and all
+              activity changes before publishing.
+            </div>
+            <form method="post"
+                  action="{% url 'publish_scenario_revision' scenario_id=Scenario.id %}"
+                  class="mt-3">
+              {% csrf_token %}
+              <label for="changeSummary" class="form-label small fw-bold">
+                Change summary
+              </label>
+              <div class="input-group">
+                <input id="changeSummary" type="text" name="change_summary"
+                       class="form-control form-control-sm"
+                       placeholder="What changed in this revision?">
+                <button type="submit" class="btn btn-success btn-sm">
+                  <i class="bi bi-cloud-check me-1"></i>
+                  Validate &amp; Publish
+                </button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+
         <form action="{% url 'updateScenarioData' id=Scenario.id %}" method="post" id="scenarioForm"
               enctype="multipart/form-data" novalidate>
           {% csrf_token %}
@@ -339,7 +395,8 @@
             <a href="{% url 'viewScenario' id=Scenario.id %}" class="btn btn-outline-secondary px-4">
               <i class="bi bi-arrow-left me-1"></i> Back
             </a>
-            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn"
+                    {% if has_student_evidence and not revision_draft %}disabled{% endif %}>
               <i class="bi bi-check-circle me-1"></i> Save Changes
             </button>
           </div>

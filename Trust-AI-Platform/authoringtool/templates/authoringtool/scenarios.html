@@ -261,8 +261,11 @@
                 <a class="sc-btn sc-btn-view" href="{% url 'viewScenario' id=scenario.id %}">
                   <i class="bi bi-eye"></i> View
                 </a>
-                <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}">
-                  <i class="bi bi-copy"></i> Copy
+                <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=adaptation">
+                  <i class="bi bi-copy"></i> Adapt
+                </a>
+                <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=translation">
+                  <i class="bi bi-translate"></i> Translate
                 </a>
                 {% if request.user == scenario.created_by or scenario.can_edit %}
                   <a class="sc-btn sc-btn-edit" href="{% url 'updateScenario' id=scenario.id %}">

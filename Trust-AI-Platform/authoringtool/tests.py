@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import openpyxl
+from unittest.mock import patch
 
 from django.contrib.auth.models import User, Group
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -20,6 +21,7 @@ from authoringtool.models import (
     Phase,
     ProposalGenerationRun,
     Scenario,
+    ScenarioImplementation,
     SchoolDepartment,
     UserAnswer,
     UserProposalReview,
@@ -752,7 +754,6 @@ class TriggerLlmContextTaskPermissionTests(TestCase):
         g, _ = Group.objects.get_or_create(name='teachers')
         self.owner.groups.add(g)
         self.other_teacher.groups.add(g)
-        self.admin.groups.add(g)
         self.scenario = Scenario.objects.create(
             name='Gen Perm Scenario', created_by=self.owner, updated_by=self.owner
         )
@@ -795,6 +796,258 @@ class TriggerLlmContextTaskPermissionTests(TestCase):
             response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         mock_delay.assert_called_once()
+
+
+class PublicScenarioMetricsAiAccessTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.owner = User.objects.create_user('public_owner', password='pass')
+        self.other_teacher = User.objects.create_user(
+            'public_other_teacher',
+            password='pass',
+        )
+        self.admin = User.objects.create_user(
+            'public_admin',
+            password='pass',
+            is_staff=True,
+        )
+        self.owner.groups.add(teachers)
+        self.other_teacher.groups.add(teachers)
+
+        self.scenario = Scenario.objects.create(
+            name='Public Metrics Scenario',
+            created_by=self.owner,
+            updated_by=self.owner,
+            visibility_status='public',
+            ai_metrics_min_implementations=200,
+        )
+        self.phase = Phase.objects.create(
+            name='Phase 1',
+            scenario=self.scenario,
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.activity_type = ActivityType.objects.create(
+            name='Explanation',
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.activity = Activity.objects.create(
+            name='Shared activity',
+            text='Original content',
+            scenario=self.scenario,
+            phase=self.phase,
+            activity_type=self.activity_type,
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.run = ProposalGenerationRun.start_new(
+            self.scenario,
+            self.owner,
+        )
+        proposal_data = {
+            'action': 'revise',
+            'activity_name': 'Shared activity',
+            'activity_type': 'Explanation',
+            'content': 'Improved shared content',
+            'answers': [],
+            'insert_location': 'after',
+            'explanation': 'The revision improves clarity.',
+        }
+        raw = json.dumps(proposal_data)
+        self.proposal = ActivityProposal.objects.create(
+            scenario=self.scenario,
+            generation_run=self.run,
+            phase=self.phase,
+            activity=self.activity,
+            proposal_type='revise',
+            suggested_action=raw,
+            translated_action=raw,
+            json_action=raw,
+            json_translated_action=raw,
+        )
+
+    def login_other_teacher(self):
+        self.client.login(
+            username='public_other_teacher',
+            password='pass',
+        )
+
+    def test_non_owner_teacher_sees_metrics_button_and_low_data_warning(self):
+        self.login_other_teacher()
+
+        response = self.client.get(
+            reverse('viewScenario', args=[self.scenario.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['can_edit'])
+        self.assertContains(response, 'Metrics &amp; AI')
+        self.assertContains(response, 'id="lowDataWarningModal"')
+        self.assertContains(response, '<strong>200</strong>')
+
+    def test_warning_is_not_shown_at_200_implementations(self):
+        self.login_other_teacher()
+        mocked_scores = patch(
+            'authoringtool.views.UserScenarioScore.objects.filter'
+        )
+        mocked_implementations = patch(
+            'authoringtool.views.ScenarioImplementation.objects.filter'
+        )
+        mocked_evidence = patch(
+            'authoringtool.views.get_evidence_context',
+            return_value={
+                'scope': 'compatible',
+                'signature': 'test-signature',
+                'version_ids': [],
+                'version_count': 1,
+                'scenario_count': 1,
+                'implementation_count': 200,
+                'languages': [],
+                'sources': [],
+            },
+        )
+        with (
+            mocked_scores as score_filter,
+            mocked_implementations as implementation_filter,
+            mocked_evidence,
+        ):
+            (
+                score_filter.return_value.exclude.return_value
+                .values.return_value.distinct.return_value
+                .count.return_value
+            ) = 200
+            implementation_filter.return_value.exclude.return_value.count.return_value = 200
+            response = self.client.get(
+                reverse('viewScenario', args=[self.scenario.id])
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="lowDataWarningModal"')
+        self.assertContains(
+            response,
+            reverse('ai_metrics', args=[self.scenario.id]),
+        )
+
+    def test_non_owner_teacher_can_view_metrics_but_not_generation_controls(self):
+        self.login_other_teacher()
+
+        response = self.client.get(
+            reverse('ai_metrics', args=[self.scenario.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['can_generate_proposals'])
+        self.assertContains(response, 'Performance Metrics')
+        self.assertContains(response, 'Proposals')
+        self.assertContains(response, 'review the existing proposals')
+        self.assertNotContains(response, 'id="btn-generate-context"')
+        self.assertNotContains(response, 'id="btn-generate-context-force"')
+
+    def test_owner_and_admin_see_generation_controls(self):
+        for username in ('public_owner', 'public_admin'):
+            self.client.logout()
+            self.client.login(username=username, password='pass')
+
+            response = self.client.get(
+                reverse('ai_metrics', args=[self.scenario.id])
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['can_generate_proposals'])
+            self.assertContains(response, 'id="btn-generate-context"')
+            self.assertContains(response, 'id="btn-generate-context-force"')
+
+    def test_non_owner_teacher_can_review_existing_proposal(self):
+        self.login_other_teacher()
+        list_url = reverse('proposal_list', args=[self.scenario.id])
+
+        response = self.client.get(list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Improved shared content')
+
+        response = self.client.post(
+            reverse(
+                'accept_proposal',
+                args=[self.scenario.id, self.proposal.id],
+            )
+        )
+
+        self.assertEqual(response.status_code, 302)
+        review = UserProposalReview.objects.get(
+            proposal=self.proposal,
+            user=self.other_teacher,
+        )
+        self.assertEqual(review.status, 'accepted')
+
+    def test_non_owner_teacher_can_edit_and_create_personal_scenario(self):
+        self.login_other_teacher()
+        self.client.post(
+            reverse(
+                'edit_proposal_json',
+                args=[self.scenario.id, self.proposal.id],
+            ),
+            {
+                'activity_name': 'Teacher-specific revision',
+                'content': 'Personalised content',
+                'explanation': 'Personal rationale',
+            },
+        )
+        review = UserProposalReview.objects.get(
+            proposal=self.proposal,
+            user=self.other_teacher,
+        )
+        self.assertEqual(
+            review.teacher_edited_json['content'],
+            'Personalised content',
+        )
+
+        with patch(
+            'authoringtool.views.apply_user_proposals_to_new_scenario.delay'
+        ) as mock_delay:
+            response = self.client.post(
+                reverse(
+                    'create_personal_scenario',
+                    args=[self.scenario.id],
+                )
+            )
+
+        self.assertEqual(response.status_code, 302)
+        mock_delay.assert_called_once_with(
+            self.scenario.id,
+            self.other_teacher.id,
+        )
+
+    def test_non_owner_cannot_generate_or_force_rebuild(self):
+        self.login_other_teacher()
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+
+        with patch(
+            'authoringtool.views.generate_llm_context_for_scenario.delay'
+        ) as mock_delay:
+            normal = self.client.post(url)
+            forced = self.client.post(f'{url}?force=true')
+
+        self.assertEqual(normal.status_code, 403)
+        self.assertEqual(forced.status_code, 403)
+        mock_delay.assert_not_called()
+
+    def test_private_scenario_remains_hidden_from_other_teacher(self):
+        self.scenario.visibility_status = 'private'
+        self.scenario.save(update_fields=['visibility_status'])
+        self.login_other_teacher()
+
+        metrics_response = self.client.get(
+            reverse('ai_metrics', args=[self.scenario.id])
+        )
+        proposals_response = self.client.get(
+            reverse('proposal_list', args=[self.scenario.id])
+        )
+
+        self.assertEqual(metrics_response.status_code, 403)
+        self.assertEqual(proposals_response.status_code, 403)
 
 
 class ProposalListViewCurrentRunScopingTests(TestCase):

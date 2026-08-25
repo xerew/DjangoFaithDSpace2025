@@ -5,9 +5,11 @@ RUN apt-get update \
         autossh \
         ca-certificates \
         curl \
+        nginx \
         openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 COPY ollama-tunnel.sh /usr/local/bin/ollama-tunnel
 RUN chmod 0755 /usr/local/bin/ollama-tunnel
 

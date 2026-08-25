@@ -36,5 +36,10 @@ docker compose ps ollama-tunnel
 docker compose exec celery python -c "import requests; print(requests.get('http://ollama-tunnel:11434/api/tags', timeout=10).json())"
 ```
 
+The sidecar includes an internal nginx proxy that rewrites the Docker service
+hostname to `Host: localhost:11434`. Current Ollama versions reject requests
+whose `Host` header contains the Compose service name, even though the SSH
+tunnel itself is healthy.
+
 The sidecar uses `autossh` plus SSH keepalives, so it reconnects automatically
 after transient network or VM interruptions.

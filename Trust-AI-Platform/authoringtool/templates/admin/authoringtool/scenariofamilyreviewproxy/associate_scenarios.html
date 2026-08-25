@@ -1,0 +1,326 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .association-layout {
+      display: grid;
+      gap: 18px;
+      max-width: 1180px;
+    }
+    .association-panel {
+      padding: 18px;
+      color: var(--body-fg);
+      background: var(--darkened-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .association-panel h2,
+    .association-panel h3 {
+      margin-top: 0;
+      color: var(--body-loud-color);
+    }
+    .association-revision-note {
+      border-left: 4px solid var(--primary);
+    }
+    .association-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .association-field {
+      min-width: 0;
+    }
+    .association-field.full-width {
+      grid-column: 1 / -1;
+    }
+    .association-field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--body-loud-color);
+      font-weight: 600;
+    }
+    .association-field select,
+    .association-field textarea,
+    .association-search {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: none;
+    }
+    .association-search {
+      margin-bottom: 6px;
+      padding: 8px 10px;
+      color: var(--body-fg);
+      background: var(--body-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+    .association-help {
+      display: block;
+      margin-top: 5px;
+      color: var(--body-quiet-color);
+      font-size: 0.75rem;
+    }
+    .association-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .association-actions button {
+      padding: 10px 16px;
+      color: var(--button-fg);
+      background: var(--button-bg);
+      border: 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .association-actions .confirm {
+      background: var(--default-button-bg);
+    }
+    .association-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .association-scenario-card {
+      padding: 14px;
+      background: var(--body-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+    .association-scenario-card h3 {
+      margin-bottom: 7px;
+    }
+    .association-warning {
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--message-warning-bg);
+      border-left: 4px solid var(--accent);
+    }
+    .association-impact {
+      margin-top: 14px;
+      padding: 12px;
+      background: var(--selected-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+    .errorlist.nonfield {
+      margin: 0 0 14px;
+    }
+    @media (max-width: 800px) {
+      .association-form-grid,
+      .association-preview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo;
+    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">
+      {{ opts.app_config.verbose_name }}
+    </a>
+    &rsaquo;
+    <a href="{% url 'admin:authoringtool_scenariofamilyreviewproxy_changelist' %}">
+      Scenario family review dashboard
+    </a>
+    &rsaquo; Associate scenarios manually
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="association-layout">
+    <section class="association-panel association-revision-note">
+      <h2>Revision or scenario association?</h2>
+      <p>
+        A <b>revision</b> is a new immutable version of the same scenario
+        record. Do not associate two separate scenarios as revisions.
+        If a teacher copied a scenario and then changed it, classify that copy
+        as <b>Adaptation / revised copy</b>.
+      </p>
+      <p>
+        Existing immutable revisions can be inspected under
+        <a href="{{ scenario_versions_url }}">Scenario versions</a>.
+      </p>
+    </section>
+
+    <form method="post" class="association-panel">
+      {% csrf_token %}
+      <h2>Choose scenarios and relationship</h2>
+      {{ form.non_field_errors }}
+
+      <div class="association-form-grid">
+        <div class="association-field">
+          {{ form.target_scenario.errors }}
+          <label for="{{ form.target_scenario.id_for_label }}">
+            {{ form.target_scenario.label }}
+          </label>
+          <input
+            type="search"
+            class="association-search"
+            data-filter-select="{{ form.target_scenario.id_for_label }}"
+            placeholder="Filter scenarios by name…"
+          >
+          {{ form.target_scenario }}
+          <span class="association-help">
+            {{ form.target_scenario.help_text }}
+          </span>
+        </div>
+
+        <div class="association-field">
+          {{ form.source_scenario.errors }}
+          <label for="{{ form.source_scenario.id_for_label }}">
+            {{ form.source_scenario.label }}
+          </label>
+          <input
+            type="search"
+            class="association-search"
+            data-filter-select="{{ form.source_scenario.id_for_label }}"
+            placeholder="Filter scenarios by name…"
+          >
+          {{ form.source_scenario }}
+          <span class="association-help">
+            {{ form.source_scenario.help_text }}
+          </span>
+        </div>
+
+        <div class="association-field">
+          {{ form.relationship.errors }}
+          <label for="{{ form.relationship.id_for_label }}">
+            {{ form.relationship.label }}
+          </label>
+          {{ form.relationship }}
+          <span class="association-help">
+            {{ form.relationship.help_text }}
+          </span>
+        </div>
+
+        <div class="association-field full-width">
+          {{ form.review_notes.errors }}
+          <label for="{{ form.review_notes.id_for_label }}">
+            {{ form.review_notes.label }}
+          </label>
+          {{ form.review_notes }}
+          <span class="association-help">
+            {{ form.review_notes.help_text }}
+          </span>
+        </div>
+      </div>
+
+      <div class="association-actions">
+        <button type="submit" name="action" value="preview">
+          Preview association
+        </button>
+        {% if preview and confirmation_token %}
+          <input
+            type="hidden"
+            name="confirmation_token"
+            value="{{ confirmation_token }}"
+          >
+          <button
+            type="submit"
+            name="action"
+            value="confirm"
+            class="confirm"
+          >
+            Confirm {{ preview.relationship_label }}
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if preview %}
+      <section class="association-panel">
+        <h2>Association preview: {{ preview.relationship_label }}</h2>
+
+        <div class="association-preview-grid">
+          <article class="association-scenario-card">
+            <h3>Family that remains</h3>
+            <p>
+              <b>{{ preview.target.name }}</b><br>
+              {{ preview.target.language|default:"Language unspecified" }} ·
+              {{ preview.target.get_variant_type_display }} ·
+              revision v{{ preview.target_version.version_number }}
+            </p>
+            <p>
+              Family: <b>{{ preview.target_family.title }}</b><br>
+              {{ preview.target_variants|length }} variant{{ preview.target_variants|length|pluralize }} ·
+              {{ preview.target_implementations }} student implementation{{ preview.target_implementations|pluralize }}
+            </p>
+            <ul>
+              {% for variant in preview.target_variants %}
+                <li>
+                  {{ variant.name }} — {{ variant.language|default:"Unspecified" }}
+                  ({{ variant.get_variant_type_display }})
+                </li>
+              {% endfor %}
+            </ul>
+          </article>
+
+          <article class="association-scenario-card">
+            <h3>Selected scenario / source family</h3>
+            <p>
+              <b>{{ preview.source.name }}</b><br>
+              {{ preview.source.language|default:"Language unspecified" }} ·
+              {{ preview.source.get_variant_type_display }} ·
+              revision v{{ preview.source_version.version_number }}
+            </p>
+            <p>
+              Family: <b>{{ preview.source_family.title }}</b><br>
+              {{ preview.source_variants|length }} variant{{ preview.source_variants|length|pluralize }} ·
+              {{ preview.source_implementations }} student implementation{{ preview.source_implementations|pluralize }}
+            </p>
+            <ul>
+              {% for variant in preview.source_variants %}
+                <li>
+                  {{ variant.name }} — {{ variant.language|default:"Unspecified" }}
+                  ({{ variant.get_variant_type_display }})
+                </li>
+              {% endfor %}
+            </ul>
+          </article>
+        </div>
+
+        <div class="association-impact">
+          {% if preview.will_merge %}
+            <b>Logical family merge:</b>
+            all {{ preview.source_variants|length }} source-family
+            variant{{ preview.source_variants|length|pluralize }} will move
+            into <b>{{ preview.target_family.title }}</b>. Implementations,
+            answers, and immutable revisions remain on their original scenario
+            records. Evidence compatibility is recalculated separately.
+          {% else %}
+            <b>No family merge:</b>
+            this decision records the relationship for audit and future
+            matching, but leaves both scenario families unchanged.
+          {% endif %}
+        </div>
+
+        {% for warning in preview.warnings %}
+          <div class="association-warning">
+            <b>Check before confirming:</b> {{ warning }}
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </div>
+
+  <script>
+    document.querySelectorAll("[data-filter-select]").forEach(function (input) {
+      var select = document.getElementById(input.dataset.filterSelect);
+      if (!select) return;
+      input.addEventListener("input", function () {
+        var query = input.value.trim().toLocaleLowerCase();
+        Array.from(select.options).forEach(function (option, index) {
+          if (index === 0) return;
+          option.hidden = query && !option.text.toLocaleLowerCase().includes(query);
+        });
+      });
+    });
+  </script>
+{% endblock %}

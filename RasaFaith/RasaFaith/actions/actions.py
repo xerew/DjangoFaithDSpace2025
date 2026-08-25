@@ -58,6 +58,68 @@ def _end_message(dispatcher, locale):
         dispatcher.utter_message(text="This is the end of the scenario!")
 
 
+def _active_implementation(cursor, user_id, scenario_id):
+    """Return the exact active implementation selected by Django student view."""
+    cursor.execute(
+        """
+        SELECT id, scenario_version_id
+        FROM authoringtool_scenarioimplementation
+        WHERE user_id = %s
+          AND scenario_id = %s
+          AND status = 'active'
+        ORDER BY started_at DESC, id DESC
+        LIMIT 1
+        """,
+        (user_id, scenario_id),
+    )
+    return cursor.fetchone()
+
+
+def _complete_implementation(cursor, implementation_id):
+    if not implementation_id:
+        return
+    cursor.execute(
+        """
+        UPDATE authoringtool_scenarioimplementation
+        SET status = 'completed', completed_at = NOW()
+        WHERE id = %s AND status = 'active'
+        """,
+        (implementation_id,),
+    )
+
+
+def _scenario_has_open_revision(cursor, scenario_id):
+    cursor.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM authoringtool_scenariorevisiondraft
+            WHERE scenario_id = %s
+        )
+        """,
+        (scenario_id,),
+    )
+    row = cursor.fetchone()
+    return bool(row and row[0])
+
+
+def _revision_paused_message(dispatcher, locale):
+    if _is_greek(locale):
+        dispatcher.utter_message(
+            text=(
+                "Το σενάριο είναι προσωρινά μη διαθέσιμο όσο ο/η "
+                "εκπαιδευτικός προετοιμάζει μια νέα έκδοση."
+            )
+        )
+    else:
+        dispatcher.utter_message(
+            text=(
+                "This scenario is temporarily unavailable while the teacher "
+                "prepares a new published revision."
+            )
+        )
+
+
 # ---------------------------------------------------------------------------
 class ActionReceiveUserId(Action):
 
@@ -121,20 +183,43 @@ class AskQuestionAction(Action):
         conn = get_database_connection()
         try:
             cursor = conn.cursor()
+            if _scenario_has_open_revision(cursor, scenario_id):
+                _revision_paused_message(dispatcher, user_locale)
+                return []
 
             # Determine starting activity if no question_id yet
             if not question_id:
+                implementation = _active_implementation(
+                    cursor,
+                    user_id,
+                    scenario_id,
+                )
                 cursor.execute(
-                    "SELECT last_activity_id FROM authoringtool_userscenarioscore "
-                    "WHERE user_id = %s AND scenario_id = %s",
-                    (user_id, scenario_id)
+                    "SELECT COALESCE(si.last_activity_id, uss.last_activity_id) "
+                    "FROM authoringtool_scenarioimplementation si "
+                    "LEFT JOIN authoringtool_userscenarioscore uss "
+                    "  ON uss.implementation_id = si.id "
+                    "WHERE si.id = %s",
+                    (implementation[0] if implementation else None,)
                 )
                 result = cursor.fetchone()
+                if not result and not implementation:
+                    cursor.execute(
+                        "SELECT last_activity_id "
+                        "FROM authoringtool_userscenarioscore "
+                        "WHERE user_id = %s AND scenario_id = %s "
+                        "ORDER BY id DESC LIMIT 1",
+                        (user_id, scenario_id),
+                    )
+                    result = cursor.fetchone()
                 if not result or not result[0]:
                     cursor.execute(
-                        "SELECT id FROM authoringtool_activity "
-                        "WHERE scenario_id = %s ORDER BY id ASC LIMIT 1",
-                        (scenario_id,)
+                        "SELECT COALESCE("
+                        "  start_activity_id,"
+                        "  (SELECT id FROM authoringtool_activity "
+                        "   WHERE scenario_id = %s ORDER BY id ASC LIMIT 1)"
+                        ") FROM authoringtool_scenario WHERE id = %s",
+                        (scenario_id, scenario_id)
                     )
                     spec = cursor.fetchone()
                     if not spec:
@@ -246,14 +331,49 @@ class HandleAnswerAction(Action):
         conn = get_database_connection()
         try:
             cursor = conn.cursor()
+            if _scenario_has_open_revision(cursor, scenario_id):
+                _revision_paused_message(dispatcher, user_locale)
+                return []
+            implementation = _active_implementation(
+                cursor,
+                user_id,
+                scenario_id,
+            )
+            implementation_id = implementation[0] if implementation else None
+            implementation_version_id = (
+                implementation[1] if implementation else None
+            )
+            if not implementation_version_id:
+                cursor.execute(
+                    "SELECT current_version_id "
+                    "FROM authoringtool_scenario WHERE id = %s",
+                    (scenario_id,),
+                )
+                version_row = cursor.fetchone()
+                implementation_version_id = (
+                    version_row[0] if version_row else None
+                )
 
             # Resolve question_id from DB if slot is missing
             if not question_id:
-                cursor.execute(
-                    "SELECT last_activity_id FROM authoringtool_userscenarioscore "
-                    "WHERE user_id = %s AND scenario_id = %s",
-                    (user_id, scenario_id)
-                )
+                if implementation_id:
+                    cursor.execute(
+                        "SELECT COALESCE(si.last_activity_id, "
+                        "uss.last_activity_id) "
+                        "FROM authoringtool_scenarioimplementation si "
+                        "LEFT JOIN authoringtool_userscenarioscore uss "
+                        "  ON uss.implementation_id = si.id "
+                        "WHERE si.id = %s",
+                        (implementation_id,),
+                    )
+                else:
+                    cursor.execute(
+                        "SELECT last_activity_id "
+                        "FROM authoringtool_userscenarioscore "
+                        "WHERE user_id = %s AND scenario_id = %s "
+                        "ORDER BY id DESC LIMIT 1",
+                        (user_id, scenario_id),
+                    )
                 row = cursor.fetchone()
                 question_id = row[0] if row else None
                 if not question_id:
@@ -263,9 +383,24 @@ class HandleAnswerAction(Action):
             # Record user answer
             cursor.execute(
                 "INSERT INTO authoringtool_useranswer "
-                "(user_id, activity_id, answer_id, timing, created_on) "
-                "VALUES (%s, %s, %s, %s, %s)",
-                (user_id, question_id, answer_id, seconds_taken, datetime.now())
+                "(user_id, activity_id, answer_id, timing, created_on, "
+                "scenario_version_id, version_confidence, implementation_id, "
+                "activity_revision_id) "
+                "VALUES (%s, %s, %s, %s, %s, %s, 'exact', %s, "
+                "(SELECT id FROM authoringtool_activityrevision "
+                " WHERE scenario_version_id = %s AND activity_id = %s "
+                " ORDER BY id DESC LIMIT 1))",
+                (
+                    user_id,
+                    question_id,
+                    answer_id,
+                    seconds_taken,
+                    datetime.now(),
+                    implementation_version_id,
+                    implementation_id,
+                    implementation_version_id,
+                    question_id,
+                )
             )
             conn.commit()
 
@@ -293,26 +428,54 @@ class HandleAnswerAction(Action):
                 )
 
             # Update or insert user scenario score (last_activity_id set to next below)
-            cursor.execute(
-                "SELECT user_score FROM authoringtool_userscenarioscore "
-                "WHERE user_id = %s AND scenario_id = %s",
-                (user_id, scenario_id)
-            )
-            score_row = cursor.fetchone()
-            if score_row:
-                new_score = score_row[0] + score_for_current_answer
+            if implementation_id:
                 cursor.execute(
-                    "UPDATE authoringtool_userscenarioscore "
-                    "SET user_score = %s "
-                    "WHERE user_id = %s AND scenario_id = %s",
-                    (new_score, user_id, scenario_id)
+                    "SELECT user_score "
+                    "FROM authoringtool_userscenarioscore "
+                    "WHERE implementation_id = %s",
+                    (implementation_id,),
                 )
             else:
                 cursor.execute(
+                    "SELECT user_score "
+                    "FROM authoringtool_userscenarioscore "
+                    "WHERE user_id = %s AND scenario_id = %s "
+                    "ORDER BY id DESC LIMIT 1",
+                    (user_id, scenario_id),
+                )
+            score_row = cursor.fetchone()
+            if score_row:
+                new_score = score_row[0] + score_for_current_answer
+                if implementation_id:
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET user_score = %s "
+                        "WHERE implementation_id = %s",
+                        (new_score, implementation_id),
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET user_score = %s "
+                        "WHERE user_id = %s AND scenario_id = %s",
+                        (new_score, user_id, scenario_id),
+                    )
+            else:
+                cursor.execute(
                     "INSERT INTO authoringtool_userscenarioscore "
-                    "(user_id, last_activity_id, scenario_id, user_score) "
-                    "VALUES (%s, %s, %s, %s)",
-                    (user_id, question_id, scenario_id, score_for_current_answer)
+                    "(user_id, last_activity_id, scenario_id, user_score, "
+                    "scenario_version_id, version_confidence, "
+                    "data_quality_status, implementation_id) "
+                    "VALUES (%s, %s, %s, %s, %s, 'exact', "
+                    "'unreviewed', %s)",
+                    (
+                        user_id,
+                        question_id,
+                        scenario_id,
+                        score_for_current_answer,
+                        implementation_version_id,
+                        implementation_id,
+                    )
                 )
             conn.commit()
 
@@ -336,13 +499,22 @@ class HandleAnswerAction(Action):
                     FROM authoringtool_useranswer ua
                     JOIN authoringtool_answer a ON ua.answer_id = a.id
                     WHERE ua.user_id = %s
+                      AND (
+                          ua.implementation_id = %s
+                          OR (%s IS NULL AND ua.implementation_id IS NULL)
+                      )
                       AND ua.activity_id IN (
                           SELECT unnest(activity_ids)
                           FROM authoringtool_questionbunch
                           WHERE activity_primary_id = %s
                       )
                     """,
-                    (user_id, question_id)
+                    (
+                        user_id,
+                        implementation_id,
+                        implementation_id,
+                        question_id,
+                    )
                 )
                 bunch_row = cursor.fetchone()
                 total_score   = bunch_row[0] or 0
@@ -375,14 +547,30 @@ class HandleAnswerAction(Action):
 
                 if next_question_id:
                     # Persist next activity so reconnect resumes here, not at current
-                    cursor.execute(
-                        "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
-                        "WHERE user_id = %s AND scenario_id = %s",
-                        (next_question_id, user_id, scenario_id)
-                    )
+                    if implementation_id:
+                        cursor.execute(
+                            "UPDATE authoringtool_scenarioimplementation "
+                            "SET last_activity_id = %s WHERE id = %s",
+                            (next_question_id, implementation_id),
+                        )
+                        cursor.execute(
+                            "UPDATE authoringtool_userscenarioscore "
+                            "SET last_activity_id = %s "
+                            "WHERE implementation_id = %s",
+                            (next_question_id, implementation_id),
+                        )
+                    else:
+                        cursor.execute(
+                            "UPDATE authoringtool_userscenarioscore "
+                            "SET last_activity_id = %s "
+                            "WHERE user_id = %s AND scenario_id = %s",
+                            (next_question_id, user_id, scenario_id),
+                        )
                     conn.commit()
                     return [SlotSet("next_question_id", next_question_id)]
                 else:
+                    _complete_implementation(cursor, implementation_id)
+                    conn.commit()
                     _end_message(dispatcher, user_locale)
                     return [AllSlotsReset(), FollowupAction("action_end_scenario")]
 
@@ -394,15 +582,31 @@ class HandleAnswerAction(Action):
                 )
                 next_row = cursor.fetchone()
                 if not next_row:
+                    _complete_implementation(cursor, implementation_id)
+                    conn.commit()
                     _end_message(dispatcher, user_locale)
                     return [AllSlotsReset(), FollowupAction("action_end_scenario")]
 
                 # Persist next activity so reconnect resumes here, not at current
-                cursor.execute(
-                    "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
-                    "WHERE user_id = %s AND scenario_id = %s",
-                    (next_row[0], user_id, scenario_id)
-                )
+                if implementation_id:
+                    cursor.execute(
+                        "UPDATE authoringtool_scenarioimplementation "
+                        "SET last_activity_id = %s WHERE id = %s",
+                        (next_row[0], implementation_id),
+                    )
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET last_activity_id = %s "
+                        "WHERE implementation_id = %s",
+                        (next_row[0], implementation_id),
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET last_activity_id = %s "
+                        "WHERE user_id = %s AND scenario_id = %s",
+                        (next_row[0], user_id, scenario_id),
+                    )
                 conn.commit()
                 return [SlotSet("next_question_id", next_row[0])]
 
@@ -586,10 +790,47 @@ class ActionConfirmRead(Action):
         conn = get_database_connection()
         try:
             cursor = conn.cursor()
+            if _scenario_has_open_revision(cursor, scenario_id):
+                _revision_paused_message(dispatcher, user_locale)
+                return []
+            implementation = _active_implementation(
+                cursor,
+                user_id,
+                scenario_id,
+            )
+            implementation_id = implementation[0] if implementation else None
+            implementation_version_id = (
+                implementation[1] if implementation else None
+            )
+            if not implementation_version_id:
+                cursor.execute(
+                    "SELECT current_version_id "
+                    "FROM authoringtool_scenario WHERE id = %s",
+                    (scenario_id,),
+                )
+                version_row = cursor.fetchone()
+                implementation_version_id = (
+                    version_row[0] if version_row else None
+                )
             cursor.execute(
-                "INSERT INTO authoringtool_useranswer (user_id, activity_id, timing, created_on) "
-                "VALUES (%s, %s, %s, %s)",
-                (user_id, question_id, seconds_taken, datetime.now())
+                "INSERT INTO authoringtool_useranswer "
+                "(user_id, activity_id, timing, created_on, "
+                "scenario_version_id, version_confidence, implementation_id, "
+                "activity_revision_id) "
+                "VALUES (%s, %s, %s, %s, %s, 'exact', %s, "
+                "(SELECT id FROM authoringtool_activityrevision "
+                " WHERE scenario_version_id = %s AND activity_id = %s "
+                " ORDER BY id DESC LIMIT 1))",
+                (
+                    user_id,
+                    question_id,
+                    seconds_taken,
+                    datetime.now(),
+                    implementation_version_id,
+                    implementation_id,
+                    implementation_version_id,
+                    question_id,
+                )
             )
             conn.commit()
 
@@ -599,28 +840,62 @@ class ActionConfirmRead(Action):
             )
             result = cursor.fetchone()
             if not result:
+                _complete_implementation(cursor, implementation_id)
+                conn.commit()
                 _end_message(dispatcher, user_locale)
                 return [AllSlotsReset(), FollowupAction("action_end_scenario")]
 
             next_question_id = result[0]
 
             # Persist next activity so reconnect resumes here, not at this explanation
-            cursor.execute(
-                "SELECT id FROM authoringtool_userscenarioscore "
-                "WHERE user_id = %s AND scenario_id = %s",
-                (user_id, scenario_id)
-            )
-            if cursor.fetchone():
+            if implementation_id:
                 cursor.execute(
-                    "UPDATE authoringtool_userscenarioscore SET last_activity_id = %s "
-                    "WHERE user_id = %s AND scenario_id = %s",
-                    (next_question_id, user_id, scenario_id)
+                    "SELECT id FROM authoringtool_userscenarioscore "
+                    "WHERE implementation_id = %s",
+                    (implementation_id,),
                 )
             else:
                 cursor.execute(
+                    "SELECT id FROM authoringtool_userscenarioscore "
+                    "WHERE user_id = %s AND scenario_id = %s "
+                    "ORDER BY id DESC LIMIT 1",
+                    (user_id, scenario_id),
+                )
+            if cursor.fetchone():
+                if implementation_id:
+                    cursor.execute(
+                        "UPDATE authoringtool_scenarioimplementation "
+                        "SET last_activity_id = %s WHERE id = %s",
+                        (next_question_id, implementation_id),
+                    )
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET last_activity_id = %s "
+                        "WHERE implementation_id = %s",
+                        (next_question_id, implementation_id),
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE authoringtool_userscenarioscore "
+                        "SET last_activity_id = %s "
+                        "WHERE user_id = %s AND scenario_id = %s",
+                        (next_question_id, user_id, scenario_id),
+                    )
+            else:
+                cursor.execute(
                     "INSERT INTO authoringtool_userscenarioscore "
-                    "(user_id, scenario_id, last_activity_id, user_score) VALUES (%s, %s, %s, 0)",
-                    (user_id, scenario_id, next_question_id)
+                    "(user_id, scenario_id, last_activity_id, user_score, "
+                    "scenario_version_id, version_confidence, "
+                    "data_quality_status, implementation_id) "
+                    "VALUES (%s, %s, %s, 0, %s, 'exact', "
+                    "'unreviewed', %s)",
+                    (
+                        user_id,
+                        scenario_id,
+                        next_question_id,
+                        implementation_version_id,
+                        implementation_id,
+                    )
                 )
             conn.commit()
 

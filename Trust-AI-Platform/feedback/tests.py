@@ -393,7 +393,13 @@ class TeacherFeedbackTriggerTests(TestCase):
     def _create_personal(self):
         from unittest.mock import patch
         with patch('authoringtool.views.apply_user_proposals_to_new_scenario.delay') as mock_delay:
-            return self.client.get(reverse('create_personal_scenario', args=[self.scenario.id]), follow=True)
+            return self.client.post(
+                reverse(
+                    'create_personal_scenario',
+                    args=[self.scenario.id],
+                ),
+                follow=True,
+            )
 
     def test_modal_context_present_after_creation(self):
         r = self._create_personal()

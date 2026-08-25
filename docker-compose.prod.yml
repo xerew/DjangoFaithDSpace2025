@@ -1,0 +1,6 @@
+services:
+  nginx:
+    volumes:
+      - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/nginx-with-cert-reload.sh:/usr/local/bin/nginx-with-cert-reload.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/nginx-with-cert-reload.sh"]

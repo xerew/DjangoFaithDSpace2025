@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trust AI Lab - AI, Machine Learning &amp; Platform Improvements</title>
+  <style>
+:root {
+  --navy: #0b2556;
+  --blue: #1a56db;
+  --blue-dark: #1e3a8a;
+  --blue-pale: #eff6ff;
+  --ink: #1f2937;
+  --muted: #64748b;
+  --line: #dbe4f0;
+  --green: #15803d;
+  --green-pale: #f0fdf4;
+  --amber: #b45309;
+  --amber-pale: #fffbeb;
+  --red: #b91c1c;
+  --red-pale: #fef2f2;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+  font-size: 10.6pt;
+  line-height: 1.52;
+}
+
+body {
+  margin: 0;
+  background: #eef2f7;
+}
+
+.document {
+  width: 210mm;
+  margin: 0 auto;
+  padding: 16mm 18mm 18mm;
+  background: white;
+  box-shadow: 0 8px 35px rgba(15, 23, 42, .12);
+}
+
+h1, h2, h3 {
+  color: var(--navy);
+  line-height: 1.2;
+  break-after: avoid-page;
+}
+
+h1 {
+  margin: 0 0 5mm;
+  padding-bottom: 2.5mm;
+  font-size: 24pt;
+  border-bottom: 2px solid var(--blue);
+}
+
+h2 {
+  margin: 7mm 0 2.5mm;
+  font-size: 16pt;
+}
+
+h3 {
+  margin: 5mm 0 2mm;
+  font-size: 12.5pt;
+}
+
+p { margin: 0 0 3mm; }
+
+strong { color: #16284b; }
+
+a { color: var(--blue); text-decoration: none; }
+
+ul, ol { margin: 1.5mm 0 3.5mm 6mm; padding-left: 4mm; }
+li { margin: 1.1mm 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0 5mm;
+  font-size: 9.5pt;
+  break-inside: avoid-page;
+}
+
+thead { display: table-header-group; }
+
+th {
+  padding: 2.2mm 2.5mm;
+  color: white;
+  background: var(--blue-dark);
+  border: 1px solid var(--blue-dark);
+  text-align: left;
+}
+
+td {
+  padding: 2.2mm 2.5mm;
+  border: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tbody tr:nth-child(even) td { background: #f8fafc; }
+
+blockquote {
+  margin: 4mm 0;
+  padding: 3mm 4mm;
+  color: #273955;
+  background: var(--amber-pale);
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 6px 6px 0;
+  break-inside: avoid-page;
+}
+
+blockquote p:last-child { margin-bottom: 0; }
+
+code {
+  padding: .2mm 1mm;
+  border-radius: 3px;
+  color: #1e3a8a;
+  background: #eff6ff;
+  font-family: Consolas, monospace;
+  font-size: 9pt;
+}
+
+hr { margin: 7mm 0 4mm; border: 0; border-top: 1px solid var(--line); }
+
+.cover-page {
+  height: 252mm;
+  margin: -16mm -18mm -18mm;
+  padding: 27mm 24mm 22mm;
+  color: white;
+  background:
+    radial-gradient(circle at 82% 20%, rgba(96, 165, 250, .55), transparent 23%),
+    radial-gradient(circle at 15% 80%, rgba(45, 212, 191, .2), transparent 27%),
+    linear-gradient(145deg, #071b3e 0%, #123f8f 55%, #1a56db 100%);
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+}
+
+.cover-page::after {
+  content: "";
+  position: absolute;
+  width: 115mm;
+  height: 115mm;
+  right: -45mm;
+  bottom: -38mm;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 50%;
+  box-shadow: 0 0 0 12mm rgba(255,255,255,.035), 0 0 0 28mm rgba(255,255,255,.025);
+}
+
+.cover-mark {
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  color: #bfdbfe;
+}
+
+.cover-logo {
+  display: block;
+  width: 34mm;
+  height: 34mm;
+  object-fit: contain;
+  margin: 28mm 0 8mm;
+  padding: 4mm;
+  border-radius: 9mm;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+}
+
+.cover-page h1 {
+  max-width: 145mm;
+  margin: 0 0 5mm;
+  padding: 0;
+  color: white;
+  border: 0;
+  font-size: 37pt;
+  letter-spacing: -.6px;
+}
+
+.cover-subtitle {
+  max-width: 145mm;
+  margin: 0;
+  color: #dbeafe;
+  font-size: 18pt;
+  line-height: 1.35;
+}
+
+.cover-flow {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin-top: 24mm;
+  font-size: 9pt;
+  letter-spacing: .8px;
+}
+
+.cover-flow span {
+  padding: 2.5mm 3.5mm;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 20px;
+  background: rgba(255,255,255,.1);
+}
+
+.cover-flow b { color: #93c5fd; font-size: 14pt; }
+
+.cover-meta {
+  position: absolute;
+  left: 24mm;
+  bottom: 23mm;
+  z-index: 1;
+  color: #dbeafe;
+  font-size: 9.5pt;
+  line-height: 1.7;
+}
+
+.cover-meta strong { color: white; margin-right: 2mm; }
+
+.toc {
+  columns: 2;
+  column-gap: 10mm;
+  margin-top: 4mm;
+  padding: 5mm 6mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.toc ul { margin: 0; padding: 0; list-style: none; }
+.toc li { margin: 1.2mm 0; break-inside: avoid; }
+.toc li li { padding-left: 3mm; font-size: 9pt; }
+.toc a { color: #274060; }
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2.2mm;
+  margin: 5mm 0;
+  break-inside: avoid-page;
+}
+
+.process-grid div {
+  min-height: 28mm;
+  padding: 3.5mm;
+  color: #1e3a8a;
+  background: var(--blue-pale);
+  border: 1px solid #bfdbfe;
+  border-top: 4px solid var(--blue);
+  border-radius: 6px;
+}
+
+.process-grid b, .process-grid span { display: block; }
+.process-grid b { font-size: 10pt; margin-bottom: 2mm; }
+.process-grid span { color: #52657c; font-size: 8.5pt; line-height: 1.35; }
+
+.hierarchy {
+  max-width: 135mm;
+  margin: 5mm auto;
+  text-align: center;
+  break-inside: avoid-page;
+}
+
+.h-level {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3mm 5mm;
+  color: white;
+  border-radius: 6px;
+}
+
+.h-level b { color: white; letter-spacing: .7px; }
+.h-level span { font-size: 9pt; }
+.h-one { background: #0b2556; }
+.h-two { margin: 0 8mm; background: #1e40af; }
+.h-three { margin: 0 16mm; background: #2563eb; }
+.h-four { margin: 0 24mm; background: #0f766e; }
+.h-arrow { height: 7mm; color: #94a3b8; font-size: 15pt; }
+
+.route-diagram {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3mm;
+  margin: 4mm 0;
+  padding: 5mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  break-inside: avoid-page;
+}
+
+.route-diagram span, .branch-root {
+  padding: 2.5mm 4mm;
+  color: #1e3a8a;
+  background: white;
+  border: 1.5px solid #93c5fd;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.route-diagram b { color: var(--blue); font-size: 15pt; }
+
+.branch-diagram {
+  display: grid;
+  grid-template-columns: 38mm 1fr;
+  align-items: center;
+  gap: 8mm;
+  margin: 4mm 0;
+  padding: 5mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  break-inside: avoid-page;
+}
+
+.branch-root { text-align: center; }
+.branch-lines div { margin: 2mm 0; padding: 2mm 3mm; border-left: 3px solid var(--blue); background: white; }
+.branch-lines b { display: inline-block; min-width: 20mm; }
+
+.task-list-item { list-style: none; margin-left: -5mm; }
+.task-list-item input { margin-right: 2mm; accent-color: var(--blue); }
+
+.page-break { break-before: page; height: 0; }
+
+@page {
+  size: A4;
+  margin: 14mm 15mm 16mm;
+}
+
+@media print {
+  html { font-size: 9.7pt; }
+  body { background: white; }
+  .document { width: auto; margin: 0; padding: 0; box-shadow: none; }
+  .cover-page {
+    height: 268mm;
+    margin: -14mm -15mm -16mm;
+    padding: 27mm 24mm 22mm;
+  }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 15pt; }
+  h3 { font-size: 11.5pt; }
+  a { color: inherit; }
+  table, blockquote, .process-grid, .hierarchy, .route-diagram, .branch-diagram { break-inside: avoid; }
+  p, li { orphans: 3; widows: 3; }
+}
+
+.document > h1:first-of-type { margin-top: 0; }
+
+pre {
+  margin: 3mm 0 5mm;
+  padding: 3.5mm 4mm;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: #dbeafe;
+  background: #0f2347;
+  border: 1px solid #1e3a8a;
+  border-radius: 6px;
+  break-inside: avoid-page;
+}
+
+pre code {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 8.7pt;
+}
+
+@media print {
+  h1 { break-before: page; }
+  .cover-page + .page-break + h1 { break-before: auto; }
+  h2, h3 { break-after: avoid-page; }
+}
+</style>
+</head>
+<body>
+  <article class="document"><div class="cover-page">
+  <div class="cover-mark">PLATFORM DEVELOPMENT ROADMAP</div>
+  <img class="cover-logo" src="../static/img/logo.png" alt="Trust AI Lab logo">
+  <h1>AI, Machine Learning & Platform Improvements</h1>
+  <p class="cover-subtitle">A practical roadmap for trustworthy analytics, adaptive learning, teacher support, and measurable educational impact</p>
+  <div class="cover-flow">
+    <span>CLEAN DATA</span><b>&rarr;</b><span>MEASURE</span><b>&rarr;</b><span>ASSIST</span><b>&rarr;</b><span>ADAPT</span>
+  </div>
+  <div class="cover-meta">
+    <strong>Audience</strong> Platform developers, researchers, teachers, and administrators<br>
+    <strong>Edition</strong> July 2026 &nbsp;&middot;&nbsp; English
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<h1 id="executive-summary">Executive summary</h1>
+<p>Trust AI Lab already contains several important building blocks: scenario and activity graphs, learner answers and timing, teacher-created groups, performance dashboards, deterministic graph validation, LLM-generated proposals, teacher proposal reviews, structural-failure records, RAG over scenario documents, and bandit policies for choosing create, revise, or skip actions.</p>
+<p>The next stage should not simply add more generated text. The highest-value direction is to make the platform better at four jobs:</p>
+<ol>
+<li><strong>Clean and qualify evidence.</strong> Separate valid learning observations from missing timers, implausibly fast completions, abandoned activities, technical failures, and test data.</li>
+<li><strong>Measure educational quality.</strong> Evaluate question difficulty, discrimination, distractors, engagement, revisions, and scenario structure with reproducible metrics.</li>
+<li><strong>Assist people.</strong> Give teachers ranked recommendations, meaningful explanations, semantic search, curriculum-gap detection, and concise reports while keeping educators in control.</li>
+<li><strong>Adapt safely.</strong> Estimate concept mastery and recommend teacher-approved learning paths only after the data and offline evaluation are reliable.</li>
+</ol>
+<p>The recommended sequence is:</p>
+<div class="process-grid">
+  <div><b>1. Qualify</b><span>Timing, attempts, revisions, and data lineage</span></div>
+  <div><b>2. Measure</b><span>Question, activity, and scenario quality</span></div>
+  <div><b>3. Rank</b><span>Proposals, flags, and teacher priorities</span></div>
+  <div><b>4. Model</b><span>Misconceptions and concept mastery</span></div>
+  <div><b>5. Adapt</b><span>Safe routes, hints, and impact evaluation</span></div>
+</div>
+
+<blockquote>
+<p><strong>Central principle:</strong> Raw events should be preserved. Suspect observations should be labelled and excluded only from metrics they cannot support. A five-second completion of a five-minute explanation is noise for normal-duration estimates, but it is useful evidence of likely skipping.</p>
+</blockquote>
+<h2 id="priority-matrix">Priority matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Initiative</th>
+<th>Primary benefit</th>
+<th style="text-align: right;">Data requirement</th>
+<th style="text-align: right;">Complexity</th>
+<th style="text-align: right;">Suggested priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Timing and data-quality classification</td>
+<td>Trustworthy dashboards</td>
+<td style="text-align: right;">Low</td>
+<td style="text-align: right;">Low-medium</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Question and distractor analytics</td>
+<td>Better assessment design</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>Semantic search, duplicates, and curriculum gaps</td>
+<td>Faster authoring</td>
+<td style="text-align: right;">Low</td>
+<td style="text-align: right;">Low-medium</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td>Proposal quality ranking</td>
+<td>Better AI recommendations</td>
+<td style="text-align: right;">Medium review history</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr>
+<td>Revision-impact measurement</td>
+<td>Evidence that changes help</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr>
+<td>Misconception discovery</td>
+<td>Targeted teaching</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td>Concept and skill tagging</td>
+<td>Foundation for personalization</td>
+<td style="text-align: right;">Low initially</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td>Knowledge and mastery tracking</td>
+<td>Learner support</td>
+<td style="text-align: right;">High sequential data</td>
+<td style="text-align: right;">Medium-high</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr>
+<td>Contextual adaptive routing</td>
+<td>Personalized paths</td>
+<td style="text-align: right;">High</td>
+<td style="text-align: right;">High</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td>Grounded Socratic hints</td>
+<td>Student support</td>
+<td style="text-align: right;">Low-medium</td>
+<td style="text-align: right;">Medium</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table>
+<h2 id="contents">Contents</h2>
+<div class="toc">
+<ul>
+<li><a href="#executive-summary">Executive summary</a><ul>
+<li><a href="#priority-matrix">Priority matrix</a></li>
+<li><a href="#contents">Contents</a></li>
+</ul>
+</li>
+<li><a href="#1-design-principles">1. Design principles</a><ul>
+<li><a href="#evidence-before-automation">Evidence before automation</a></li>
+<li><a href="#deterministic-checks-before-machine-learning">Deterministic checks before machine learning</a></li>
+<li><a href="#preserve-raw-data-and-derive-qualified-views">Preserve raw data and derive qualified views</a></li>
+<li><a href="#human-control-and-uncertainty">Human control and uncertainty</a></li>
+</ul>
+</li>
+<li><a href="#2-data-foundation-and-lineage">2. Data foundation and lineage</a><ul>
+<li><a href="#scenario-implementations">Scenario implementations</a></li>
+<li><a href="#activity-presentation-and-response">Activity presentation and response</a></li>
+<li><a href="#immutable-revisions-and-origins">Immutable revisions and origins</a></li>
+<li><a href="#central-response-recording-service">Central response-recording service</a></li>
+<li><a href="#scope-aware-metric-snapshots">Scope-aware metric snapshots</a></li>
+</ul>
+</li>
+<li><a href="#3-timing-and-engagement-data-quality">3. Timing and engagement data quality</a><ul>
+<li><a href="#expected-and-minimum-duration">Expected and minimum duration</a></li>
+<li><a href="#timing-classification">Timing classification</a></li>
+<li><a href="#active-time-instead-of-wall-time">Active time instead of wall time</a></li>
+<li><a href="#dashboard-improvements">Dashboard improvements</a></li>
+<li><a href="#engagement-flags">Engagement flags</a></li>
+</ul>
+</li>
+<li><a href="#4-question-and-distractor-quality-analytics">4. Question and distractor quality analytics</a><ul>
+<li><a href="#effective-sample-size">Effective sample size</a></li>
+<li><a href="#facility-and-intended-difficulty">Facility and intended difficulty</a></li>
+<li><a href="#corrected-discrimination">Corrected discrimination</a></li>
+<li><a href="#option-and-distractor-behavior">Option and distractor behavior</a></li>
+<li><a href="#suggested-flags">Suggested flags</a></li>
+</ul>
+</li>
+<li><a href="#5-semantic-scenario-intelligence">5. Semantic scenario intelligence</a><ul>
+<li><a href="#duplicate-detection">Duplicate detection</a></li>
+<li><a href="#curriculum-gap-analysis">Curriculum-gap analysis</a></li>
+<li><a href="#search-and-prerequisites">Search and prerequisites</a></li>
+</ul>
+</li>
+<li><a href="#6-proposal-quality-ranking">6. Proposal quality ranking</a><ul>
+<li><a href="#labels">Labels</a></li>
+<li><a href="#features-and-model">Features and model</a></li>
+</ul>
+</li>
+<li><a href="#7-misconception-discovery">7. Misconception discovery</a></li>
+<li><a href="#8-revision-impact-measurement">8. Revision-impact measurement</a></li>
+<li><a href="#9-concepts-mastery-and-knowledge-tracing">9. Concepts, mastery, and knowledge tracing</a><ul>
+<li><a href="#concept-and-skill-model">Concept and skill model</a></li>
+<li><a href="#mastery-estimates">Mastery estimates</a></li>
+<li><a href="#advanced-models">Advanced models</a></li>
+</ul>
+</li>
+<li><a href="#10-safe-adaptive-learning-paths">10. Safe adaptive learning paths</a><ul>
+<li><a href="#policy-logging">Policy logging</a></li>
+<li><a href="#safety-constraints">Safety constraints</a></li>
+</ul>
+</li>
+<li><a href="#11-grounded-socratic-hints">11. Grounded Socratic hints</a></li>
+<li><a href="#12-multilingual-quality-and-accessibility">12. Multilingual quality and accessibility</a><ul>
+<li><a href="#translation-consistency">Translation consistency</a></li>
+<li><a href="#accessibility-assistance">Accessibility assistance</a></li>
+<li><a href="#pacing-support">Pacing support</a></li>
+</ul>
+</li>
+<li><a href="#13-scenario-health-and-quality-of-life-features">13. Scenario health and quality-of-life features</a><ul>
+<li><a href="#evidence-based-scenario-health">Evidence-based scenario health</a></li>
+<li><a href="#teacher-brief">Teacher brief</a></li>
+<li><a href="#natural-language-analytics">Natural-language analytics</a></li>
+<li><a href="#reports-notifications-and-comparison">Reports, notifications, and comparison</a></li>
+<li><a href="#student-progress-map">Student progress map</a></li>
+</ul>
+</li>
+<li><a href="#14-platform-operations-and-governance">14. Platform operations and governance</a><ul>
+<li><a href="#model-registry-and-monitoring">Model registry and monitoring</a></li>
+<li><a href="#anomaly-detection">Anomaly detection</a></li>
+<li><a href="#privacy-and-access">Privacy and access</a></li>
+<li><a href="#features-to-avoid">Features to avoid</a></li>
+</ul>
+</li>
+<li><a href="#15-additional-platform-and-research-opportunities">15. Additional platform and research opportunities</a><ul>
+<li><a href="#cold-start-transfer">Cold-start transfer</a></li>
+<li><a href="#origin-aware-pooled-analytics">Origin-aware pooled analytics</a></li>
+<li><a href="#data-quality-score">Data-quality score</a></li>
+<li><a href="#research-exports">Research exports</a></li>
+</ul>
+</li>
+<li><a href="#16-implementation-roadmap">16. Implementation roadmap</a><ul>
+<li><a href="#stage-0-correctness-and-observability">Stage 0 - Correctness and observability</a></li>
+<li><a href="#stage-1-durable-evidence">Stage 1 - Durable evidence</a></li>
+<li><a href="#stage-2-measurement-products">Stage 2 - Measurement products</a></li>
+<li><a href="#stage-3-low-risk-ml-assistance">Stage 3 - Low-risk ML assistance</a></li>
+<li><a href="#stage-4-educational-effect-measurement">Stage 4 - Educational-effect measurement</a></li>
+<li><a href="#stage-5-personalization">Stage 5 - Personalization</a></li>
+<li><a href="#definition-of-done-for-an-ai-feature">Definition of done for an AI feature</a></li>
+</ul>
+</li>
+<li><a href="#17-recommended-first-projects">17. Recommended first projects</a><ul>
+<li><a href="#first-engineering-project-trustworthy-timing">First engineering project: trustworthy timing</a></li>
+<li><a href="#first-psychometrics-project-question-quality">First psychometrics project: question quality</a></li>
+<li><a href="#first-machine-learning-project-proposal-ranking">First machine-learning project: proposal ranking</a></li>
+<li><a href="#first-personalization-project-concepts-and-shadow-mastery">First personalization project: concepts and shadow mastery</a></li>
+</ul>
+</li>
+<li><a href="#18-references-and-further-reading">18. References and further reading</a></li>
+</ul>
+</div>
+<h1 id="1-design-principles">1. Design principles</h1>
+<h2 id="evidence-before-automation">Evidence before automation</h2>
+<p>Every teacher-facing AI claim should be traceable to evidence:</p>
+<pre><code class="language-text">Observation -&gt; Metric -&gt; Rule or model -&gt; Recommendation -&gt; Human decision -&gt; Outcome
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-text">20 of 120 completions were below 30 seconds
+        -&gt; 16.7% fast-completion rate
+        -&gt; exceeds configured 10% review threshold
+        -&gt; suggest a checkpoint or minimum wait
+        -&gt; teacher accepts, edits, or rejects
+        -&gt; compare later engagement and learning outcomes
+</code></pre>
+<h2 id="deterministic-checks-before-machine-learning">Deterministic checks before machine learning</h2>
+<p>Use rules where the requirement is exact:</p>
+<ul>
+<li>A question must have answers.</li>
+<li>Exactly one answer must be configured as correct when that is the activity contract.</li>
+<li>Every answer route must point to a valid activity or intentional ending.</li>
+<li>The start activity must be reachable.</li>
+<li>A generated proposal must satisfy its JSON schema.</li>
+<li>A create proposal cannot be inserted before the scenario start.</li>
+</ul>
+<p>Use statistical or ML models only where patterns must be inferred:</p>
+<ul>
+<li>Whether a distractor attracts stronger learners unexpectedly.</li>
+<li>Whether several incorrect responses express the same misconception.</li>
+<li>Which of several valid proposals is most likely to help a teacher.</li>
+<li>Which teacher-approved activity is the best next step for a learner.</li>
+</ul>
+<h2 id="preserve-raw-data-and-derive-qualified-views">Preserve raw data and derive qualified views</h2>
+<p>The platform should retain the raw event and attach quality labels such as:</p>
+<pre><code class="language-text">valid
+timing_missing
+implausibly_fast
+unusually_fast
+likely_left_open
+technical_failure
+test_or_demo
+teacher_invalidated
+</code></pre>
+<p>Derived datasets can then select the correct evidence for each purpose. Correctness analysis may retain an answer whose duration is too fast, while normal-duration analysis excludes that duration.</p>
+<h2 id="human-control-and-uncertainty">Human control and uncertainty</h2>
+<p>Teachers should see sample size, reliability, evidence, algorithm version, and review controls. The platform should use <strong>insufficient</strong>, <strong>provisional</strong>, and <strong>operational</strong> labels instead of displaying false precision.</p>
+<h1 id="2-data-foundation-and-lineage">2. Data foundation and lineage</h1>
+<h2 id="scenario-implementations">Scenario implementations</h2>
+<p>Students cannot restart a scenario themselves. A teacher may reset a learner's progress. The analytical design should represent this explicitly rather than silently deleting all evidence.</p>
+<p>A <code>ScenarioRun</code> should record:</p>
+<pre><code class="language-text">learner
+scenario and scenario revision
+started_at and completed_at
+status: active, completed, abandoned, or teacher_reset
+reset_by, reset_at, and reset_reason when applicable
+include_in_analytics
+</code></pre>
+<p>Suggested reset reasons are <code>technical_problem</code>, <code>incorrect_assignment</code>, <code>allow_second_attempt</code>, <code>testing_or_demo_data</code>, and <code>other</code>. Technical and demo runs may be excluded. An intentional second attempt should remain available for learning-gain analysis. A separate administrator-only operation should handle permanent privacy deletion.</p>
+<h2 id="activity-presentation-and-response">Activity presentation and response</h2>
+<p>An answer record alone cannot distinguish a question that was skipped from one that was never reached. Add an append-only activity attempt or exposure event:</p>
+<pre><code class="language-text">scenario_run
+activity and immutable revision
+sequence position and branch reason
+presented_at, first_visible_at, answered_at
+wall duration and active duration
+selected answer snapshot
+correctness and weight snapshots
+outcome: answered, read, skipped, timeout, abandoned
+attempt number
+</code></pre>
+<h2 id="immutable-revisions-and-origins">Immutable revisions and origins</h2>
+<p>Changing question wording, answer text, correctness, or weights must create a new revision for analytics. Every metric should use stable IDs and revisions, not activity names. Personal copies should retain <code>origin_scenario</code>, <code>origin_activity</code>, and <code>origin_revision</code> relationships so equivalent versions can be compared without merging unrelated edits.</p>
+<h2 id="central-response-recording-service">Central response-recording service</h2>
+<p>All response writers, including Rasa actions, should use one authenticated service or internal API. It should validate the current activity, attach its immutable revision, record presentation and response, calculate timing quality, preserve raw values, update progress, and invalidate dependent analytics. Direct SQL writes bypass validation, signals, and revision rules and should be gradually removed.</p>
+<h2 id="scope-aware-metric-snapshots">Scope-aware metric snapshots</h2>
+<p>The database should be the source of truth. A metric snapshot key must include scenario/revision, activity/revision, date range, group filter, language, attempt policy, algorithm version, and configuration version. CSV should be an export format. Filtered calculations must never overwrite global scenario results.</p>
+<h1 id="3-timing-and-engagement-data-quality">3. Timing and engagement data quality</h1>
+<h2 id="expected-and-minimum-duration">Expected and minimum duration</h2>
+<p>Each activity should support:</p>
+<pre><code class="language-text">expected_duration_seconds
+minimum_valid_duration_seconds
+maximum_valid_duration_seconds (optional)
+timing_policy: none, flag, or enforce
+</code></pre>
+<p>Expected duration is an analytical estimate. Minimum duration is the earliest plausible completion or, when enforcement is enabled, the earliest permitted continuation. The minimum should normally be shorter than the expected duration.</p>
+<p>If a teacher has not supplied a minimum, an initial configurable default can be derived:</p>
+<pre><code class="language-python">minimum_valid = max(5, expected_duration * 0.15)
+maximum_valid = expected_duration * 5
+</code></pre>
+<p>These are product defaults, not universal educational laws.</p>
+<h2 id="timing-classification">Timing classification</h2>
+<pre><code class="language-python">def classify_timing(seconds, minimum, maximum):
+    if seconds is None or seconds &lt;= 0:
+        return &quot;missing&quot;
+    if seconds &lt; minimum:
+        return &quot;too_fast&quot;
+    if maximum and seconds &gt; maximum:
+        return &quot;too_slow&quot;
+    return &quot;valid&quot;
+</code></pre>
+<p>For a five-minute activity with a 30-second minimum, a five-second completion is retained as:</p>
+<pre><code class="language-text">raw duration: 5 seconds
+timing status: too_fast
+include in normal timing statistics: no
+include in fast-completion rate: yes
+retain associated answer: yes
+</code></pre>
+<h2 id="active-time-instead-of-wall-time">Active time instead of wall time</h2>
+<p>Wall time is distorted when a tab is hidden, a device sleeps, or a learner leaves the activity open. A frontend heartbeat can accumulate active time while content is rendered and visible. For experiments, interaction events such as <code>simulation_started</code>, <code>control_changed</code>, <code>measurement_recorded</code>, and <code>experiment_completed</code> are stronger evidence. Until those exist, call the metric <strong>exposure duration</strong>.</p>
+<h2 id="dashboard-improvements">Dashboard improvements</h2>
+<p>Replace a single average with total completions, valid timing count and coverage, median, quartiles, too-fast/too-slow/missing counts and rates, and expected/minimum duration.</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th style="text-align: right;">Expected</th>
+<th style="text-align: right;">Responses</th>
+<th style="text-align: right;">Valid timing</th>
+<th style="text-align: right;">Median</th>
+<th style="text-align: right;">Too fast</th>
+<th style="text-align: right;">Too slow</th>
+<th style="text-align: right;">Missing</th>
+<th style="text-align: right;">Correct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pendulum explanation</td>
+<td style="text-align: right;">5 min</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">91</td>
+<td style="text-align: right;">4m 38s</td>
+<td style="text-align: right;">20 (16.7%)</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-</td>
+</tr>
+<tr>
+<td>Pendulum question</td>
+<td style="text-align: right;">45 sec</td>
+<td style="text-align: right;">114</td>
+<td style="text-align: right;">107</td>
+<td style="text-align: right;">38 sec</td>
+<td style="text-align: right;">3 (2.6%)</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">71%</td>
+</tr>
+</tbody>
+</table>
+<p>Correctness should use all valid answers even when timing is absent or suspect. Duration statistics should use only valid timing observations.</p>
+<h2 id="engagement-flags">Engagement flags</h2>
+<ul>
+<li><strong>High fast-completion rate:</strong> enough learners complete below the minimum.</li>
+<li><strong>Timing data unreliable:</strong> valid timing coverage is below the threshold.</li>
+<li><strong>Likely left open:</strong> excessive wall time with little active time.</li>
+<li><strong>Fast and incorrect pattern:</strong> fast responses are disproportionately wrong.</li>
+<li><strong>Systemically fast exposure:</strong> all performance groups are fast, which relative comparisons would miss.</li>
+</ul>
+<p>Fast observations should not directly reward or penalize the recommendation bandit.</p>
+<h1 id="4-question-and-distractor-quality-analytics">4. Question and distractor quality analytics</h1>
+<p>Question-quality analytics should be deterministic and psychometric first. The LLM can explain findings or propose a revision after the evidence exists.</p>
+<h2 id="effective-sample-size">Effective sample size</h2>
+<p>Scenario implementation count is not sufficient because branching activities may be reached by fewer learners. Report <code>N presented</code>, <code>N answered</code>, <code>N valid for discrimination</code>, and <code>N with valid timing</code>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Effective sample</th>
+<th>Status</th>
+<th>Dashboard behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">Under 30</td>
+<td>Insufficient</td>
+<td>Counts only; no quality conclusion</td>
+</tr>
+<tr>
+<td style="text-align: right;">30-99</td>
+<td>Provisional</td>
+<td>Metrics with strong uncertainty warnings</td>
+</tr>
+<tr>
+<td style="text-align: right;">100+</td>
+<td>Operational</td>
+<td>Standard flag rules enabled</td>
+</tr>
+<tr>
+<td style="text-align: right;">200+</td>
+<td>Stronger evidence</td>
+<td>Subgroup checks when each subgroup qualifies</td>
+</tr>
+</tbody>
+</table>
+<h2 id="facility-and-intended-difficulty">Facility and intended difficulty</h2>
+<p>Use the first valid response:</p>
+<pre><code class="language-text">facility = correct first responses / valid first responses
+</code></pre>
+<p>Display a Wilson confidence interval and compare it against teacher-defined intended difficulty. A hard diagnostic question is not automatically defective.</p>
+<h2 id="corrected-discrimination">Corrected discrimination</h2>
+<p>Use corrected point-biserial discrimination:</p>
+<pre><code class="language-text">r_pb = correlation(current item correctness,
+                   relevant score excluding the current item)
+</code></pre>
+<p>The comparison score should come from the same construct or evaluation bunch, exclude the current item, and preferably represent evidence known before the item. This prevents circularly using an item to define the performance category used to evaluate that same item.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Corrected point-biserial</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">Below 0</td>
+<td>Critical review: wrong key, ambiguity, or mismatch may exist</td>
+</tr>
+<tr>
+<td style="text-align: right;">0-0.09</td>
+<td>Very weak</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.10-0.19</td>
+<td>Weak; review with other evidence</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.20-0.29</td>
+<td>Useful</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.30+</td>
+<td>Strong</td>
+</tr>
+</tbody>
+</table>
+<h2 id="option-and-distractor-behavior">Option and distractor behavior</h2>
+<p>For every option, calculate selection rate, option discrimination, high/low ability selection, first-attempt selection, and language/revision differences when samples permit. The correct option should normally discriminate positively; distractors should normally discriminate negatively.</p>
+<p>A conventional configurable starting definition of a functioning distractor is:</p>
+<pre><code class="language-text">selection rate &gt;= 5%
+and option discrimination &lt; 0
+</code></pre>
+<h2 id="suggested-flags">Suggested flags</h2>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Evidence</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insufficient data</td>
+<td>Effective N below threshold</td>
+<td>Information</td>
+</tr>
+<tr>
+<td>Too hard/easy for intent</td>
+<td>Confidence interval outside intended range</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Negative discrimination</td>
+<td>Corrected point-biserial below zero</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Weak discrimination</td>
+<td>Low point-biserial with adequate N</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Nonfunctional distractor</td>
+<td>Very low selection with adequate N</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Possible ambiguous distractor</td>
+<td>Positive distractor discrimination</td>
+<td>Warning/critical</td>
+</tr>
+<tr>
+<td>Possible wrong key</td>
+<td>Correct option negative; distractor strongly positive</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>High omission</td>
+<td>Presented but unanswered rate exceeds baseline</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Timing outlier</td>
+<td>Robust timing differs from comparable items</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Translation drift</td>
+<td>Equivalent translations behave differently</td>
+<td>Review</td>
+</tr>
+</tbody>
+</table>
+<p>Teachers should be able to confirm, dismiss, annotate, revise, request an evidence-grounded AI suggestion, and compare revisions. Unreviewed statistical flags should not train the bandit.</p>
+<h1 id="5-semantic-scenario-intelligence">5. Semantic scenario intelligence</h1>
+<p>A multilingual embedding layer can power several low-risk, high-value features.</p>
+<h2 id="duplicate-detection">Duplicate detection</h2>
+<p>When a teacher creates or imports content, show semantically similar approved activities and proposals. This reduces duplication and prevents the LLM from proposing concepts already covered.</p>
+<h2 id="curriculum-gap-analysis">Curriculum-gap analysis</h2>
+<p>Compare learning objectives, approved content, and concepts extracted from teacher documents:</p>
+<pre><code class="language-text">Covered
+- Dependence of pendulum period on length
+- Independence from mass
+
+Possibly missing
+- Effect of gravitational acceleration
+- Experimental uncertainty
+- Small-angle assumption
+</code></pre>
+<p>Teachers confirm all gaps and mappings.</p>
+<h2 id="search-and-prerequisites">Search and prerequisites</h2>
+<p>Allow permission-aware natural-language search across scenarios and activities. Combine embeddings, accepted routes, and concept relationships to propose prerequisite edges. Every edge remains pending until teacher approval and graph-integrity validation.</p>
+<h1 id="6-proposal-quality-ranking">6. Proposal quality ranking</h1>
+<p>The platform records proposals, create/revise/skip actions, teacher decisions, rejection reasons, edits, structural failures, and generation runs. These can train a smaller model to rank multiple valid candidates.</p>
+<h2 id="labels">Labels</h2>
+<pre><code class="language-text">accepted without edit       1.00
+accepted after minor edit   0.80
+accepted after major edit   0.55
+pedagogically rejected      0.00
+reset to pending            no final label
+structural failure          excluded from pedagogical labels
+</code></pre>
+<h2 id="features-and-model">Features and model</h2>
+<p>Start with logistic regression or gradient boosting, not LLM fine-tuning. Features can include action, activity type, subject, language, risk category, insertion location, content lengths, structural validation, document relevance, duplication score, readability, answer consistency, rejection history, and edit distance from the accepted version.</p>
+<p>Before enough reviews exist, keep the configured action priors and deterministic validation. Train a global model first; teacher-specific models require more evidence and privacy review.</p>
+<h1 id="7-misconception-discovery">7. Misconception discovery</h1>
+<p>Incorrect answers should not be one category. Teachers can associate distractors with misconceptions, while embeddings and clustering suggest recurring groups in multiple-choice and free-text responses.</p>
+<pre><code class="language-text">correct explanation
+correct conclusion without reasoning
+mass versus gravity confusion
+off-topic or insufficient
+</code></pre>
+<p>Models suggest cluster labels; teachers confirm or rename them. Confirmed misconceptions can drive targeted feedback, intervention groups, improved distractors, proposal prompts, and later adaptive routes.</p>
+<h1 id="8-revision-impact-measurement">8. Revision-impact measurement</h1>
+<p>Teacher acceptance measures perceived usefulness, not improved learning. Compare immutable revisions using correctness and confidence, discrimination, valid active time, omission, abandonment, subsequent performance, and hint use. Control for cohort, prior performance, language, path, and date where possible.</p>
+<p>Keep two reward families separate:</p>
+<pre><code class="language-text">Teacher usefulness reward
+Educational outcome reward
+</code></pre>
+<p>For sufficiently large cohorts, authorized teachers may run controlled comparisons of an existing and revised activity. Assignment, disclosure, stopping criteria, and the final choice remain teacher-controlled.</p>
+<h1 id="9-concepts-mastery-and-knowledge-tracing">9. Concepts, mastery, and knowledge tracing</h1>
+<h2 id="concept-and-skill-model">Concept and skill model</h2>
+<p>Introduce teacher-confirmed concept tags and prerequisite relationships:</p>
+<pre><code class="language-text">Activity -&gt; pendulum period
+Activity -&gt; graph interpretation
+Activity -&gt; experimental uncertainty
+</code></pre>
+<p>Automated extraction may propose tags, but educators own the concept graph.</p>
+<h2 id="mastery-estimates">Mastery estimates</h2>
+<p>Start with Bayesian Knowledge Tracing or an interpretable logistic model. Inputs can include first-attempt correctness, item difficulty, recent evidence, hint use, valid engagement, and prerequisite mastery.</p>
+<pre><code class="language-text">Pendulum period: likely mastered, 78% estimate
+Graph interpretation: developing, 42% estimate
+Experimental uncertainty: insufficient evidence
+</code></pre>
+<p>These estimates are learner-support signals, not grades or psychological labels. Always display evidence and uncertainty.</p>
+<h2 id="advanced-models">Advanced models</h2>
+<p>After enough linked data exists, evaluate Rasch/1PL for item difficulty and learner ability, 2PL for difficulty plus discrimination, hierarchical Bayesian IRT for related scenarios, and deep or attentive knowledge tracing for large sequential datasets. Prefer interpretable baselines when performance is similar.</p>
+<h1 id="10-safe-adaptive-learning-paths">10. Safe adaptive learning paths</h1>
+<p>Once concept estimates and data quality are reliable, a contextual bandit can select among teacher-approved actions:</p>
+<pre><code class="language-text">continue normally
+show prerequisite explanation
+show worked example
+present easier practice
+present challenge question
+ask a reflection question
+offer a grounded hint
+</code></pre>
+<p>The context may include concept mastery, recent misconception, prior response, valid active time, target difficulty, and route position. The model must not invent a live activity or bypass graph constraints.</p>
+<h2 id="policy-logging">Policy logging</h2>
+<p>For every decision, record available actions, context snapshot, selected action, selection probability, policy/model version, immediate teacher reward, and later educational outcome when available. This permits replay, inverse-propensity, and doubly robust offline evaluation before promotion.</p>
+<h2 id="safety-constraints">Safety constraints</h2>
+<ul>
+<li>Never insert before the scenario start.</li>
+<li>Never create unreachable activities or broken answer routes.</li>
+<li>Respect teacher-defined action availability.</li>
+<li>Use conservative defaults for sparse contexts.</li>
+<li>Fall back to the original route when the model is unavailable.</li>
+<li>Monitor action counts, rewards, failures, and subgroup behavior in admin.</li>
+</ul>
+<h1 id="11-grounded-socratic-hints">11. Grounded Socratic hints</h1>
+<p>Use approved RAG documents to provide progressive hints instead of final answers:</p>
+<pre><code class="language-text">Hint 1: Identify the variable that determines restoring torque.
+Hint 2: Write the small-angle equation of motion.
+Hint 3: Compare it with simple harmonic motion.
+</code></pre>
+<p>Teachers control availability, maximum hints, scoring effects, permitted documents, and whether a final answer may be revealed. Record hint level, time, subsequent correctness, and repeated use. Hints must cite approved material and avoid sending identifiable learner data to external services.</p>
+<h1 id="12-multilingual-quality-and-accessibility">12. Multilingual quality and accessibility</h1>
+<h2 id="translation-consistency">Translation consistency</h2>
+<p>Use semantic checks to flag missing options, correct-answer mismatches, changed numbers or units, meaning drift, difficulty/readability changes, and feedback that contradicts the configured answer. The model flags differences and never silently overwrites translations.</p>
+<h2 id="accessibility-assistance">Accessibility assistance</h2>
+<p>Teacher-controlled tools can offer text-to-speech, captions, transcripts, glossaries, symbol explanations, adjustable layouts, simplified explanations alongside originals, and alternative-text suggestions. Simplification must preserve the learning objective and remain reviewable.</p>
+<h2 id="pacing-support">Pacing support</h2>
+<p>Private learner-facing pacing suggestions may recommend a break after long periods of valid active work. They should not infer emotion, disability, or medical state.</p>
+<h1 id="13-scenario-health-and-quality-of-life-features">13. Scenario health and quality-of-life features</h1>
+<h2 id="evidence-based-scenario-health">Evidence-based scenario health</h2>
+<p>Use expandable dimensions rather than one mysterious AI score:</p>
+<pre><code class="language-text">Structure                 92/100
+Question quality          74/100
+Engagement                68/100
+Content coverage          81/100
+Accessibility             77/100
+Translation consistency   95/100
+Data reliability          Provisional
+</code></pre>
+<p>Inputs can include graph integrity, missing answers, duplicate content, distractor behavior, timing quality, objective coverage, alternative text, translation drift, and sample sufficiency.</p>
+<h2 id="teacher-brief">Teacher brief</h2>
+<pre><code class="language-text">43 learners completed assigned scenarios
+2 activities gained stable risk signals
+1 proposal reached the review threshold
+Question 4 has a 22% fast-answer rate
+Revision 2 improved correctness by 14 percentage points
+</code></pre>
+<h2 id="natural-language-analytics">Natural-language analytics</h2>
+<p>Teachers could ask controlled questions such as:</p>
+<pre><code class="language-text">Which activities have the most abandonment?
+Where do stronger learners select a distractor?
+Which accepted proposals improved later performance?
+</code></pre>
+<p>Translate requests into an allow-listed analytics layer, never unrestricted SQL.</p>
+<h2 id="reports-notifications-and-comparison">Reports, notifications, and comparison</h2>
+<ul>
+<li>Generate editable scenario, organization, and revision-impact reports.</li>
+<li>Notify only when evidence changes materially.</li>
+<li>Show before-and-after content and metrics.</li>
+<li>Preserve proposal source and teacher edits.</li>
+<li>Provide anonymized research exports with data dictionaries.</li>
+</ul>
+<h2 id="student-progress-map">Student progress map</h2>
+<p>Show concepts as understood, practicing, needs review, or not encountered. A grounded progress summary may describe demonstrated strengths and evidence gaps without making psychological claims.</p>
+<h1 id="14-platform-operations-and-governance">14. Platform operations and governance</h1>
+<h2 id="model-registry-and-monitoring">Model registry and monitoring</h2>
+<p>For every model, store name, purpose, version, training date and scope, features and exclusions, evaluation and calibration, approval status, deployment date, and fallback policy.</p>
+<p>The admin screen should show sample counts, action/reward counts, structural failures, endpoint failures, drift, subgroup performance where privacy permits, teacher override rates, and current thresholds.</p>
+<h2 id="anomaly-detection">Anomaly detection</h2>
+<p>Use rules first for missing or impossible answers, duplicate submissions, impossible routes, missing timers, test accounts, schema failures, and sharp changes in duration or acceptance. Statistical anomaly detection can prioritize less obvious patterns after event capture is trustworthy.</p>
+<h2 id="privacy-and-access">Privacy and access</h2>
+<ul>
+<li>Use pseudonymous identifiers for training.</li>
+<li>Keep public-scenario analytics aggregated.</li>
+<li>Suppress small subgroup cells.</li>
+<li>Do not send identifiable learner responses to external models.</li>
+<li>Log who generated, viewed, edited, accepted, or applied AI output.</li>
+<li>Separate retention/privacy deletion from teacher progress reset.</li>
+</ul>
+<h2 id="features-to-avoid">Features to avoid</h2>
+<p>Do not prioritize AI cheating detectors, emotion recognition, automatic high-stakes grading, psychological profiling, fully autonomous scenario modification, unexplained student-risk labels, or training pedagogical policies from structural LLM failures.</p>
+<h1 id="15-additional-platform-and-research-opportunities">15. Additional platform and research opportunities</h1>
+<h2 id="cold-start-transfer">Cold-start transfer</h2>
+<p>New scenarios have no learner data. Similar approved activities can provide uncertain priors for expected difficulty, duration, risk, and proposal action. Never present transferred priors as measured results.</p>
+<h2 id="origin-aware-pooled-analytics">Origin-aware pooled analytics</h2>
+<p>Personal scenarios and copied activities fragment evidence. Stable origin links permit comparison of the original, approved clones, and current personalized version. Pool only revisions that remain sufficiently equivalent.</p>
+<h2 id="data-quality-score">Data-quality score</h2>
+<p>Each metric panel should show its evidence coverage:</p>
+<pre><code class="language-text">response completeness
+valid timing coverage
+revision consistency
+sample sufficiency
+branch eligibility coverage
+filter scope
+</code></pre>
+<h2 id="research-exports">Research exports</h2>
+<p>Provide pseudonymized event exports, revision metadata, branch eligibility, propensity logging, and data dictionaries. Export access should be role-controlled and audited.</p>
+<h1 id="16-implementation-roadmap">16. Implementation roadmap</h1>
+<h2 id="stage-0-correctness-and-observability">Stage 0 - Correctness and observability</h2>
+<ul>
+<li>Add expected/minimum/maximum durations and timing policy.</li>
+<li>Separate correctness denominators from timing validity.</li>
+<li>Replace mean-only reporting with median, quartiles, and coverage.</li>
+<li>Add too-fast, too-slow, and missing timing categories.</li>
+<li>Scope metric snapshots by filters and algorithm version.</li>
+<li>Use stable activity IDs instead of names.</li>
+<li>Record bandit propensities and model versions.</li>
+</ul>
+<h2 id="stage-1-durable-evidence">Stage 1 - Durable evidence</h2>
+<ul>
+<li>Add teacher-controlled scenario runs and reset audit.</li>
+<li>Add append-only presentation and activity-attempt events.</li>
+<li>Add immutable question and answer revisions.</li>
+<li>Centralize response recording.</li>
+<li>Retain origin relationships for copied content.</li>
+<li>Backfill current answers as clearly labelled legacy evidence.</li>
+</ul>
+<h2 id="stage-2-measurement-products">Stage 2 - Measurement products</h2>
+<ul>
+<li>Build question and distractor analytics.</li>
+<li>Add teacher review states for quality flags.</li>
+<li>Add revision comparison.</li>
+<li>Add scenario-health dimensions.</li>
+<li>Add engagement distributions.</li>
+<li>Add reliability badges and privacy suppression.</li>
+</ul>
+<h2 id="stage-3-low-risk-ml-assistance">Stage 3 - Low-risk ML assistance</h2>
+<ul>
+<li>Add multilingual semantic search.</li>
+<li>Detect duplicate content and curriculum gaps.</li>
+<li>Suggest concept and prerequisite tags.</li>
+<li>Train the proposal candidate ranker.</li>
+<li>Cluster misconception patterns.</li>
+<li>Add translation-drift checks.</li>
+</ul>
+<h2 id="stage-4-educational-effect-measurement">Stage 4 - Educational-effect measurement</h2>
+<ul>
+<li>Compare outcomes before and after revisions.</li>
+<li>Introduce teacher-controlled comparisons.</li>
+<li>Add separate teacher-usefulness and educational-outcome rewards.</li>
+<li>Develop anonymized research exports.</li>
+</ul>
+<h2 id="stage-5-personalization">Stage 5 - Personalization</h2>
+<ul>
+<li>Deploy an interpretable mastery baseline in shadow mode.</li>
+<li>Validate calibration and subgroup behavior.</li>
+<li>Add teacher-visible concept progress.</li>
+<li>Evaluate contextual bandit policies offline.</li>
+<li>Enable only constrained teacher-approved adaptive actions.</li>
+<li>Add grounded Socratic hints.</li>
+</ul>
+<h2 id="definition-of-done-for-an-ai-feature">Definition of done for an AI feature</h2>
+<p>An AI or ML feature is not complete until it has:</p>
+<ol>
+<li>A defined educational purpose and owner.</li>
+<li>Documented inputs and labels.</li>
+<li>Data-quality and minimum-sample rules.</li>
+<li>A deterministic fallback.</li>
+<li>Offline tests and representative evaluation.</li>
+<li>Visible uncertainty and evidence.</li>
+<li>Human override and audit history.</li>
+<li>Privacy and access controls.</li>
+<li>Model/version monitoring.</li>
+<li>A way to measure real benefit.</li>
+</ol>
+<h1 id="17-recommended-first-projects">17. Recommended first projects</h1>
+<h2 id="first-engineering-project-trustworthy-timing">First engineering project: trustworthy timing</h2>
+<p>Deliver expected/minimum duration, timing classification, robust summaries, fast-completion flags, and corrected denominators. This immediately improves the dashboard and removes noise from later models.</p>
+<h2 id="first-psychometrics-project-question-quality">First psychometrics project: question quality</h2>
+<p>Deliver effective sample size, first-attempt facility with confidence interval, corrected discrimination, option selection/discrimination, distractor flags, and teacher adjudication.</p>
+<h2 id="first-machine-learning-project-proposal-ranking">First machine-learning project: proposal ranking</h2>
+<p>Generate multiple valid candidates and rank them using teacher review, edits, relevance, structural, and duplication features. Continue separating malformed output from pedagogical rejection.</p>
+<h2 id="first-personalization-project-concepts-and-shadow-mastery">First personalization project: concepts and shadow mastery</h2>
+<p>Create the teacher-owned concept graph, then run an interpretable mastery model in shadow mode. Do not alter learner routing until calibration and offline policy evaluation are satisfactory.</p>
+<h1 id="18-references-and-further-reading">18. References and further reading</h1>
+<ol>
+<li>UNESCO. <strong>Guidance for generative AI in education and research.</strong> Human-centred planning, privacy, capacity building, and educator involvement. <a href="https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research">https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research</a></li>
+<li>National Institute of Standards and Technology. <strong>Artificial Intelligence Risk Management Framework (AI RMF 1.0).</strong> Govern, map, measure, and manage AI risk. <a href="https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10">https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10</a></li>
+<li>Piech, C. et al. <strong>Deep Knowledge Tracing.</strong> Advances in Neural Information Processing Systems, 2015. <a href="https://proceedings.neurips.cc/paper_files/paper/2015/hash/bac9162b47c56fc8a4d2a519803d51b3-Abstract.html">https://proceedings.neurips.cc/paper_files/paper/2015/hash/bac9162b47c56fc8a4d2a519803d51b3-Abstract.html</a></li>
+<li>Si, N. et al. <strong>Distributionally Robust Policy Evaluation and Learning in Offline Contextual Bandits.</strong> ICML, 2020. <a href="https://proceedings.mlr.press/v119/si20a.html">https://proceedings.mlr.press/v119/si20a.html</a></li>
+<li>Haberman, S. <strong>Distractor Analysis for Multiple-Choice Tests.</strong> ETS Research Report Series, 2019. <a href="https://onlinelibrary.wiley.com/doi/full/10.1002/ets2.12275">https://onlinelibrary.wiley.com/doi/full/10.1002/ets2.12275</a></li>
+<li>Rezigalla, A. A. <strong>Item analysis: the impact of distractor efficiency on difficulty and discrimination.</strong> BMC Medical Education, 2024. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11040895/">https://pmc.ncbi.nlm.nih.gov/articles/PMC11040895/</a></li>
+<li>Manrique, R. et al. <strong>Towards the identification of concept prerequisites via knowledge graphs.</strong> ICALT, 2019. <a href="https://dspace-test.anu.edu.au/items/3330f1fc-ca4e-48f4-a68d-71581db40307">https://dspace-test.anu.edu.au/items/3330f1fc-ca4e-48f4-a68d-71581db40307</a></li>
+</ol>
+<hr />
+<p>This roadmap should be revised as Trust AI Lab gathers stronger evidence, teachers review the workflows, and governance requirements evolve.</p></article>
+</body>
+</html>

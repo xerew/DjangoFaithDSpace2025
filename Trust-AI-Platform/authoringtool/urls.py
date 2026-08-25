@@ -10,6 +10,16 @@ urlpatterns = [
     path('scenarios/createScenario/createScenarioData/', views.createScenarioData, name='createScenarioData'),
     path('scenarios/updateScenario/<int:id>', views.updateScenario, name='updateScenario'),
     path('scenarios/updateScenario/updateScenarioData/<int:id>', views.updateScenarioData, name='updateScenarioData'),
+    path(
+        'scenarios/<int:scenario_id>/revision/begin/',
+        views.begin_scenario_revision,
+        name='begin_scenario_revision',
+    ),
+    path(
+        'scenarios/<int:scenario_id>/revision/publish/',
+        views.publish_scenario_revision,
+        name='publish_scenario_revision',
+    ),
     path('scenarios/deleteScenario/<int:id>', views.deleteScenario, name='deleteScenario'),
     path('scenarios/viewScenario/<int:id>', views.viewScenario, name='viewScenario'),
     path('scenarios/<int:id>/createPhase/', views.createPhase, name='createPhase'),
@@ -65,6 +75,11 @@ urlpatterns = [
     # Metric Analysis
     path('risk_flags/<int:scenario_id>/', views.risk_flags_view, name='risk_flags_view'),
     path('risk_flags_status/<str:task_id>/', views.risk_flags_status, name='risk_flags_status'),
+    path(
+        'scenarios/<int:scenario_id>/aimetrics/download/<str:report_kind>/',
+        views.download_ai_evidence_csv,
+        name='download_ai_evidence_csv',
+    ),
     # LLM Generation
     path('scenarios/<int:scenario_id>/generate_llm_context/', views.trigger_llm_context_task, name='generate_llm_context'),
     path('scenarios/llm_context_status/<str:task_id>/', views.get_llm_context_task_status, name='llm_context_status'),
@@ -74,6 +89,7 @@ urlpatterns = [
     path('scenarios/<int:scenario_id>/proposals/history/<int:run_id>/', views.proposal_history_run_detail_view, name='proposal_history_run_detail'),
     path('scenarios/<int:scenario_id>/proposals/<int:pk>/accept/', views.accept_proposal, name='accept_proposal'),
     path('scenarios/<int:scenario_id>/proposals/<int:pk>/reject/', views.reject_proposal, name='reject_proposal'),
+    path('scenarios/<int:scenario_id>/proposals/<int:pk>/reset/', views.reset_proposal_review, name='reset_proposal_review'),
     path('proposals/<int:scenario_id>/create/', views.create_personal_scenario, name='create_personal_scenario'),
     # PDF on RAG
     path('scenario/<int:scenario_id>/delete_rag_pdf/<str:filename>/', views.delete_rag_pdf, name='delete_rag_pdf'),

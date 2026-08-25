@@ -2,7 +2,36 @@ from celery import shared_task
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from .models import Scenario, Phase, Activity, UserAnswer, Answer, QuestionBunch, ActivityType, NextQuestionLogic, EvQuestionBranching, ActivityFlag, ActivityProposal, CategoryTag, QValue, UserProposalReview, ProposalGenerationRun
+from .models import (
+    Activity,
+    ActivityFlag,
+    ActivityProposal,
+    ActivityType,
+    Answer,
+    BanditPolicyConfiguration,
+    CategoryTag,
+    EvQuestionBranching,
+    NextQuestionLogic,
+    Phase,
+    ProposalGenerationRun,
+    ProposalStructuralFailure,
+    QValue,
+    QuestionBunch,
+    Scenario,
+    UserAnswer,
+    UserProposalReview,
+)
+from .evidence import (
+    get_evidence_answers,
+    get_evidence_context,
+    get_evidence_versions,
+    normalize_evidence_language,
+    normalize_evidence_scope,
+)
+from .graph_validation import (
+    ScenarioGraphValidationError,
+    assert_scenario_graph_integrity,
+)
 from django.core.cache import cache
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
@@ -12,7 +41,12 @@ from usergroups.models import UserGroupMembership
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, Count, Q, Max, Min, Avg, F, FloatField, ExpressionWrapper, Prefetch
 from collections import defaultdict
-from .utils import get_last_answers, get_first_answers
+from .utils import (
+    get_eligible_user_answers,
+    get_first_answers,
+    get_last_answers,
+    get_scenario_evidence_cache_paths,
+)
 import os, io, json
 import csv
 from django.utils.timezone import now, make_aware
@@ -32,10 +66,71 @@ from langchain.chains import RetrievalQA
 import chromadb
 import glob
 import random
+import math
 from django.db import transaction
 import shutil, errno, stat
 from pathlib import Path
 import traceback
+
+
+@shared_task
+def scan_scenario_family_candidates_task(
+    scenario_id=None,
+    scenario_ids=None,
+    force_profiles=False,
+):
+    """Build profiles and discover reviewable scenario-family candidates."""
+    from .scenario_matching import scan_scenario_family_candidates
+
+    return scan_scenario_family_candidates(
+        scenario_id=scenario_id,
+        scenario_ids=scenario_ids,
+        force_profiles=force_profiles,
+    )
+
+
+@shared_task
+def review_scenario_family_candidate_with_llm_task(candidate_id):
+    """Generate and persist one non-binding Ollama family review."""
+    from .scenario_matching import review_candidate_with_llm
+
+    try:
+        candidate = review_candidate_with_llm(candidate_id)
+    except Exception as exc:
+        return {
+            'candidate_id': candidate_id,
+            'status': 'failed',
+            'error': str(exc)[:500],
+        }
+    return {
+        'candidate_id': candidate.id,
+        'status': candidate.llm_status,
+        'suggestion': candidate.llm_suggested_relationship,
+        'confidence': (
+            float(candidate.llm_confidence)
+            if candidate.llm_confidence is not None
+            else None
+        ),
+    }
+
+
+@shared_task
+def review_scenario_family_candidates_with_llm_task(candidate_ids):
+    """Review a bounded administrator-selected candidate batch."""
+    results = {
+        'requested': len(candidate_ids),
+        'completed': 0,
+        'failed': 0,
+    }
+    for candidate_id in candidate_ids:
+        result = review_scenario_family_candidate_with_llm_task(
+            candidate_id
+        )
+        if result['status'] == 'completed':
+            results['completed'] += 1
+        else:
+            results['failed'] += 1
+    return results
 
 
 def _date_to_aware(d):
@@ -59,7 +154,10 @@ def _on_rm_error(func, path, exc_info):
     
 @shared_task
 def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
-    cache_key = f"analytics:sankey:{scenario_id}:{group_ids}:{start_date}:{end_date}"
+    version_id = (
+        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
+    )
+    cache_key = f"analytics:sankey:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -102,7 +200,7 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
             last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -248,7 +346,10 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_final_performance(scenario_id, group_ids, start_date, end_date):
-    cache_key = f"analytics:final_perf:{scenario_id}:{group_ids}:{start_date}:{end_date}"
+    version_id = (
+        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
+    )
+    cache_key = f"analytics:final_perf:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -295,7 +396,7 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     user_performance = {user.id: {'weighted_score': 0, 'max_weighted_score': 0, 'phases_completed': 0} for user in users}
 
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -442,7 +543,7 @@ def compute_activity_answers_data(scenario_id, group_ids, start_date, end_date, 
     filtered_last_answers = last_answers.filter(user_id__in=user_ids)
 
     # Get the minimum activity ID in the scenario
-    min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity = scenario.get_start_activity()
 
     if not min_activity:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -554,7 +655,7 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
             last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -666,7 +767,10 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activity_type):
-    cache_key = f"analytics:time_spent:{scenario_id}:{group_ids}:{start_date}:{end_date}:{activity_type}"
+    version_id = (
+        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
+    )
+    cache_key = f"analytics:time_spent:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}:{activity_type}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -776,7 +880,7 @@ def compute_detailed_phase_scores_data(scenario_id, group_ids, start_date, end_d
         last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
     
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -933,7 +1037,7 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
             last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -1059,7 +1163,10 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end_date):
-    cache_key = f"analytics:time_by_perf:{scenario_id}:{group_ids}:{start_date}:{end_date}"
+    version_id = (
+        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
+    )
+    cache_key = f"analytics:time_by_perf:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -1099,8 +1206,8 @@ def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end
     # We build the "last answer per (user, activity)" dict here rather than
     # using get_last_answers() so we can also apply the date filter upfront.
     answers_qs = (
-        UserAnswer.objects
-        .filter(activity__phase__scenario=scenario, user_id__in=user_ids)
+        get_eligible_user_answers(scenario_id)
+        .filter(user_id__in=user_ids)
         .select_related('answer')
     )
     if start_dt:
@@ -1116,7 +1223,7 @@ def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end
             last_answer_map[key] = ua
 
     # ── 3. Valid users = those who answered the first activity ──────────────
-    min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity = scenario.get_start_activity()
     if not min_activity:
         return {'categories': [], 'low': [], 'mid': [], 'high': []}
 
@@ -1239,7 +1346,7 @@ def compute_scenario_paths(scenario_id, group_ids, start_date, end_date):
             last_answers = last_answers.filter(created_on__lte=_date_to_aware(end_date + timedelta(days=1)))
 
     # Get the minimum activity ID in the scenario
-    min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity = scenario.get_start_activity()
 
     if not min_activity:
         return {"error": "No activities found for this scenario", "status": 400}
@@ -1383,6 +1490,366 @@ def compute_scenario_paths(scenario_id, group_ids, start_date, end_date):
 from django.utils import timezone
 from datetime import datetime, time
 
+
+def _target_activity_routes(activity):
+    next_low = next_mid = next_high = ''
+    if activity.is_evaluatable:
+        branching = EvQuestionBranching.objects.filter(
+            activity=activity,
+        ).first()
+        if branching:
+            next_low = (
+                branching.next_question_on_low.name
+                if branching.next_question_on_low
+                else ''
+            )
+            next_mid = (
+                branching.next_question_on_mid.name
+                if branching.next_question_on_mid
+                else ''
+            )
+            next_high = (
+                branching.next_question_on_high.name
+                if branching.next_question_on_high
+                else ''
+            )
+    else:
+        fallback = NextQuestionLogic.objects.filter(
+            activity=activity,
+            answer__isnull=True,
+        ).select_related('next_activity').first()
+        if fallback and fallback.next_activity:
+            next_low = next_mid = next_high = fallback.next_activity.name
+        else:
+            linked_nexts = (
+                NextQuestionLogic.objects
+                .filter(activity=activity, answer__isnull=False)
+                .exclude(next_activity__isnull=True)
+                .values_list('next_activity__name', flat=True)
+            )
+            route_name = ', '.join(sorted(set(linked_nexts)))
+            next_low = next_mid = next_high = route_name
+    return next_low, next_mid, next_high
+
+
+def _compute_compatible_category_metrics_data(
+    scenario,
+    group_ids=None,
+    start_date=None,
+    end_date=None,
+    evidence_language='',
+):
+    """Aggregate structurally compatible evidence by activity lineage."""
+    target_phases = list(
+        Phase.objects.filter(scenario=scenario).order_by('created_on', 'id')
+    )
+    target_activities = list(
+        Activity.objects
+        .filter(scenario=scenario, phase__isnull=False)
+        .select_related('phase', 'activity_type')
+        .order_by('phase__created_on', 'phase_id', 'created_on', 'id')
+    )
+    target_by_lineage = {
+        activity.lineage_key: activity
+        for activity in target_activities
+    }
+    target_phase_by_lineage = {
+        activity.lineage_key: activity.phase_id
+        for activity in target_activities
+    }
+
+    source_versions = list(
+        get_evidence_versions(
+            scenario,
+            'compatible',
+            evidence_language,
+        )
+        .select_related('scenario')
+    )
+    source_version_by_id = {
+        version.id: version for version in source_versions
+    }
+    source_scenario_ids = {
+        version.scenario_id for version in source_versions
+    }
+    source_activities = list(
+        Activity.objects
+        .filter(
+            scenario_id__in=source_scenario_ids,
+            lineage_key__in=target_by_lineage,
+        )
+        .select_related('scenario', 'phase', 'activity_type')
+    )
+    source_activity_by_id = {
+        activity.id: activity for activity in source_activities
+    }
+
+    answers = (
+        get_evidence_answers(
+            scenario,
+            'compatible',
+            evidence_language,
+        )
+        .filter(activity_id__in=source_activity_by_id)
+        .select_related(
+            'answer',
+            'activity__scenario',
+            'scenario_version',
+        )
+    )
+    if group_ids:
+        allowed_user_ids = UserGroupMembership.objects.filter(
+            group_id__in=group_ids,
+        ).values_list('user_id', flat=True)
+        answers = answers.filter(user_id__in=allowed_user_ids)
+    else:
+        allowed_user_ids = (
+            User.objects
+            .filter(
+                Q(school_department__isnull=False)
+                | Q(id__in=UserGroupMembership.objects.values('user_id'))
+            )
+            .exclude(groups__name='teachers')
+            .values_list('id', flat=True)
+        )
+        answers = answers.filter(user_id__in=allowed_user_ids)
+
+    if start_date:
+        parsed_start = parse_date(start_date)
+        if parsed_start:
+            answers = answers.filter(
+                created_on__gte=_date_to_aware(parsed_start)
+            )
+    if end_date:
+        parsed_end = parse_date(end_date)
+        if parsed_end:
+            answers = answers.filter(
+                created_on__lt=_date_to_aware(
+                    parsed_end + timedelta(days=1)
+                )
+            )
+
+    latest_answers = {}
+    for answer in answers:
+        key = (
+            answer.scenario_version_id,
+            answer.implementation_id,
+            answer.activity_id,
+        )
+        previous = latest_answers.get(key)
+        if previous is None or answer.id > previous.id:
+            latest_answers[key] = answer
+
+    start_activity_by_scenario = {
+        source_scenario_id: (
+            Scenario.objects.get(pk=source_scenario_id).get_start_activity()
+        )
+        for source_scenario_id in source_scenario_ids
+    }
+    valid_implementations = set()
+    for version_id, implementation_id, activity_id in latest_answers:
+        version = source_version_by_id.get(version_id)
+        start_activity = (
+            start_activity_by_scenario.get(version.scenario_id)
+            if version
+            else None
+        )
+        if start_activity and activity_id == start_activity.id:
+            valid_implementations.add((version_id, implementation_id))
+
+    source_primary_activities = [
+        activity
+        for activity in source_activities
+        if activity.is_evaluatable and activity.is_primary_ev
+    ]
+    primary_ids = [activity.id for activity in source_primary_activities]
+    bunch_map = {
+        bunch.activity_primary_id: bunch.activity_ids
+        for bunch in QuestionBunch.objects.filter(
+            activity_primary_id__in=primary_ids
+        )
+    }
+    all_scoring_activity_ids = set(primary_ids)
+    for activity_ids in bunch_map.values():
+        all_scoring_activity_ids.update(activity_ids)
+    max_weight_by_activity = {
+        row['activity_id']: row['max_weight']
+        for row in (
+            Answer.objects
+            .filter(activity_id__in=all_scoring_activity_ids)
+            .values('activity_id')
+            .annotate(max_weight=Max('answer_weight'))
+        )
+    }
+
+    source_primaries_by_scenario_phase = defaultdict(list)
+    for activity in source_primary_activities:
+        target_phase_id = target_phase_by_lineage.get(
+            activity.lineage_key
+        )
+        if target_phase_id:
+            source_primaries_by_scenario_phase[
+                (activity.scenario_id, target_phase_id)
+            ].append(activity)
+
+    implementation_categories = {}
+    for version_id, implementation_id in valid_implementations:
+        version = source_version_by_id[version_id]
+        for target_phase in target_phases:
+            total_score = 0
+            max_score = 0
+            processed = set()
+            primaries = source_primaries_by_scenario_phase.get(
+                (version.scenario_id, target_phase.id),
+                [],
+            )
+            for primary in primaries:
+                scoring_ids = bunch_map.get(primary.id, [primary.id])
+                for activity_id in scoring_ids:
+                    if activity_id in processed:
+                        continue
+                    user_answer = latest_answers.get(
+                        (
+                            version_id,
+                            implementation_id,
+                            activity_id,
+                        )
+                    )
+                    if user_answer and user_answer.answer:
+                        total_score += user_answer.answer.answer_weight
+                    max_score += max_weight_by_activity.get(activity_id, 0)
+                    processed.add(activity_id)
+            if max_score:
+                percentage = (total_score / max_score) * 100
+                category = (
+                    'High'
+                    if percentage >= 83.3
+                    else 'Moderate'
+                    if percentage >= 49.7
+                    else 'Low'
+                )
+                implementation_categories[
+                    (
+                        version_id,
+                        implementation_id,
+                        target_phase.id,
+                    )
+                ] = category
+
+    aggregates = defaultdict(
+        lambda: {
+            'response_count': 0,
+            'correct_flags': [],
+            'same_language_timings': [],
+        }
+    )
+    target_language = (scenario.language or '').strip().casefold()
+    for (
+        version_id,
+        implementation_id,
+        source_activity_id,
+    ), user_answer in latest_answers.items():
+        if (
+            version_id,
+            implementation_id,
+        ) not in valid_implementations:
+            continue
+        source_activity = source_activity_by_id.get(source_activity_id)
+        if not source_activity:
+            continue
+        target_activity = target_by_lineage.get(
+            source_activity.lineage_key
+        )
+        if not target_activity:
+            continue
+        category = implementation_categories.get(
+            (
+                version_id,
+                implementation_id,
+                target_activity.phase_id,
+            )
+        )
+        if not category or not user_answer.timing:
+            continue
+
+        aggregate = aggregates[(target_activity.id, category)]
+        aggregate['response_count'] += 1
+        if user_answer.answer:
+            aggregate['correct_flags'].append(
+                user_answer.answer.is_correct
+            )
+        source_language = (
+            source_activity.scenario.language or ''
+        ).strip().casefold()
+        if source_language == target_language:
+            aggregate['same_language_timings'].append(user_answer.timing)
+
+    context = get_evidence_context(
+        scenario,
+        'compatible',
+        evidence_language,
+    )
+    source_languages = ', '.join(context['languages'])
+    source_version_ids = ','.join(
+        str(version_id) for version_id in context['version_ids']
+    )
+    combined_data = []
+    for target_phase in target_phases:
+        phase_activities = [
+            activity
+            for activity in target_activities
+            if activity.phase_id == target_phase.id
+        ]
+        for activity in phase_activities:
+            type_name = (
+                activity.activity_type.name
+                if activity.activity_type
+                else 'Unknown'
+            )
+            next_low, next_mid, next_high = _target_activity_routes(
+                activity
+            )
+            for category in ['High', 'Moderate', 'Low']:
+                aggregate = aggregates[(activity.id, category)]
+                total = aggregate['response_count']
+                correct_flags = aggregate['correct_flags']
+                correct = sum(correct_flags) if correct_flags else 0
+                wrong = total - correct if correct_flags else 0
+                timings = aggregate['same_language_timings']
+                combined_data.append({
+                    'Phase': target_phase.name,
+                    'Activity': activity.name,
+                    'Type': type_name,
+                    'Category': category,
+                    'Total': total,
+                    'Correct': correct if correct_flags else '',
+                    'Wrong': wrong if correct_flags else '',
+                    '% Correct': (
+                        round((correct / total) * 100, 1)
+                        if total
+                        else ''
+                    ),
+                    '% Wrong': (
+                        round((wrong / total) * 100, 1)
+                        if total
+                        else ''
+                    ),
+                    'Avg Time': (
+                        round(np.mean(timings), 1) if timings else ''
+                    ),
+                    'Timing Total': len(timings),
+                    'Next Low': next_low,
+                    'Next Moderate': next_mid,
+                    'Next High': next_high,
+                    'Evidence Scope': 'compatible',
+                    'Source Version IDs': source_version_ids,
+                    'Source Languages': source_languages,
+                    'Evidence Language Filter': (
+                        evidence_language or 'All compatible languages'
+                    ),
+                })
+    return combined_data
+
 @shared_task
 def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date, include_activity_detail=False):
     scenario = get_object_or_404(Scenario, id=scenario_id)
@@ -1415,7 +1882,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
         ).distinct().exclude(groups__name='teachers'))
 
     # Get min activity
-    min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity = scenario.get_start_activity()
     if not min_activity:
         return {"error": "No activities found for this scenario", "status": 400}
 
@@ -1466,7 +1933,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     }
 
     # Pre-fetch phase start times in one aggregated query
-    phase_start_qs = UserAnswer.objects.filter(
+    phase_start_qs = get_eligible_user_answers(scenario_id).filter(
         user_id__in=valid_user_ids,
         activity__phase__in=phases,
     )
@@ -1583,25 +2050,89 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
 
 
 @shared_task
-def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, start_date=None, end_date=None):
+def compute_category_metrics_per_phase_activity(
+    scenario_id,
+    group_ids=None,
+    start_date=None,
+    end_date=None,
+    evidence_scope='local',
+    evidence_language='',
+):
     # base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
     base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
-    file_path = os.path.join(base_dir, f'scenario_{scenario_id}_combined_activity_metrics.csv')
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    evidence_scope = normalize_evidence_scope(evidence_scope)
+    evidence_language = normalize_evidence_language(evidence_language)
+    file_path = get_scenario_evidence_cache_paths(
+        scenario,
+        scope=evidence_scope,
+        language=evidence_language,
+    )['metrics']
 
-    latest_answer_time = UserAnswer.objects.filter(
-        activity__phase__scenario_id=scenario_id
-    ).aggregate(Max('created_on'))['created_on__max']
+    evidence_answers = get_evidence_answers(
+        scenario,
+        evidence_scope,
+        evidence_language,
+    )
+    latest_answer_time = evidence_answers.aggregate(
+        Max('created_on')
+    )['created_on__max']
 
     if latest_answer_time and os.path.exists(file_path):
         file_timestamp = datetime.fromtimestamp(os.path.getmtime(file_path))
         file_modified = make_aware(file_timestamp)
         if latest_answer_time <= file_modified:
-            return {"scenario_id": scenario_id}
+            return {
+                "scenario_id": scenario_id,
+                "evidence_scope": evidence_scope,
+                "evidence_language": evidence_language,
+            }
 
-    scenario = get_object_or_404(Scenario, id=scenario_id)
-    phases = Phase.objects.filter(scenario=scenario).order_by('id')
-    last_answers = get_last_answers(scenario_id)
+    if evidence_scope == 'compatible':
+        combined_data = _compute_compatible_category_metrics_data(
+            scenario,
+            group_ids=group_ids,
+            start_date=start_date,
+            end_date=end_date,
+            evidence_language=evidence_language,
+        )
+        fieldnames = [
+            'Phase',
+            'Activity',
+            'Type',
+            'Category',
+            'Total',
+            'Correct',
+            'Wrong',
+            '% Correct',
+            '% Wrong',
+            'Avg Time',
+            'Timing Total',
+            'Next Low',
+            'Next Moderate',
+            'Next High',
+            'Evidence Scope',
+            'Source Version IDs',
+            'Source Languages',
+            'Evidence Language Filter',
+        ]
+        with open(file_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(combined_data)
+        return {
+            "scenario_id": scenario_id,
+            "evidence_scope": evidence_scope,
+            "evidence_language": evidence_language,
+        }
+
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
+    last_answers = get_last_answers(
+        scenario_id,
+        evidence_scope,
+        evidence_language,
+    )
 
     users = User.objects.filter(
         id__in=UserGroupMembership.objects.filter(group_id__in=group_ids).values_list('user_id', flat=True)
@@ -1610,48 +2141,97 @@ def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, sta
         (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
     )
 
-    users = users.exclude(groups__name='teachers')
+    users = users.exclude(groups__name='teachers').distinct()
     if start_date:
         last_answers = last_answers.filter(created_on__gte=parse_date(start_date))
     if end_date:
         last_answers = last_answers.filter(created_on__lte=parse_date(end_date) + timedelta(days=1))
 
-    min_activity = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity = scenario.get_start_activity()
     if not min_activity:
         return {"error": "No activities found for this scenario"}
 
-    valid_users = [u for u in users if last_answers.filter(user=u, activity=min_activity).exists()]
+    candidate_user_ids = set(users.values_list('id', flat=True))
+    valid_implementation_ids = set(
+        last_answers.filter(
+            user_id__in=candidate_user_ids,
+            activity=min_activity,
+        ).values_list('implementation_id', flat=True)
+    )
+    latest_answers = {
+        (
+            user_answer.implementation_id,
+            user_answer.activity_id,
+        ): user_answer
+        for user_answer in last_answers.filter(
+            implementation_id__in=valid_implementation_ids,
+        ).select_related('answer')
+    }
 
-    user_phase_category = {}
-    for user in valid_users:
-        user_phase_category[user.id] = {}
+    all_activities = list(
+        Activity.objects
+        .filter(phase__scenario=scenario)
+        .select_related('activity_type')
+        .order_by('created_on', 'id')
+    )
+    activities_by_phase = defaultdict(list)
+    primaries_by_phase = defaultdict(list)
+    for activity in all_activities:
+        activities_by_phase[activity.phase_id].append(activity)
+        if activity.is_evaluatable and activity.is_primary_ev:
+            primaries_by_phase[activity.phase_id].append(activity)
+
+    primary_ids = [
+        activity.id
+        for activities in primaries_by_phase.values()
+        for activity in activities
+    ]
+    bunch_map = {
+        bunch.activity_primary_id: bunch.activity_ids
+        for bunch in QuestionBunch.objects.filter(
+            activity_primary_id__in=primary_ids,
+        )
+    }
+    max_weight_by_activity = {
+        row['activity_id']: row['max_weight']
+        for row in (
+            Answer.objects
+            .filter(activity__phase__scenario=scenario)
+            .values('activity_id')
+            .annotate(max_weight=Max('answer_weight'))
+        )
+    }
+
+    implementation_phase_category = {}
+    for implementation_id in valid_implementation_ids:
+        implementation_phase_category[implementation_id] = {}
         for phase in phases:
             total_score, max_score = 0, 0
             processed = set()
-            primaries = Activity.objects.filter(phase=phase, is_evaluatable=True, is_primary_ev=True)
-            for primary in primaries:
-                try:
-                    bunch = QuestionBunch.objects.get(activity_primary=primary)
-                    activities = Activity.objects.filter(id__in=bunch.activity_ids)
-                except QuestionBunch.DoesNotExist:
-                    activities = [primary]
-                for activity in activities:
-                    if activity.id in processed:
+            for primary in primaries_by_phase[phase.id]:
+                scoring_ids = bunch_map.get(primary.id, [primary.id])
+                for activity_id in scoring_ids:
+                    if activity_id in processed:
                         continue
-                    ua = last_answers.filter(user=user, activity=activity).first()
+                    ua = latest_answers.get(
+                        (implementation_id, activity_id)
+                    )
                     if ua and ua.answer:
                         total_score += ua.answer.answer_weight
-                    max_aw = Answer.objects.filter(activity=activity).order_by('-answer_weight').first()
-                    if max_aw:
-                        max_score += max_aw.answer_weight
-                    processed.add(activity.id)
+                    max_score += max_weight_by_activity.get(activity_id, 0)
+                    processed.add(activity_id)
             if max_score > 0:
                 pct = (total_score / max_score) * 100
                 cat = 'High' if pct >= 83.3 else 'Moderate' if pct >= 49.7 else 'Low'
-                user_phase_category[user.id][phase.id] = cat
+                implementation_phase_category[
+                    implementation_id
+                ][phase.id] = cat
 
     activity_type_map = dict(ActivityType.objects.values_list('id', 'name'))
-    phase_activity_sequences = {p.id: list(Activity.objects.filter(phase=p).order_by('created_on', 'id')) for p in phases}
+    phase_activity_sequences = {
+        phase.id: activities_by_phase[phase.id]
+        for phase in phases
+    }
 
     combined_data = []
     for phase in phases:
@@ -1685,11 +2265,16 @@ def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, sta
             category_data = {'High': [], 'Moderate': [], 'Low': []}
             correctness_data = {'High': [], 'Moderate': [], 'Low': []}
 
-            for user in valid_users:
-                cat = user_phase_category.get(user.id, {}).get(phase.id)
+            for implementation_id in valid_implementation_ids:
+                cat = implementation_phase_category.get(
+                    implementation_id,
+                    {},
+                ).get(phase.id)
                 if not cat:
                     continue
-                ua = last_answers.filter(user=user, activity=activity).first()
+                ua = latest_answers.get(
+                    (implementation_id, activity.id)
+                )
                 if not ua or not ua.timing:
                     continue
                 category_data[cat].append(ua.timing)
@@ -1717,39 +2302,89 @@ def compute_category_metrics_per_phase_activity(scenario_id, group_ids=None, sta
                     '% Correct': pct_c,
                     '% Wrong': pct_w,
                     'Avg Time': avg_time,
+                    'Timing Total': total,
                     'Next Low': next_low,
                     'Next Moderate': next_mid,
-                    'Next High': next_high
+                    'Next High': next_high,
+                    'Evidence Scope': evidence_scope,
+                    'Source Version IDs': (
+                        ''
+                        if evidence_scope == 'historical'
+                        else str(scenario.current_version_id or '')
+                    ),
+                    'Source Languages': (
+                        (scenario.language or '').strip()
+                        or 'Unspecified'
+                    ),
+                    'Evidence Language Filter': (
+                        evidence_language or 'All compatible languages'
+                    ),
                 })
 
     with open(file_path, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = ['Phase', 'Activity', 'Type', 'Category', 'Total', 'Correct', 'Wrong', '% Correct', '% Wrong', 'Avg Time', 'Next Low', 'Next Moderate', 'Next High']
+        fieldnames = [
+            'Phase', 'Activity', 'Type', 'Category', 'Total', 'Correct',
+            'Wrong', '% Correct', '% Wrong', 'Avg Time', 'Timing Total',
+            'Next Low', 'Next Moderate', 'Next High', 'Evidence Scope',
+            'Source Version IDs', 'Source Languages',
+            'Evidence Language Filter',
+        ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for row in combined_data:
             writer.writerow(row)
 
-    return {"scenario_id": scenario_id}
+    return {
+        "scenario_id": scenario_id,
+        "evidence_scope": evidence_scope,
+        "evidence_language": evidence_language,
+    }
 
 @shared_task
-def calculate_activities_in_risk(scenario_id):
+def calculate_activities_in_risk(
+    scenario_id,
+    evidence_scope='local',
+    evidence_language='',
+):
     # ====== 1. Load the dataset ======
     # base_dir = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
     base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
-    file_path = os.path.join(base_dir, f'scenario_{scenario_id}_combined_activity_metrics.csv')
-    flags_file_path = os.path.join(base_dir, f'scenario_{scenario_id}_flagged_activities_with_reasons.csv')
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    evidence_scope = normalize_evidence_scope(evidence_scope)
+    evidence_language = normalize_evidence_language(evidence_language)
+    evidence_context = get_evidence_context(
+        scenario,
+        evidence_scope,
+        evidence_language,
+    )
+    cache_paths = get_scenario_evidence_cache_paths(
+        scenario,
+        scope=evidence_scope,
+        language=evidence_language,
+    )
+    file_path = cache_paths['metrics']
+    flags_file_path = cache_paths['flags']
 
     if not os.path.exists(file_path):
         # either build it or fail gracefully
-        compute_category_metrics_per_phase_activity(scenario_id)
+        compute_category_metrics_per_phase_activity(
+            scenario_id,
+            evidence_scope=evidence_scope,
+            evidence_language=evidence_language,
+        )
         if not os.path.exists(file_path):
             return {"error": f"Metrics CSV not found: {file_path}"}
         
     df = pd.read_csv(file_path)
 
-    # Keep only rows where 'Total' >= 10 for reliability
-    df = df[df['Total'] >= 10].copy()
+    df['Total'] = pd.to_numeric(df['Total'], errors='coerce').fillna(0)
+    if 'Timing Total' not in df.columns:
+        df['Timing Total'] = df['Total']
+    df['Timing Total'] = pd.to_numeric(
+        df['Timing Total'],
+        errors='coerce',
+    ).fillna(0)
 
     # Normalize category names
     df['Category'] = df['Category'].str.strip().str.capitalize()
@@ -1770,6 +2405,9 @@ def calculate_activities_in_risk(scenario_id):
         ordered_cats = [
             c for c in ['High', 'Moderate', 'Low']
             if not activity_df[activity_df['Category'] == c].empty
+            and activity_df[
+                activity_df['Category'] == c
+            ]['Timing Total'].values[0] >= 10
             and pd.notna(activity_df[activity_df['Category'] == c]['Avg Time'].values[0])
             and activity_df[activity_df['Category'] == c]['Avg Time'].values[0] != ''
         ]
@@ -1824,7 +2462,10 @@ def calculate_activities_in_risk(scenario_id):
         return results
 
     # ====== 3. Part 1: Question Activities Risk Analysis ======
-    question_df = df[df['Type'].str.lower() == 'question']
+    question_df = df[
+        (df['Type'].str.lower() == 'question')
+        & (df['Total'] >= 10)
+    ]
 
     for activity in question_df['Activity'].unique():
         act_df = question_df[question_df['Activity'] == activity]
@@ -2004,7 +2645,16 @@ def calculate_activities_in_risk(scenario_id):
 
     # ====== 5. Output the results as a DataFrame ======
     flags_df = pd.DataFrame(flags)
-    ActivityFlag.objects.filter(activity__phase__scenario_id=scenario_id).delete()
+    (
+        ActivityFlag.objects
+        .filter(
+            activity__scenario_id=scenario_id,
+            evidence_scope=evidence_scope,
+            auto_flagged=True,
+            proposals__isnull=True,
+        )
+        .delete()
+    )
     for flag in flags:
         try:
             # activity_obj = Activity.objects.get(name=flag["Activity"], phase__scenario_id=scenario_id)
@@ -2026,12 +2676,19 @@ def calculate_activities_in_risk(scenario_id):
             flag_reason=flag["Reason"],
             is_at_risk=True,
             auto_flagged=True,
+            evidence_scope=evidence_scope,
+            evidence_signature=evidence_context['signature'],
+            evidence_sources=evidence_context['sources'],
         )
 
     # Show the top results and save for further use
     flags_df.to_csv(flags_file_path, index=False)
     print("\nAll flagged activities and reasons saved to 'flagged_activities_with_reasons.csv'")
-    return {"scenario_id": scenario_id}
+    return {
+        "scenario_id": scenario_id,
+        "evidence_scope": evidence_scope,
+        "evidence_language": evidence_language,
+    }
 
 def get_data_insight(flag):
     """
@@ -2360,63 +3017,577 @@ def chunk_and_index_pdfs(scenario_id):
 
 ACTIONS = ["create", "revise", "skip"]
 
-# Phase thresholds for the exploration schedule.
-# Below EXPLORE_UNTIL: pure random (building the Q-table).
-# Between EXPLORE_UNTIL and EXPLOIT_FROM: linear decay.
-# Above EXPLOIT_FROM: near-pure exploitation (5% residual).
-_EXPLORE_UNTIL = 200
-_EXPLOIT_FROM  = 500
+_EXPLORE_UNTIL = int(getattr(settings, "BANDIT_EXPLORE_UNTIL", 200))
+_EXPLOIT_FROM = int(getattr(settings, "BANDIT_EXPLOIT_FROM", 500))
+_EXPLOIT_EPSILON = min(
+    1.0,
+    max(0.0, float(getattr(settings, "BANDIT_EXPLOIT_EPSILON", 0.05))),
+)
+_EXPLORATION_ACTION_WEIGHTS = (
+    ("create", max(0.0, float(getattr(settings, "BANDIT_CREATE_WEIGHT", 0.50)))),
+    ("skip", max(0.0, float(getattr(settings, "BANDIT_SKIP_WEIGHT", 0.30)))),
+    ("revise", max(0.0, float(getattr(settings, "BANDIT_REVISE_WEIGHT", 0.20)))),
+)
+_PROPOSAL_GENERATION_ATTEMPTS = max(
+    1,
+    int(getattr(settings, "LLM_PROPOSAL_GENERATION_ATTEMPTS", 3)),
+)
 
-def _get_exploration_rate():
-    """Dynamic epsilon based on total accepted/rejected reviews so far."""
-    total = UserProposalReview.objects.filter(
-        status__in=['accepted', 'rejected']
-    ).count()
-    if total < _EXPLORE_UNTIL:
+SUPPORTED_PROPOSAL_ACTIVITY_TYPES = ("Question", "Explanation", "Experiment")
+
+
+class ProposalValidationError(ValueError):
+    def __init__(self, errors):
+        self.errors = list(errors)
+        super().__init__("; ".join(self.errors))
+
+
+def record_proposal_structural_failure(
+    *,
+    scenario,
+    stage,
+    errors,
+    generation_run=None,
+    proposal=None,
+    activity=None,
+    selected_action="",
+    raw_output="",
+):
+    if isinstance(errors, (ProposalValidationError, ScenarioGraphValidationError)):
+        errors = getattr(errors, "errors", None) or getattr(errors, "issues", [])
+    elif not isinstance(errors, (list, tuple)):
+        errors = [str(errors)]
+    return ProposalStructuralFailure.objects.create(
+        scenario=scenario,
+        generation_run=generation_run,
+        proposal=proposal,
+        activity=activity,
+        selected_action=selected_action or "",
+        stage=stage,
+        errors=list(errors),
+        raw_output=raw_output or "",
+    )
+
+
+def get_total_bandit_rewards():
+    """Return the number of reward observations applied to all Q-value arms."""
+    return QValue.objects.aggregate(total=Sum("reward_count"))["total"] or 0
+
+
+def _get_exploration_rate(total_rewards=None):
+    """Return ε for weighted exploration with linear decay from 200 to 500."""
+    total = get_total_bandit_rewards() if total_rewards is None else total_rewards
+    if total <= _EXPLORE_UNTIL:
         return 1.0
     if total >= _EXPLOIT_FROM:
-        return 0.05
+        return _EXPLOIT_EPSILON
     progress = (total - _EXPLORE_UNTIL) / (_EXPLOIT_FROM - _EXPLORE_UNTIL)
-    return 1.0 - progress * 0.95  # 1.0 → 0.05
+    return 1.0 - progress * (1.0 - _EXPLOIT_EPSILON)
+
+
+def _get_bandit_policy_configuration():
+    return BanditPolicyConfiguration.get_active()
+
+
+def _configured_action_weights(configuration=None):
+    if configuration and configuration.pk:
+        return (
+            ("create", max(0.0, configuration.create_weight)),
+            ("skip", max(0.0, configuration.skip_weight)),
+            ("revise", max(0.0, configuration.revise_weight)),
+        )
+    return _EXPLORATION_ACTION_WEIGHTS
+
+
+def _select_weighted_exploration_action(configuration=None, allowed_actions=None):
+    """Sample create/skip/revise using admin-configured cold-start weights."""
+    weights = _configured_action_weights(configuration)
+    if allowed_actions is not None:
+        allowed = set(allowed_actions)
+        weights = tuple(
+            (action, weight)
+            for action, weight in weights
+            if action in allowed
+        )
+    total_weight = sum(weight for _, weight in weights)
+    if total_weight <= 0:
+        choices = [action for action, _ in weights] or list(ACTIONS)
+        return random.choice(choices)
+
+    roll = random.random() * total_weight
+    cumulative = 0.0
+    for action, weight in weights:
+        cumulative += weight
+        if roll < cumulative:
+            return action
+    return weights[-1][0]
+
+
+def _context_rows(contexts):
+    rows = QValue.objects.filter(
+        flag_type__in=[flag_type for flag_type, _ in contexts],
+        category__in=[category for _, category in contexts],
+    )
+    return {
+        (row.flag_type, row.category, row.action): row
+        for row in rows
+        if (row.flag_type, row.category) in contexts
+    }
+
+
+def _select_thompson_action(contexts, rows, configuration):
+    scores = {action: 0.0 for action in ACTIONS}
+    prior_alpha = max(0.0001, configuration.thompson_prior_alpha)
+    prior_beta = max(0.0001, configuration.thompson_prior_beta)
+    for flag_type, category in contexts:
+        for action in ACTIONS:
+            row = rows.get((flag_type, category, action))
+            successes = row.positive_reward_count if row else 0
+            failures = row.negative_reward_count if row else 0
+            scores[action] += random.betavariate(
+                prior_alpha + successes,
+                prior_beta + failures,
+            )
+    return max(scores, key=scores.get)
+
+
+def _select_ucb_action(contexts, rows, configuration):
+    total_observations = sum(row.reward_count for row in rows.values())
+    untried_actions = set()
+    scores = {action: 0.0 for action in ACTIONS}
+    strength = max(0.0, configuration.ucb_exploration_strength)
+
+    for flag_type, category in contexts:
+        for action in ACTIONS:
+            row = rows.get((flag_type, category, action))
+            if not row or row.reward_count == 0:
+                untried_actions.add(action)
+                continue
+            mean_reward = row.reward_sum / row.reward_count
+            bonus = strength * math.sqrt(
+                math.log(max(total_observations, 2)) / row.reward_count
+            )
+            scores[action] += mean_reward + bonus
+
+    if untried_actions:
+        return _select_weighted_exploration_action(
+            configuration,
+            allowed_actions=untried_actions,
+        )
+    return max(scores, key=scores.get)
+
+
+def _select_contextual_bandit_action(contexts):
+    configuration = _get_bandit_policy_configuration()
+    contexts = set(contexts)
+    if not contexts:
+        return _select_weighted_exploration_action(configuration)
+
+    rows = _context_rows(contexts)
+    context_reward_counts = {
+        context: sum(
+            row.reward_count
+            for (flag_type, category, _), row in rows.items()
+            if (flag_type, category) == context
+        )
+        for context in contexts
+    }
+    if any(
+        reward_count < configuration.minimum_context_rewards
+        for reward_count in context_reward_counts.values()
+    ):
+        return _select_weighted_exploration_action(configuration)
+
+    if configuration.policy == "ucb":
+        return _select_ucb_action(contexts, rows, configuration)
+    return _select_thompson_action(contexts, rows, configuration)
 
 def select_action(flag_type, category):
-    """
-    ε-greedy action selection with a phase-based schedule:
-    - Phase 1 (<200 reviews): always random — pure exploration.
-    - Phase 2 (200-500): linearly decaying ε, mix of explore/exploit.
-    - Phase 3 (>500): mostly exploit the learned Q-values (ε=0.05).
-    """
-    epsilon = _get_exploration_rate()
-    if random.random() < epsilon:
-        return random.choice(ACTIONS)
-
-    q_values = QValue.objects.filter(flag_type=flag_type, category=category)
-    if not q_values.exists():
-        return random.choice(ACTIONS)
-
-    return q_values.order_by('-q_value').first().action
+    return _select_contextual_bandit_action([(flag_type, category)])
 
 def get_best_q_action(flag_list):
     """
-    Same phase-based schedule applied to multi-flag aggregated Q-scores.
-    During exploration phases picks randomly; during exploitation uses argmax.
+    Select one action across all unique flag type/category contexts.
+
+    Cold contexts use weighted exploration. Mature contexts use the active
+    Thompson Sampling or UCB policy selected in Django admin.
     """
-    scores = {'create': 0.0, 'revise': 0.0, 'skip': 0.0}
-    has_data = False
-    for flag in flag_list:
-        for action in scores:
-            qv = QValue.objects.filter(
-                flag_type=flag.flag_type, category=flag.category, action=action
-            ).first()
-            if qv:
-                scores[action] += qv.q_value
-                has_data = True
+    return _select_contextual_bandit_action(
+        [
+            (flag.flag_type, flag.category)
+            for flag in flag_list
+        ]
+    )
 
-    epsilon = _get_exploration_rate()
-    if not has_data or random.random() < epsilon:
-        return random.choice(ACTIONS)
 
-    return max(scores, key=scores.get)
+def proposal_requires_insert_after(activity, action):
+    """Return whether a create proposal targets the scenario's entry activity."""
+    if (
+        (action or "").strip().lower() != "create"
+        or activity is None
+        or not getattr(activity, "scenario_id", None)
+    ):
+        return False
+
+    scenario = activity.scenario
+    entry_activity_id = scenario.start_activity_id
+    if not entry_activity_id:
+        entry_activity_id = (
+            Activity.objects.filter(scenario_id=activity.scenario_id)
+            .order_by("id")
+            .values_list("id", flat=True)
+            .first()
+        )
+    return activity.id == entry_activity_id
+
+
+def build_proposal_json_schema(
+    required_action,
+    expected_activity_type=None,
+    expected_answer_count=None,
+    require_insert_after=False,
+):
+    """Build the Ollama structured-output schema for one policy-selected action."""
+    required_action = (required_action or "").strip().lower()
+    if required_action not in ACTIONS:
+        raise ValueError(f"Unsupported proposal action: {required_action}")
+
+    allowed_activity_types = list(SUPPORTED_PROPOSAL_ACTIVITY_TYPES)
+    if expected_activity_type in SUPPORTED_PROPOSAL_ACTIVITY_TYPES:
+        allowed_activity_types = [expected_activity_type]
+
+    answers_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "text": {"type": "string", "minLength": 1},
+                "is_correct": {"type": "boolean"},
+                "weight": {"type": "integer", "minimum": 1, "maximum": 3},
+            },
+            "required": ["text", "is_correct", "weight"],
+        },
+        "minItems": 0,
+        "maxItems": 4,
+    }
+    if required_action == "skip" or (
+        expected_activity_type and expected_activity_type != "Question"
+    ):
+        answers_schema["maxItems"] = 0
+    elif expected_activity_type == "Question":
+        if expected_answer_count and 2 <= expected_answer_count <= 4:
+            answers_schema["minItems"] = expected_answer_count
+            answers_schema["maxItems"] = expected_answer_count
+        else:
+            answers_schema["minItems"] = 2
+
+    allowed_insert_locations = (
+        ["after"]
+        if required_action == "create" and require_insert_after
+        else ["before", "after"]
+    )
+
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "action": {"type": "string", "enum": [required_action]},
+            "activity_name": {"type": "string"},
+            "activity_type": {"type": "string", "enum": allowed_activity_types},
+            "content": {"type": "string"},
+            "answers": answers_schema,
+            "insert_location": {
+                "type": "string",
+                "enum": allowed_insert_locations,
+            },
+            "explanation": {"type": "string", "minLength": 1},
+        },
+        "required": [
+            "action",
+            "activity_name",
+            "activity_type",
+            "content",
+            "answers",
+            "insert_location",
+            "explanation",
+        ],
+    }
+
+
+_ANSWER_LABEL_RE = re.compile(r"^\s*[A-Za-z]\s*[\.\):\-]\s*")
+
+
+def format_proposal_answer_text(text, index):
+    """Return answer text with exactly one positional label such as `A. `."""
+    if not isinstance(text, str):
+        return text
+    answer_body = _ANSWER_LABEL_RE.sub("", text.strip()).strip()
+    if not answer_body:
+        return ""
+    return f"{chr(ord('A') + index)}. {answer_body}"
+
+
+def normalize_proposal_data(data):
+    """Normalize harmless formatting differences without inventing missing data."""
+    if not isinstance(data, dict):
+        raise ProposalValidationError(["The proposal must be a JSON object."])
+
+    normalized = dict(data)
+    normalized["action"] = str(normalized.get("action") or "").strip("* ").lower()
+
+    activity_type = str(normalized.get("activity_type") or "").strip()
+    type_by_lower = {name.lower(): name for name in SUPPORTED_PROPOSAL_ACTIVITY_TYPES}
+    normalized["activity_type"] = type_by_lower.get(activity_type.lower(), activity_type)
+
+    for field in ("activity_name", "content", "explanation"):
+        value = normalized.get(field)
+        normalized[field] = value.strip() if isinstance(value, str) else value
+
+    location = str(normalized.get("insert_location") or "").strip().lower()
+    if "before" in location:
+        location = "before"
+    elif "after" in location:
+        location = "after"
+    normalized["insert_location"] = location
+
+    raw_answers = normalized.get("answers")
+    if raw_answers is None:
+        raw_answers = []
+    normalized_answers = []
+    if isinstance(raw_answers, list):
+        for index, answer in enumerate(raw_answers):
+            if not isinstance(answer, dict):
+                normalized_answers.append(answer)
+                continue
+            normalized_answer = dict(answer)
+            text = normalized_answer.get("text")
+            normalized_answer["text"] = format_proposal_answer_text(text, index)
+            weight = normalized_answer.get("weight")
+            if isinstance(weight, str) and weight.strip().isdigit():
+                normalized_answer["weight"] = int(weight.strip())
+            normalized_answers.append(normalized_answer)
+    else:
+        normalized_answers = raw_answers
+    normalized["answers"] = normalized_answers
+    return normalized
+
+
+def validate_proposal_data(
+    data,
+    expected_action=None,
+    expected_activity_type=None,
+    expected_answer_count=None,
+    require_insert_after=False,
+):
+    """Validate action-specific invariants and return normalized proposal data."""
+    normalized = normalize_proposal_data(data)
+    errors = []
+
+    action = normalized.get("action")
+    if action not in ACTIONS:
+        errors.append("action must be create, revise, or skip")
+    if expected_action and action != expected_action:
+        errors.append(f"action must remain {expected_action}")
+
+    explanation = normalized.get("explanation")
+    if not isinstance(explanation, str) or not explanation:
+        errors.append("explanation must be a non-empty string")
+
+    if action == "skip":
+        normalized["answers"] = []
+        if errors:
+            raise ProposalValidationError(errors)
+        return normalized
+
+    for field in ("activity_name", "content"):
+        value = normalized.get(field)
+        if not isinstance(value, str) or not value:
+            errors.append(f"{field} must be a non-empty string")
+
+    activity_type = normalized.get("activity_type")
+    if activity_type not in SUPPORTED_PROPOSAL_ACTIVITY_TYPES:
+        errors.append(
+            "activity_type must be Question, Explanation, or Experiment"
+        )
+    if expected_activity_type and activity_type != expected_activity_type:
+        errors.append(f"activity_type must remain {expected_activity_type}")
+
+    if normalized.get("insert_location") not in ("before", "after"):
+        errors.append("insert_location must be before or after")
+    elif (
+        action == "create"
+        and require_insert_after
+        and normalized.get("insert_location") != "after"
+    ):
+        errors.append(
+            "create proposals for the scenario's first activity must use "
+            "insert_location after"
+        )
+
+    answers = normalized.get("answers")
+    if not isinstance(answers, list):
+        errors.append("answers must be an array")
+        answers = []
+
+    if activity_type == "Question":
+        if not 2 <= len(answers) <= 4:
+            errors.append("Question activities must contain 2 to 4 answers")
+        if (
+            expected_answer_count
+            and 2 <= expected_answer_count <= 4
+            and len(answers) != expected_answer_count
+        ):
+            errors.append(
+                f"Question revisions must keep exactly {expected_answer_count} answers"
+            )
+
+        seen_texts = set()
+        correct_count = 0
+        for index, answer in enumerate(answers, start=1):
+            if not isinstance(answer, dict):
+                errors.append(f"answer {index} must be an object")
+                continue
+            text = answer.get("text")
+            is_correct = answer.get("is_correct")
+            weight = answer.get("weight")
+            if not isinstance(text, str) or not text:
+                errors.append(f"answer {index} text must be non-empty")
+            elif _ANSWER_LABEL_RE.sub("", text).strip().casefold() in seen_texts:
+                errors.append("Question answer text must be unique")
+            else:
+                seen_texts.add(
+                    _ANSWER_LABEL_RE.sub("", text).strip().casefold()
+                )
+            if not isinstance(is_correct, bool):
+                errors.append(f"answer {index} is_correct must be boolean")
+            elif is_correct:
+                correct_count += 1
+            if type(weight) is not int or weight not in (1, 2, 3):
+                errors.append(f"answer {index} weight must be 1, 2, or 3")
+            elif isinstance(is_correct, bool) and is_correct != (weight == 3):
+                errors.append(
+                    f"answer {index} must be correct exactly when its weight is 3"
+                )
+        if correct_count != 1:
+            errors.append("Question activities must contain exactly one correct answer")
+    elif answers:
+        errors.append("Explanation and Experiment activities must not contain answers")
+
+    if errors:
+        raise ProposalValidationError(errors)
+    return normalized
+
+
+def merge_proposal_edits(base, edited):
+    """Merge teacher-editable fields while preserving policy and answer metadata."""
+    if base is not None and not isinstance(base, dict):
+        raise ProposalValidationError(["The stored proposal must be a JSON object."])
+    if edited is not None and not isinstance(edited, dict):
+        raise ProposalValidationError(["Teacher edits must be a JSON object."])
+    base = dict(base or {})
+    edited = dict(edited or {})
+    merged = dict(base)
+
+    for field in ("activity_name", "content", "explanation"):
+        if field in edited:
+            merged[field] = edited[field]
+
+    if "answers" in edited:
+        base_answers = base.get("answers") or []
+        edited_answers = edited.get("answers") or []
+        merged_answers = []
+        for index, edited_answer in enumerate(edited_answers):
+            base_answer = (
+                base_answers[index]
+                if index < len(base_answers) and isinstance(base_answers[index], dict)
+                else {}
+            )
+            merged_answer = dict(base_answer)
+            if isinstance(edited_answer, dict):
+                merged_answer.update(edited_answer)
+            else:
+                merged_answer["text"] = edited_answer
+            merged_answers.append(merged_answer)
+        merged["answers"] = merged_answers
+
+    # These fields are controlled by the policy/generated proposal, not the
+    # teacher's content-only edit form.
+    for field in ("action", "activity_type", "target_category", "insert_location"):
+        merged[field] = base.get(field)
+    return merged
+
+
+def request_validated_proposal(
+    prompt,
+    required_action,
+    expected_activity_type=None,
+    expected_answer_count=None,
+    require_insert_after=False,
+):
+    """Request schema-constrained JSON and retry when semantic validation fails."""
+    schema = build_proposal_json_schema(
+        required_action,
+        expected_activity_type=expected_activity_type,
+        expected_answer_count=expected_answer_count,
+        require_insert_after=require_insert_after,
+    )
+    correction = ""
+    last_error = None
+
+    for attempt in range(1, _PROPOSAL_GENERATION_ATTEMPTS + 1):
+        try:
+            response = requests.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={
+                    "model": "qwen3.6:35b",
+                    "prompt": prompt + correction,
+                    "format": schema,
+                    # qwen3.6 otherwise places schema-constrained JSON in the
+                    # Ollama envelope's `thinking` field and leaves `response`
+                    # empty. Disabling thinking returns the JSON as response.
+                    "think": False,
+                    "options": {"temperature": 0.2},
+                    "stream": False,
+                },
+            )
+            response.raise_for_status()
+            envelope = response.json()
+            raw = (
+                envelope.get("response")
+                or envelope.get("thinking")
+                or ""
+            ).strip()
+            if not raw:
+                raise ProposalValidationError([
+                    "Ollama returned neither response nor thinking content "
+                    f"(done_reason={envelope.get('done_reason', 'unknown')})"
+                ])
+            parsed = json.loads(raw)
+            structured = validate_proposal_data(
+                parsed,
+                expected_action=required_action,
+                expected_activity_type=expected_activity_type,
+                expected_answer_count=expected_answer_count,
+                require_insert_after=require_insert_after,
+            )
+            return raw, structured
+        except (requests.RequestException, ValueError, TypeError, ProposalValidationError) as exc:
+            last_error = exc
+            details = exc.errors if isinstance(exc, ProposalValidationError) else [str(exc)]
+            correction = (
+                "\n\nYour previous response was invalid. Return a corrected JSON object. "
+                "Fix every validation error below and keep the required action unchanged:\n- "
+                + "\n- ".join(details)
+            )
+            print(
+                f"[proposal] Generation attempt {attempt}/"
+                f"{_PROPOSAL_GENERATION_ATTEMPTS} failed: {exc}"
+            )
+
+    raise ProposalValidationError([
+        f"Could not generate a valid {required_action} proposal: {last_error}"
+    ])
 
 # OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
@@ -2425,12 +3596,19 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip
 def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggered_by_id=None):
     scenario = Scenario.objects.get(id=scenario_id)
     triggered_by = User.objects.filter(id=triggered_by_id).first() if triggered_by_id else scenario.created_by
-    print(f"\n▶️ Starting LLM context generation for SCENARIO: '{scenario.name}' (ID: {scenario_id})")
+    scenario_version = scenario.ensure_current_version(
+        created_by=triggered_by,
+    )
+    evidence_context = get_evidence_context(
+        scenario,
+        scope='compatible',
+    )
+    print(f"\nStarting LLM context generation for scenario '{scenario.name}' (ID: {scenario_id})")
 
     # 0️⃣ Build or refresh RAG index from scenario PDFs
     index_dir = Path(get_index_dir(scenario_id))
     if force_rebuild and index_dir.exists():
-        print(f"🗑  Removing old RAG index at {index_dir}")
+        print(f"Removing old RAG index at {index_dir}")
         shutil.rmtree(index_dir, onerror=_on_rm_error)
 
     if force_rebuild:
@@ -2454,7 +3632,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         if activity.llm_context and activity.short_llm_summary:
             continue
 
-        print(f"\n🔍 [Activity] {activity.name} (Phase '{activity.phase.name}')")
+        print(f"\n[Activity] {activity.name} (Phase '{activity.phase.name}')")
 
         # — Image description (Gemma) —
         image_llm = ""
@@ -2471,7 +3649,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 image_llm = resp.json().get("response","").strip()
             except Exception as e:
                 image_llm = f"[Gemma error: {e}]"
-                print("  ⚠️ Gemma error:", e)
+                print("  Gemma error:", e)
         activity.llm_image_description = image_llm
 
         # — Full teacher review (Qwen) —
@@ -2492,7 +3670,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             activity.llm_context = resp.json().get("response", "").strip()
         except Exception as e:
             activity.llm_context = f"[LLM error: {e}]"
-            print(f"  ⚠️ Ollama error (activity context): {e}")
+            print(f"  Ollama error (activity context): {e}")
         activity.save()
 
         # — Short summary for indexing & RAG queries —
@@ -2509,9 +3687,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             activity.short_llm_summary = resp.json().get("response", "").strip()
         except Exception as e:
             activity.short_llm_summary = activity.name
-            print(f"  ⚠️ Ollama error (activity summary): {e}")
+            print(f"  Ollama error (activity summary): {e}")
         activity.save()
-        print("  ✅ Activity context + summary saved.")
+        print("  Activity context + summary saved.")
 
     # 2️⃣ SCENARIO-LEVEL CONTEXT
     if not scenario.llm_context:
@@ -2536,9 +3714,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             scenario.llm_context = resp.json().get("response", "").strip()
         except Exception as e:
             scenario.llm_context = f"[LLM error: {e}]"
-            print(f"  ⚠️ Ollama error (scenario context): {e}")
+            print(f"  Ollama error (scenario context): {e}")
         scenario.save()
-        print("  ✅ Scenario context saved.")
+        print("  Scenario context saved.")
 
     # 3️⃣ PHASE-LEVEL CONTEXT
     for phase in phases:
@@ -2562,9 +3740,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             phase.llm_context = resp.json().get("response", "").strip()
         except Exception as e:
             phase.llm_context = f"[LLM error: {e}]"
-            print(f"  ⚠️ Ollama error (phase context): {e}")
+            print(f"  Ollama error (phase context): {e}")
         phase.save()
-        print(f"  ✅ Phase '{phase.name}' context saved.")
+        print(f"  Phase '{phase.name}' context saved.")
 
     # 4️⃣ FLOW ANALYSIS BY CATEGORY
     cats = ['High','Moderate','Low']
@@ -2591,16 +3769,31 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 flow[cat] = resp.json().get("response", "").strip()
             except Exception as e:
                 flow[cat] = f"[LLM error: {e}]"
-                print(f"  ⚠️ Ollama error (flow {cat}): {e}")
+                print(f"  Ollama error (flow {cat}): {e}")
         activity.related_act_llm_context = flow
         activity.save()
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
     # — archive the previous run (if any) and start a fresh current one —
-    generation_run = ProposalGenerationRun.start_new(scenario, triggered_by)
+    generation_run = ProposalGenerationRun.start_new(
+        scenario,
+        triggered_by,
+        scenario_version=scenario_version,
+        evidence_scope='compatible',
+        evidence_version_ids=evidence_context['version_ids'],
+        evidence_summary=evidence_context,
+    )
     print(f"Started new ProposalGenerationRun {generation_run.id} for scenario {scenario_id}")
 
-    flags = ActivityFlag.objects.filter(activity__phase__scenario=scenario)
+    calculate_activities_in_risk(
+        scenario_id,
+        evidence_scope='compatible',
+    )
+    flags = ActivityFlag.objects.filter(
+        activity__phase__scenario=scenario,
+        evidence_scope='compatible',
+        evidence_signature=evidence_context['signature'],
+    )
     print(f"Found Flags")
     by_act = defaultdict(list)
     for f in flags:
@@ -2652,20 +3845,53 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 lines.append(f"{idx}. ({tag}) {ans.text} — weight {ans.answer_weight}")
             answers = "Answers:\n" + "\n".join(lines)
 
-        bias_action = get_best_q_action(flag_list)
+        selected_action = get_best_q_action(flag_list)
+        expected_activity_type = (
+            activity.activity_type.name if selected_action == "revise" else None
+        )
+        current_answer_count = activity.answers.count()
+        expected_answer_count = (
+            current_answer_count
+            if (
+                selected_action == "revise"
+                and expected_activity_type == "Question"
+                and 2 <= current_answer_count <= 4
+            )
+            else None
+        )
+        answer_count_instruction = (
+            f"A Question revision must return exactly {expected_answer_count} answers "
+            "so existing answer routing remains intact.\n"
+            if expected_answer_count
+            else ""
+        )
+        require_insert_after = proposal_requires_insert_after(
+            activity,
+            selected_action,
+        )
+        insert_location_instruction = (
+            "The flagged activity is the scenario's first activity. A new "
+            'activity cannot be inserted in front of it, so insert_location MUST be "after".\n'
+            if require_insert_after
+            else ""
+        )
 
         # — final proposal prompt —
         prompt = (
-            "You are an expert instructional designer. Choose exactly ONE action:\n\n"
-            "  • create — write a brand-new activity (either a multiple-choice question, an explanation, or a hands-on experiment) that helps resolve the flagged misconception.\n"
-            "  • revise — Rewrite or adjust the existing activity to improve clarity or correctness.\n"
-            "  • skip   — Leave this activity unchanged. Use skip when: the activity is already clear; High performers answered it quickly with no sign of confusion; the flag is only about speed/disengagement, not about misunderstanding; or adding/changing it would not help struggling students.\n\n"
-
-            "=== LEARNING SYSTEM RECOMMENDATION ===\n"
-            f"Based on historical outcomes for similar flags, the recommended action is: {bias_action.upper()}\n"
-            "You may follow or override this recommendation if the context clearly justifies a different choice.\n\n"
+            "You are an expert instructional designer. The learning policy has already "
+            "selected the action below. You generate the educational content; you do not "
+            "choose or override the action.\n\n"
+            "=== REQUIRED ACTION ===\n"
+            f"{selected_action.upper()}\n"
+            f'Your JSON "action" value MUST be "{selected_action}".\n\n'
 
             "=== CONTEXT ===\n"
+            "Evidence Pool:\n"
+            f"- Compatible implementations: {evidence_context['implementation_count']}\n"
+            f"- Source scenarios: {evidence_context['scenario_count']}\n"
+            f"- Source languages: {', '.join(evidence_context['languages']) or 'Unspecified'}\n"
+            "- Correctness evidence may be pooled across compatible languages; "
+            "timing evidence is restricted to the target language.\n\n"
             f"Scenario Insight:\n{scenario.llm_context}\n\n"
             f"Phase Insight:\n{phase.llm_context}\n\n"
             "Flagged Activity:\n"
@@ -2683,62 +3909,81 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             f"{pdf_context or 'None'}\n\n"
 
             "=== GUIDELINES ===\n"
-            "1. **CREATE** can be:\n"
-            "- A multiple-choice question (2–3 options, with weights)\n"
+            "CREATE can be:\n"
+            "- A multiple-choice question (2–4 options, with weights)\n"
             "- A short explanation (clear and concise, no bullet points)\n"
             "- A hands-on experiment using the existing simulation or lab (never invented by the student)\n"
-            "For MCQs, label choices A., B., C., etc. and assign weights (3=Correct, 2=Moderate, 1=Low). Do NOT reveal full solution steps or formulas.\n"
+            "For Question activities, put every choice in the JSON answers array, never only in content. "
+            "Include 2–4 unique choices with exactly one correct choice. Every answer must include "
+            "text, is_correct, and weight. Prefix answer text by position exactly as A. Answer, "
+            "B. Answer, C. Answer, and D. Answer when needed. Weight 3 means correct; weights "
+            "1 or 2 mean incorrect. "
+            "Do NOT reveal full solution steps or formulas.\n"
+            f"{answer_count_instruction}"
+            f"{insert_location_instruction}"
             "For explanations or experiments, keep student-facing text clear and age-appropriate.\n"
-            "2. **REVISE** to improve clarity or correctness. Small rewordings or factual fixes are welcome.\n"
-            "3. **SKIP** — strongly prefer skip when High performers finished quickly and Low/Moderate performers are not confused about the concept (the flag is about engagement speed, not a knowledge gap). Also skip if the activity is redundant with another already in this phase.\n\n"
+            "REVISE must keep the existing activity type and improve its clarity or correctness.\n"
+            "For SKIP, copy the existing activity name, type, and content into the JSON, use an empty "
+            "answers array, and explain why no change is useful.\n\n"
             "- Do NOT include open-ended or discussion prompts; only MCQs for Question type.\n"
             "- Students perform experiments—they do not invent them here.\n"
             "- Respond entirely in English.\n"
             "- Never use any percentage-based thresholds or \"if more than X%\" language.\n\n"
 
-            "=== OUTPUT FORMAT ===\n"
-            "Action: <create|revise|skip>\n\n"
-            "New Activity (only for create or revise):\n"
-            "- Activity Name: (short, descriptive)\n"
-            "- Activity Type: <Question|Explanation|Experiment>\n"
-            "- Content: (student-facing text or MCQ stem)\n"
-            "- Answers:\n"
-            "    A. … (weight 3)\n"
-            "    B. … (weight 2)\n"
-            "    C. … (weight 1)  # adjust count of choices to 2–4; omit for Explanation/Experiment\n"
-            "- Insert Location: <before|after flagged activity>  # **always include this line**\n\n"
-            "Explanation (teacher-only):\n"
-            "(Two sentences: why this action addresses the struggle, in English.)"
+            "=== OUTPUT ===\n"
+            "Return only the JSON object required by the supplied schema. Use before or after for "
+            "insert_location. The explanation is teacher-only and should be two concise sentences."
         )
         try:
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen3.6:35b",
-                "prompt": prompt,
-                "stream": False
-            })
-            raw = resp.json().get("response", "")
-        except Exception as e:
-            raw = f"Action: skip\n\nExplanation: [LLM error: {e}]"
-            print(f"  ⚠️ Ollama error (proposal): {e}")
+            raw, structured = request_validated_proposal(
+                prompt,
+                required_action=selected_action,
+                expected_activity_type=expected_activity_type,
+                expected_answer_count=expected_answer_count,
+                require_insert_after=require_insert_after,
+            )
+        except ProposalValidationError as exc:
+            record_proposal_structural_failure(
+                scenario=scenario,
+                generation_run=generation_run,
+                activity=activity,
+                selected_action=selected_action,
+                stage="generation",
+                errors=exc,
+            )
+            print(f"[proposal] Skipping invalid proposal for activity {activity.id}: {exc}")
+            continue
 
-        # — parse into structured JSON via your existing parser —
-        structured = parse_llm_proposal(raw)
+        structured["target_category"] = sorted(
+            {flag.category for flag in flag_list}
+        ) or "all"
         try:
-            translated_structured = parse_llm_proposal_translated(raw, scenario.language)
-            translated_raw = translate_text(raw, scenario.language) or raw
+            translated_structured = translate_proposal_fields(
+                structured,
+                scenario.language,
+            )
+            translated_structured = validate_proposal_data(
+                translated_structured,
+                expected_action=selected_action,
+                expected_activity_type=expected_activity_type,
+                expected_answer_count=expected_answer_count,
+                require_insert_after=require_insert_after,
+            )
+            translated_structured["target_category"] = structured["target_category"]
         except Exception as _te:
-            print(f'  ⚠️ Translation error: {_te}')
-            translated_structured = None
-            translated_raw = raw
-        translated_structured_json = json.dumps(
-            translated_structured or structured,
-            ensure_ascii=False,
-        )
-
-        # — classify action type from the parsed "Action:" line, not by scanning full text —
-        proposal_type = (structured.get("action") or "").strip().lower()
-        if proposal_type not in ("create", "revise", "skip"):
-            proposal_type = "skip"
+            record_proposal_structural_failure(
+                scenario=scenario,
+                generation_run=generation_run,
+                activity=activity,
+                selected_action=selected_action,
+                stage="translation",
+                errors=_te,
+                raw_output=json.dumps(structured, ensure_ascii=False),
+            )
+            print(f"[proposal] Translation error: {_te}")
+            translated_structured = structured
+        translated_raw = json.dumps(translated_structured, ensure_ascii=False)
+        translated_structured_json = translated_raw
 
         # — save the proposal —
         prop = ActivityProposal.objects.create(
@@ -2746,7 +3991,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             generation_run=generation_run,
             phase=phase,
             activity=activity,
-            proposal_type=proposal_type,
+            proposal_type=selected_action,
             suggested_action=raw,
             translated_action=translated_raw,
             json_action=json.dumps(structured, ensure_ascii=False),
@@ -2757,6 +4002,27 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         for cat in {f.category for f in flag_list}:
             tag, _ = CategoryTag.objects.get_or_create(name=cat)
             prop.categories_in_risk.add(tag)
+
+    latest_version = (
+        Scenario.objects.get(pk=scenario_id).ensure_current_version()
+    )
+    latest_evidence_context = get_evidence_context(
+        Scenario.objects.get(pk=scenario_id),
+        scope='compatible',
+    )
+    if (
+        latest_version.id != scenario_version.id
+        or latest_evidence_context['source_signature']
+        != evidence_context['source_signature']
+    ):
+        ProposalGenerationRun.objects.filter(pk=generation_run.pk).update(
+            is_current=False
+        )
+        raise RuntimeError(
+            'The scenario or its compatible evidence pool changed while '
+            'proposals were being generated. This run was archived; '
+            'generate proposals again for the current evidence sources.'
+        )
 
     # 6️⃣ Write out a CSV snapshot of all proposals
     base = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
@@ -2903,10 +4169,10 @@ def translate_text(text, target_language):
                 "stream": False
             })
     except requests.exceptions.RequestException as e:
-        print("❌ Request failed:", e)
+        print("Request failed:", e)
         return text
     except ValueError:
-        print("❌ Failed to parse JSON. Raw response:")
+        print("Failed to parse JSON. Raw response:")
         print(translation_response.text)
         return text
     
@@ -2916,20 +4182,55 @@ def translate_text(text, target_language):
     return translated_text if translated_text else text
 
 def translate_proposal_fields(structured_data, scenario_language):
-    structured_data["activity_name"] = translate_text(structured_data["activity_name"], scenario_language)
-    structured_data["content"] = translate_text(structured_data["content"], scenario_language)
+    translated = json.loads(json.dumps(structured_data, ensure_ascii=False))
+    if not scenario_language or scenario_language.strip().lower() in ["english", "en"]:
+        return translated
 
-    for ans in structured_data["answers"]:
-        ans["text"] = translate_text(ans["text"], scenario_language)
+    for field in ("activity_name", "content", "explanation"):
+        value = translated.get(field)
+        if value:
+            translated[field] = translate_text(value, scenario_language)
 
-    return structured_data
+    for answer in translated.get("answers", []):
+        if answer.get("text"):
+            answer["text"] = translate_text(answer["text"], scenario_language)
+
+    return translated
 
 @shared_task
 def apply_user_proposals_to_new_scenario(scenario_id, user_id):
+    try:
+        return _build_personal_scenario(scenario_id, user_id)
+    except ScenarioGraphValidationError as exc:
+        scenario = Scenario.objects.filter(pk=scenario_id).first()
+        if scenario:
+            record_proposal_structural_failure(
+                scenario=scenario,
+                stage="graph_integrity",
+                errors=exc,
+            )
+        print("Scenario graph validation failed:")
+        print(traceback.format_exc())
+    except Exception as exc:
+        scenario = Scenario.objects.filter(pk=scenario_id).first()
+        if scenario:
+            record_proposal_structural_failure(
+                scenario=scenario,
+                stage="application",
+                errors=exc,
+            )
+        print("Exception in apply_user_proposals_to_new_scenario:")
+        print(traceback.format_exc())
+    return "scenario error"
+
+
+@transaction.atomic
+def _build_personal_scenario(scenario_id, user_id):
     print(f"SCENARIO IS : {scenario_id}")
     try:
         original_scenario = get_object_or_404(Scenario, pk=scenario_id)
         user = User.objects.get(pk=user_id)
+        family = original_scenario.ensure_family()
         new_scenario_name_base = f"{original_scenario.name} Copy Made by {user.username}"
         new_scenario_name = new_scenario_name_base
         
@@ -2951,14 +4252,21 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
             created_by=user,
             updated_by=user,
             is_personal=True,
-            origin_scenario=original_scenario
+            origin_scenario=original_scenario,
+            family=family,
+            variant_type='adaptation',
+            ai_metrics_min_implementations=(
+                original_scenario.ai_metrics_min_implementations
+            ),
         )
+        new_scenario.subjects.set(original_scenario.subjects.all())
 
         # Map for original activities to their duplicates
         activity_mapping = {}
         answer_mapping = {}
+        phase_mapping = {}
 
-        # Duplicate Phases and Activities
+        # Duplicate phases first so phase-less activities are preserved too.
         for phase in original_scenario.phases.all():
             new_phase = Phase.objects.create(
                 name=phase.name,
@@ -2968,45 +4276,52 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
                 created_by=user,
                 updated_by=user
             )
+            phase_mapping[phase.id] = new_phase
 
-            for activity in phase.activities.all():
-                new_activity = Activity.objects.create(
-                    name=activity.name,
-                    text=activity.text,
-                    plain_text=activity.plain_text,
-                    correct_count=activity.correct_count,
-                    incorrect_count=activity.incorrect_count,
-                    is_evaluatable=activity.is_evaluatable,
-                    is_primary_ev=activity.is_primary_ev,
-                    must_wait=activity.must_wait,
-                    score_limit=activity.score_limit,
-                    scenario=new_scenario,
-                    phase=new_phase,
-                    activity_type=activity.activity_type,
-                    helper=activity.helper,
-                    simulation=activity.simulation,
-                    experiment_ll=activity.experiment_ll,
-                    vr_ar_experiment = activity.vr_ar_experiment,
+        for activity in original_scenario.activities.order_by('id'):
+            new_activity = Activity.objects.create(
+                name=activity.name,
+                text=activity.text,
+                plain_text=activity.plain_text,
+                correct_count=activity.correct_count,
+                incorrect_count=activity.incorrect_count,
+                is_evaluatable=activity.is_evaluatable,
+                is_primary_ev=activity.is_primary_ev,
+                must_wait=activity.must_wait,
+                score_limit=activity.score_limit,
+                scenario=new_scenario,
+                phase=phase_mapping.get(activity.phase_id),
+                activity_type=activity.activity_type,
+                helper=activity.helper,
+                simulation=activity.simulation,
+                experiment_ll=activity.experiment_ll,
+                vr_ar_experiment=activity.vr_ar_experiment,
+                lineage_key=activity.lineage_key,
+                concept=activity.concept,
+                created_by=user,
+                updated_by=user
+            )
+
+            # Copy answers
+            for answer in activity.answers.all():
+                new_answer = Answer.objects.create(
+                    activity=new_activity,
+                    text=answer.text,
+                    is_correct=answer.is_correct,
+                    answer_weight=answer.answer_weight,
+                    image=answer.image,
+                    vid_url=answer.vid_url,
                     created_by=user,
                     updated_by=user
                 )
+                answer_mapping[answer.id] = new_answer
 
-                # Copy answers
-                for answer in activity.answers.all():
-                    new_answer = Answer.objects.create(
-                        activity=new_activity,
-                        text=answer.text,
-                        is_correct=answer.is_correct,
-                        answer_weight=answer.answer_weight,
-                        image=answer.image,
-                        vid_url=answer.vid_url,
-                        created_by=user,
-                        updated_by=user
-                    )
-                    answer_mapping[answer.id] = new_answer
+            activity_mapping[activity.id] = new_activity
 
-                # Add activity to mapping
-                activity_mapping[activity.id] = new_activity
+        mapped_start = activity_mapping.get(original_scenario.start_activity_id)
+        if mapped_start:
+            new_scenario.start_activity = mapped_start
+            new_scenario.save(update_fields=["start_activity"])
 
         # Duplicate Next Question Logic
         for original_activity_id, new_activity in activity_mapping.items():
@@ -3042,6 +4357,7 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
                         activity_ids=[activity_mapping[aid].id for aid in question_bunch.activity_ids]
                     )
         
+        assert_scenario_graph_integrity(new_scenario)
 
         # After new_scenario is created and before apply_proposals_to_cloned_scenario
         existing_simulation = None
@@ -3066,19 +4382,48 @@ def apply_user_proposals_to_new_scenario(scenario_id, user_id):
             default_vr_ar_experiment=existing_vr_ar_experiment,
         )
 
+        assert_scenario_graph_integrity(new_scenario)
+
+        new_scenario.ensure_current_version(
+            created_by=user,
+            change_summary='Personal adaptation created from accepted proposals',
+        )
         # return redirect('updateScenario', id=new_scenario.id)
         return new_scenario.id
 
-    except Exception as e:
-        print("❌ Exception in apply_user_proposals_to_new_scenario:")
+    except Exception:
+        print("Exception in apply_user_proposals_to_new_scenario:")
         print(traceback.format_exc())
-        return "scenario error"
+        raise
     
 def get_accepted_reviews_for_personal_scenario(original_scenario, user):
+    current_version = original_scenario.ensure_current_version()
+    current_run = (
+        ProposalGenerationRun.objects
+        .filter(
+            scenario=original_scenario,
+            is_current=True,
+            scenario_version=current_version,
+        )
+        .first()
+    )
+    if not current_run:
+        return UserProposalReview.objects.none()
+    if (
+        current_run.evidence_scope == 'compatible'
+        and current_run.evidence_summary.get('source_signature')
+        != get_evidence_context(
+            original_scenario,
+            scope='compatible',
+        )['source_signature']
+    ):
+        current_run.is_current = False
+        current_run.save(update_fields=['is_current'])
+        return UserProposalReview.objects.none()
     return UserProposalReview.objects.filter(
         user=user,
         proposal__scenario=original_scenario,
-        proposal__generation_run__is_current=True,
+        proposal__generation_run=current_run,
         status='accepted'
     ).select_related('proposal', 'proposal__activity', 'proposal__phase')
 
@@ -3095,7 +4440,7 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
         flagged_old = proposal.activity
         flagged_new = activity_mapping.get(flagged_old.id)
         if not flagged_new:
-            print(f"⚠️ Skipping proposal: flagged activity {flagged_old.id} not found in mapping.")
+            print(f"Skipping proposal: flagged activity {flagged_old.id} not found in mapping.")
             continue
 
 
@@ -3125,35 +4470,51 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
 
             # Ensure at least one is present
             if not edited_raw and not base_raw:
-                print(f"❌ Skipping proposal {proposal.id}: no JSON available in review or proposal.")
+                print(f"Skipping proposal {proposal.id}: no JSON available in review or proposal.")
                 continue
 
             try:
                 edited = edited_raw if isinstance(edited_raw, dict) else json.loads(edited_raw) if edited_raw else {}
                 base = base_raw if isinstance(base_raw, dict) else json.loads(base_raw) if base_raw else {}
             except (json.JSONDecodeError, TypeError) as e:
-                print(f"❌ Skipping proposal {proposal.id} due to invalid JSON:", e)
+                print(f"[proposal] Skipping proposal {proposal.id} due to invalid JSON:", e)
                 continue
 
-            data = base.copy()
-            data["activity_name"] = edited.get("activity_name", base.get("activity_name"))
-            data["content"] = edited.get("content", base.get("content"))
-            data["answers"] = edited.get("answers", base.get("answers"))
+            data = merge_proposal_edits(base, edited)
 
-            # ✅ Ensure completeness
-            data["action"] = base.get("action")
-            data["activity_type"] = base.get("activity_type")
-            # data["target_category"] = base.get("target_category")
-            data["insert_location"] = base.get("insert_location")
-            data["explanation"] = edited.get("explanation", base.get("explanation"))
+            expected_type = (
+                flagged_new.activity_type.name
+                if proposal.proposal_type == "revise"
+                else None
+            )
+            answer_count = flagged_new.answers.count()
+            data = validate_proposal_data(
+                data,
+                expected_action=proposal.proposal_type,
+                expected_activity_type=expected_type,
+                expected_answer_count=(
+                    answer_count
+                    if expected_type == "Question" and 2 <= answer_count <= 4
+                    else None
+                ),
+                require_insert_after=proposal_requires_insert_after(
+                    flagged_old,
+                    proposal.proposal_type,
+                ),
+            )
 
-            # ✅ Ensure all answers are valid
-            for ans in data.get("answers", []):
-                ans.setdefault("is_correct", False)
-                ans.setdefault("weight", 1)
-
-        except (json.JSONDecodeError, TypeError) as e:
-            print(f"❌ Skipping proposal {proposal.id} due to invalid JSON:", e)
+        except (json.JSONDecodeError, TypeError, ProposalValidationError) as e:
+            record_proposal_structural_failure(
+                scenario=original_scenario,
+                generation_run=proposal.generation_run,
+                proposal=proposal,
+                activity=flagged_old,
+                selected_action=proposal.proposal_type,
+                stage="application",
+                errors=e,
+                raw_output=str(base_raw or ""),
+            )
+            print(f"[proposal] Skipping proposal {proposal.id} due to invalid data:", e)
             continue
         
         print(f"DATA:\n{data}")
@@ -3164,8 +4525,8 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
         phase = flagged_new.phase
 
         if action == "revise":
-            print(f"📌 Found proposal to revise: {data}")
-            print(f"➡️  Flagged activity: {flagged_old.name} (ID={flagged_old.id})")
+            print(f"Found proposal to revise: {data}")
+            print(f"Flagged activity: {flagged_old.name} (ID={flagged_old.id})")
             flagged_new.text = data.get("content", flagged_new.text)
             flagged_new.plain_text = data.get("content", flagged_new.plain_text)
             flagged_new.save()
@@ -3230,7 +4591,7 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
                     )
             else:
                 # 👇 Don't split – treat as one general activity
-                print(f"🔁 Skipping split: {flagged_new.name} does not use branching. Using 'All' for category.")
+                print(f"Skipping split: {flagged_new.name} does not use branching. Using 'All' for category.")
                 data["target_category"] = "All"
                 new_act = create_activity_from_json_action(data, phase, new_scenario, user,
                                                            default_simulation, default_experiment_ll, default_vr_ar_experiment)
@@ -3259,6 +4620,28 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
                 }
             else:
                 branch_targets = {}
+
+            if new_scenario.start_activity_id == flagged_new.id:
+                successor_ids = {
+                    target.id
+                    for target in list(outgoing_targets.values())
+                    + list(branch_targets.values())
+                    if target
+                }
+                if len(successor_ids) != 1:
+                    raise ScenarioGraphValidationError([
+                        {
+                            "code": "ambiguous_start_replacement",
+                            "activity_id": flagged_new.id,
+                            "message": (
+                                f"Skipping start activity '{flagged_new.name}' "
+                                "does not leave exactly one replacement entry "
+                                "activity."
+                            ),
+                        }
+                    ])
+                new_scenario.start_activity_id = successor_ids.pop()
+                new_scenario.save(update_fields=["start_activity"])
 
             # 3. Reconnect logic pointing to the flagged activity
             for in_logic in NextQuestionLogic.objects.filter(next_activity=flagged_new):
@@ -3291,9 +4674,11 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
             # 6. Remove activity
             flagged_new.delete()
 
+@transaction.atomic
 def create_activity_from_json_action(data, phase, scenario, user,
                                      default_simulation=None, default_experiment_ll=None, default_vr_ar_experiment=None):
 
+    data = validate_proposal_data(data, expected_action="create")
     activity_type = ActivityType.objects.get(name__iexact=data["activity_type"])
 
     simulation = None
@@ -3351,6 +4736,10 @@ def connect_created_activity(flagged_activity, new_activity, insert_location, ta
 
     # ========== INSERT BEFORE ==========
     if insert_location == "before":
+        if flagged_activity.scenario.start_activity_id == flagged_activity.id:
+            flagged_activity.scenario.start_activity = new_activity
+            flagged_activity.scenario.save(update_fields=["start_activity"])
+
         # Redirect incoming links
         for link in NextQuestionLogic.objects.filter(next_activity=flagged_activity):
             link.next_activity = new_activity
@@ -3529,7 +4918,7 @@ def refactor_all_proposals_to_json():
         try:
             suggested = proposal.suggested_action or ""
             if not suggested.strip():
-                print(f"⚠️ Skipping empty proposal ID {proposal.id}")
+                print(f"Skipping empty proposal ID {proposal.id}")
                 skipped += 1
                 continue
             
@@ -3552,19 +4941,19 @@ def refactor_all_proposals_to_json():
                     proposal.json_action = json.dumps(parsed, ensure_ascii=False)
                     proposal.json_translated_action = json.dumps(translated_parsed, ensure_ascii=False)
                     proposal.save()
-                    print(f"✅ Updated proposal ID {proposal.id}")
+                    print(f"Updated proposal ID {proposal.id}")
                     updated += 1
             else:
                 no_need += 1
 
         except Exception as inner:
-            print(f"❌ Failed to fix proposal ID {proposal.id}: {inner}")
+            print(f"Failed to fix proposal ID {proposal.id}: {inner}")
             failed += 1
 
-    print(f"\n📊 Summary:")
-    print(f"  ✅ Updated: {updated}")
-    print(f"  ⚠️ Skipped (empty): {skipped}")
-    print(f"  ❌ Failed: {failed}")
+    print("\nSummary:")
+    print(f"  Updated: {updated}")
+    print(f"  Skipped (empty): {skipped}")
+    print(f"  Failed: {failed}")
     print(f"  Skipped (no need to update): {no_need}")
 
 # def split_multi_category_action(parsed_action):

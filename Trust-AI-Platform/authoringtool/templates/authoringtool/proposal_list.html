@@ -132,6 +132,13 @@
     background:#fee2e2; color:#b91c1c; cursor:pointer; transition:background .12s;
   }
   .btn-reject:hover { background:#fecaca; }
+  .btn-reset {
+    display:inline-flex; align-items:center; gap:5px; padding:5px 14px;
+    border-radius:8px; font-size:12.5px; font-weight:600;
+    border:none; background:#f3f4f6; color:#4b5563;
+    cursor:pointer; transition:background .12s;
+  }
+  .btn-reset:hover { background:#e5e7eb; color:#1f2937; }
 
   /* ── Rejection reason checkboxes ── */
   .rejection-reason-option {
@@ -176,6 +183,20 @@
   .cat-tag.cat-other    { background:#ede9fe; color:#6d28d9; }
   .answer-view-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:13.5px; color:#374151; }
   .answer-view-letter { font-weight:700; color:#6b7280; min-width:20px; flex-shrink:0; }
+  .insertion-preview {
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    flex-wrap:wrap; padding:12px; border-radius:9px;
+    background:#eff6ff; border:1px solid #bfdbfe;
+  }
+  .insertion-node {
+    padding:6px 10px; border-radius:7px; background:#fff;
+    border:1px solid #dbeafe; color:#1e3a8a; font-size:13px;
+    font-weight:600; text-align:center;
+  }
+  .insertion-node.new {
+    background:#1a56db; border-color:#1a56db; color:#fff;
+  }
+  .insertion-arrow { color:#60a5fa; font-size:18px; font-weight:700; }
 
   /* ── Edit panel ── */
   .proposal-edit-panel {
@@ -261,6 +282,29 @@
       </div>
     </div>
   </div>
+
+  {% if generation_run %}
+  <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+    <i class="bi bi-diagram-3-fill mt-1"></i>
+    <div>
+      <strong>Proposal evidence:</strong>
+      {{ evidence_context.implementation_count }} compatible
+      implementation{{ evidence_context.implementation_count|pluralize }}
+      from {{ evidence_context.scenario_count }} scenario
+      variant{{ evidence_context.scenario_count|pluralize }}
+      {% if evidence_context.languages %}
+        ({{ evidence_context.languages|join:", " }})
+      {% endif %}.
+      Correctness was pooled across approved versions; timing was restricted
+      to this scenario's language.
+      {% if evidence_context.restricted_source_count %}
+        {{ evidence_context.restricted_source_count }} restricted source
+        variant{{ evidence_context.restricted_source_count|pluralize }} also
+        contributed without exposing its private details.
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <section class="section">
 
@@ -352,14 +396,14 @@
               <i class="bi bi-x-lg"></i> Reject
             </button>
             {% elif review.status == "accepted" %}
-            <button type="button" class="btn-reject"
-                    onclick="openRejectModal('{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}')">
-              <i class="bi bi-x-lg"></i> Undo Accept
-            </button>
-            {% elif review.status == "rejected" %}
-            <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+            <form method="post" action="{% url 'reset_proposal_review' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" class="btn-accept"><i class="bi bi-check-lg"></i> Undo Reject</button>
+              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> Undo Accept</button>
+            </form>
+            {% elif review.status == "rejected" %}
+            <form method="post" action="{% url 'reset_proposal_review' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> Undo Reject</button>
             </form>
             {% endif %}
 
@@ -396,6 +440,19 @@
                 {% for cat in proposal.categories_in_risk.all %}
                   <span class="cat-tag cat-{{ cat.name|lower }}">{{ cat.name }}</span>
                 {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if proposal.insertion_preview %}
+            <div class="view-field">
+              <div class="view-field-label">Insertion Preview</div>
+              <div class="insertion-preview">
+                <span class="insertion-node">{{ proposal.insertion_preview.left }}</span>
+                <span class="insertion-arrow">&rarr;</span>
+                <span class="insertion-node new">{{ proposal.insertion_preview.middle }}</span>
+                <span class="insertion-arrow">&rarr;</span>
+                <span class="insertion-node">{{ proposal.insertion_preview.right }}</span>
               </div>
             </div>
             {% endif %}
@@ -498,6 +555,10 @@
         <div class="modal-body pt-2">
           <p class="text-muted small mb-3">Select all that apply. Your feedback helps improve future recommendations.</p>
           <div class="d-flex flex-column gap-2">
+            <label class="rejection-reason-option">
+              <input type="checkbox" name="rejection_reasons" value="structural_invalid">
+              <span><strong>Malformed or structurally invalid</strong> (excluded from bandit learning)</span>
+            </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="wrong_action_create">
               <span>Wrong action — should be <strong>Create</strong></span>
@@ -633,9 +694,23 @@ function initProposalForm(proposalId) {
         input.type = 'text';
         input.name = `answer_text_${idx + 1}`;
         input.className = 'form-control';
-        input.value = typeof ans === 'string' ? ans : (ans.text || '');
+        const rawAnswerText = typeof ans === 'string' ? ans : (ans.text || '');
+        input.value = rawAnswerText.replace(/^\s*[A-Za-z]\s*[\.\):\-]\s*/, '');
         wrap.appendChild(label);
         wrap.appendChild(input);
+        if (typeof ans === 'object') {
+          const correctInput = document.createElement('input');
+          correctInput.type = 'hidden';
+          correctInput.name = `answer_is_correct_${idx + 1}`;
+          correctInput.value = ans.is_correct ? 'true' : 'false';
+          wrap.appendChild(correctInput);
+
+          const weightInput = document.createElement('input');
+          weightInput.type = 'hidden';
+          weightInput.name = `answer_weight_${idx + 1}`;
+          weightInput.value = Number.isInteger(ans.weight) ? ans.weight : 1;
+          wrap.appendChild(weightInput);
+        }
         if (ans.is_correct) {
           const badge = document.createElement('span');
           badge.textContent = '✓ Correct';

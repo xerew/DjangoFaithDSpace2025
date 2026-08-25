@@ -7,6 +7,7 @@ SSH_USER="${SSH_USER:-ngrammatikos}"
 REMOTE_OLLAMA_HOST="${REMOTE_OLLAMA_HOST:-127.0.0.1}"
 REMOTE_OLLAMA_PORT="${REMOTE_OLLAMA_PORT:-11434}"
 LOCAL_OLLAMA_PORT="${LOCAL_OLLAMA_PORT:-11434}"
+TUNNEL_OLLAMA_PORT="${TUNNEL_OLLAMA_PORT:-11435}"
 SSH_DIR=/root/.ssh
 KEY_PATH="${SSH_DIR}/id_ed25519"
 
@@ -38,11 +39,35 @@ done
 
 chmod 0600 "${KEY_PATH}"
 
+for port_value in \
+    "${REMOTE_OLLAMA_PORT}" \
+    "${LOCAL_OLLAMA_PORT}" \
+    "${TUNNEL_OLLAMA_PORT}"
+do
+    case "${port_value}" in
+        ''|*[!0-9]*)
+            echo "Ollama tunnel ports must be numeric." >&2
+            exit 1
+            ;;
+    esac
+done
+
+sed \
+    -e "s/__LOCAL_OLLAMA_PORT__/${LOCAL_OLLAMA_PORT}/g" \
+    -e "s/__TUNNEL_OLLAMA_PORT__/${TUNNEL_OLLAMA_PORT}/g" \
+    -e "s/__REMOTE_OLLAMA_PORT__/${REMOTE_OLLAMA_PORT}/g" \
+    /etc/nginx/nginx.conf.template \
+    > /etc/nginx/nginx.conf
+
+nginx -t
+nginx
+
 export AUTOSSH_GATETIME=0
 export AUTOSSH_POLL=30
 
 echo "Opening Ollama tunnel through ${SSH_USER}@${SSH_HOST}:${SSH_PORT}..."
-exec autossh \
+echo "Rewriting Docker Host headers through nginx on port ${LOCAL_OLLAMA_PORT}."
+autossh \
     -M 0 \
     -N \
     -T \
@@ -53,5 +78,18 @@ exec autossh \
     -o ServerAliveInterval=30 \
     -o ServerAliveCountMax=3 \
     -o StrictHostKeyChecking=yes \
-    -L "0.0.0.0:${LOCAL_OLLAMA_PORT}:${REMOTE_OLLAMA_HOST}:${REMOTE_OLLAMA_PORT}" \
-    "${SSH_USER}@${SSH_HOST}"
+    -L "127.0.0.1:${TUNNEL_OLLAMA_PORT}:${REMOTE_OLLAMA_HOST}:${REMOTE_OLLAMA_PORT}" \
+    "${SSH_USER}@${SSH_HOST}" &
+AUTOSSH_PID=$!
+
+shutdown() {
+    kill "${AUTOSSH_PID}" 2>/dev/null || true
+    nginx -s quit 2>/dev/null || true
+}
+
+trap shutdown INT TERM
+
+status=0
+wait "${AUTOSSH_PID}" || status=$?
+nginx -s quit 2>/dev/null || true
+exit "${status}"

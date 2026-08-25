@@ -1,0 +1,83 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .candidate-pair-arrow,
+    .llm-status-detail,
+    .candidate-score-low {
+      color: var(--body-quiet-color);
+    }
+    .candidate-score-high,
+    .llm-status-agrees {
+      color: var(--link-fg);
+    }
+    .candidate-score-medium,
+    .llm-status-differs {
+      color: var(--body-medium-color);
+    }
+    .llm-status-failed {
+      color: var(--error-fg);
+    }
+    .object-tools form {
+      display: inline;
+      margin: 0;
+    }
+    .object-tools form button {
+      display: block;
+      padding: 3px 12px;
+      color: var(--object-tools-fg);
+      background: var(--object-tools-bg);
+      border: 0;
+      border-radius: 15px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.6875rem;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      line-height: 1.25rem;
+      text-transform: uppercase;
+    }
+    .object-tools form button:hover,
+    .object-tools form button:focus {
+      background: var(--object-tools-hover-bg);
+    }
+  </style>
+{% endblock %}
+
+{% block object-tools-items %}
+  {% if has_change_permission %}
+    <li>
+      <a href="{% url 'admin:authoringtool_scenariofamilyreviewproxy_associate' %}">
+        Associate scenarios manually
+      </a>
+    </li>
+  {% endif %}
+  <li>
+    <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_scan' %}">
+      {% csrf_token %}
+      <button type="submit">
+        Scan scenarios
+      </button>
+    </form>
+  </li>
+  <li>
+    <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_scan' %}">
+      {% csrf_token %}
+      <input type="hidden" name="force_profiles" value="1">
+      <button type="submit">
+        Force profile refresh
+      </button>
+    </form>
+  </li>
+  <li>
+    <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_llm_review_pending' %}">
+      {% csrf_token %}
+      <button type="submit">
+        Ask Ollama to review pending
+      </button>
+    </form>
+  </li>
+  {{ block.super }}
+{% endblock %}

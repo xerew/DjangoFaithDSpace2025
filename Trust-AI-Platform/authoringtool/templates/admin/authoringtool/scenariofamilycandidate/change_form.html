@@ -1,0 +1,69 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .family-review-rules,
+    .llm-review-panel {
+      margin: 18px 0;
+      padding: 14px;
+      color: var(--body-fg);
+      background: var(--darkened-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .family-review-rules h2,
+    .llm-review-panel h3,
+    .llm-review-panel h4 {
+      color: var(--body-loud-color);
+    }
+    .family-review-rules h2 {
+      margin-top: 0;
+    }
+    .family-review-rules p:last-child {
+      margin-bottom: 0;
+    }
+    .llm-review-pending {
+      background: var(--selected-bg);
+      border-left: 4px solid var(--primary);
+    }
+    .llm-review-failed {
+      background: var(--message-error-bg);
+      border-left: 4px solid var(--error-fg);
+    }
+    .family-review-actions input {
+      color: #fff;
+      border: 0;
+    }
+  </style>
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  {% if original %}
+    <div class="family-review-rules">
+      <h2>Review rules</h2>
+      <p>
+        A translation or adaptation decision performs a logical family merge.
+        Implementations stay on their original scenario records, and evidence
+        compatibility is recalculated conservatively. Topic-only and unrelated
+        decisions never change scenario families.
+      </p>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if original and has_change_permission %}
+    <div class="submit-row family-review-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input type="submit" value="Ask Ollama for second opinion" name="_request_llm_review" style="background:#7c3aed;">
+      <input type="submit" value="Same family — translation" name="_classify_translation" style="background:#166534;">
+      <input type="submit" value="Same family — adaptation" name="_classify_adaptation" style="background:#1d4ed8;">
+      <input type="submit" value="Related topic only" name="_classify_related_topic" style="background:#7c3aed;">
+      <input type="submit" value="Not related" name="_classify_unrelated" style="background:#b91c1c;">
+      <input type="submit" value="Review later" name="_defer_review" style="background:#64748b;">
+    </div>
+  {% endif %}
+{% endblock %}

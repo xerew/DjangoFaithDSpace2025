@@ -5,7 +5,21 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from authoringtool.models import Scenario, Activity, NextQuestionLogic, Answer, Simulation, ExperimentLL, RemoteLabSession, Phase, Scenario, VRARExperiment, MultilingualAnswer, MultilingualQuestion
+from authoringtool.models import (
+    Scenario,
+    Activity,
+    NextQuestionLogic,
+    Answer,
+    Simulation,
+    ExperimentLL,
+    RemoteLabSession,
+    Phase,
+    VRARExperiment,
+    MultilingualAnswer,
+    MultilingualQuestion,
+    ScenarioImplementation,
+    UserScenarioScore,
+)
 from authoringtool.models import Subject
 from usergroups.models import UserGroupMembership
 import json
@@ -21,11 +35,58 @@ logger = logging.getLogger(__name__)
 @login_required
 def scenario_viewer(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
-    first_activity = scenario.phases.first().activities.first() if scenario.phases.exists() else None
     user = request.user
     is_teacher = user.groups.filter(name="teachers").exists()
+    if not is_teacher and hasattr(scenario, 'revision_draft'):
+        return HttpResponse(
+            (
+                'This scenario is temporarily unavailable while its teacher '
+                'prepares a new published revision. Please try again later.'
+            ),
+            status=503,
+        )
+    first_activity = scenario.get_start_activity()
     if not first_activity:
-        return render(request, 'error_page.html', {'error': 'No activities found in this scenario.'})
+        return HttpResponse(
+            'No activities found in this scenario.',
+            status=404,
+        )
+
+    current_version = scenario.ensure_current_version()
+    implementation = None
+    if not is_teacher:
+        implementation, _ = ScenarioImplementation.start_or_resume(
+            user,
+            scenario,
+        )
+        existing_score = UserScenarioScore.objects.filter(
+            implementation=implementation,
+        ).first()
+        if existing_score is None:
+            transitional_score = (
+                UserScenarioScore.objects
+                .filter(
+                    user=user,
+                    scenario=scenario,
+                    implementation__isnull=True,
+                    scenario_version=current_version,
+                    version_confidence='exact',
+                )
+                .order_by('id')
+                .first()
+            )
+            if transitional_score:
+                transitional_score.implementation = implementation
+                transitional_score.save()
+            else:
+                UserScenarioScore.objects.create(
+                    user=user,
+                    scenario=scenario,
+                    implementation=implementation,
+                    scenario_version=current_version,
+                    version_confidence='exact',
+                    data_quality_status='unreviewed',
+                )
 
     feedback_form_json = None
     if not is_teacher:
@@ -36,7 +97,9 @@ def scenario_viewer(request, scenario_id):
 
     return render(request, 'studentview/scenarioView.html', {
         'activity': first_activity, 'myScenario': scenario, 'user': user,
-        'is_teacher': is_teacher, 'feedback_form_json': feedback_form_json,
+        'is_teacher': is_teacher,
+        'implementation': implementation,
+        'feedback_form_json': feedback_form_json,
     })
 
 @login_required
@@ -138,6 +201,20 @@ def submit_answers(request, scenario_id):
 
 def get_activity(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
+    is_teacher = (
+        request.user.is_authenticated
+        and request.user.groups.filter(name="teachers").exists()
+    )
+    if not is_teacher and hasattr(activity.scenario, 'revision_draft'):
+        return JsonResponse(
+            {
+                'error': (
+                    'This scenario is temporarily unavailable while a new '
+                    'revision is being prepared.'
+                )
+            },
+            status=503,
+        )
     simulation_data = None
     experimentLL_data = None
     vr_ar_data = None

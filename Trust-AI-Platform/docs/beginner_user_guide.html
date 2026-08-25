@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trust AI Lab — Beginner User Guide</title>
+  <style>
+:root {
+  --navy: #0b2556;
+  --blue: #1a56db;
+  --blue-dark: #1e3a8a;
+  --blue-pale: #eff6ff;
+  --ink: #1f2937;
+  --muted: #64748b;
+  --line: #dbe4f0;
+  --green: #15803d;
+  --green-pale: #f0fdf4;
+  --amber: #b45309;
+  --amber-pale: #fffbeb;
+  --red: #b91c1c;
+  --red-pale: #fef2f2;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+  font-size: 10.6pt;
+  line-height: 1.52;
+}
+
+body {
+  margin: 0;
+  background: #eef2f7;
+}
+
+.document {
+  width: 210mm;
+  margin: 0 auto;
+  padding: 16mm 18mm 18mm;
+  background: white;
+  box-shadow: 0 8px 35px rgba(15, 23, 42, .12);
+}
+
+h1, h2, h3 {
+  color: var(--navy);
+  line-height: 1.2;
+  break-after: avoid-page;
+}
+
+h1 {
+  margin: 0 0 5mm;
+  padding-bottom: 2.5mm;
+  font-size: 24pt;
+  border-bottom: 2px solid var(--blue);
+}
+
+h2 {
+  margin: 7mm 0 2.5mm;
+  font-size: 16pt;
+}
+
+h3 {
+  margin: 5mm 0 2mm;
+  font-size: 12.5pt;
+}
+
+p { margin: 0 0 3mm; }
+
+strong { color: #16284b; }
+
+a { color: var(--blue); text-decoration: none; }
+
+ul, ol { margin: 1.5mm 0 3.5mm 6mm; padding-left: 4mm; }
+li { margin: 1.1mm 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0 5mm;
+  font-size: 9.5pt;
+  break-inside: avoid-page;
+}
+
+thead { display: table-header-group; }
+
+th {
+  padding: 2.2mm 2.5mm;
+  color: white;
+  background: var(--blue-dark);
+  border: 1px solid var(--blue-dark);
+  text-align: left;
+}
+
+td {
+  padding: 2.2mm 2.5mm;
+  border: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tbody tr:nth-child(even) td { background: #f8fafc; }
+
+blockquote {
+  margin: 4mm 0;
+  padding: 3mm 4mm;
+  color: #273955;
+  background: var(--amber-pale);
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 6px 6px 0;
+  break-inside: avoid-page;
+}
+
+blockquote p:last-child { margin-bottom: 0; }
+
+code {
+  padding: .2mm 1mm;
+  border-radius: 3px;
+  color: #1e3a8a;
+  background: #eff6ff;
+  font-family: Consolas, monospace;
+  font-size: 9pt;
+}
+
+hr { margin: 7mm 0 4mm; border: 0; border-top: 1px solid var(--line); }
+
+.cover-page {
+  height: 252mm;
+  margin: -16mm -18mm -18mm;
+  padding: 27mm 24mm 22mm;
+  color: white;
+  background:
+    radial-gradient(circle at 82% 20%, rgba(96, 165, 250, .55), transparent 23%),
+    radial-gradient(circle at 15% 80%, rgba(45, 212, 191, .2), transparent 27%),
+    linear-gradient(145deg, #071b3e 0%, #123f8f 55%, #1a56db 100%);
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+}
+
+.cover-page::after {
+  content: "";
+  position: absolute;
+  width: 115mm;
+  height: 115mm;
+  right: -45mm;
+  bottom: -38mm;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 50%;
+  box-shadow: 0 0 0 12mm rgba(255,255,255,.035), 0 0 0 28mm rgba(255,255,255,.025);
+}
+
+.cover-mark {
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  color: #bfdbfe;
+}
+
+.cover-logo {
+  display: block;
+  width: 34mm;
+  height: 34mm;
+  object-fit: contain;
+  margin: 28mm 0 8mm;
+  padding: 4mm;
+  border-radius: 9mm;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+}
+
+.cover-page h1 {
+  max-width: 145mm;
+  margin: 0 0 5mm;
+  padding: 0;
+  color: white;
+  border: 0;
+  font-size: 37pt;
+  letter-spacing: -.6px;
+}
+
+.cover-subtitle {
+  max-width: 145mm;
+  margin: 0;
+  color: #dbeafe;
+  font-size: 18pt;
+  line-height: 1.35;
+}
+
+.cover-flow {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin-top: 24mm;
+  font-size: 9pt;
+  letter-spacing: .8px;
+}
+
+.cover-flow span {
+  padding: 2.5mm 3.5mm;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 20px;
+  background: rgba(255,255,255,.1);
+}
+
+.cover-flow b { color: #93c5fd; font-size: 14pt; }
+
+.cover-meta {
+  position: absolute;
+  left: 24mm;
+  bottom: 23mm;
+  z-index: 1;
+  color: #dbeafe;
+  font-size: 9.5pt;
+  line-height: 1.7;
+}
+
+.cover-meta strong { color: white; margin-right: 2mm; }
+
+.toc {
+  columns: 2;
+  column-gap: 10mm;
+  margin-top: 4mm;
+  padding: 5mm 6mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.toc ul { margin: 0; padding: 0; list-style: none; }
+.toc li { margin: 1.2mm 0; break-inside: avoid; }
+.toc li li { padding-left: 3mm; font-size: 9pt; }
+.toc a { color: #274060; }
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2.2mm;
+  margin: 5mm 0;
+  break-inside: avoid-page;
+}
+
+.process-grid div {
+  min-height: 28mm;
+  padding: 3.5mm;
+  color: #1e3a8a;
+  background: var(--blue-pale);
+  border: 1px solid #bfdbfe;
+  border-top: 4px solid var(--blue);
+  border-radius: 6px;
+}
+
+.process-grid b, .process-grid span { display: block; }
+.process-grid b { font-size: 10pt; margin-bottom: 2mm; }
+.process-grid span { color: #52657c; font-size: 8.5pt; line-height: 1.35; }
+
+.hierarchy {
+  max-width: 135mm;
+  margin: 5mm auto;
+  text-align: center;
+  break-inside: avoid-page;
+}
+
+.h-level {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3mm 5mm;
+  color: white;
+  border-radius: 6px;
+}
+
+.h-level b { color: white; letter-spacing: .7px; }
+.h-level span { font-size: 9pt; }
+.h-one { background: #0b2556; }
+.h-two { margin: 0 8mm; background: #1e40af; }
+.h-three { margin: 0 16mm; background: #2563eb; }
+.h-four { margin: 0 24mm; background: #0f766e; }
+.h-arrow { height: 7mm; color: #94a3b8; font-size: 15pt; }
+
+.route-diagram {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3mm;
+  margin: 4mm 0;
+  padding: 5mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  break-inside: avoid-page;
+}
+
+.route-diagram span, .branch-root {
+  padding: 2.5mm 4mm;
+  color: #1e3a8a;
+  background: white;
+  border: 1.5px solid #93c5fd;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.route-diagram b { color: var(--blue); font-size: 15pt; }
+
+.branch-diagram {
+  display: grid;
+  grid-template-columns: 38mm 1fr;
+  align-items: center;
+  gap: 8mm;
+  margin: 4mm 0;
+  padding: 5mm;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  break-inside: avoid-page;
+}
+
+.branch-root { text-align: center; }
+.branch-lines div { margin: 2mm 0; padding: 2mm 3mm; border-left: 3px solid var(--blue); background: white; }
+.branch-lines b { display: inline-block; min-width: 20mm; }
+
+.task-list-item { list-style: none; margin-left: -5mm; }
+.task-list-item input { margin-right: 2mm; accent-color: var(--blue); }
+
+.page-break { break-before: page; height: 0; }
+
+@page {
+  size: A4;
+  margin: 14mm 15mm 16mm;
+}
+
+@media print {
+  html { font-size: 9.7pt; }
+  body { background: white; }
+  .document { width: auto; margin: 0; padding: 0; box-shadow: none; }
+  .cover-page {
+    height: 268mm;
+    margin: -14mm -15mm -16mm;
+    padding: 27mm 24mm 22mm;
+  }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 15pt; }
+  h3 { font-size: 11.5pt; }
+  a { color: inherit; }
+  table, blockquote, .process-grid, .hierarchy, .route-diagram, .branch-diagram { break-inside: avoid; }
+  p, li { orphans: 3; widows: 3; }
+}
+</style>
+</head>
+<body>
+  <article class="document"><div class="cover-page">
+  <div class="cover-mark">BEGINNER USER GUIDE</div>
+  <img class="cover-logo" src="../static/img/logo.png" alt="Trust AI Lab logo">
+  <h1>Trust AI Lab</h1>
+  <p class="cover-subtitle">Create, deliver, and improve inquiry-based learning scenarios</p>
+  <div class="cover-flow">
+    <span>AUTHOR</span><b>→</b><span>DELIVER</span><b>→</b><span>ANALYSE</span><b>→</b><span>IMPROVE</span>
+  </div>
+  <div class="cover-meta">
+    <strong>Audience</strong> Learners, teachers, organization administrators, and platform administrators<br>
+    <strong>Edition</strong> July 2026 &nbsp;·&nbsp; English
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<h1 id="welcome">Welcome</h1>
+<p>Trust AI Lab is a learning platform for building and running inquiry-based scenarios. A teacher can combine explanatory content, questions, simulations, remote laboratories, and VR/AR activities into a route through a lesson. Learner activity is then summarised in dashboards, risk indicators, and optional AI-assisted recommendations.</p>
+<p>This guide is written for a first-time user. Begin with the <strong>Quick start</strong> for your role, then return to the detailed sections when you need them.</p>
+<blockquote>
+<p><strong>Important:</strong> The menus you see depend on your account role. If an item described here is missing, it may not be enabled for your role or organization. Ask your local platform administrator before assuming something is broken.</p>
+</blockquote>
+<h2 id="the-platform-in-one-picture">The platform in one picture</h2>
+<div class="process-grid">
+  <div><b>1. Design</b><span>Scenario → phases → activities</span></div>
+  <div><b>2. Connect</b><span>Answers and performance routes</span></div>
+  <div><b>3. Deliver</b><span>Student View and student groups</span></div>
+  <div><b>4. Learn</b><span>Dashboards and activity risk</span></div>
+  <div><b>5. Improve</b><span>Review AI proposals and create a copy</span></div>
+</div>
+
+<h2 id="contents">Contents</h2>
+<div class="toc">
+<ul>
+<li><a href="#welcome">Welcome</a><ul>
+<li><a href="#the-platform-in-one-picture">The platform in one picture</a></li>
+<li><a href="#contents">Contents</a></li>
+</ul>
+</li>
+<li><a href="#1-roles-and-access">1. Roles and access</a><ul>
+<li><a href="#sign-in">Sign in</a></li>
+<li><a href="#main-navigation">Main navigation</a></li>
+</ul>
+</li>
+<li><a href="#2-quick-start">2. Quick start</a><ul>
+<li><a href="#teacher-publish-a-small-scenario">Teacher: publish a small scenario</a></li>
+<li><a href="#teacher-run-it-with-a-class">Teacher: run it with a class</a></li>
+<li><a href="#learner-complete-a-scenario">Learner: complete a scenario</a></li>
+</ul>
+</li>
+<li><a href="#3-understand-scenario-structure">3. Understand scenario structure</a><ul>
+<li><a href="#scenario">Scenario</a></li>
+<li><a href="#phase">Phase</a></li>
+<li><a href="#activity">Activity</a></li>
+<li><a href="#answers-and-routes">Answers and routes</a></li>
+</ul>
+</li>
+<li><a href="#4-create-and-edit-a-scenario">4. Create and edit a scenario</a><ul>
+<li><a href="#find-an-existing-scenario">Find an existing scenario</a></li>
+<li><a href="#create-manually">Create manually</a></li>
+<li><a href="#import-from-a-template">Import from a template</a></li>
+<li><a href="#export-and-backup">Export and backup</a></li>
+<li><a href="#add-rag-documents">Add RAG documents</a></li>
+</ul>
+</li>
+<li><a href="#5-build-reliable-learning-routes">5. Build reliable learning routes</a><ul>
+<li><a href="#direct-route">Direct route</a></li>
+<li><a href="#answer-based-route">Answer-based route</a></li>
+<li><a href="#performance-based-route">Performance-based route</a></li>
+<li><a href="#route-quality-checklist">Route quality checklist</a></li>
+</ul>
+</li>
+<li><a href="#6-visibility-sharing-and-organizations">6. Visibility, sharing, and organizations</a><ul>
+<li><a href="#organizations">Organizations</a></li>
+<li><a href="#messages">Messages</a></li>
+</ul>
+</li>
+<li><a href="#7-student-groups-and-classroom-delivery">7. Student groups and classroom delivery</a><ul>
+<li><a href="#create-a-group">Create a group</a></li>
+<li><a href="#handle-credentials-safely">Handle credentials safely</a></li>
+<li><a href="#edit-a-group">Edit a group</a></li>
+<li><a href="#before-the-session">Before the session</a></li>
+</ul>
+</li>
+<li><a href="#8-learner-guide">8. Learner guide</a><ul>
+<li><a href="#find-your-scenario">Find your scenario</a></li>
+<li><a href="#start-and-progress">Start and progress</a></li>
+<li><a href="#restart-or-leave">Restart or leave</a></li>
+<li><a href="#submit-feedback">Submit feedback</a></li>
+<li><a href="#if-something-goes-wrong">If something goes wrong</a></li>
+</ul>
+</li>
+<li><a href="#9-dashboard-and-analytics">9. Dashboard and analytics</a><ul>
+<li><a href="#export-learner-metrics">Export learner metrics</a></li>
+<li><a href="#interpret-responsibly">Interpret responsibly</a></li>
+</ul>
+</li>
+<li><a href="#10-metrics-risk-and-ai-proposals">10. Metrics, risk, and AI proposals</a><ul>
+<li><a href="#understand-proposal-actions">Understand proposal actions</a></li>
+<li><a href="#review-proposals">Review proposals</a></li>
+<li><a href="#proposal-history">Proposal history</a></li>
+</ul>
+</li>
+<li><a href="#11-feedback-profile-and-account-settings">11. Feedback, profile, and account settings</a><ul>
+<li><a href="#feedback-forms">Feedback forms</a></li>
+<li><a href="#update-your-profile">Update your profile</a></li>
+<li><a href="#change-your-password">Change your password</a></li>
+<li><a href="#sign-out">Sign out</a></li>
+</ul>
+</li>
+<li><a href="#12-administrator-essentials">12. Administrator essentials</a><ul>
+<li><a href="#platform-administration">Platform administration</a></li>
+<li><a href="#scenario-health">Scenario health</a></li>
+<li><a href="#ai-controls">AI controls</a></li>
+</ul>
+</li>
+<li><a href="#13-troubleshooting">13. Troubleshooting</a></li>
+<li><a href="#14-checklists-and-glossary">14. Checklists and glossary</a><ul>
+<li><a href="#teacher-pre-publication-checklist">Teacher pre-publication checklist</a></li>
+<li><a href="#post-session-checklist">Post-session checklist</a></li>
+<li><a href="#glossary">Glossary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="page-break"></div>
+
+<h1 id="1-roles-and-access">1. Roles and access</h1>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Typical access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Learner / student</strong></td>
+<td>Browse assigned or visible scenarios, complete activities and pre-scenario questions, submit feedback.</td>
+</tr>
+<tr>
+<td><strong>Teacher</strong></td>
+<td>Everything needed to create scenarios, create student groups, run scenarios, view analytics, review AI proposals, message colleagues, and join organizations.</td>
+</tr>
+<tr>
+<td><strong>Organization administrator</strong></td>
+<td>Manage an organization's details, members, join requests, announcements, and organization chat.</td>
+</tr>
+<tr>
+<td><strong>Platform administrator</strong></td>
+<td>Manage users and roles, the experiment/lab catalogue, platform health, and AI recommendation controls.</td>
+</tr>
+</tbody>
+</table>
+<p>Your account can have more than one responsibility. For example, a teacher may also administer an organization.</p>
+<h2 id="sign-in">Sign in</h2>
+<ol>
+<li>Open the platform address supplied by your school or administrator.</li>
+<li>Enter your <strong>username</strong> and <strong>password</strong>, then select <strong>Sign In</strong>.</li>
+<li>If you have forgotten your password, choose the password-reset link and follow the email instructions.</li>
+<li>If a generated student account has never signed in before, use the initial password supplied by the teacher.</li>
+</ol>
+<blockquote>
+<p><strong>Security tip:</strong> Do not share an account. Change an initial password after the first sign-in, and sign out on shared computers.</p>
+</blockquote>
+<h2 id="main-navigation">Main navigation</h2>
+<p>Use the menu button at the top left to collapse or open the sidebar. Teachers normally see:</p>
+<table>
+<thead>
+<tr>
+<th>Menu</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Home</strong></td>
+<td>Welcome page, recent public scenarios, and shortcuts.</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>Scenario analytics, group/date filters, charts, and CSV export.</td>
+</tr>
+<tr>
+<td><strong>Authoring Tool</strong></td>
+<td>Find, create, import, edit, duplicate, export, and delete scenarios.</td>
+</tr>
+<tr>
+<td><strong>Student Groups</strong></td>
+<td>Generate student accounts and assign scenarios.</td>
+</tr>
+<tr>
+<td><strong>Student View</strong></td>
+<td>Experience a scenario as a learner would.</td>
+</tr>
+<tr>
+<td><strong>Documentation &amp; Tutorials</strong></td>
+<td>Guides and support resources.</td>
+</tr>
+</tbody>
+</table>
+<p>The profile menu at the top right contains <strong>Messages</strong>, <strong>Account Settings</strong>, <strong>Organizations</strong>, administrator tools when permitted, and <strong>Sign Out</strong>.</p>
+<div class="page-break"></div>
+
+<h1 id="2-quick-start">2. Quick start</h1>
+<h2 id="teacher-publish-a-small-scenario">Teacher: publish a small scenario</h2>
+<p>For your first attempt, build a short private scenario with one phase, one content activity, and one question.</p>
+<ol>
+<li>Go to <strong>Authoring Tool</strong> and select <strong>Create Scenario</strong>.</li>
+<li>Choose <strong>Manual Setup</strong>.</li>
+<li>Enter a unique name, description, learning goals, student age range, subjects, language, and suggested learning time.</li>
+<li>Save the scenario. New scenarios are private by default.</li>
+<li>Open it and select <strong>Add Phase</strong>. Give the phase a meaningful name such as “Explore”.</li>
+<li>Open the phase and select <strong>Create Activity</strong>.</li>
+<li>Create a short content activity and choose its <strong>Next Activity</strong> as <strong>Create New Activity</strong>.</li>
+<li>Edit the new activity, change its type to <strong>Question</strong>, and write the question in <strong>Content</strong>.</li>
+<li>Open the question, choose <strong>Create Answers</strong>, add the answer options, set weights, and mark exactly one answer as correct.</li>
+<li>Open <strong>Student View</strong>, find your scenario, and complete it from start to finish.</li>
+<li>Return to <strong>Authoring Tool → Edit Scenario</strong> and choose the visibility you need.</li>
+</ol>
+<blockquote>
+<p><strong>Beginner rule:</strong> Test while the scenario is still <strong>Private</strong>. Make it organization-visible or public only after every route has been tried.</p>
+</blockquote>
+<h2 id="teacher-run-it-with-a-class">Teacher: run it with a class</h2>
+<ol>
+<li>Open <strong>Student Groups → Create New Group</strong>.</li>
+<li>Enter a group name, a username prefix, and the number of student accounts.</li>
+<li>Assign the scenario to the group and save.</li>
+<li>Download the credentials and distribute each username/password privately.</li>
+<li>Ask learners to sign in, open <strong>Student View</strong>, and start the assigned scenario.</li>
+<li>After the session, open <strong>Dashboard</strong>, select the scenario and group, and choose <strong>Apply</strong>.</li>
+</ol>
+<h2 id="learner-complete-a-scenario">Learner: complete a scenario</h2>
+<ol>
+<li>Sign in with the credentials supplied by your teacher.</li>
+<li>Open <strong>Student View</strong>.</li>
+<li>Search or filter for the assigned scenario, then select <strong>Start</strong>.</li>
+<li>If pre-scenario questions appear, answer them and confirm submission.</li>
+<li>Select <strong>I am ready</strong> and follow each activity.</li>
+<li>Read any feedback before moving on. Some answers lead to different next activities.</li>
+<li>Use <strong>Restart</strong> only when you intend to begin the scenario again.</li>
+</ol>
+<div class="page-break"></div>
+
+<h1 id="3-understand-scenario-structure">3. Understand scenario structure</h1>
+<p>A scenario is not simply a list of pages. It is a connected learning route.</p>
+<div class="hierarchy">
+  <div class="h-level h-one"><b>SCENARIO</b><span>Purpose, audience, visibility, and entry activity</span></div>
+  <div class="h-arrow">↓</div>
+  <div class="h-level h-two"><b>PHASES</b><span>Major stages of the inquiry process</span></div>
+  <div class="h-arrow">↓</div>
+  <div class="h-level h-three"><b>ACTIVITIES</b><span>Content, questions, experiments, and evaluations</span></div>
+  <div class="h-arrow">↓</div>
+  <div class="h-level h-four"><b>ROUTES</b><span>Next activity selected directly, by answer, or by performance</span></div>
+</div>
+
+<h2 id="scenario">Scenario</h2>
+<p>The scenario holds the lesson-wide information: name, description, learning goals, student age range, subjects, language, suggested time, cover image, visibility, and organizations.</p>
+<p>The first activity created is automatically used as the scenario's starting point unless an administrator configures another entry activity.</p>
+<h2 id="phase">Phase</h2>
+<p>A phase groups related activities. Use phases to express the teaching design rather than to create arbitrary folders. A common inquiry sequence is:</p>
+<ol>
+<li>Orientation or engagement</li>
+<li>Conceptualisation</li>
+<li>Investigation or exploration</li>
+<li>Conclusion</li>
+<li>Discussion or reflection</li>
+</ol>
+<p>The interface permits up to five phases per scenario.</p>
+<h2 id="activity">Activity</h2>
+<p>An activity is one learner-facing step. Important activity options include:</p>
+<ul>
+<li><strong>Name</strong> — short and identifiable in routes and reports.</li>
+<li><strong>Content</strong> — the instructions, explanation, question, images, and other rich text shown to learners.</li>
+<li><strong>Activity Type</strong> — determines behaviour, such as a Question or Experiment.</li>
+<li><strong>Helping Quote</strong> — optional guidance for learners.</li>
+<li><strong>Evaluatable Activity</strong> — calculates a performance result from selected activities.</li>
+<li><strong>Next Activity</strong> — the direct route for a normal, non-question activity.</li>
+</ul>
+<p>For an <strong>Experiment</strong>, choose the relevant subtype and catalogue entry: Simulation, Remote Lab, or VR/AR Lab. Preview the selected resource before saving.</p>
+<h2 id="answers-and-routes">Answers and routes</h2>
+<p>Question activities need answer options. Each answer has:</p>
+<ul>
+<li>answer text;</li>
+<li>a weight from 1 to 3;</li>
+<li>a correct/incorrect setting; and</li>
+<li>for non-evaluatable questions, an optional next activity.</li>
+</ul>
+<p>Exactly one answer must be marked correct in the answer editor. Different answers can point to different next activities, which creates adaptive branches.</p>
+<blockquote>
+<p><strong>Route rule:</strong> A question without answers is incomplete. An answer without a next route may intentionally finish a branch, but check that this is really what you want.</p>
+</blockquote>
+<div class="page-break"></div>
+
+<h1 id="4-create-and-edit-a-scenario">4. Create and edit a scenario</h1>
+<h2 id="find-an-existing-scenario">Find an existing scenario</h2>
+<p>Open <strong>Authoring Tool</strong>. You can search by name, description, or creator and filter by date, language, subject, visibility, or <strong>Show My Scenarios</strong>.</p>
+<p>Each scenario card offers actions according to your permissions:</p>
+<ul>
+<li><strong>View</strong> — open its details and phases.</li>
+<li><strong>Duplicate</strong> — create an editable copy.</li>
+<li><strong>Edit</strong> — change scenario-level information and visibility.</li>
+<li><strong>Delete</strong> — permanently remove the scenario; confirm carefully.</li>
+</ul>
+<h2 id="create-manually">Create manually</h2>
+<p>Select <strong>Create Scenario → Manual Setup</strong> and complete the required fields. Prefer a unique, descriptive name such as “Pendulum Investigation — Ages 13–15” rather than “Physics Lesson”.</p>
+<p>After saving:</p>
+<ol>
+<li>Add the phases.</li>
+<li>Open each phase and add its activities.</li>
+<li>Connect normal activities with <strong>Next Activity</strong>.</li>
+<li>Add answers and answer routes to questions.</li>
+<li>Configure evaluation criteria where used.</li>
+<li>Preview in <strong>Student View</strong>.</li>
+</ol>
+<h2 id="import-from-a-template">Import from a template</h2>
+<p>Select <strong>Create Scenario → Upload Template</strong> for a faster, spreadsheet-based setup.</p>
+<ul>
+<li>Download the blank <code>.xlsx</code> template, fill it in without renaming or removing required sheets/columns, then upload it.</li>
+<li>To include images, upload a <code>.zip</code> containing the spreadsheet at the ZIP root and images inside an <code>images/</code> folder.</li>
+<li>An optional scenario cover image can be uploaded separately.</li>
+<li>If validation errors appear, correct every listed sheet/row/column issue and upload again.</li>
+</ul>
+<p>An exported platform ZIP already has the expected structure and is the safest starting point for a complex scenario.</p>
+<h2 id="export-and-backup">Export and backup</h2>
+<p>Open a scenario and select <strong>Export Scenario</strong>. The downloaded ZIP contains an Excel representation and its images. Export before major restructuring so you have a restorable copy.</p>
+<h2 id="add-rag-documents">Add RAG documents</h2>
+<p>Scenario owners can add PDF reference documents in the <strong>RAG Documents</strong> area. These documents provide scenario-specific context to AI generation. Only upload material you are authorised to use and review or delete outdated documents before regenerating AI context.</p>
+<div class="page-break"></div>
+
+<h1 id="5-build-reliable-learning-routes">5. Build reliable learning routes</h1>
+<h2 id="direct-route">Direct route</h2>
+<p>Use <strong>Next Activity</strong> on a normal content or experiment activity.</p>
+<div class="route-diagram"><span>Introduction</span><b>→</b><span>Simulation</span><b>→</b><span>Reflection</span></div>
+
+<h2 id="answer-based-route">Answer-based route</h2>
+<p>Use the <strong>Next Activity</strong> selector beside each question answer.</p>
+<div class="branch-diagram">
+  <div class="branch-root">Question</div>
+  <div class="branch-lines">
+    <div><b>Correct</b><span>→ Extension activity</span></div>
+    <div><b>Incorrect</b><span>→ Hint and retry activity</span></div>
+  </div>
+</div>
+
+<h2 id="performance-based-route">Performance-based route</h2>
+<p>Turn on <strong>Evaluatable Activity</strong>, choose the activities to evaluate, and optionally mark it as the phase's <strong>Primary Evaluation</strong>. In <strong>Create Evaluation Criterion</strong>, choose the next activity for High, Moderate, and Low performers.</p>
+<p>The route uses average answer weight from 1 to 3:</p>
+<ul>
+<li><strong>High</strong> — average weight at or above the High threshold (default recommendation: 2.5).</li>
+<li><strong>Moderate</strong> — average weight at or above the Moderate threshold (default recommendation: 1.5).</li>
+<li><strong>Low</strong> — everyone below the Moderate threshold.</li>
+</ul>
+<h2 id="route-quality-checklist">Route quality checklist</h2>
+<ul>
+<li>[ ] The first activity introduces the task and does not assume earlier context.</li>
+<li>[ ] Every Question activity contains answers.</li>
+<li>[ ] Exactly one answer is marked correct where required.</li>
+<li>[ ] Every intended branch has a next activity.</li>
+<li>[ ] Remediation branches return to the main flow or end deliberately.</li>
+<li>[ ] Evaluation thresholds are ordered High &gt; Moderate &gt; Low.</li>
+<li>[ ] There are no accidental loops.</li>
+<li>[ ] Every activity can be reached from the start.</li>
+<li>[ ] Every end point gives learners a clear completion message.</li>
+</ul>
+<blockquote>
+<p><strong>Safe editing habit:</strong> After deleting or moving an activity, retest every route that previously entered or left it.</p>
+</blockquote>
+<div class="page-break"></div>
+
+<h1 id="6-visibility-sharing-and-organizations">6. Visibility, sharing, and organizations</h1>
+<p>Edit a scenario to choose its visibility:</p>
+<table>
+<thead>
+<tr>
+<th>Visibility</th>
+<th>Who can see it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Private — only you</strong></td>
+<td>Best while authoring and testing.</td>
+</tr>
+<tr>
+<td><strong>Organization — selected organizations</strong></td>
+<td>Members of selected organizations. You may also allow organization members to edit it.</td>
+</tr>
+<tr>
+<td><strong>Public — everyone</strong></td>
+<td>All eligible platform users. Personalised AI-created copies cannot be made public.</td>
+</tr>
+</tbody>
+</table>
+<p>When using organization visibility, select the organizations explicitly. Enabling <strong>Allow organization members to edit this scenario</strong> gives collaborators significant control, so use it only with a trusted authoring group.</p>
+<h2 id="organizations">Organizations</h2>
+<p>Open the profile menu and choose <strong>Organizations</strong>. Depending on permissions, users can:</p>
+<ul>
+<li>browse organizations and request to join;</li>
+<li>view members and announcements;</li>
+<li>use organization chat;</li>
+<li>create or edit an organization;</li>
+<li>add, promote, demote, or remove members; and</li>
+<li>approve or reject join requests.</li>
+</ul>
+<p>Organization administrators should post important changes as announcements and use chat for discussion. Do not place student passwords or sensitive learner data in announcements or chat.</p>
+<h2 id="messages">Messages</h2>
+<p>Teachers can open <strong>Messages</strong> from the profile menu. Start a conversation from a colleague's profile or an organization's member list. A badge and notification toast indicate unread messages.</p>
+<div class="page-break"></div>
+
+<h1 id="7-student-groups-and-classroom-delivery">7. Student groups and classroom delivery</h1>
+<h2 id="create-a-group">Create a group</h2>
+<ol>
+<li>Go to <strong>Student Groups</strong> and select <strong>Create New Group</strong>.</li>
+<li>Enter a recognisable group name.</li>
+<li>Enter a <strong>User Prefix</strong>. The platform uses it when generating usernames.</li>
+<li>Enter the number of students.</li>
+<li>Select one or more scenarios to assign.</li>
+<li>Save the group.</li>
+</ol>
+<p>The group page shows generated usernames and initial passwords. Select <strong>Download Credentials</strong> to save a copy.</p>
+<h2 id="handle-credentials-safely">Handle credentials safely</h2>
+<ul>
+<li>Give each learner only their own credentials.</li>
+<li>Avoid projecting the full credentials table in class.</li>
+<li>Store downloaded credential files securely and delete local copies when no longer needed.</li>
+<li>Ask students to change initial passwords where your deployment allows it.</li>
+<li>Never include passwords in analytics exports or public documents.</li>
+</ul>
+<h2 id="edit-a-group">Edit a group</h2>
+<p>Use <strong>Edit Group</strong> to change its name, number of students, or assigned scenarios. Review credential changes after increasing the group size. Deleting a group is a destructive action; download any records you need first.</p>
+<h2 id="before-the-session">Before the session</h2>
+<ol>
+<li>Complete the scenario yourself in Student View.</li>
+<li>Test embedded simulations/labs on the classroom network and devices.</li>
+<li>Verify the scenario is assigned to the correct group.</li>
+<li>Check that student accounts can sign in.</li>
+<li>Decide whether learners may restart.</li>
+<li>Keep a short offline activity ready in case an external lab is unavailable.</li>
+</ol>
+<div class="page-break"></div>
+
+<h1 id="8-learner-guide">8. Learner guide</h1>
+<h2 id="find-your-scenario">Find your scenario</h2>
+<p>Open <strong>Student View</strong>. Search by name or filter by language and subject. Only scenarios visible to you or assigned through your group should appear.</p>
+<h2 id="start-and-progress">Start and progress</h2>
+<ol>
+<li>Select <strong>Start</strong> on the scenario card.</li>
+<li>Complete any pre-scenario form and confirm before submission.</li>
+<li>On the introduction screen, select <strong>I am ready</strong>.</li>
+<li>Read the activity name and content fully.</li>
+<li>For a question, choose the answer that best fits and submit it.</li>
+<li>For an experiment, follow its instructions and wait for the resource to load.</li>
+<li>Read feedback and continue to the next activity.</li>
+</ol>
+<p>Your route may differ from another learner's because answers and performance can lead to different activities. This is expected.</p>
+<h2 id="restart-or-leave">Restart or leave</h2>
+<p><strong>Restart</strong> begins the scenario again. Use it only when instructed, because a restart can affect the attempt history. To work on another scenario, return to the scenario list.</p>
+<h2 id="submit-feedback">Submit feedback</h2>
+<p>An active feedback form may appear before, during, or after a scenario. Required questions must be completed. Feedback helps improve the learning experience; do not include passwords or unnecessary personal information.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul>
+<li>Refresh once if an activity remains blank.</li>
+<li>Allow required pop-ups, camera, microphone, or VR permissions only for a trusted lab activity.</li>
+<li>If a simulation or remote lab fails, note the scenario and activity names and tell your teacher.</li>
+<li>Do not repeatedly submit the same answer while the page shows a loading state.</li>
+</ul>
+<div class="page-break"></div>
+
+<h1 id="9-dashboard-and-analytics">9. Dashboard and analytics</h1>
+<p>The teacher <strong>Dashboard</strong> summarises learner activity. First select a scenario. Optionally select student groups and a date range, then choose <strong>Apply</strong>.</p>
+<p>Common reports include:</p>
+<ul>
+<li>student flow through the scenario;</li>
+<li>activity answer distributions;</li>
+<li>performance overview;</li>
+<li>average time per activity or phase;</li>
+<li>detailed phase scores;</li>
+<li>numbers of Low, Moderate, and High performers;</li>
+<li>time by performer type; and</li>
+<li>most common scenario and phase paths.</li>
+</ul>
+<p>Charts may take a few seconds to generate. Keep the page open while the loading message is visible.</p>
+<h2 id="export-learner-metrics">Export learner metrics</h2>
+<p>Choose <strong>Generate &amp; Download CSV</strong> after selecting a scenario. You can include per-activity scores and timing. Treat the CSV as sensitive educational data: store it securely, share it only with authorised people, and follow your institution's retention policy.</p>
+<h2 id="interpret-responsibly">Interpret responsibly</h2>
+<p>Analytics show patterns, not motives. A long time on an activity may mean productive investigation, unclear instructions, a technical problem, or distraction. Combine chart evidence with classroom observation and learner feedback before changing instruction.</p>
+<div class="page-break"></div>
+
+<h1 id="10-metrics-risk-and-ai-proposals">10. Metrics, risk, and AI proposals</h1>
+<p>Open a scenario and choose <strong>Metrics &amp; AI</strong>. Depending on your permission, the page provides up to four related actions:</p>
+<p>Any teacher who can access a public or organization-visible scenario can open its Metrics &amp; AI page, view its metrics, review the current shared proposals, and create a personalised scenario from their own decisions. Proposal decisions and edits are stored separately for each teacher. Only the original scenario creator and platform administrators can use <strong>Generate LLM Context</strong> or <strong>Regenerate All Context</strong> to create a new proposal set.</p>
+<ol>
+<li><strong>Performance Metrics</strong> — calculate category-level performance.</li>
+<li><strong>Activities in Risk</strong> — identify activities with concerning patterns.</li>
+<li><strong>Generate LLM Context</strong> — analyse activities not processed previously and generate proposals.</li>
+<li><strong>Regenerate All Context</strong> — intentionally rerun analysis for all activities.</li>
+</ol>
+<p>The platform warns when the scenario has fewer than its configured minimum implementations (200 by default). Low-data metrics and proposals may be unstable, so treat them as exploratory.</p>
+<h2 id="understand-proposal-actions">Understand proposal actions</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Create</strong></td>
+<td>Insert a new supporting activity after an existing activity. A proposal is not inserted before the scenario's start activity.</td>
+</tr>
+<tr>
+<td><strong>Revise</strong></td>
+<td>Change the content or structure of an existing activity.</td>
+</tr>
+<tr>
+<td><strong>Skip</strong></td>
+<td>Recommend no content change for that risk signal.</td>
+</tr>
+</tbody>
+</table>
+<p>The proposal card shows the risk category, activity, proposed content, answer options where relevant, explanation, and an insertion preview for Create proposals.</p>
+<h2 id="review-proposals">Review proposals</h2>
+<p>For every proposal:</p>
+<ol>
+<li>Read the activity, proposal type, explanation, content, and routes.</li>
+<li>For a Question proposal, verify that answer choices are present, clearly lettered (for example, <strong>A. Answer text</strong>), and that exactly one is correct.</li>
+<li>Select <strong>Edit</strong> to correct the name, content, explanation, or answers before deciding.</li>
+<li>Select <strong>Accept</strong> only when the proposal is pedagogically appropriate and structurally complete.</li>
+<li>Select <strong>Reject</strong> and choose the closest reason when it should not be used.</li>
+</ol>
+<p>Proposal states are personal to the reviewer:</p>
+<ul>
+<li><strong>Pending</strong> — no final decision.</li>
+<li><strong>Accepted</strong> — will be applied to the personalised copy.</li>
+<li><strong>Rejected</strong> — will not be applied.</li>
+<li><strong>Undo Accept</strong> or <strong>Undo Reject</strong> — returns the proposal to <strong>Pending</strong>; it does not switch directly to the opposite decision.</li>
+</ul>
+<p>When all proposals have been reviewed, select <strong>Create Personalised Scenario</strong>. The platform creates a private copy and applies your accepted proposals. The original scenario remains unchanged. Creation runs in the background, so allow a short delay before looking for the copy in Authoring Tool.</p>
+<blockquote>
+<p><strong>Human-review rule:</strong> AI output is a draft, never an automatic teaching decision. Check factual accuracy, age appropriateness, accessibility, answer correctness, routes, and source permissions.</p>
+</blockquote>
+<h2 id="proposal-history">Proposal history</h2>
+<p>Use <strong>History</strong> to inspect previous generation runs and see how proposals were decided at that time. Regenerating proposals starts a new current set; history helps you compare runs without mixing them.</p>
+<div class="page-break"></div>
+
+<h1 id="11-feedback-profile-and-account-settings">11. Feedback, profile, and account settings</h1>
+<h2 id="feedback-forms">Feedback forms</h2>
+<p>Authorised users can create feedback forms, choose the audience, add required or optional questions, assign forms to all or selected scenarios, and activate them. Responses can be reviewed and exported as CSV or XLSX.</p>
+<p>Use concise questions and collect only information needed for a clear teaching or evaluation purpose.</p>
+<h2 id="update-your-profile">Update your profile</h2>
+<p>Open the profile menu and choose <strong>Account Settings</strong>. The profile area can contain your name, email, username, country, gender, institution, profile picture, and short biography. Save changes before leaving the tab.</p>
+<h2 id="change-your-password">Change your password</h2>
+<p>Open the <strong>Change Password</strong> tab, enter the current password, then enter and confirm a new password. Use a long, unique password that is not used on another service.</p>
+<h2 id="sign-out">Sign out</h2>
+<p>Always use <strong>Sign Out</strong> from the profile menu when using a shared or classroom computer. Closing a browser tab may leave the session active.</p>
+<div class="page-break"></div>
+
+<h1 id="12-administrator-essentials">12. Administrator essentials</h1>
+<p>This section is a short orientation, not a replacement for your institution's governance procedures.</p>
+<h2 id="platform-administration">Platform administration</h2>
+<p>Authorised administrators can manage:</p>
+<ul>
+<li>user accounts, roles, activation state, and safe impersonation for support;</li>
+<li>simulations, remote labs, and VR/AR lab catalogue entries;</li>
+<li>scenario start activities and scenario graph health;</li>
+<li>structural AI-generation failures; and</li>
+<li>recommendation policy and bandit statistics, including action/context reward counts and algorithm controls.</li>
+</ul>
+<p>When impersonating a user, the orange banner indicates that you are viewing the platform as that person. Select <strong>Exit Impersonation</strong> immediately after support work.</p>
+<h2 id="scenario-health">Scenario health</h2>
+<p>Before applying AI proposals or publishing a complex scenario, check for:</p>
+<ul>
+<li>a missing or invalid start activity;</li>
+<li>unreachable activities;</li>
+<li>questions with no answers;</li>
+<li>missing answer routes;</li>
+<li>routes pointing outside the scenario;</li>
+<li>unintended cycles; and</li>
+<li>branches that terminate unexpectedly.</li>
+</ul>
+<p>Structural generation failures should be recorded separately from pedagogical rejection. A malformed AI response is a system-quality issue, not evidence that the teacher disliked a valid teaching suggestion.</p>
+<h2 id="ai-controls">AI controls</h2>
+<p>Recommendation statistics should be monitored by action and context. Early exploration policy and mature UCB/Thompson behaviour affect which actions are sampled, but teachers must always retain the final decision. Change these controls only with an evaluation plan and document the previous values.</p>
+<div class="page-break"></div>
+
+<h1 id="13-troubleshooting">13. Troubleshooting</h1>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>What to try</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>I cannot sign in</strong></td>
+<td>Check Caps Lock and username spelling. Use password reset if available; generated student accounts should ask the teacher to verify the credential.</td>
+</tr>
+<tr>
+<td><strong>A menu is missing</strong></td>
+<td>Your role may not have access. Ask an administrator to check role/group membership.</td>
+</tr>
+<tr>
+<td><strong>My scenario is not in Student View</strong></td>
+<td>Check its visibility, organization selection, and student-group assignment.</td>
+</tr>
+<tr>
+<td><strong>A question shows no choices</strong></td>
+<td>Return to Authoring Tool, open the question activity, and create or repair its answers.</td>
+</tr>
+<tr>
+<td><strong>The learner reaches a dead end</strong></td>
+<td>Check the current activity's direct route or every answer's Next Activity. Confirm that the end was not accidental.</td>
+</tr>
+<tr>
+<td><strong>An embedded experiment is blank</strong></td>
+<td>Test the catalogue entry, browser permissions, network access, and external service availability. Try its fallback/open link if shown.</td>
+</tr>
+<tr>
+<td><strong>An import fails</strong></td>
+<td>Use the downloaded blank template, preserve sheet/column names, and correct each reported row/column error. For ZIPs, keep the <code>.xlsx</code> at the root.</td>
+</tr>
+<tr>
+<td><strong>Dashboard charts stay empty</strong></td>
+<td>Select a scenario and Apply. Broaden the date range, remove group filters, and confirm that learners have completed activities.</td>
+</tr>
+<tr>
+<td><strong>Metrics/AI results look unreliable</strong></td>
+<td>Check the implementation count. Below the configured threshold, use results only as weak evidence.</td>
+</tr>
+<tr>
+<td><strong>AI generation fails or produces malformed content</strong></td>
+<td>Keep the proposal Pending or reject it as structurally invalid, then ask an administrator to inspect the LLM endpoint and structural-failure logs.</td>
+</tr>
+<tr>
+<td><strong>A personalised scenario does not appear immediately</strong></td>
+<td>It is created in the background. Wait briefly, refresh Authoring Tool, then ask an administrator to check the worker if it never appears.</td>
+</tr>
+<tr>
+<td><strong>My change was not saved</strong></td>
+<td>Look for a validation message, required field, or loading state. Avoid double-clicking Submit.</td>
+</tr>
+</tbody>
+</table>
+<p>When reporting a problem, include the page, scenario name, activity name, approximate time, what you expected, what happened, and a screenshot that does not expose credentials or private learner data.</p>
+<div class="page-break"></div>
+
+<h1 id="14-checklists-and-glossary">14. Checklists and glossary</h1>
+<h2 id="teacher-pre-publication-checklist">Teacher pre-publication checklist</h2>
+<ul>
+<li>[ ] Scenario title, learning goals, age range, subject, language, and duration are accurate.</li>
+<li>[ ] Visibility is still Private during testing.</li>
+<li>[ ] The start activity is an appropriate introduction.</li>
+<li>[ ] Every phase and activity name is clear.</li>
+<li>[ ] Every question has answers and exactly one correct answer where required.</li>
+<li>[ ] Direct, answer-based, and performance routes have been tested.</li>
+<li>[ ] Embedded resources work on learner devices.</li>
+<li>[ ] Evaluation thresholds and branches are sensible.</li>
+<li>[ ] RAG documents are current and authorised.</li>
+<li>[ ] The complete scenario was tested in Student View.</li>
+<li>[ ] The correct student group and visibility were selected.</li>
+<li>[ ] A backup was exported before major deployment.</li>
+</ul>
+<h2 id="post-session-checklist">Post-session checklist</h2>
+<ul>
+<li>[ ] Review dashboard patterns using the correct group and date range.</li>
+<li>[ ] Compare analytics with learner feedback and classroom observation.</li>
+<li>[ ] Investigate activities marked at risk.</li>
+<li>[ ] Review AI proposals one by one; edit before accepting when needed.</li>
+<li>[ ] Export and protect any required records.</li>
+<li>[ ] Improve a private copy before changing a live public scenario.</li>
+</ul>
+<h2 id="glossary">Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Activity</strong></td>
+<td>One learner-facing step in a scenario.</td>
+</tr>
+<tr>
+<td><strong>Activity route</strong></td>
+<td>A connection from one activity to the next.</td>
+</tr>
+<tr>
+<td><strong>Evaluatable activity</strong></td>
+<td>A step that groups performance evidence and routes by thresholds.</td>
+</tr>
+<tr>
+<td><strong>Implementation</strong></td>
+<td>A learner attempt/run used in scenario metrics.</td>
+</tr>
+<tr>
+<td><strong>LLM context</strong></td>
+<td>Structured scenario information prepared for the language model.</td>
+</tr>
+<tr>
+<td><strong>Personalised scenario</strong></td>
+<td>A private copy containing the reviewer's accepted proposals.</td>
+</tr>
+<tr>
+<td><strong>Phase</strong></td>
+<td>A major pedagogical stage containing activities.</td>
+</tr>
+<tr>
+<td><strong>Proposal</strong></td>
+<td>An AI-generated Create, Revise, or Skip recommendation.</td>
+</tr>
+<tr>
+<td><strong>RAG document</strong></td>
+<td>A scenario PDF used as reference context during AI generation.</td>
+</tr>
+<tr>
+<td><strong>Risk flag</strong></td>
+<td>A data-derived indicator that an activity may need investigation.</td>
+</tr>
+<tr>
+<td><strong>Scenario</strong></td>
+<td>The complete learning experience, its phases, activities, and routes.</td>
+</tr>
+<tr>
+<td><strong>Student group</strong></td>
+<td>Generated learner accounts plus assigned scenarios.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Need more help?</strong> Open <strong>Documentation &amp; Tutorials</strong> inside Trust AI Lab for current support resources and the issue-reporting form. Interface labels can evolve; this guide describes the platform as of July 2026.</p></article>
+</body>
+</html>

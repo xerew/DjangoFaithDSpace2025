@@ -242,3 +242,40 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'  # Redis — faster than django-db
 CELERY_RESULT_EXPIRES = 3600  # Task results expire after 1 hour
+
+# Scenario-family discovery. The multilingual model is loaded lazily by the
+# explicit admin scan, and deterministic structural scoring remains available
+# if the model cannot be loaded.
+SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = (
+    os.environ.get('SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED', '1').lower()
+    in {'1', 'true', 'yes', 'on'}
+)
+SCENARIO_SIMILARITY_MODEL = os.environ.get(
+    'SCENARIO_SIMILARITY_MODEL',
+    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+)
+SCENARIO_SIMILARITY_MODEL_DEVICE = os.environ.get(
+    'SCENARIO_SIMILARITY_MODEL_DEVICE',
+    'cpu',
+)
+SCENARIO_SIMILARITY_LOCAL_FILES_ONLY = (
+    os.environ.get('SCENARIO_SIMILARITY_LOCAL_FILES_ONLY', '0').lower()
+    in {'1', 'true', 'yes', 'on'}
+)
+SCENARIO_SIMILARITY_MIN_SCORE = float(
+    os.environ.get('SCENARIO_SIMILARITY_MIN_SCORE', '0.45')
+)
+OLLAMA_URL = os.environ.get(
+    'OLLAMA_URL',
+    'http://host.docker.internal:11434',
+).rstrip('/')
+SCENARIO_FAMILY_REVIEW_LLM_MODEL = os.environ.get(
+    'SCENARIO_FAMILY_REVIEW_LLM_MODEL',
+    'qwen3.6:35b',
+)
+SCENARIO_FAMILY_REVIEW_LLM_TIMEOUT = int(
+    os.environ.get('SCENARIO_FAMILY_REVIEW_LLM_TIMEOUT', '180')
+)
+SCENARIO_FAMILY_REVIEW_LLM_BATCH_LIMIT = int(
+    os.environ.get('SCENARIO_FAMILY_REVIEW_LLM_BATCH_LIMIT', '25')
+)

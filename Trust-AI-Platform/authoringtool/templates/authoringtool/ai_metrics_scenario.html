@@ -131,7 +131,10 @@
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Metrics &amp; AI</div>
         <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ myScenario.name }}</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Performance analysis, risk detection &amp; AI recommendation context</div>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
+          Performance analysis, risk detection &amp; AI recommendation context
+          · Evidence Version {{ current_scenario_version.version_number }}
+        </div>
         <nav><ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
           <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
@@ -142,7 +145,7 @@
         <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
           <i class="bi bi-arrow-left me-1"></i> Back to Scenario
         </a>
-        {% if implementation_count >= min_implementations %}
+        {% if proposal_implementation_count >= min_implementations %}
           <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
             <i class="bi bi-lightbulb me-1"></i> Proposals
           </a>
@@ -157,11 +160,100 @@
   </div>
 
   <!-- ── Low-data warning banner ── -->
-  {% if implementation_count < min_implementations %}
+  <div class="am-card" style="margin-bottom:16px;">
+    <div class="am-card-body" style="padding:14px 18px;">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#1e3a8a;text-transform:uppercase;letter-spacing:.4px;">
+            Evidence scope
+          </div>
+          <div style="font-size:12.5px;color:#6b7280;margin-top:3px;">
+            {% if evidence_scope == "compatible" %}
+              {{ evidence_context.implementation_count }} implementation{{ evidence_context.implementation_count|pluralize }}
+              from {{ evidence_context.scenario_count }} approved scenario variant{{ evidence_context.scenario_count|pluralize }}.
+              Correctness is pooled; timing uses {{ myScenario.language|default:"the target language" }} only.
+            {% elif evidence_scope == "historical" %}
+              {{ implementation_count }} legacy implementation{{ implementation_count|pluralize }}
+              from this scenario. These records are descriptive only because they cannot be tied to an immutable scenario version.
+            {% else %}
+              {{ local_implementation_count }} implementation{{ local_implementation_count|pluralize }}
+              from this exact scenario version only.
+            {% endif %}
+          </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Evidence scope">
+          <a href="?scope=compatible{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}"
+             class="btn {% if evidence_scope == 'compatible' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            Compatible family
+          </a>
+          <a href="?scope=local{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}"
+             class="btn {% if evidence_scope == 'local' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            This scenario only
+          </a>
+          <a href="?scope=historical{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}"
+             class="btn {% if evidence_scope == 'historical' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+            Historical analytics
+          </a>
+        </div>
+        <label class="d-flex align-items-center gap-2 mb-0"
+               style="font-size:12px;font-weight:700;color:#374151;">
+          Language
+          <select id="evidence-language-filter"
+                  class="form-select form-select-sm"
+                  style="min-width:180px;"
+                  aria-label="Evidence language">
+            <option value="">All compatible languages</option>
+            {% for language in evidence_language_options %}
+            <option value="{{ language }}"
+                    {% if evidence_language == language %}selected{% endif %}>
+              {{ language }}
+            </option>
+            {% endfor %}
+          </select>
+        </label>
+        </div>
+      </div>
+      {% if evidence_scope == "compatible" and evidence_context.sources %}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+        {% for source in evidence_context.sources %}
+        <span class="badge rounded-pill" style="background:#eef4ff;color:#1e40af;border:1px solid #dbe7ff;font-weight:500;">
+          {{ source.language }} &middot; {{ source.scenario_name }} v{{ source.version_number }}:
+          {{ source.implementation_count }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if evidence_context.restricted_source_count %}
+      <div style="font-size:11.5px;color:#6b7280;margin-top:9px;">
+        {{ evidence_context.restricted_implementation_count }}
+        implementation{{ evidence_context.restricted_implementation_count|pluralize }}
+        from {{ evidence_context.restricted_source_count }} restricted
+        source{{ evidence_context.restricted_source_count|pluralize }} are
+        included without exposing private scenario details.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if evidence_scope == "historical" %}
+  <div style="margin:16px 0 0; padding:12px 18px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; display:flex; align-items:flex-start; gap:12px;">
+    <i class="bi bi-shield-exclamation" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
+    <div style="font-size:13.5px; color:#92400e;">
+      <strong>Descriptive historical analytics only:</strong>
+      these implementations predate immutable version tracking, and the scenario structure may have changed since they were recorded.
+      They can be inspected in the performance and risk tables below, but they are excluded from compatible evidence,
+      reliability thresholds, and all AI proposal generation.
+    </div>
+  </div>
+  {% elif implementation_count < min_implementations %}
   <div style="margin:16px 0 0; padding:12px 18px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; display:flex; align-items:flex-start; gap:12px;">
     <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
     <div style="font-size:13.5px; color:#92400e;">
-      <strong>Limited data:</strong> this scenario has <strong>{{ implementation_count }}</strong> implementation{{ implementation_count|pluralize }} — at least <strong>{{ min_implementations }}</strong> are needed for reliable metrics and AI proposals.
+      <strong>Limited {{ evidence_scope }} data:</strong> Version {{ current_scenario_version.version_number }}
+      has <strong>{{ implementation_count }}</strong> eligible implementation{{ implementation_count|pluralize }}
+      from <strong>{{ total_implementation_count }}</strong> historical implementation{{ total_implementation_count|pluralize }}.
+      At least <strong>{{ min_implementations }}</strong> are needed for reliable metrics and AI proposals.
       Results shown below may not reflect real learning patterns.
     </div>
   </div>
@@ -182,6 +274,12 @@
             <i class="bi bi-arrow-clockwise me-1"></i>
             {% if has_metrics %}Refresh{% else %}Compute{% endif %}
           </button>
+          {% if has_metrics %}
+          <a class="btn btn-sm btn-outline-primary mt-2"
+             href="{% url 'download_ai_evidence_csv' scenario_id=myScenario.id report_kind='metrics' %}?scope={{ evidence_scope|urlencode }}{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}">
+            <i class="bi bi-download me-1"></i> Download CSV
+          </a>
+          {% endif %}
         </div>
       </div>
 
@@ -195,10 +293,16 @@
             <i class="bi bi-arrow-clockwise me-1"></i>
             {% if has_flags %}Refresh{% else %}Detect{% endif %}
           </button>
+          {% if has_flags %}
+          <a class="btn btn-sm btn-outline-danger mt-2"
+             href="{% url 'download_ai_evidence_csv' scenario_id=myScenario.id report_kind='flags' %}?scope={{ evidence_scope|urlencode }}{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}">
+            <i class="bi bi-download me-1"></i> Download CSV
+          </a>
+          {% endif %}
         </div>
       </div>
 
-      {% if can_edit or request.user.is_superuser %}
+      {% if proposal_generation_available %}
       <!-- Generate LLM Context -->
       <div class="col-12 col-md-6 col-xl-3">
         <div class="action-card">
@@ -235,8 +339,30 @@
       {% endif %}
     </div>
 
+    {% if evidence_scope == "historical" %}
+    <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
+      <i class="bi bi-shield-lock-fill mt-1"></i>
+      <div>
+        AI generation is disabled in historical mode. Switch to
+        <a href="?scope=compatible" class="alert-link">Compatible family</a>
+        or <a href="?scope=local" class="alert-link">This scenario only</a>
+        to generate proposals from version-compatible evidence.
+      </div>
+    </div>
+    {% elif not can_generate_proposals %}
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+      <i class="bi bi-info-circle-fill mt-1"></i>
+      <div>
+        You can view metrics, review the existing proposals, and create your
+        own personalised scenario. Only the original scenario creator or a
+        platform admin can generate a new proposal set or rebuild all LLM
+        context.
+      </div>
+    </div>
+    {% endif %}
+
     <!-- ── LLM status (shared) ── -->
-    {% if can_edit or request.user.is_superuser %}
+    {% if proposal_generation_available %}
     <div id="context-status" class="llm-status"></div>
     <form style="display:none;">{% csrf_token %}</form>
     {% endif %}
@@ -264,7 +390,7 @@
               <thead>
                 <tr>
                   <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
-                  <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
+                  <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th><th>Timing Sample</th>
                   <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
                 </tr>
               </thead>
@@ -283,6 +409,7 @@
                   <td>{{ row.PctCorrect }}</td>
                   <td>{{ row.PctWrong }}</td>
                   <td>{{ row.AvgTime }}</td>
+                  <td>{{ row.TimingTotal }}</td>
                   <td style="font-size:12px;color:#6b7280;">{{ row.NextLow|default:"—" }}</td>
                   <td style="font-size:12px;color:#6b7280;">{{ row.NextModerate|default:"—" }}</td>
                   <td style="font-size:12px;color:#6b7280;">{{ row.NextHigh|default:"—" }}</td>
@@ -351,7 +478,7 @@
 </main>
 
 <!-- ── Low-data proposal warning modal ── -->
-{% if implementation_count < min_implementations %}
+{% if proposal_implementation_count < min_implementations %}
 <div class="modal fade" id="lowDataProposalModal" tabindex="-1" aria-labelledby="lowDataProposalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;">
@@ -363,7 +490,11 @@
       </div>
       <div class="modal-body pt-2">
         <p class="mb-2">
-          This scenario has <strong>{{ implementation_count }}</strong> student implementation{{ implementation_count|pluralize }}.
+          Version {{ current_scenario_version.version_number }} has
+          <strong>{{ proposal_implementation_count }}</strong> compatible student
+          implementation{{ proposal_implementation_count|pluralize }}
+          across approved current family variants
+          ({{ total_implementation_count }} local historical total).
           AI proposals are designed to work with at least <strong>{{ min_implementations }}</strong>.
         </p>
         <p class="text-muted small mb-0">
@@ -384,12 +515,28 @@
 
 <script>
 // ── Metrics ──────────────────────────────────────────────────────────────────
+document.getElementById('evidence-language-filter').addEventListener(
+  'change',
+  (event) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('scope', '{{ evidence_scope|escapejs }}');
+    if (event.target.value) {
+      params.set('language', event.target.value);
+    } else {
+      params.delete('language');
+    }
+    window.location.search = params.toString();
+  }
+);
+
 document.getElementById('btn-load-category-metrics').addEventListener('click', () => {
   const sid     = document.getElementById('btn-load-category-metrics').dataset.scenarioId;
   const spinner = document.getElementById('metrics-spinner');
   spinner.style.display = 'flex';
 
-  fetch(`/authoringtool/category_metrics/${sid}/`)
+  const scope = '{{ evidence_scope|escapejs }}';
+  const language = '{{ evidence_language|escapejs }}';
+  fetch(`/authoringtool/category_metrics/${sid}/?scope=${encodeURIComponent(scope)}&language=${encodeURIComponent(language)}`)
     .then(r => r.json())
     .then(({ task_id }) => pollCategoryStatus(task_id, spinner));
 });
@@ -442,7 +589,7 @@ function renderCategoryTable(dataRows) {
     <table class="am-table">
       <thead><tr>
         <th>Category</th><th>Total</th><th>Correct</th><th>Wrong</th>
-        <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th>
+        <th>% Correct</th><th>% Wrong</th><th>Avg Time (s)</th><th>Timing Sample</th>
         <th>Next Low</th><th>Next Moderate</th><th>Next High</th>
       </tr></thead>
       <tbody>`;
@@ -455,6 +602,7 @@ function renderCategoryTable(dataRows) {
         <td>${row['% Correct']}</td>
         <td>${row['% Wrong']}</td>
         <td>${row['Avg Time']}</td>
+        <td>${row['Timing Total'] || row.Total}</td>
         <td style="font-size:12px;color:#6b7280;">${row['Next Low']}</td>
         <td style="font-size:12px;color:#6b7280;">${row['Next Moderate']}</td>
         <td style="font-size:12px;color:#6b7280;">${row['Next High']}</td>
@@ -472,7 +620,9 @@ document.getElementById('btn-load-risk-flags').addEventListener('click', () => {
   const spinner = document.getElementById('flags-spinner');
   spinner.style.display = 'flex';
 
-  fetch(`/authoringtool/risk_flags/${sid}/`)
+  const scope = '{{ evidence_scope|escapejs }}';
+  const language = '{{ evidence_language|escapejs }}';
+  fetch(`/authoringtool/risk_flags/${sid}/?scope=${encodeURIComponent(scope)}&language=${encodeURIComponent(language)}`)
     .then(r => r.json())
     .then(({ task_id }) => pollRiskFlagsStatus(task_id, spinner));
 });
@@ -539,7 +689,7 @@ function renderRiskFlagsTable(dataRows) {
 }
 
 // ── LLM Context ───────────────────────────────────────────────────────────────
-{% if can_edit or request.user.is_superuser %}
+{% if proposal_generation_available %}
 function setLlmStatus(cls, msg) {
   const el = document.getElementById('context-status');
   el.className = `llm-status ${cls}`;

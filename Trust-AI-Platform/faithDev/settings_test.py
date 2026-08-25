@@ -21,6 +21,7 @@ CACHES = {
 # Silence Celery so no broker connection is attempted during tests
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = False
 
 # Patch django.contrib.postgres range fields so their SQL placeholder degrades
 # gracefully to plain %s on SQLite.  Without this, IntegerRangeField generates

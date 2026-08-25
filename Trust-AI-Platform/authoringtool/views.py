@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
-from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, UserProposalReview, Language, Subject
+from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, ScenarioImplementation, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, UserProposalReview, Language, Subject
 from psycopg2.extras import NumericRange
 from django.urls import reverse
 from django.utils.html import strip_tags
@@ -30,7 +30,29 @@ from hashlib import sha1
 import urllib.parse
 # Celery & Redis
 from .tasks import compute_sankey_data, compute_time_spent_by_performer_type, compute_final_performance, compute_performance_data, compute_detailed_phase_scores_data, compute_performers_data, compute_activity_answers_data, compute_time_spent_data, compute_scenario_paths, compute_student_performance_metrics, compute_category_metrics_per_phase_activity, generate_llm_context_for_scenario, calculate_activities_in_risk, apply_user_proposals_to_new_scenario
-from .utils import get_last_answers
+from .tasks import (
+    ProposalValidationError,
+    format_proposal_answer_text,
+    merge_proposal_edits,
+    proposal_requires_insert_after,
+    record_proposal_structural_failure,
+    validate_proposal_data,
+)
+from .utils import (
+    get_eligible_user_answers,
+    get_last_answers,
+    get_scenario_evidence_cache_paths,
+)
+from .evidence import (
+    get_evidence_context,
+    get_evidence_implementation_count,
+    normalize_evidence_language,
+    normalize_evidence_scope,
+)
+from .graph_validation import (
+    ScenarioGraphValidationError,
+    assert_scenario_graph_integrity,
+)
 from celery.result import AsyncResult
 from django.conf import settings
 import csv, os, json, uuid
@@ -46,12 +68,105 @@ def is_admin_user(user):
     return user.is_superuser or user.is_staff
 
 
+def user_can_view_scenario(user, scenario):
+    """Return whether a user may view a scenario and its shared analytics."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if is_admin_user(user) or scenario.created_by_id == user.id:
+        return True
+    if scenario.visibility_status == "public":
+        return True
+    if scenario.visibility_status == "org":
+        return scenario.organizations.filter(members=user).exists()
+    return False
+
+
+def user_can_generate_proposals(user, scenario):
+    """Only the original creator and platform admins may generate proposals."""
+    return (
+        getattr(user, "is_authenticated", False)
+        and (is_admin_user(user) or scenario.created_by_id == user.id)
+    )
+
+
+def authoring_revision_guard(request, scenario):
+    """Require an explicit draft before mutating implemented scenarios."""
+    if (
+        not scenario.has_student_evidence()
+        or hasattr(scenario, 'revision_draft')
+    ):
+        return None
+    messages.error(
+        request,
+        'This scenario already has student implementations. Start a '
+        'revision draft before changing its content or structure.',
+    )
+    return HttpResponseRedirect(
+        reverse('updateScenario', args=[scenario.id])
+    )
+
+
+def scenarios_visible_to_user(user, queryset):
+    """Apply scenario visibility rules to a queryset used for family totals."""
+    if is_admin_user(user):
+        return queryset
+    return queryset.filter(
+        Q(created_by=user)
+        | Q(visibility_status='public')
+        | Q(
+            visibility_status='org',
+            organizations__members=user,
+        )
+    ).distinct()
+
+
+def evidence_context_visible_to_user(context, user):
+    """Hide metadata for evidence sources the viewer cannot access."""
+    context = dict(context or {})
+    sources = list(context.get('sources') or [])
+    source_ids = {
+        source.get('scenario_id')
+        for source in sources
+        if source.get('scenario_id')
+    }
+    visible_ids = set(
+        scenarios_visible_to_user(
+            user,
+            Scenario.objects.filter(id__in=source_ids),
+        ).values_list('id', flat=True)
+    )
+    visible_sources = [
+        source
+        for source in sources
+        if source.get('scenario_id') in visible_ids
+    ]
+    hidden_sources = [
+        source
+        for source in sources
+        if source.get('scenario_id') not in visible_ids
+    ]
+    context['sources'] = visible_sources
+    context['restricted_source_count'] = len(hidden_sources)
+    context['restricted_implementation_count'] = sum(
+        source.get('implementation_count', 0)
+        for source in hidden_sources
+    )
+    context['languages'] = sorted({
+        source.get('language') or 'Unspecified'
+        for source in visible_sources
+    }, key=str.casefold)
+    return context
+
+
 def group_required(group_name):
     def decorator(view_func):
         @wraps(view_func)
         @login_required
         def _wrapped_view(request, *args, **kwargs):
-            if request.user.groups.filter(name=group_name).exists():
+            if (
+                is_admin_user(request.user)
+                or request.user.groups.filter(name=group_name).exists()
+            ):
                 return view_func(request, *args, **kwargs)
             else:
                 raise PermissionDenied
@@ -79,7 +194,6 @@ def sanitize_mermaid_text(text: str) -> str:
     return text.strip()
 
 def generate_flowchart(scenario_id):
-    print(f"🧩 Starting flowchart generation for scenario {scenario_id}")
     try:
         phases = Phase.objects.filter(scenario_id=scenario_id).prefetch_related('activities')
         branching_logic = EvQuestionBranching.objects.filter(activity__scenario_id=scenario_id)
@@ -105,7 +219,6 @@ def generate_flowchart(scenario_id):
 
             for activity in phase.activities.all():
                 safe_act_name = sanitize_mermaid_text(activity.name)
-                print(f"   • Activity: {activity.name} (ID {activity.id})")
                 graph_definition += f"A{activity.id}[\"{safe_act_name}\"]\n"
                 graph_definition += (
                     f"click A{activity.id} href "
@@ -213,16 +326,9 @@ def generate_flowchart(scenario_id):
         for i in low_edges:
             graph_definition += f"linkStyle {i} stroke:red,stroke-width:2.5px\n"
 
-        print("========== MERMAID OUTPUT ==========")
-        print(graph_definition)
-        print("====================================")
-        print(f"✅ Flowchart generated successfully for scenario {scenario_id}")
         return graph_definition
 
-    except Exception as e:
-        import traceback
-        print(f"\n❌ ERROR generating flowchart for scenario {scenario_id}: {e}")
-        traceback.print_exc()
+    except Exception:
         return None
 
 
@@ -418,8 +524,9 @@ def createScenarioData(request):
                            is_editable_by_org=False, created_by=created_by)
     newScenario.save()
     selected_subject_ids = request.POST.getlist('subjects')
-    if selected_subject_ids:
-        newScenario.subjects.set(selected_subject_ids)
+    newScenario.subjects.set(selected_subject_ids)
+    if newScenario.family_id:
+        newScenario.family.subjects.set(newScenario.subjects.all())
     messages.success(request, f"Scenario '{newScenario.name}' created successfully.")
     return HttpResponseRedirect(reverse('scenarios'))
 
@@ -441,14 +548,88 @@ def updateScenario(request, id):
         'languages': Language.objects.all(),
         'all_subjects': Subject.objects.all(),
         'selected_subject_ids': list(updateScenario.subjects.values_list('id', flat=True)),
+        'has_student_evidence': updateScenario.has_student_evidence(),
+        'revision_draft': getattr(
+            updateScenario,
+            'revision_draft',
+            None,
+        ),
     }
     return HttpResponse(template.render(context, request))
+
+
+@require_POST
+@group_required('teachers')
+def begin_scenario_revision(request, scenario_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if (
+        scenario.created_by != request.user
+        and not is_admin_user(request.user)
+    ):
+        return HttpResponseForbidden("You don't own this scenario.")
+    draft = scenario.begin_revision_draft(request.user)
+    messages.success(
+        request,
+        (
+            f'Revision draft opened from published version '
+            f'{draft.base_version.version_number}. Student access is paused '
+            f'until the draft is published.'
+        ),
+    )
+    return HttpResponseRedirect(
+        reverse('updateScenario', args=[scenario.id])
+    )
+
+
+@require_POST
+@group_required('teachers')
+def publish_scenario_revision(request, scenario_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if (
+        scenario.created_by != request.user
+        and not is_admin_user(request.user)
+    ):
+        return HttpResponseForbidden("You don't own this scenario.")
+    if not hasattr(scenario, 'revision_draft'):
+        messages.error(request, 'This scenario has no revision draft.')
+        return HttpResponseRedirect(
+            reverse('updateScenario', args=[scenario.id])
+        )
+    try:
+        assert_scenario_graph_integrity(scenario)
+        version = scenario.publish_revision_draft(
+            request.user,
+            change_summary=request.POST.get('change_summary', '').strip(),
+        )
+    except ScenarioGraphValidationError as exc:
+        messages.error(
+            request,
+            'The draft cannot be published until its graph is valid: '
+            + '; '.join(
+                issue.get('message', str(issue))
+                for issue in exc.issues
+            ),
+        )
+        return HttpResponseRedirect(
+            reverse('updateScenario', args=[scenario.id])
+        )
+    messages.success(
+        request,
+        f'Scenario revision {version.version_number} was published.',
+    )
+    return HttpResponseRedirect(
+        reverse('viewScenario', args=[scenario.id])
+    )
+
 
 @group_required('teachers')
 def updateScenarioData(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if updateScenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, updateScenario)
+    if blocked:
+        return blocked
     visibility = request.POST.get('visibility')
     
     # Check if the visibility is 'org' and no organizations are selected
@@ -491,12 +672,18 @@ def updateScenarioData(request, id):
     updateScenario.save()
     # Handle subjects
     updateScenario.subjects.set(request.POST.getlist('subjects'))
+    if (
+        updateScenario.family_id
+        and updateScenario.family.canonical_scenario_id == updateScenario.id
+    ):
+        updateScenario.family.subjects.set(updateScenario.subjects.all())
     # Handle organization visibility
     if visibility == 'org':
         selected_organizations = request.POST.getlist('organizations')
         updateScenario.organizations.set(selected_organizations)
     else:
         updateScenario.organizations.clear()
+    updateScenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('scenarios'))
 
 @group_required('teachers')
@@ -504,6 +691,15 @@ def deleteScenario(request, id):
     deleteScenario = get_object_or_404(Scenario, id=id)
     if deleteScenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    if deleteScenario.has_student_evidence():
+        messages.error(
+            request,
+            'Scenarios with student implementations cannot be deleted. '
+            'Change visibility or publish a new revision instead.',
+        )
+        return HttpResponseRedirect(
+            reverse('viewScenario', args=[deleteScenario.id])
+        )
     deleteScenario.delete()
     return HttpResponseRedirect(reverse('scenarios'))
 
@@ -521,7 +717,9 @@ def serve_rag_pdf(request, scenario_id, filename):
 
 @group_required('teachers')
 def viewScenario(request, id):
-    myScenario = Scenario.objects.get(id=id)
+    myScenario = get_object_or_404(Scenario, id=id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
     can_edit = False
     if is_admin_user(request.user) or myScenario.created_by == request.user:
@@ -554,7 +752,96 @@ def viewScenario(request, id):
         rag_files = []
 
 
-    implementation_count = UserScenarioScore.objects.filter(scenario=myScenario).values('user').distinct().count()
+    current_version = myScenario.ensure_current_version(
+        created_by=request.user,
+    )
+    total_implementation_count = (
+        ScenarioImplementation.objects
+        .filter(scenario=myScenario)
+        .exclude(user__groups__name='teachers')
+        .count()
+    )
+    legacy_implementation_count = get_evidence_implementation_count(
+        myScenario,
+        'historical',
+    )
+    local_implementation_count = myScenario.eligible_implementation_count()
+    evidence_context = get_evidence_context(
+        myScenario,
+        scope='compatible',
+    )
+    evidence_context = evidence_context_visible_to_user(
+        evidence_context,
+        request.user,
+    )
+    implementation_count = evidence_context['implementation_count']
+    excluded_implementation_count = max(
+        total_implementation_count - local_implementation_count,
+        0,
+    )
+
+    family = myScenario.ensure_family()
+    visible_family_variants = list(
+        scenarios_visible_to_user(
+            request.user,
+            family.scenarios.all(),
+        )
+        .select_related('created_by')
+        .annotate(
+            implementation_count=Count(
+                'implementations',
+                filter=~Q(
+                    implementations__user__groups__name='teachers',
+                ),
+                distinct=True,
+            )
+        )
+        .order_by('language', 'name')
+    )
+    family_implementation_count = sum(
+        variant.implementation_count
+        for variant in visible_family_variants
+    )
+    language_totals = {}
+    for variant in visible_family_variants:
+        language = (variant.language or '').strip() or 'Unspecified'
+        language_totals[language] = (
+            language_totals.get(language, 0)
+            + variant.implementation_count
+        )
+    family_language_counts = [
+        {
+            'language': language,
+            'implementation_count': count,
+        }
+        for language, count in sorted(
+            language_totals.items(),
+            key=lambda item: item[0].casefold(),
+        )
+    ]
+    family_counts_are_partial = (
+        family.scenarios.count() > len(visible_family_variants)
+    )
+    scenario_versions = list(
+        myScenario.versions
+        .select_related('created_by', 'compatibility__cluster')
+        .annotate(
+            implementation_count=Count(
+                'implementations',
+                filter=Q(
+                    implementations__version_confidence='exact',
+                    implementations__data_quality_status__in=[
+                        'unreviewed',
+                        'clean',
+                    ],
+                ) & ~Q(
+                    implementations__user__groups__name='teachers',
+                ),
+                distinct=True,
+            )
+        )
+        .order_by('-version_number')[:10]
+    )
 
     template = loader.get_template('authoringtool/viewScenario.html')
     context = {
@@ -568,6 +855,23 @@ def viewScenario(request, id):
         'rag_files': rag_files,
         "llm_html": mark_safe(markdown.markdown(myScenario.llm_context or "")),
         'implementation_count': implementation_count,
+        'local_implementation_count': local_implementation_count,
+        'compatible_external_implementation_count': max(
+            implementation_count - local_implementation_count,
+            0,
+        ),
+        'total_implementation_count': total_implementation_count,
+        'legacy_implementation_count': legacy_implementation_count,
+        'excluded_implementation_count': excluded_implementation_count,
+        'current_scenario_version': current_version,
+        'scenario_family': family,
+        'family_variants': visible_family_variants,
+        'family_implementation_count': family_implementation_count,
+        'family_language_counts': family_language_counts,
+        'family_counts_are_partial': family_counts_are_partial,
+        'scenario_versions': scenario_versions,
+        'evidence_context': evidence_context,
+        'revision_draft': getattr(myScenario, 'revision_draft', None),
     }
     return HttpResponse(template.render(context, request))
 
@@ -605,6 +909,9 @@ def createPhaseData(request, id):
     created_by = request.user
 
     scenario_instance = get_object_or_404(Scenario, id=scenario)
+    blocked = authoring_revision_guard(request, scenario_instance)
+    if blocked:
+        return blocked
 
     if Phase.objects.filter(scenario=scenario_instance).count() >= 5:
         messages.error(request, "A scenario cannot have more than 5 phases.")
@@ -612,6 +919,9 @@ def createPhaseData(request, id):
 
     newPhase = Phase(name=name, description=description, image=image, scenario=scenario_instance, created_by=created_by)
     newPhase.save()
+    scenario_instance.refresh_version_if_initialized(
+        created_by=request.user
+    )
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario]))
 
 @group_required('teachers')
@@ -633,6 +943,9 @@ def updatePhaseData(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if scenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     name = request.POST.get('name')
     description = request.POST.get('description')
     image = request.FILES.get('image_upload')
@@ -643,6 +956,7 @@ def updatePhaseData(request, scenario_id, phase_id):
         updatePhase.image = image
     updatePhase.updated_by = request.user
     updatePhase.save()
+    scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
 @group_required('teachers')
@@ -650,11 +964,15 @@ def deletePhase(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if scenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     if Phase.objects.filter(scenario=scenario).count() <= 1:
         messages.error(request, "A scenario must have at least 1 phase.")
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
     deletePhase = get_object_or_404(Phase, id=phase_id)
     deletePhase.delete()
+    scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
 def viewPhase(request, scenario_id, phase_id):
@@ -727,6 +1045,14 @@ def createActivityData(request, scenario_id, phase_id):
     experiment_type = request.POST.get('experiment_type')  # Get the experiment type
     
     scenario_instance = get_object_or_404(Scenario, id=scenario_id)
+    if (
+        scenario_instance.created_by != request.user
+        and not is_admin_user(request.user)
+    ):
+        return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario_instance)
+    if blocked:
+        return blocked
     phase_instance = get_object_or_404(Phase, id=phase_id)
     activity_type_instance = get_object_or_404(ActivityType, id=activity_type)
     
@@ -800,6 +1126,9 @@ def createActivityData(request, scenario_id, phase_id):
         return HttpResponseRedirect(reverse('updateAnswers', args=[scenario_id, phase_id, newActivity.id]))
     else:
         print('I GOT HERE 3')
+        scenario_instance.refresh_version_if_initialized(
+            created_by=request.user
+        )
         return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
 @group_required('teachers')
@@ -881,6 +1210,9 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if scenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     formerActivity = Activity.objects.get(id = activity_id)
     activity_name = request.POST.get('activity_name')
     activity_text = request.POST.get('activity_text')
@@ -997,12 +1329,14 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
                 next_activity_instance = get_object_or_404(Activity, id=next_activity_id)
             newNextQuestionLogic = NextQuestionLogic(activity=updateActivity, next_activity=next_activity_instance)
             newNextQuestionLogic.save()
+            scenario.refresh_version_if_initialized(created_by=request.user)
             return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
         elif not formerActivity.is_evaluatable and updateActivity.is_evaluatable:
             print(f'I WENT HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE1')
             NextQuestionLogic.objects.filter(activity=updateActivity).delete()
             return HttpResponseRedirect(reverse('createCriterion', args=[scenario_id, phase_id, updateActivity.id]))
         else:
+            scenario.refresh_version_if_initialized(created_by=request.user)
             return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
     elif not formerActivity.is_evaluatable and updateActivity.is_evaluatable:
         print(f'I WENT HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
@@ -1010,6 +1344,7 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
         NextQuestionLogic.objects.filter(activity=updateActivity).delete()
         return HttpResponseRedirect(reverse('updateCriterion', args=[scenario_id, phase_id, updateActivity.id]))
     else:
+        scenario.refresh_version_if_initialized(created_by=request.user)
         return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
 @group_required('teachers')
@@ -1017,8 +1352,12 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if scenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     deleteActivity = get_object_or_404(Activity, id=activity_id)
     deleteActivity.delete()
+    scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
 def viewActivity(request, scenario_id, phase_id, activity_id):
@@ -1099,6 +1438,15 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
 def createAnswers(request, scenario_id, phase_id, activity_id):
     if request.method == 'POST':
         activity = Activity.objects.get(id=activity_id)
+        scenario = activity.scenario
+        if (
+            scenario.created_by != request.user
+            and not is_admin_user(request.user)
+        ):
+            return HttpResponseForbidden("You don't own this scenario.")
+        blocked = authoring_revision_guard(request, scenario)
+        if blocked:
+            return blocked
 
         # Initialize an empty list to hold the parsed answers
         parsed_answers = []
@@ -1153,25 +1501,43 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
                 )
                 answer.save()
 
+        activity.scenario.refresh_version_if_initialized(
+            created_by=request.user
+        )
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
     return render(request, 'authoringtool/createAnswer.html', {'activity_id': activity_id, 'scenario_id': scenario_id, 'phase_id': phase_id})
 
 @group_required('teachers')
 def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     deleteAnswer = Answer.objects.get(id=answer_id)
     deleteAnswer.delete()
+    scenario.refresh_version_if_initialized(
+        created_by=request.user
+    )
     return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
 @group_required('teachers')
 def updateAnswers(request, scenario_id, phase_id, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
+    scenario = activity.scenario
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
     all_activities_in_scenario = Activity.objects.filter(scenario=scenario_id) # ME
     # current_next_activity = NextQuestionLogic.objects.filter(activity=activity).values_list('next_activity', flat=True) # ME
     # ineligible_activity_ids = NextQuestionLogic.objects.exclude(next_activity__in=current_next_activity).values_list('next_activity', flat=True) # ME
     # eligible_activities = all_activities_in_scenario.exclude(id__in=ineligible_activity_ids) # ME
 
     if request.method == 'POST':
+        blocked = authoring_revision_guard(request, scenario)
+        if blocked:
+            return blocked
         existing_answer_ids = [answer.id for answer in activity.answers.all()]
         submitted_answer_ids = []
 
@@ -1247,6 +1613,9 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
             if answer_id not in submitted_answer_ids:
                 Answer.objects.get(id=answer_id).delete()
 
+        activity.scenario.refresh_version_if_initialized(
+            created_by=request.user
+        )
         messages.success(request, 'Answers updated successfully!')
         return redirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
@@ -1285,6 +1654,12 @@ def createCriterion(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def createCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
+    scenario = activityPrimary.scenario
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     if request.POST:
         high_performers_activity_id = request.POST.get('highPerformersSelect')
         mid_performers_activity_id = request.POST.get('midPerformersSelect')
@@ -1334,6 +1709,9 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
             low_performers_activity.score_limit = low_performers_score_limit
             low_performers_activity.save()
 
+        activityPrimary.scenario.refresh_version_if_initialized(
+            created_by=request.user
+        )
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
 @group_required('teachers')
@@ -1375,6 +1753,12 @@ def updateCriterion(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def updateCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
+    scenario = activityPrimary.scenario
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
     if request.POST:
         high_performers_activity_id = request.POST.get('highPerformersSelect')
         mid_performers_activity_id = request.POST.get('midPerformersSelect')
@@ -1418,6 +1802,9 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
         low_performers_activity.score_limit = low_performers_score_limit
         low_performers_activity.save()
 
+        activityPrimary.scenario.refresh_version_if_initialized(
+            created_by=request.user
+        )
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
 def sankey_data(request, scenario_id):
@@ -1457,7 +1844,7 @@ def check_for_duplicate_answers(scenario_id):
 # Helper function to get the last answer for each user/activity
 def get_last_answers(scenario_id):
     # Fetch the last answers for each user and activity based on the created_on timestamp
-    last_answers = UserAnswer.objects.filter(activity__phase__scenario_id=scenario_id) \
+    last_answers = get_eligible_user_answers(scenario_id) \
         .values('user_id', 'activity_id') \
         .annotate(last_answer_id=Max('id'))  # Get the last answer ID for each user and activity
     
@@ -1478,7 +1865,7 @@ def get_last_answers(scenario_id):
 # Helper function to get the last answers for each user/activity
 def get_last_answers_only_for_users(scenario_id, start_date=None, end_date=None):
     # Fetch the last answers for each user and activity based on the created_on timestamp
-    last_answers = UserAnswer.objects.filter(activity__phase__scenario_id=scenario_id)
+    last_answers = get_eligible_user_answers(scenario_id)
     
     # Apply date filters if provided
     if start_date:
@@ -1696,7 +2083,7 @@ def performance_by_department(request, scenario_id):
     last_answers = get_last_answers(scenario_id)
 
     # Get the minimum activity ID in the scenario
-    min_activity_id = Activity.objects.filter(scenario=scenario).order_by('id').first()
+    min_activity_id = scenario.get_start_activity()
 
     if not min_activity_id:
         return JsonResponse({"error": "No activities found for this scenario"}, status=400)
@@ -1803,8 +2190,17 @@ def performance_by_department(request, scenario_id):
 def duplicate_scenario(request, scenario_id):
     try:
         original_scenario = get_object_or_404(Scenario, pk=scenario_id)
+        if not user_can_view_scenario(request.user, original_scenario):
+            return HttpResponseForbidden("You cannot copy this scenario.")
         user = request.user
-        new_scenario_name_base = f"{original_scenario.name} Copy Made by {user.username}"
+        family = original_scenario.ensure_family()
+        requested_variant = request.GET.get('variant', 'adaptation')
+        if requested_variant not in {'translation', 'adaptation'}:
+            requested_variant = 'adaptation'
+        label = 'Translation' if requested_variant == 'translation' else 'Copy'
+        new_scenario_name_base = (
+            f"{original_scenario.name} {label} Made by {user.username}"
+        )
         new_scenario_name = new_scenario_name_base
         
         # Check if scenario with the new name already exists and modify the name if needed
@@ -1825,13 +2221,20 @@ def duplicate_scenario(request, scenario_id):
             created_by=user,
             updated_by=user,
             origin_scenario=original_scenario,
+            family=family,
+            variant_type=requested_variant,
+            ai_metrics_min_implementations=(
+                original_scenario.ai_metrics_min_implementations
+            ),
         )
+        new_scenario.subjects.set(original_scenario.subjects.all())
 
         # Map for original activities to their duplicates
         activity_mapping = {}
         answer_mapping = {}
+        phase_mapping = {}
 
-        # Duplicate Phases and Activities
+        # Duplicate phases first so phase-less activities are preserved too.
         for phase in original_scenario.phases.all():
             new_phase = Phase.objects.create(
                 name=phase.name,
@@ -1841,45 +2244,52 @@ def duplicate_scenario(request, scenario_id):
                 created_by=user,
                 updated_by=user
             )
+            phase_mapping[phase.id] = new_phase
 
-            for activity in phase.activities.all():
-                new_activity = Activity.objects.create(
-                    name=activity.name,
-                    text=activity.text,
-                    plain_text=activity.plain_text,
-                    correct_count=activity.correct_count,
-                    incorrect_count=activity.incorrect_count,
-                    is_evaluatable=activity.is_evaluatable,
-                    is_primary_ev=activity.is_primary_ev,
-                    must_wait=activity.must_wait,
-                    score_limit=activity.score_limit,
-                    scenario=new_scenario,
-                    phase=new_phase,
-                    activity_type=activity.activity_type,
-                    helper=activity.helper,
-                    simulation=activity.simulation,
-                    experiment_ll=activity.experiment_ll,
-                    vr_ar_experiment = activity.vr_ar_experiment,
+        for activity in original_scenario.activities.order_by('id'):
+            new_activity = Activity.objects.create(
+                name=activity.name,
+                text=activity.text,
+                plain_text=activity.plain_text,
+                correct_count=activity.correct_count,
+                incorrect_count=activity.incorrect_count,
+                is_evaluatable=activity.is_evaluatable,
+                is_primary_ev=activity.is_primary_ev,
+                must_wait=activity.must_wait,
+                score_limit=activity.score_limit,
+                scenario=new_scenario,
+                phase=phase_mapping.get(activity.phase_id),
+                activity_type=activity.activity_type,
+                helper=activity.helper,
+                simulation=activity.simulation,
+                experiment_ll=activity.experiment_ll,
+                vr_ar_experiment=activity.vr_ar_experiment,
+                lineage_key=activity.lineage_key,
+                concept=activity.concept,
+                created_by=user,
+                updated_by=user
+            )
+
+            # Copy answers
+            for answer in activity.answers.all():
+                new_answer = Answer.objects.create(
+                    activity=new_activity,
+                    text=answer.text,
+                    is_correct=answer.is_correct,
+                    answer_weight=answer.answer_weight,
+                    image=answer.image,
+                    vid_url=answer.vid_url,
                     created_by=user,
                     updated_by=user
                 )
+                answer_mapping[answer.id] = new_answer
 
-                # Copy answers
-                for answer in activity.answers.all():
-                    new_answer = Answer.objects.create(
-                        activity=new_activity,
-                        text=answer.text,
-                        is_correct=answer.is_correct,
-                        answer_weight=answer.answer_weight,
-                        image=answer.image,
-                        vid_url=answer.vid_url,
-                        created_by=user,
-                        updated_by=user
-                    )
-                    answer_mapping[answer.id] = new_answer
+            activity_mapping[activity.id] = new_activity
 
-                # Add activity to mapping
-                activity_mapping[activity.id] = new_activity
+        mapped_start = activity_mapping.get(original_scenario.start_activity_id)
+        if mapped_start:
+            new_scenario.start_activity = mapped_start
+            new_scenario.save(update_fields=["start_activity"])
 
         # Duplicate Next Question Logic
         for original_activity_id, new_activity in activity_mapping.items():
@@ -1915,6 +2325,14 @@ def duplicate_scenario(request, scenario_id):
                         activity_ids=[activity_mapping[aid].id for aid in question_bunch.activity_ids]
                     )
 
+        new_scenario.ensure_current_version(
+            created_by=user,
+            change_summary=(
+                'Translation created from scenario family'
+                if requested_variant == 'translation'
+                else 'Teacher adaptation created from scenario family'
+            ),
+        )
         messages.success(request, f'Successfully duplicated scenario: {new_scenario_name}')
         return redirect('updateScenario', id=new_scenario.id)
 
@@ -2127,7 +2545,7 @@ def lab_sessions_data(request, scenario_id):
 def get_first_answers(scenario_id):
     # Fetch the earliest answer for each user and activity based on the created_on timestamp
     first_answers = (
-        UserAnswer.objects.filter(activity__phase__scenario_id=scenario_id)
+        get_eligible_user_answers(scenario_id)
         .values('user_id', 'activity_id')
         .annotate(first_answer_id=Min('id'))  # Get the first answer ID for each user and activity
     )
@@ -2194,8 +2612,11 @@ def get_teacher_groups(request, scenario_id):
     ).values('id', 'name')
     return JsonResponse({'groups': list(groups)})
 
+@group_required('teachers')
 def ai_metrics(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
 
     can_edit = False
     if is_admin_user(request.user) or scenario.created_by == request.user:
@@ -2203,6 +2624,10 @@ def ai_metrics(request, scenario_id):
     elif getattr(scenario, 'visibility_status', None) == 'org' and getattr(scenario, 'is_editable_by_org', False):
         if scenario.organizations.filter(members=request.user).exists():
             can_edit = True
+    can_generate_proposals = user_can_generate_proposals(
+        request.user,
+        scenario,
+    )
 
     phases_data = []
     for phase in Phase.objects.filter(scenario=scenario).order_by('id'):
@@ -2217,10 +2642,38 @@ def ai_metrics(request, scenario_id):
             'activities': list(primaries),
         })
 
+    evidence_scope = normalize_evidence_scope(
+        request.GET.get('scope', 'compatible')
+    )
+    evidence_language = normalize_evidence_language(
+        request.GET.get('language', '')
+    )
+    language_options = get_evidence_context(
+        scenario,
+        scope='compatible',
+    ).get('languages', [])
+    proposal_generation_available = (
+        can_generate_proposals and evidence_scope != 'historical'
+    )
+    evidence_context = get_evidence_context(
+        scenario,
+        scope=evidence_scope,
+        language=evidence_language,
+    )
+    evidence_context = evidence_context_visible_to_user(
+        evidence_context,
+        request.user,
+    )
+
     # Pre-load cached CSVs so tables render immediately on page load
     from collections import defaultdict as _dd
-    metrics_csv = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_combined_activity_metrics.csv")
-    flags_csv   = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_flagged_activities_with_reasons.csv")
+    evidence_cache_paths = get_scenario_evidence_cache_paths(
+        scenario,
+        scope=evidence_scope,
+        language=evidence_language,
+    )
+    metrics_csv = evidence_cache_paths['metrics']
+    flags_csv = evidence_cache_paths['flags']
 
     metrics_grouped = []
     flags_grouped   = []
@@ -2243,6 +2696,7 @@ def ai_metrics(request, scenario_id):
                 'PctCorrect':   row.get('% Correct', ''),
                 'PctWrong':     row.get('% Wrong', ''),
                 'AvgTime':      row.get('Avg Time', ''),
+                'TimingTotal':  row.get('Timing Total', row.get('Total', '')),
                 'NextLow':      row.get('Next Low', ''),
                 'NextModerate': row.get('Next Moderate', ''),
                 'NextHigh':     row.get('Next High', ''),
@@ -2266,36 +2720,109 @@ def ai_metrics(request, scenario_id):
                 flags_grouped.append(seen[act])
             seen[act]['rows'].append(row)
 
-    implementation_count = UserScenarioScore.objects.filter(scenario=scenario).values('user').distinct().count()
+    current_version = scenario.ensure_current_version(
+        created_by=request.user,
+    )
+    total_implementation_count = (
+        ScenarioImplementation.objects
+        .filter(scenario=scenario)
+        .exclude(user__groups__name='teachers')
+        .count()
+    )
+    local_implementation_count = scenario.eligible_implementation_count()
+    compatible_implementation_count = (
+        scenario.compatible_implementation_count()
+    )
+    legacy_implementation_count = get_evidence_implementation_count(
+        scenario,
+        'historical',
+    )
+    implementation_count = get_evidence_implementation_count(
+        scenario,
+        evidence_scope,
+        evidence_language,
+    )
+    excluded_implementation_count = max(
+        total_implementation_count - local_implementation_count,
+        0,
+    )
 
     return render(request, 'authoringtool/ai_metrics_scenario.html', {
         'myScenario':           scenario,
         'PhasesData':           phases_data,
         'can_edit':             can_edit,
+        'can_generate_proposals': can_generate_proposals,
+        'proposal_generation_available': proposal_generation_available,
         'metrics_grouped':      metrics_grouped,
         'flags_grouped':        flags_grouped,
         'has_metrics':          bool(metrics_grouped),
         'has_flags':            bool(flags_grouped),
         'implementation_count': implementation_count,
+        'local_implementation_count': local_implementation_count,
+        'compatible_implementation_count': compatible_implementation_count,
+        'proposal_implementation_count': compatible_implementation_count,
+        'total_implementation_count': total_implementation_count,
+        'legacy_implementation_count': legacy_implementation_count,
+        'excluded_implementation_count': excluded_implementation_count,
+        'current_scenario_version': current_version,
+        'evidence_scope': evidence_scope,
+        'evidence_language': evidence_language,
+        'evidence_language_options': language_options,
+        'evidence_context': evidence_context,
         'min_implementations':  scenario.ai_metrics_min_implementations,
     })
 
+@group_required('teachers')
 def category_metrics_view(request, scenario_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     start = request.GET.get('start_date')
     end = request.GET.get('end_date')
     group_ids = request.GET.getlist('group_ids[]', None)
-    task = compute_category_metrics_per_phase_activity.delay(scenario_id, group_ids, start, end)
+    evidence_scope = normalize_evidence_scope(
+        request.GET.get('scope', 'compatible')
+    )
+    evidence_language = normalize_evidence_language(
+        request.GET.get('language', '')
+    )
+    task = compute_category_metrics_per_phase_activity.delay(
+        scenario_id,
+        group_ids,
+        start,
+        end,
+        evidence_scope,
+        evidence_language,
+    )
     return JsonResponse({'task_id': task.id})
 
+@group_required('teachers')
 def category_metrics_status(request, task_id):
     r = AsyncResult(task_id)
     if r.state == 'SUCCESS':
         scenario_id = r.result.get('scenario_id') if isinstance(r.result, dict) else None
+        evidence_scope = normalize_evidence_scope(
+            r.result.get('evidence_scope', 'compatible')
+            if isinstance(r.result, dict)
+            else 'compatible'
+        )
+        evidence_language = normalize_evidence_language(
+            r.result.get('evidence_language', '')
+            if isinstance(r.result, dict)
+            else ''
+        )
         if not scenario_id:
             return JsonResponse({'status': 'error', 'error': 'Missing scenario_id from result'})
 
         # csv_path = os.path.join(settings.BASE_DIR, 'ai_metrics_cache', f'scenario_{scenario_id}_combined_activity_metrics.csv')
-        csv_path = os.path.join(settings.AI_METRICS_CACHE_ROOT, f"scenario_{scenario_id}_combined_activity_metrics.csv")
+        scenario = get_object_or_404(Scenario, id=scenario_id)
+        if not user_can_view_scenario(request.user, scenario):
+            return HttpResponseForbidden("You cannot view this scenario.")
+        csv_path = get_scenario_evidence_cache_paths(
+            scenario,
+            scope=evidence_scope,
+            language=evidence_language,
+        )['metrics']
 
         if not os.path.exists(csv_path):
             return JsonResponse({'status': 'error', 'error': 'CSV not found'})
@@ -2310,22 +2837,51 @@ def category_metrics_status(request, task_id):
     
     return JsonResponse({'status': r.state})
 
+@group_required('teachers')
 def risk_flags_view(request, scenario_id):
-    task = calculate_activities_in_risk.delay(scenario_id)
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    evidence_scope = normalize_evidence_scope(
+        request.GET.get('scope', 'compatible')
+    )
+    evidence_language = normalize_evidence_language(
+        request.GET.get('language', '')
+    )
+    task = calculate_activities_in_risk.delay(
+        scenario_id,
+        evidence_scope,
+        evidence_language,
+    )
     return JsonResponse({'task_id': task.id})
 
+@group_required('teachers')
 def risk_flags_status(request, task_id):
     r = AsyncResult(task_id)
     if r.state == 'SUCCESS':
         scenario_id = r.result.get('scenario_id') if isinstance(r.result, dict) else None
+        evidence_scope = normalize_evidence_scope(
+            r.result.get('evidence_scope', 'compatible')
+            if isinstance(r.result, dict)
+            else 'compatible'
+        )
+        evidence_language = normalize_evidence_language(
+            r.result.get('evidence_language', '')
+            if isinstance(r.result, dict)
+            else ''
+        )
         if not scenario_id:
             return JsonResponse({'status': 'error', 'error': 'Missing scenario_id from result'})
 
         # Path for the risk flags CSV
-        flags_csv_path = os.path.join(
-            settings.AI_METRICS_CACHE_ROOT,#BASE_DIR, 'ai_metrics_cache',
-            f'scenario_{scenario_id}_flagged_activities_with_reasons.csv'
-        )
+        scenario = get_object_or_404(Scenario, id=scenario_id)
+        if not user_can_view_scenario(request.user, scenario):
+            return HttpResponseForbidden("You cannot view this scenario.")
+        flags_csv_path = get_scenario_evidence_cache_paths(
+            scenario,
+            scope=evidence_scope,
+            language=evidence_language,
+        )['flags']
         if not os.path.exists(flags_csv_path):
             return JsonResponse({'status': 'error', 'error': 'Flags CSV not found'})
 
@@ -2339,13 +2895,58 @@ def risk_flags_status(request, task_id):
     
     return JsonResponse({'status': r.state})
 
+
+@group_required('teachers')
+def download_ai_evidence_csv(request, scenario_id, report_kind):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    if report_kind not in {'metrics', 'flags'}:
+        raise Http404('Unknown AI evidence report.')
+    evidence_scope = normalize_evidence_scope(
+        request.GET.get('scope', 'compatible')
+    )
+    evidence_language = normalize_evidence_language(
+        request.GET.get('language', '')
+    )
+    path = get_scenario_evidence_cache_paths(
+        scenario,
+        scope=evidence_scope,
+        language=evidence_language,
+    )[report_kind]
+    if not os.path.exists(path):
+        raise Http404(
+            'Generate this report for the selected scope and language first.'
+        )
+    language_label = re.sub(
+        r'[^a-zA-Z0-9_-]+',
+        '-',
+        evidence_language or 'all-languages',
+    ).strip('-')
+    filename = (
+        f'scenario-{scenario.id}-{evidence_scope}-{language_label}-'
+        f'{report_kind}.csv'
+    )
+    return FileResponse(
+        open(path, 'rb'),
+        as_attachment=True,
+        filename=filename,
+        content_type='text/csv',
+    )
+
+
 @group_required('teachers')
 def trigger_llm_context_task(request, scenario_id):
     if request.method == "POST":
         try:
             scenario = Scenario.objects.get(id=scenario_id)
-            if scenario.created_by != request.user and not is_admin_user(request.user):
-                return JsonResponse({"error": "You don't own this scenario."}, status=403)
+            if not user_can_generate_proposals(request.user, scenario):
+                return JsonResponse({
+                    "error": (
+                        "Only the scenario creator or a platform admin can "
+                        "generate proposals."
+                    )
+                }, status=403)
             force = request.GET.get("force", "false").lower() == "true"
             task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
             return JsonResponse({"status": "started", "task_id": task.id})
@@ -2369,12 +2970,101 @@ def get_llm_context_task_status(request, task_id):
 #         'myScenario' : myScenario
 #     })
 
-@login_required
+
+def _proposal_insertion_preview(proposal, data):
+    if proposal.proposal_type != "create" or not isinstance(data, dict):
+        return None
+
+    flagged = proposal.activity
+    new_name = data.get("activity_name") or "New activity"
+    location = str(data.get("insert_location") or "after").lower()
+
+    if "before" in location:
+        predecessor_names = set(
+            NextQuestionLogic.objects.filter(next_activity=flagged)
+            .values_list("activity__name", flat=True)
+        )
+        branch_sources = EvQuestionBranching.objects.filter(
+            Q(next_question_on_high=flagged)
+            | Q(next_question_on_mid=flagged)
+            | Q(next_question_on_low=flagged)
+        ).values_list("activity__name", flat=True)
+        predecessor_names.update(branch_sources)
+        if proposal.scenario.start_activity_id == flagged.id:
+            predecessor_names.add("Scenario start")
+        return {
+            "left": " / ".join(sorted(predecessor_names)) or "Incoming path",
+            "middle": new_name,
+            "right": flagged.name,
+            "location": "before",
+        }
+
+    target_names = set(
+        NextQuestionLogic.objects.filter(activity=flagged)
+        .exclude(next_activity__isnull=True)
+        .values_list("next_activity__name", flat=True)
+    )
+    branch = EvQuestionBranching.objects.filter(activity=flagged).first()
+    if branch:
+        for target in (
+            branch.next_question_on_high,
+            branch.next_question_on_mid,
+            branch.next_question_on_low,
+        ):
+            if target:
+                target_names.add(target.name)
+    return {
+        "left": flagged.name,
+        "middle": new_name,
+        "right": " / ".join(sorted(target_names)) or "End",
+        "location": "after",
+    }
+
+
+@group_required('teachers')
 def proposal_list_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    current_version = myScenario.ensure_current_version(
+        created_by=request.user,
+    )
+    current_evidence_context = get_evidence_context(
+        myScenario,
+        scope='compatible',
+    )
+    current_generation_run = (
+        ProposalGenerationRun.objects
+        .filter(
+            scenario=myScenario,
+            scenario_version=current_version,
+            is_current=True,
+        )
+        .first()
+    )
+    if (
+        current_generation_run
+        and current_generation_run.evidence_scope == 'compatible'
+        and current_generation_run.evidence_summary.get(
+            'source_signature'
+        )
+        != current_evidence_context['source_signature']
+    ):
+        current_generation_run.is_current = False
+        current_generation_run.save(update_fields=['is_current'])
+        current_generation_run = None
+        messages.info(
+            request,
+            'The compatible evidence pool changed. The previous proposals '
+            'were archived; the scenario owner can generate a current set.',
+        )
 
     # 1. Fetch all shared proposals for the scenario's current generation run
-    proposals = ActivityProposal.objects.filter(scenario=myScenario, generation_run__is_current=True)\
+    proposals = ActivityProposal.objects.filter(
+        scenario=myScenario,
+        generation_run=current_generation_run,
+        generation_run__scenario_version=current_version,
+    )\
         .select_related('activity', 'phase', 'scenario')\
         .prefetch_related('flag', 'categories_in_risk')\
         .order_by('-created_at')
@@ -2419,6 +3109,26 @@ def proposal_list_view(request, scenario_id):
         else:
             review.teacher_edited_json_str = None
 
+    for proposal in proposals:
+        review = user_reviews[proposal.id]
+        base_raw = proposal.json_translated_action or proposal.json_action
+        try:
+            base = (
+                base_raw
+                if isinstance(base_raw, dict)
+                else json.loads(base_raw or "{}")
+            )
+            effective = merge_proposal_edits(
+                base,
+                review.teacher_edited_json or {},
+            )
+        except (json.JSONDecodeError, TypeError, ProposalValidationError):
+            effective = {}
+        proposal.insertion_preview = _proposal_insertion_preview(
+            proposal,
+            effective,
+        )
+
     feedback_form_json = None
     if request.session.pop('feedback_prompt_scenario_id', None) == myScenario.id:
         from feedback.utils import get_applicable_form, serialize_form, user_has_responded
@@ -2429,6 +3139,7 @@ def proposal_list_view(request, scenario_id):
     return render(request, 'authoringtool/proposal_list.html', {
         'proposals':         proposals,
         'myScenario':        myScenario,
+        'current_scenario_version': current_version,
         'user_reviews':      user_reviews,
         'show_create_button': show_create_button,
         'total_count':       total,
@@ -2436,6 +3147,15 @@ def proposal_list_view(request, scenario_id):
         'rejected_count':    rejected_count,
         'pending_count':     pending_count,
         'feedback_form_json': feedback_form_json,
+        'generation_run': current_generation_run,
+        'evidence_context': evidence_context_visible_to_user(
+            (
+                current_generation_run.evidence_summary
+                if current_generation_run
+                else current_evidence_context
+            ),
+            request.user,
+        ),
     })
 
 # @login_required
@@ -2453,32 +3173,115 @@ def proposal_list_view(request, scenario_id):
 @require_POST
 @group_required('teachers')
 def accept_proposal(request, pk, scenario_id):
-    proposal = get_object_or_404(ActivityProposal, pk=pk)
-    if proposal.scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    proposal = get_object_or_404(
+        ActivityProposal,
+        pk=pk,
+        scenario_id=scenario_id,
+    )
+    if not user_can_view_scenario(request.user, proposal.scenario):
+        return HttpResponseForbidden("You cannot review this scenario.")
     review, _ = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
+    base_raw = proposal.json_translated_action or proposal.json_action
+    try:
+        base = base_raw if isinstance(base_raw, dict) else json.loads(base_raw)
+        effective = merge_proposal_edits(base, review.teacher_edited_json or {})
+        expected_type = (
+            proposal.activity.activity_type.name
+            if proposal.proposal_type == "revise"
+            else None
+        )
+        answer_count = proposal.activity.answers.count()
+        validate_proposal_data(
+            effective,
+            expected_action=proposal.proposal_type,
+            expected_activity_type=expected_type,
+            expected_answer_count=(
+                answer_count
+                if expected_type == "Question" and 2 <= answer_count <= 4
+                else None
+            ),
+            require_insert_after=proposal_requires_insert_after(
+                proposal.activity,
+                proposal.proposal_type,
+            ),
+        )
+    except (json.JSONDecodeError, TypeError, ProposalValidationError) as exc:
+        record_proposal_structural_failure(
+            scenario=proposal.scenario,
+            generation_run=proposal.generation_run,
+            proposal=proposal,
+            activity=proposal.activity,
+            selected_action=proposal.proposal_type,
+            stage="acceptance",
+            errors=exc,
+            raw_output=str(base_raw or ""),
+        )
+        messages.error(
+            request,
+            f"This proposal cannot be accepted until its structure is fixed: {exc}",
+        )
+        return redirect('proposal_list', scenario_id=scenario_id)
     review.accept()
     return redirect('proposal_list', scenario_id=scenario_id)
 
 @require_POST
 @group_required('teachers')
 def reject_proposal(request, pk, scenario_id):
-    proposal = get_object_or_404(ActivityProposal, pk=pk)
-    if proposal.scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    proposal = get_object_or_404(
+        ActivityProposal,
+        pk=pk,
+        scenario_id=scenario_id,
+    )
+    if not user_can_view_scenario(request.user, proposal.scenario):
+        return HttpResponseForbidden("You cannot review this scenario.")
     review, _ = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
     reasons = request.POST.getlist('rejection_reasons')
     review.reject(reasons=reasons)
+    if review.feedback_type == "structural":
+        record_proposal_structural_failure(
+            scenario=proposal.scenario,
+            generation_run=proposal.generation_run,
+            proposal=proposal,
+            activity=proposal.activity,
+            selected_action=proposal.proposal_type,
+            stage="teacher_review",
+            errors=["Teacher marked the proposal as structurally invalid."],
+            raw_output=proposal.json_translated_action or proposal.json_action,
+        )
     return redirect('proposal_list', scenario_id=scenario_id)
 
-@login_required
+
+@require_POST
+@group_required('teachers')
+def reset_proposal_review(request, pk, scenario_id):
+    proposal = get_object_or_404(
+        ActivityProposal,
+        pk=pk,
+        scenario_id=scenario_id,
+    )
+    if not user_can_view_scenario(request.user, proposal.scenario):
+        return HttpResponseForbidden("You cannot review this scenario.")
+    review = get_object_or_404(
+        UserProposalReview,
+        proposal=proposal,
+        user=request.user,
+    )
+    review.reset_to_pending()
+    return redirect('proposal_list', scenario_id=scenario_id)
+
+
+@require_POST
+@group_required('teachers')
 def create_personal_scenario(request, scenario_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot use this scenario.")
     print(f"SCENARIO IS : {scenario_id}")
     apply_user_proposals_to_new_scenario.delay(scenario_id, request.user.id)
     messages.success(request, "Your personalized scenario is being created. It will appear in your scenarios shortly.")
@@ -2507,7 +3310,13 @@ def _answers_field_diff(old_answers, new_answers):
 @require_POST
 @group_required('teachers')
 def edit_proposal_json(request, scenario_id, pk):
-    proposal = get_object_or_404(ActivityProposal, pk=pk)
+    proposal = get_object_or_404(
+        ActivityProposal,
+        pk=pk,
+        scenario_id=scenario_id,
+    )
+    if not user_can_view_scenario(request.user, proposal.scenario):
+        return HttpResponseForbidden("You cannot review this scenario.")
     user = request.user
 
     # Get or create the review
@@ -2529,7 +3338,19 @@ def edit_proposal_json(request, scenario_id, pk):
         key = f"answer_text_{i}"
         val = request.POST.get(key)
         if val:
-            data["answers"].append({"text": val.strip()})
+            answer = {
+                "text": format_proposal_answer_text(
+                    val,
+                    len(data["answers"]),
+                )
+            }
+            raw_correct = request.POST.get(f"answer_is_correct_{i}")
+            raw_weight = request.POST.get(f"answer_weight_{i}")
+            if raw_correct is not None:
+                answer["is_correct"] = raw_correct.lower() == "true"
+            if raw_weight and raw_weight.isdigit():
+                answer["weight"] = int(raw_weight)
+            data["answers"].append(answer)
 
     # Log this revision as an edit event, diffed against the previous
     # revision (or the original LLM proposal for the first edit).
@@ -2655,9 +3476,11 @@ def tinymce_image_upload(request):
     return JsonResponse({'location': f"{settings.MEDIA_URL}tinymce/{filename}"})
 
 
-@login_required
+@group_required('teachers')
 def proposal_history_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     past_runs = ProposalGenerationRun.objects.filter(
         scenario=myScenario, is_current=False
     ).order_by('-created_at')
@@ -2678,6 +3501,14 @@ def proposal_history_view(request, scenario_id):
             'accepted': accepted,
             'rejected': rejected,
             'never_decided': never_decided,
+            'evidence_context': (
+                evidence_context_visible_to_user(
+                    run.evidence_summary,
+                    request.user,
+                )
+                if run.evidence_summary
+                else None
+            ),
         })
 
     return render(request, 'authoringtool/proposal_history.html', {
@@ -2686,9 +3517,11 @@ def proposal_history_view(request, scenario_id):
     })
 
 
-@login_required
+@group_required('teachers')
 def proposal_history_run_detail_view(request, scenario_id, run_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     run = get_object_or_404(ProposalGenerationRun, id=run_id, scenario=myScenario)
 
     proposals = run.proposals.select_related('activity', 'phase')\
@@ -2698,10 +3531,16 @@ def proposal_history_run_detail_view(request, scenario_id, run_id):
         review.proposal_id: review
         for review in UserProposalReview.objects.filter(user=request.user, proposal__generation_run=run)
     }
+    evidence_context = (
+        evidence_context_visible_to_user(run.evidence_summary, request.user)
+        if run.evidence_summary
+        else None
+    )
 
     return render(request, 'authoringtool/proposal_history_run_detail.html', {
         'myScenario': myScenario,
         'run': run,
         'proposals': proposals,
         'user_reviews': user_reviews,
+        'evidence_context': evidence_context,
     })

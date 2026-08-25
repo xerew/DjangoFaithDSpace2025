@@ -622,7 +622,12 @@ class AdminBulkEmailTests(TestCase):
             {'teacher@example.com', 'second@example.com'},
         )
 
-        html_message = mail.outbox[0].alternatives[0].content
+        html_alternative = mail.outbox[0].alternatives[0]
+        html_message = (
+            html_alternative.content
+            if hasattr(html_alternative, 'content')
+            else html_alternative[0]
+        )
         self.assertIn('background-color:#1a56db', html_message)
         self.assertIn('Platform Announcement', html_message)
         self.assertIn('https://platform.test/accounts/documentation/', html_message)
