@@ -75,13 +75,18 @@
       <strong>Evidence used for this run:</strong>
       {{ evidence_context.implementation_count }} eligible
       implementation{{ evidence_context.implementation_count|pluralize }}
-      from {{ evidence_context.scenario_count }} compatible scenario
-      variant{{ evidence_context.scenario_count|pluralize }}
+      {% if evidence_context.scope == 'compatible' %}
+        from {{ evidence_context.scenario_count }} compatible scenario variant{{ evidence_context.scenario_count|pluralize }}
+      {% else %}
+        from this scenario, including its historical data
+      {% endif %}
       {% if evidence_context.languages %}
         ({{ evidence_context.languages|join:", " }})
       {% endif %}.
-      Correctness was pooled across the approved versions; timing was restricted
-      to this scenario's language.
+      {% if evidence_context.scope == 'compatible' %}
+        Correctness was pooled across the approved versions; timing was restricted
+        to this scenario's language.
+      {% endif %}
       {% if evidence_context.restricted_source_count %}
         {{ evidence_context.restricted_source_count }} restricted source
         variant{{ evidence_context.restricted_source_count|pluralize }} contributed

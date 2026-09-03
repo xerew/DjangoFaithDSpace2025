@@ -14,7 +14,10 @@ from .models import (
 EVIDENCE_SCOPES = {'local', 'compatible', 'historical'}
 
 
-def normalize_evidence_scope(scope):
+def normalize_evidence_scope(scope, scenario=None):
+    """Resolve a requested scope under the scenario's evidence policy."""
+    if scenario is not None and not scenario.use_family_evidence_pooling:
+        return 'local'
     return scope if scope in EVIDENCE_SCOPES else 'compatible'
 
 
@@ -24,7 +27,7 @@ def normalize_evidence_language(language):
 
 def get_evidence_versions(scenario, scope='compatible', language=''):
     """Return current versions that may safely contribute to this analysis."""
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     current = scenario.ensure_current_version()
     if scope == 'historical':
@@ -39,8 +42,16 @@ def get_evidence_versions(scenario, scope='compatible', language=''):
 
 
 def get_evidence_scores(scenario, scope='compatible', language=''):
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
+    if scope == 'local' and not scenario.use_family_evidence_pooling:
+        scores = UserScenarioScore.objects.filter(
+            implementation__scenario=scenario,
+            implementation__data_quality_status__in=['unreviewed', 'clean'],
+        )
+        return scores.exclude(
+            implementation__user__groups__name='teachers',
+        )
     if scope == 'historical':
         scores = UserScenarioScore.objects.filter(
             implementation__scenario=scenario,
@@ -80,8 +91,20 @@ def get_evidence_implementation_count(
 
 def get_evidence_answers(scenario, scope='compatible', language=''):
     """Return answers with an eligible implementation in an evidence version."""
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
+    if scope == 'local' and not scenario.use_family_evidence_pooling:
+        return (
+            UserAnswer.objects
+            .filter(
+                implementation__scenario=scenario,
+                implementation__data_quality_status__in=[
+                    'unreviewed',
+                    'clean',
+                ],
+            )
+            .exclude(implementation__user__groups__name='teachers')
+        )
     if scope == 'historical':
         if language and (
             (scenario.language or '').strip().casefold()
@@ -117,7 +140,7 @@ def get_evidence_answers(scenario, scope='compatible', language=''):
 
 
 def get_evidence_breakdown(scenario, scope='compatible', language=''):
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     scores = get_evidence_scores(scenario, scope, language)
     if scope == 'historical':
@@ -172,7 +195,7 @@ def _get_evidence_source_payload(
     scope='compatible',
     language='',
 ):
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     if scope == 'historical':
         scenario.ensure_current_version()
@@ -191,17 +214,19 @@ def _get_evidence_source_payload(
         .values_list('id', flat=True)
         .order_by('id')
     )
-    membership_rows = list(
-        ScenarioVersionCompatibility.objects
-        .filter(scenario_version_id__in=versions)
-        .values_list(
-            'scenario_version_id',
-            'cluster_id',
-            'status',
-            'updated_at',
+    membership_rows = []
+    if scenario.use_family_evidence_pooling:
+        membership_rows = list(
+            ScenarioVersionCompatibility.objects
+            .filter(scenario_version_id__in=versions)
+            .values_list(
+                'scenario_version_id',
+                'cluster_id',
+                'status',
+                'updated_at',
+            )
+            .order_by('scenario_version_id')
         )
-        .order_by('scenario_version_id')
-    )
     return {
         'scope': scope,
         'language': language,
@@ -233,7 +258,7 @@ def get_evidence_source_signature(
 
 def get_evidence_signature(scenario, scope='compatible', language=''):
     """Fingerprint source decisions plus all mutable eligible evidence."""
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     score_state = get_evidence_scores(
         scenario,
@@ -277,7 +302,7 @@ def get_evidence_signature(scenario, scope='compatible', language=''):
 
 
 def get_evidence_context(scenario, scope='compatible', language=''):
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     if scope == 'historical':
         scenario.ensure_current_version()

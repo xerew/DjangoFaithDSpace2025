@@ -191,6 +191,17 @@ class Scenario(models.Model):
         default=200,
         help_text="Minimum number of student implementations required before Metrics & AI / Proposals are shown without a warning."
     )
+    use_family_evidence_pooling = models.BooleanField(
+        'Use family and historical evidence logic',
+        default=False,
+        help_text=(
+            'When enabled, Metrics & AI uses compatible current versions '
+            'from this scenario family and separates legacy evidence into '
+            'Historical Analytics. When disabled, all current and historical '
+            'data belonging to this scenario is used, as in the original '
+            'analytics behaviour.'
+        ),
+    )
 
     class Meta:
         verbose_name = 'Scenario'
@@ -632,6 +643,15 @@ class Scenario(models.Model):
             .distinct()
             .count()
         )
+
+    def metrics_implementation_count(self):
+        """Count implementations under this scenario's configured policy."""
+        from .evidence import get_evidence_implementation_count
+
+        scope = (
+            'compatible' if self.use_family_evidence_pooling else 'local'
+        )
+        return get_evidence_implementation_count(self, scope)
 
     def clean(self):
         super().clean()
@@ -2479,12 +2499,17 @@ class ActivityProposal(models.Model):
         return f"{self.get_proposal_type_display()} for '{self.activity}' ({self.get_status_display()})"
 
     def is_bandit_reward_eligible(self):
-        """Only current, compatible, provenance-valid runs may teach bandit."""
+        """Only current, policy-compliant, provenance-valid runs teach bandit."""
         run = self.generation_run
+        configured_scope = (
+            'compatible'
+            if run and run.scenario.use_family_evidence_pooling
+            else 'local'
+        )
         if (
             run is None
             or not run.is_current
-            or run.evidence_scope != 'compatible'
+            or run.evidence_scope != configured_scope
             or run.scenario_version_id is None
             or run.scenario.current_version_id != run.scenario_version_id
         ):
@@ -2492,7 +2517,7 @@ class ActivityProposal(models.Model):
         from .evidence import get_evidence_context
         current_context = get_evidence_context(
             run.scenario,
-            scope='compatible',
+            scope=configured_scope,
         )
         expected_source_signature = (
             run.evidence_summary or {}

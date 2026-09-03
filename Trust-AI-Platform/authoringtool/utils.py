@@ -31,7 +31,7 @@ def get_scenario_evidence_cache_paths(
     language='',
 ):
     """Return cache files isolated to the complete evidence source set."""
-    scope = normalize_evidence_scope(scope)
+    scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
     version = scenario.ensure_current_version()
     signature = get_evidence_signature(

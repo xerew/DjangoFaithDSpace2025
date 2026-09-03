@@ -765,7 +765,10 @@ def viewScenario(request, id):
         myScenario,
         'historical',
     )
-    local_implementation_count = myScenario.eligible_implementation_count()
+    local_implementation_count = get_evidence_implementation_count(
+        myScenario,
+        'local',
+    )
     evidence_context = get_evidence_context(
         myScenario,
         scope='compatible',
@@ -2643,7 +2646,8 @@ def ai_metrics(request, scenario_id):
         })
 
     evidence_scope = normalize_evidence_scope(
-        request.GET.get('scope', 'compatible')
+        request.GET.get('scope', 'compatible'),
+        scenario,
     )
     evidence_language = normalize_evidence_language(
         request.GET.get('language', '')
@@ -2729,10 +2733,11 @@ def ai_metrics(request, scenario_id):
         .exclude(user__groups__name='teachers')
         .count()
     )
-    local_implementation_count = scenario.eligible_implementation_count()
-    compatible_implementation_count = (
-        scenario.compatible_implementation_count()
+    local_implementation_count = get_evidence_implementation_count(
+        scenario,
+        'local',
     )
+    compatible_implementation_count = scenario.metrics_implementation_count()
     legacy_implementation_count = get_evidence_implementation_count(
         scenario,
         'historical',
@@ -2760,7 +2765,7 @@ def ai_metrics(request, scenario_id):
         'implementation_count': implementation_count,
         'local_implementation_count': local_implementation_count,
         'compatible_implementation_count': compatible_implementation_count,
-        'proposal_implementation_count': compatible_implementation_count,
+        'proposal_implementation_count': scenario.metrics_implementation_count(),
         'total_implementation_count': total_implementation_count,
         'legacy_implementation_count': legacy_implementation_count,
         'excluded_implementation_count': excluded_implementation_count,
@@ -2781,7 +2786,8 @@ def category_metrics_view(request, scenario_id):
     end = request.GET.get('end_date')
     group_ids = request.GET.getlist('group_ids[]', None)
     evidence_scope = normalize_evidence_scope(
-        request.GET.get('scope', 'compatible')
+        request.GET.get('scope', 'compatible'),
+        scenario,
     )
     evidence_language = normalize_evidence_language(
         request.GET.get('language', '')
@@ -2843,7 +2849,8 @@ def risk_flags_view(request, scenario_id):
     if not user_can_view_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot view this scenario.")
     evidence_scope = normalize_evidence_scope(
-        request.GET.get('scope', 'compatible')
+        request.GET.get('scope', 'compatible'),
+        scenario,
     )
     evidence_language = normalize_evidence_language(
         request.GET.get('language', '')
@@ -2904,7 +2911,8 @@ def download_ai_evidence_csv(request, scenario_id, report_kind):
     if report_kind not in {'metrics', 'flags'}:
         raise Http404('Unknown AI evidence report.')
     evidence_scope = normalize_evidence_scope(
-        request.GET.get('scope', 'compatible')
+        request.GET.get('scope', 'compatible'),
+        scenario,
     )
     evidence_language = normalize_evidence_language(
         request.GET.get('language', '')
@@ -3029,9 +3037,14 @@ def proposal_list_view(request, scenario_id):
     current_version = myScenario.ensure_current_version(
         created_by=request.user,
     )
+    configured_evidence_scope = (
+        'compatible'
+        if myScenario.use_family_evidence_pooling
+        else 'local'
+    )
     current_evidence_context = get_evidence_context(
         myScenario,
-        scope='compatible',
+        scope=configured_evidence_scope,
     )
     current_generation_run = (
         ProposalGenerationRun.objects
@@ -3044,10 +3057,11 @@ def proposal_list_view(request, scenario_id):
     )
     if (
         current_generation_run
-        and current_generation_run.evidence_scope == 'compatible'
+        and current_generation_run.evidence_scope == configured_evidence_scope
         and current_generation_run.evidence_summary.get(
             'source_signature'
         )
+        and current_generation_run.evidence_summary['source_signature']
         != current_evidence_context['source_signature']
     ):
         current_generation_run.is_current = False
@@ -3055,7 +3069,7 @@ def proposal_list_view(request, scenario_id):
         current_generation_run = None
         messages.info(
             request,
-            'The compatible evidence pool changed. The previous proposals '
+            'The evidence pool changed. The previous proposals '
             'were archived; the scenario owner can generate a current set.',
         )
 

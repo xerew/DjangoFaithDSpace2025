@@ -292,6 +292,8 @@ class ImplementationAndActivityLineageTests(PhaseCompletionBase):
 class FamilyLanguageAnalyticsTests(PhaseCompletionBase):
     def setUp(self):
         super().setUp()
+        self.scenario.use_family_evidence_pooling = True
+        self.scenario.save(update_fields=['use_family_evidence_pooling'])
         self.version_en = self.scenario.ensure_current_version()
         self.translation = Scenario.objects.create(
             name='Εκκρεμές',
@@ -408,6 +410,11 @@ class FamilyLanguageAnalyticsTests(PhaseCompletionBase):
 
 
 class BanditEvidenceEligibilityTests(PhaseCompletionBase):
+    def setUp(self):
+        super().setUp()
+        self.scenario.use_family_evidence_pooling = True
+        self.scenario.save(update_fields=['use_family_evidence_pooling'])
+
     def _proposal(self, run):
         flag = ActivityFlag.objects.create(
             activity=self.activity,

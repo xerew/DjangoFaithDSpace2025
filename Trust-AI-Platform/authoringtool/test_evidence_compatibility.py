@@ -31,7 +31,109 @@ from authoringtool.tasks import (
     _compute_compatible_category_metrics_data,
     compute_category_metrics_per_phase_activity,
 )
-from authoringtool.utils import get_scenario_evidence_cache_paths
+from authoringtool.utils import get_last_answers, get_scenario_evidence_cache_paths
+
+
+class ScenarioEvidencePolicyTests(TestCase):
+    def setUp(self):
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.owner = User.objects.create_user('policy_owner')
+        self.owner.groups.add(teachers)
+        self.current_student = User.objects.create_user('policy_current')
+        self.legacy_student = User.objects.create_user('policy_legacy')
+        self.other_student = User.objects.create_user('policy_other')
+        activity_type = ActivityType.objects.create(
+            name='Policy question',
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.scenario = Scenario.objects.create(
+            name='Policy scenario',
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        phase = Phase.objects.create(
+            name='Policy phase',
+            scenario=self.scenario,
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.activity = Activity.objects.create(
+            name='Policy activity',
+            scenario=self.scenario,
+            phase=phase,
+            activity_type=activity_type,
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        self.scenario.start_activity = self.activity
+        self.scenario.save(update_fields=['start_activity'])
+        self.scenario.ensure_current_version()
+        UserScenarioScore.objects.create(
+            user=self.current_student,
+            scenario=self.scenario,
+        )
+        UserAnswer.objects.create(
+            user=self.current_student,
+            activity=self.activity,
+            timing=10,
+        )
+        UserScenarioScore.objects.create(
+            user=self.legacy_student,
+            scenario=self.scenario,
+            version_confidence='legacy_unknown',
+        )
+        UserAnswer.objects.create(
+            user=self.legacy_student,
+            activity=self.activity,
+            timing=20,
+            version_confidence='legacy_unknown',
+        )
+        self.other_scenario = Scenario.objects.create(
+            name='Other family scenario',
+            family=self.scenario.family,
+            variant_type='translation',
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        UserScenarioScore.objects.create(
+            user=self.other_student,
+            scenario=self.other_scenario,
+        )
+
+    def test_disabled_policy_uses_all_data_from_only_this_scenario(self):
+        self.assertFalse(self.scenario.use_family_evidence_pooling)
+        context = get_evidence_context(self.scenario, 'compatible')
+
+        self.assertEqual(context['scope'], 'local')
+        self.assertEqual(context['scenario_count'], 1)
+        self.assertEqual(context['implementation_count'], 2)
+        self.assertEqual(get_last_answers(self.scenario.id).count(), 2)
+
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            reverse('ai_metrics', args=[self.scenario.id]),
+            {'scope': 'historical'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['evidence_scope'], 'local')
+        self.assertEqual(response.context['implementation_count'], 2)
+        self.assertTrue(response.context['proposal_generation_available'])
+        self.assertContains(response, 'including its historical data')
+        self.assertNotContains(response, 'Compatible family')
+
+    def test_enabled_policy_separates_current_and_historical_evidence(self):
+        self.scenario.use_family_evidence_pooling = True
+        self.scenario.save(update_fields=['use_family_evidence_pooling'])
+
+        self.assertEqual(
+            get_evidence_implementation_count(self.scenario, 'local'),
+            1,
+        )
+        self.assertEqual(
+            get_evidence_implementation_count(self.scenario, 'historical'),
+            1,
+        )
 
 
 class EvidenceCompatibilityMigrationTests(TransactionTestCase):
@@ -126,7 +228,7 @@ class EvidenceCompatibilityMigrationTests(TransactionTestCase):
     def tearDown(self):
         executor = MigrationExecutor(connection)
         executor.migrate([
-            ('authoringtool', '0067_family_review_dashboard_llm')
+            ('authoringtool', '0068_scenario_use_family_evidence_pooling')
         ])
         super().tearDown()
 
@@ -156,6 +258,7 @@ class CompatibleEvidencePoolingTests(TestCase):
             name='Pendulum English compatible',
             language='English',
             variant_type='canonical',
+            use_family_evidence_pooling=True,
             created_by=self.owner,
             updated_by=self.owner,
         )

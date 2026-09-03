@@ -853,6 +853,7 @@ class StructuralFeedbackTests(TestCase):
             name="Structural feedback scenario",
             created_by=self.user,
             updated_by=self.user,
+            use_family_evidence_pooling=True,
         )
         self.phase = Phase.objects.create(
             name="Phase",

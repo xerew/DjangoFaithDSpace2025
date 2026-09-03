@@ -39,29 +39,53 @@
 
 <body>
 
-  {% if request.session.impersonator_id %}
-  <div id="impersonation-banner" style="
-    position:fixed; top:0; left:0; right:0; z-index:9999;
-    background:#f59e0b; color:#1c1917;
-    padding:8px 20px; font-size:13px; font-weight:600;
-    display:flex; align-items:center; justify-content:center; gap:12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  ">
-    <i class="bi bi-eye-fill"></i>
-    Viewing as <strong>@{{ request.user.username }}</strong> &mdash; not your account
-    <form method="post" action="{% url 'admin_impersonate_exit' %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit" style="
-        background:#1c1917; color:#fff; border:none; border-radius:6px;
-        padding:3px 12px; font-size:12px; font-weight:600; cursor:pointer;
-      ">Exit Impersonation</button>
-    </form>
+  {% if active_maintenance_notices or request.session.impersonator_id %}
+  <div id="platform-banner-stack">
+    {% include 'includes/maintenance_banner.html' %}
+    {% if request.session.impersonator_id %}
+    <div id="impersonation-banner">
+      <i class="bi bi-eye-fill"></i>
+      Viewing as <strong>@{{ request.user.username }}</strong> &mdash; not your account
+      <form method="post" action="{% url 'admin_impersonate_exit' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">Exit Impersonation</button>
+      </form>
+    </div>
+    {% endif %}
   </div>
   <style>
-    #header { top: 40px !important; }
-    #sidebar { top: 112px !important; }
-    .main { padding-top: 96px !important; }
+    :root { --platform-banner-offset: 0px; }
+    #platform-banner-stack { position:fixed;top:0;left:0;right:0;z-index:9999; }
+    #impersonation-banner {
+      background:#f59e0b;color:#1c1917;padding:8px 20px;font-size:13px;
+      font-weight:600;display:flex;flex-wrap:wrap;align-items:center;
+      justify-content:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);
+    }
+    #impersonation-banner button {
+      background:#1c1917;color:#fff;border:none;border-radius:6px;padding:3px 12px;
+      font-size:12px;font-weight:600;cursor:pointer;
+    }
+    #header { top:var(--platform-banner-offset) !important; }
+    #sidebar { top:var(--platform-banner-offset) !important; }
+    #main { margin-top:calc(72px + var(--platform-banner-offset)) !important; }
   </style>
+  <script>
+    (function () {
+      function updatePlatformBannerOffset() {
+        var stack = document.getElementById('platform-banner-stack');
+        document.documentElement.style.setProperty('--platform-banner-offset', (stack ? stack.offsetHeight : 0) + 'px');
+      }
+      window.addEventListener('DOMContentLoaded', updatePlatformBannerOffset);
+      window.addEventListener('resize', updatePlatformBannerOffset);
+      if (window.ResizeObserver) {
+        window.addEventListener('DOMContentLoaded', function () {
+          var stack = document.getElementById('platform-banner-stack');
+          if (stack) new ResizeObserver(updatePlatformBannerOffset).observe(stack);
+        });
+      }
+      updatePlatformBannerOffset();
+    }());
+  </script>
   {% endif %}
 
   <!-- ======= Header ======= -->
@@ -125,14 +149,16 @@
                 <span>Organizations</span>
               </a>
             </li>
+            <li><hr class="dropdown-divider"></li>
+            {% endif %}
+
             {% if request.user.is_staff or request.user.is_superuser %}
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'admin_dashboard' %}">
                 <span class="profile-icon-wrap" style="background:#ede9fe;color:#7c3aed;"><i class="bi bi-shield-lock-fill"></i></span>
-                <span>User Management</span>
+                <span>Platform Administration</span>
               </a>
             </li>
-            {% endif %}
             <li><hr class="dropdown-divider"></li>
             {% endif %}
 
@@ -200,6 +226,15 @@
           <span>Student View</span>
         </a>
       </li>
+
+      {% if request.user.is_staff or request.user.is_superuser %}
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="{% url 'admin_dashboard' %}">
+          <i class="bi bi-shield-lock-fill"></i>
+          <span>Platform Administration</span>
+        </a>
+      </li>
+      {% endif %}
     </ul>
 	{% if request.user|has_group:"teachers" %}
       <hr>

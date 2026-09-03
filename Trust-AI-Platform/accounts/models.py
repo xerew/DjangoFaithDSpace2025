@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 COUNTRY_CHOICES = [
     ('', '— Select country —'),
@@ -56,6 +58,79 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+
+
+class MaintenanceNoticeQuerySet(models.QuerySet):
+    def active(self, at=None):
+        at = at or timezone.now()
+        return self.filter(
+            is_enabled=True,
+            starts_at__lte=at,
+            ends_at__gt=at,
+        )
+
+
+class MaintenanceNotice(models.Model):
+    reason = models.TextField(
+        help_text='Explain why the platform is undergoing maintenance.',
+    )
+    starts_at = models.DateTimeField(
+        'start date and time',
+        db_index=True,
+    )
+    ends_at = models.DateTimeField(
+        'end date and time',
+        db_index=True,
+    )
+    is_enabled = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text='Disable this notice without deleting its schedule.',
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='maintenance_notices_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = MaintenanceNoticeQuerySet.as_manager()
+
+    class Meta:
+        ordering = ['-starts_at', '-id']
+        indexes = [
+            models.Index(
+                fields=['is_enabled', 'starts_at', 'ends_at'],
+                name='maintenance_active_window_idx',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Maintenance from {self.starts_at:%Y-%m-%d %H:%M}'
+
+    def clean(self):
+        super().clean()
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError({
+                'ends_at': 'The end date and time must be after the start.',
+            })
+
+    def is_active(self, at=None):
+        at = at or timezone.now()
+        return self.is_enabled and self.starts_at <= at < self.ends_at
+
+    def state(self, at=None):
+        at = at or timezone.now()
+        if not self.is_enabled:
+            return 'disabled'
+        if at < self.starts_at:
+            return 'scheduled'
+        if at >= self.ends_at:
+            return 'ended'
+        return 'active'
 
 
 class BulkEmailCampaign(models.Model):

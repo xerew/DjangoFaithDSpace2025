@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — User Management</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab — Platform Administration</title>{% endblock %}
 {% load static %}
 {% load profile_tags %}
 {% block atcontent %}
@@ -79,13 +79,16 @@
       <div class="admin-hero-icon"><i class="bi bi-shield-lock-fill"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">User Management</h2>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Platform Administration</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ stats.total }} user{{ stats.total|pluralize }} · {{ stats.active }} active</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item active">User Management</li>
+          <li class="breadcrumb-item active">Platform Administration</li>
         </ol></nav>
       </div>
-      <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+      <div class="flex-shrink-0 d-flex flex-wrap justify-content-end gap-2 align-items-start" style="padding-top:4px;">
+        <a href="{% url 'admin:index' %}" style="background:#fff;color:#1e3a8a;border:1.5px solid #fff;font-weight:700;font-size:13px;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;">
+          <i class="bi bi-box-arrow-up-right"></i> Django Admin
+        </a>
         <a href="{% url 'feedback_form_list' %}" style="background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4);font-weight:600;font-size:13px;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;">
           <i class="bi bi-clipboard-check"></i> Feedback Forms
         </a>
@@ -159,6 +162,12 @@
         <button class="nav-link" id="tab-email-btn" data-bs-toggle="tab" data-bs-target="#tab-email" type="button" role="tab">
           <i class="bi bi-envelope-paper me-1"></i> Email
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ email_teacher_count }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-maintenance-btn" data-bs-toggle="tab" data-bs-target="#tab-maintenance" type="button" role="tab">
+          <i class="bi bi-cone-striped me-1"></i> Maintenance
+          {% if active_maintenance_count %}<span class="badge bg-warning text-dark ms-1" style="font-size:11px;">{{ active_maintenance_count }} active</span>{% endif %}
         </button>
       </li>
     </ul>
@@ -622,6 +631,7 @@
       </div><!-- /tab-labs -->
 
       {% include 'accounts/_admin_email_tab.html' %}
+      {% include 'accounts/_admin_maintenance_tab.html' %}
 
     </div><!-- /tab-content -->
 

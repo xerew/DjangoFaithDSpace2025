@@ -330,7 +330,7 @@
           </div>
         </div>
 
-        {% if scenario_family %}
+        {% if scenario_family and myScenario.use_family_evidence_pooling %}
         <!-- Scenario family totals and visible language/adaptation variants -->
         <div class="sc-card">
           <div class="sc-card-header">
@@ -386,14 +386,20 @@
             </div>
             {% endif %}
             <div style="font-size:11.5px; color:#6b7280; margin-top:12px; line-height:1.5;">
-              The reliability threshold uses
-              <strong>{{ implementation_count }}</strong> compatible
-              implementation{{ implementation_count|pluralize }}:
-              {{ local_implementation_count }} from this scenario and
-              {{ compatible_external_implementation_count }} from approved
-              family variants.
+              {% if myScenario.use_family_evidence_pooling %}
+                The reliability threshold uses
+                <strong>{{ implementation_count }}</strong> compatible
+                implementation{{ implementation_count|pluralize }}:
+                {{ local_implementation_count }} from this scenario and
+                {{ compatible_external_implementation_count }} from approved
+                family variants.
+              {% else %}
+                Family evidence pooling is disabled. Dashboard and Metrics &amp; AI use
+                all <strong>{{ implementation_count }}</strong> implementation{{ implementation_count|pluralize }}
+                belonging to this scenario, including historical data.
+              {% endif %}
             </div>
-            {% if excluded_implementation_count %}
+            {% if myScenario.use_family_evidence_pooling and excluded_implementation_count %}
             <div class="alert alert-light border mt-2 mb-0 py-2 px-3" style="font-size:11.5px; color:#6b7280;">
               {{ excluded_implementation_count }} historical or incompatible
               implementation{{ excluded_implementation_count|pluralize }} remain
@@ -404,6 +410,7 @@
         </div>
         {% endif %}
 
+        {% if myScenario.use_family_evidence_pooling %}
         <div class="sc-card">
           <div class="sc-card-header">
             <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>Compatible Evidence Pool</span>
@@ -451,8 +458,9 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
-        {% if scenario_versions %}
+        {% if scenario_versions and myScenario.use_family_evidence_pooling %}
         <div class="sc-card">
           <div class="sc-card-header">
             <span><i class="bi bi-clock-history me-2" style="color:#1a56db;"></i>Evidence History</span>
@@ -742,19 +750,21 @@
       </div>
       <div class="modal-body pt-2">
         <p class="mb-2">
-          Version {{ current_scenario_version.version_number }} has
-          <strong>{{ implementation_count }}</strong> compatible student
-          implementation{{ implementation_count|pluralize }}
-          across approved family variants
-          ({{ local_implementation_count }} from this scenario;
-          {{ total_implementation_count }} local historical total).
+          {% if myScenario.use_family_evidence_pooling %}
+            Version {{ current_scenario_version.version_number }} has
+            <strong>{{ implementation_count }}</strong> compatible student
+            implementation{{ implementation_count|pluralize }} across approved family variants.
+          {% else %}
+            This scenario has <strong>{{ implementation_count }}</strong> student
+            implementation{{ implementation_count|pluralize }}, including historical data.
+          {% endif %}
           For accurate AI metrics and reliable proposals you need at least
           <strong>{{ myScenario.ai_metrics_min_implementations }}</strong>.
         </p>
         <p class="text-muted small mb-0">
           Proceeding with limited data means the AI recommendations and metrics charts may not reflect real learning patterns and could be misleading.
         </p>
-        {% if legacy_implementation_count %}
+        {% if myScenario.use_family_evidence_pooling and legacy_implementation_count %}
         <p class="small mt-3 mb-0" style="color:#92400e;">
           <strong>{{ legacy_implementation_count }}</strong> older implementation{{ legacy_implementation_count|pluralize }}
           remain available under Historical Analytics. They are excluded from AI proposals because they cannot be safely tied
@@ -764,7 +774,7 @@
       </div>
       <div class="modal-footer border-0 pt-0">
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        {% if legacy_implementation_count %}
+        {% if myScenario.use_family_evidence_pooling and legacy_implementation_count %}
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}?scope=historical" class="btn btn-sm btn-outline-warning">
           <i class="bi bi-clock-history me-1"></i>Historical Analytics
         </a>

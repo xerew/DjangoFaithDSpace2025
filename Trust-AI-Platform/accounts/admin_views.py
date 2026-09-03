@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Count, Q
 from django.conf import settings
 from django.utils.html import strip_tags
+from django.utils import timezone
 from functools import wraps
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
@@ -17,7 +18,7 @@ from .bulk_email import (
     resolve_campaign_recipients,
     unique_valid_email_users,
 )
-from .models import BulkEmailCampaign
+from .models import BulkEmailCampaign, MaintenanceNotice
 from .tasks import send_bulk_email_campaign
 
 
@@ -33,6 +34,7 @@ def staff_required(view_func):
 
 @staff_required
 def admin_dashboard(request):
+    now = timezone.now()
     users = User.objects.filter(
         Q(groups__isnull=False) | Q(is_staff=True) | Q(is_superuser=True)
     ).distinct().prefetch_related('groups').order_by('username')
@@ -81,6 +83,10 @@ def admin_dashboard(request):
         BulkEmailCampaign.objects.select_related('created_by')
         .prefetch_related('organizations')[:10]
     )
+    maintenance_notices = list(
+        MaintenanceNotice.objects.select_related('created_by')
+        .order_by('-starts_at', '-id')[:10]
+    )
     return render(request, 'accounts/admin_dashboard.html', {
         'all_users': users,
         'groups': groups,
@@ -95,6 +101,8 @@ def admin_dashboard(request):
         'email_teacher_count': email_teacher_count,
         'email_organizations': email_organizations,
         'recent_email_campaigns': recent_email_campaigns,
+        'maintenance_notices': maintenance_notices,
+        'active_maintenance_count': MaintenanceNotice.objects.active(now).count(),
     })
 
 

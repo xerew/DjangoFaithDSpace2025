@@ -1,11 +1,16 @@
 import json
+from datetime import timedelta
+
+from django.contrib import admin
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.test import TestCase, Client
 from django.test import override_settings
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
+from django.utils import timezone
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
-from accounts.models import BulkEmailCampaign, UserProfile
+from accounts.models import BulkEmailCampaign, MaintenanceNotice, UserProfile
 from organization.models import Organization
 from templatetags.profile_tags import avatar_url as avatar_url_filter
 
@@ -30,6 +35,27 @@ class AdminDashboardAccessTest(TestCase):
         self.client.login(username='staffuser', password='pass')
         r = self.client.get(reverse('admin_dashboard'))
         self.assertEqual(r.status_code, 200)
+
+    def test_staff_without_teacher_role_sees_platform_admin_menu(self):
+        self.client.login(username='staffuser', password='pass')
+        r = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(r, 'Platform Administration', count=None)
+        self.assertContains(r, reverse('admin_dashboard'))
+
+    def test_regular_user_does_not_see_platform_admin_menu(self):
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.regular.groups.add(teachers)
+        self.client.login(username='regular', password='pass')
+        r = self.client.get(reverse('profile'))
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'Platform Administration')
+
+    def test_dashboard_links_to_django_admin_and_maintenance(self):
+        self.client.login(username='staffuser', password='pass')
+        r = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(r, 'Django Admin')
+        self.assertContains(r, 'id="tab-maintenance-btn"')
+        self.assertContains(r, reverse('admin:accounts_maintenancenotice_add'))
 
     def test_toggle_user_requires_post(self):
         self.client.login(username='staffuser', password='pass')
@@ -73,6 +99,115 @@ class AdminDashboardAccessTest(TestCase):
         data = r.json()
         self.assertFalse(data['success'])
         self.assertTrue(Group.objects.filter(id=g.id).exists())
+
+
+class MaintenanceNoticeTests(TestCase):
+    def setUp(self):
+        self.now = timezone.now().replace(microsecond=0)
+
+    def create_notice(self, **overrides):
+        values = {
+            'reason': 'Database upgrade',
+            'starts_at': self.now - timedelta(hours=1),
+            'ends_at': self.now + timedelta(hours=1),
+            'is_enabled': True,
+        }
+        values.update(overrides)
+        return MaintenanceNotice.objects.create(**values)
+
+    def test_active_queryset_respects_window_and_enabled_flag(self):
+        active = self.create_notice()
+        self.create_notice(
+            reason='Future work',
+            starts_at=self.now + timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=2),
+        )
+        self.create_notice(
+            reason='Disabled work',
+            is_enabled=False,
+        )
+
+        self.assertEqual(list(MaintenanceNotice.objects.active(self.now)), [active])
+
+    def test_window_is_start_inclusive_and_end_exclusive(self):
+        notice = self.create_notice(starts_at=self.now)
+        self.assertTrue(notice.is_active(self.now))
+        self.assertFalse(notice.is_active(notice.ends_at))
+
+    def test_end_must_be_after_start(self):
+        notice = MaintenanceNotice(
+            reason='Invalid window',
+            starts_at=self.now,
+            ends_at=self.now,
+        )
+        with self.assertRaises(ValidationError):
+            notice.full_clean()
+
+    def test_registered_in_django_admin(self):
+        self.assertIn(MaintenanceNotice, admin.site._registry)
+
+
+class MaintenanceBannerTests(TestCase):
+    def setUp(self):
+        self.now = timezone.now().replace(microsecond=0)
+        self.staff = User.objects.create_user(
+            'maintenance_staff', password='pass', is_staff=True,
+        )
+
+    def create_notice(self, reason='Planned database maintenance', **overrides):
+        values = {
+            'reason': reason,
+            'starts_at': self.now - timedelta(minutes=30),
+            'ends_at': self.now + timedelta(minutes=30),
+            'is_enabled': True,
+            'created_by': self.staff,
+        }
+        values.update(overrides)
+        return MaintenanceNotice.objects.create(**values)
+
+    def test_active_banner_is_visible_to_anonymous_users(self):
+        self.create_notice()
+        response = self.client.get(reverse('login'))
+        self.assertContains(response, 'Platform maintenance')
+        self.assertContains(response, 'Planned database maintenance')
+
+    def test_future_expired_and_disabled_notices_are_hidden(self):
+        self.create_notice(
+            reason='Future maintenance',
+            starts_at=self.now + timedelta(hours=1),
+            ends_at=self.now + timedelta(hours=2),
+        )
+        self.create_notice(
+            reason='Expired maintenance',
+            starts_at=self.now - timedelta(hours=2),
+            ends_at=self.now - timedelta(hours=1),
+        )
+        self.create_notice(reason='Disabled maintenance', is_enabled=False)
+
+        response = self.client.get(reverse('login'))
+        self.assertNotContains(response, 'Future maintenance')
+        self.assertNotContains(response, 'Expired maintenance')
+        self.assertNotContains(response, 'Disabled maintenance')
+
+    def test_banner_reason_is_escaped(self):
+        self.create_notice(reason='<script>alert("unsafe")</script>')
+        response = self.client.get(reverse('login'))
+        self.assertNotContains(response, '<script>alert("unsafe")</script>')
+        self.assertContains(response, '&lt;script&gt;', html=False)
+
+    def test_dashboard_lists_notice_and_active_count(self):
+        notice = self.create_notice()
+        self.client.login(username='maintenance_staff', password='pass')
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(response, notice.reason)
+        self.assertEqual(response.context['active_maintenance_count'], 1)
+
+    def test_django_admin_has_back_to_platform_link(self):
+        superuser = User.objects.create_superuser('maintenance_super', password='pass')
+        self.client.login(username='maintenance_super', password='pass')
+        response = self.client.get(reverse('admin:index'))
+        self.assertContains(response, 'Back to platform')
+        self.assertContains(response, reverse('teacher_home'))
 
 
 class AdminLabViewsTest(TestCase):

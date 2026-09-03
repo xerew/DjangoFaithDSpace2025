@@ -34,6 +34,7 @@ from .scenario_matching import (
     apply_candidate_decision,
     create_manual_family_candidate,
 )
+from .evidence import get_evidence_implementation_count
 from usergroups.models import UserGroupMembership
 
 
@@ -1752,12 +1753,14 @@ class ScenarioAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'name', 'created_by', 'visibility_status', 'language',
         'family', 'variant_type', 'current_version', 'start_activity',
-        'implementation_count_col', 'is_personal', 'created_on',
+        'implementation_count_col', 'use_family_evidence_pooling',
+        'is_personal', 'created_on',
     )
     list_filter = (
         'visibility_status',
         'language',
         'variant_type',
+        'use_family_evidence_pooling',
         'is_personal',
     )
     search_fields = (
@@ -1799,8 +1802,16 @@ class ScenarioAdmin(admin.ModelAdmin):
             'fields': ('visibility_status', 'organizations', 'is_editable_by_org'),
         }),
         ('AI & Metrics', {
-            'fields': ('implementation_count_display', 'ai_metrics_min_implementations'),
-            'description': 'Controls when the "Scenario Metrics & AI" button appears for teachers viewing this scenario.',
+            'fields': (
+                'implementation_count_display',
+                'ai_metrics_min_implementations',
+                'use_family_evidence_pooling',
+            ),
+            'description': (
+                'Controls the Metrics & AI threshold and whether evidence is '
+                'kept within this scenario or pooled using the new '
+                'family/version logic.'
+            ),
         }),
         ('LLM Context', {
             'fields': ('llm_context',),
@@ -1826,31 +1837,36 @@ class ScenarioAdmin(admin.ModelAdmin):
         if not obj.pk:
             return '—'
         obj.ensure_current_version()
-        local_count = obj.eligible_implementation_count()
-        count = obj.compatible_implementation_count()
+        local_count = get_evidence_implementation_count(obj, 'local')
+        count = obj.metrics_implementation_count()
+        label = (
+            'compatible implementations'
+            if obj.use_family_evidence_pooling
+            else 'scenario implementations'
+        )
         threshold = obj.ai_metrics_min_implementations
         if count >= threshold:
             return format_html(
-                '<strong style="color:#2e7d32">{} compatible implementations</strong>'
+                '<strong style="color:#2e7d32">{} {}</strong>'
                 '&nbsp;<span style="color:#607d8b;font-size:12px;">'
                 '({} local)</span>'
                 '&nbsp;<span style="color:#2e7d32;font-size:12px;">&#10003; Button is visible to teachers</span>',
-                count, local_count,
+                count, label, local_count,
             )
         needed = threshold - count
         return format_html(
-            '<strong style="color:#e65100">{} compatible implementations</strong>'
+            '<strong style="color:#e65100">{} {}</strong>'
             '&nbsp;<span style="color:#607d8b;font-size:12px;">'
             '({} local)</span>'
             '&nbsp;<span style="color:#e65100;font-size:12px;">'
             '&#10007; Need {} more to unlock the button (threshold: {})</span>',
-            count, local_count, needed, threshold,
+            count, label, local_count, needed, threshold,
         )
-    implementation_count_display.short_description = 'Compatible Evidence'
+    implementation_count_display.short_description = 'Metrics & AI Evidence'
 
     def implementation_count_col(self, obj):
         obj.ensure_current_version()
-        count = obj.compatible_implementation_count()
+        count = obj.metrics_implementation_count()
         color = '#2e7d32' if count >= obj.ai_metrics_min_implementations else '#e65100'
         return format_html('<span style="color:{};font-weight:600;">{}</span>', color, count)
     implementation_count_col.short_description = 'Implementations'

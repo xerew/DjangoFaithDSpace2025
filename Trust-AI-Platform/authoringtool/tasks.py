@@ -154,15 +154,14 @@ def _on_rm_error(func, path, exc_info):
     
 @shared_task
 def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
-    version_id = (
-        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
-    )
-    cache_key = f"analytics:sankey:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    version_id = scenario.ensure_current_version().id
+    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    cache_key = f"analytics:sankey:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    scenario = get_object_or_404(Scenario, id=scenario_id)
     start_date = start_date
     end_date = end_date
 
@@ -346,15 +345,14 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_final_performance(scenario_id, group_ids, start_date, end_date):
-    version_id = (
-        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
-    )
-    cache_key = f"analytics:final_perf:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    version_id = scenario.ensure_current_version().id
+    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    cache_key = f"analytics:final_perf:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    scenario = get_object_or_404(Scenario, id=scenario_id)
     start_date = start_date
     end_date = end_date
 
@@ -767,15 +765,14 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activity_type):
-    version_id = (
-        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
-    )
-    cache_key = f"analytics:time_spent:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}:{activity_type}"
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    version_id = scenario.ensure_current_version().id
+    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    cache_key = f"analytics:time_spent:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}:{activity_type}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    scenario = get_object_or_404(Scenario, id=scenario_id)
     data_type = activity_type
 
     _sd = parse_date(start_date) if isinstance(start_date, str) and start_date else None
@@ -1163,15 +1160,13 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
 
 @shared_task
 def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end_date):
-    version_id = (
-        Scenario.objects.get(pk=scenario_id).ensure_current_version().id
-    )
-    cache_key = f"analytics:time_by_perf:{scenario_id}:v{version_id}:{group_ids}:{start_date}:{end_date}"
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    version_id = scenario.ensure_current_version().id
+    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    cache_key = f"analytics:time_by_perf:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
-
-    scenario = get_object_or_404(Scenario, id=scenario_id)
 
     _sd = parse_date(start_date) if start_date else None
     _ed = parse_date(end_date) if end_date else None
@@ -2062,7 +2057,7 @@ def compute_category_metrics_per_phase_activity(
     base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    evidence_scope = normalize_evidence_scope(evidence_scope)
+    evidence_scope = normalize_evidence_scope(evidence_scope, scenario)
     evidence_language = normalize_evidence_language(evidence_language)
     file_path = get_scenario_evidence_cache_paths(
         scenario,
@@ -2351,7 +2346,7 @@ def calculate_activities_in_risk(
     base_dir = settings.AI_METRICS_CACHE_ROOT
     os.makedirs(base_dir, exist_ok=True)
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    evidence_scope = normalize_evidence_scope(evidence_scope)
+    evidence_scope = normalize_evidence_scope(evidence_scope, scenario)
     evidence_language = normalize_evidence_language(evidence_language)
     evidence_context = get_evidence_context(
         scenario,
@@ -3599,9 +3594,12 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     scenario_version = scenario.ensure_current_version(
         created_by=triggered_by,
     )
+    evidence_scope = (
+        'compatible' if scenario.use_family_evidence_pooling else 'local'
+    )
     evidence_context = get_evidence_context(
         scenario,
-        scope='compatible',
+        scope=evidence_scope,
     )
     print(f"\nStarting LLM context generation for scenario '{scenario.name}' (ID: {scenario_id})")
 
@@ -3779,7 +3777,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         scenario,
         triggered_by,
         scenario_version=scenario_version,
-        evidence_scope='compatible',
+        evidence_scope=evidence_scope,
         evidence_version_ids=evidence_context['version_ids'],
         evidence_summary=evidence_context,
     )
@@ -3787,11 +3785,11 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
 
     calculate_activities_in_risk(
         scenario_id,
-        evidence_scope='compatible',
+        evidence_scope=evidence_scope,
     )
     flags = ActivityFlag.objects.filter(
         activity__phase__scenario=scenario,
-        evidence_scope='compatible',
+        evidence_scope=evidence_scope,
         evidence_signature=evidence_context['signature'],
     )
     print(f"Found Flags")
@@ -3887,11 +3885,10 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
 
             "=== CONTEXT ===\n"
             "Evidence Pool:\n"
-            f"- Compatible implementations: {evidence_context['implementation_count']}\n"
+            f"- Eligible implementations: {evidence_context['implementation_count']}\n"
             f"- Source scenarios: {evidence_context['scenario_count']}\n"
             f"- Source languages: {', '.join(evidence_context['languages']) or 'Unspecified'}\n"
-            "- Correctness evidence may be pooled across compatible languages; "
-            "timing evidence is restricted to the target language.\n\n"
+            "- Evidence follows this scenario's configured analytics policy.\n\n"
             f"Scenario Insight:\n{scenario.llm_context}\n\n"
             f"Phase Insight:\n{phase.llm_context}\n\n"
             "Flagged Activity:\n"
@@ -4008,7 +4005,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     )
     latest_evidence_context = get_evidence_context(
         Scenario.objects.get(pk=scenario_id),
-        scope='compatible',
+        scope=evidence_scope,
     )
     if (
         latest_version.id != scenario_version.id
@@ -4019,7 +4016,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             is_current=False
         )
         raise RuntimeError(
-            'The scenario or its compatible evidence pool changed while '
+            'The scenario or its evidence pool changed while '
             'proposals were being generated. This run was archived; '
             'generate proposals again for the current evidence sources.'
         )
@@ -4409,12 +4406,18 @@ def get_accepted_reviews_for_personal_scenario(original_scenario, user):
     )
     if not current_run:
         return UserProposalReview.objects.none()
+    configured_evidence_scope = (
+        'compatible'
+        if original_scenario.use_family_evidence_pooling
+        else 'local'
+    )
     if (
-        current_run.evidence_scope == 'compatible'
+        current_run.evidence_scope == configured_evidence_scope
         and current_run.evidence_summary.get('source_signature')
+        and current_run.evidence_summary['source_signature']
         != get_evidence_context(
             original_scenario,
-            scope='compatible',
+            scope=configured_evidence_scope,
         )['source_signature']
     ):
         current_run.is_current = False

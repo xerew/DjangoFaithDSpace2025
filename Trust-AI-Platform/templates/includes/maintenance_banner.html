@@ -1,0 +1,30 @@
+{% for notice in active_maintenance_notices %}
+<div class="maintenance-notice-banner" role="status" aria-live="polite">
+  <span class="maintenance-notice-icon" aria-hidden="true">&#9888;</span>
+  <div class="maintenance-notice-content">
+    <strong>Platform maintenance</strong>
+    <span class="maintenance-notice-window">
+      {{ notice.starts_at|date:"D, j M Y, H:i" }} &ndash; {{ notice.ends_at|date:"D, j M Y, H:i T" }}
+    </span>
+    <span class="maintenance-notice-reason">{{ notice.reason|linebreaksbr }}</span>
+  </div>
+</div>
+{% endfor %}
+
+{% if active_maintenance_notices %}
+<style>
+  .maintenance-notice-banner {
+    display: flex; align-items: flex-start; justify-content: center; gap: 10px;
+    width: 100%; padding: 9px 18px; background: #fff3cd; color: #664d03;
+    border-bottom: 1px solid #ffda6a; font-size: 13px; line-height: 1.35;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .maintenance-notice-icon { font-size: 18px; line-height: 1; margin-top: 1px; }
+  .maintenance-notice-content { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 8px; }
+  .maintenance-notice-window { font-weight: 600; }
+  .maintenance-notice-reason { flex-basis: 100%; text-align: center; }
+  @media (max-width: 575.98px) {
+    .maintenance-notice-banner { padding: 8px 10px; font-size: 12px; }
+  }
+</style>
+{% endif %}

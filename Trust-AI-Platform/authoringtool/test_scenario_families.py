@@ -140,6 +140,7 @@ class ScenarioFamilyTests(TestCase):
             'updated_by': self.owner,
             'visibility_status': 'public',
             'ai_metrics_min_implementations': 200,
+            'use_family_evidence_pooling': True,
         }
         values.update(overrides)
         scenario = Scenario.objects.create(**values)

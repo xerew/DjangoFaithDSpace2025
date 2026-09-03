@@ -133,7 +133,9 @@
         <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ myScenario.name }}</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
           Performance analysis, risk detection &amp; AI recommendation context
+          {% if myScenario.use_family_evidence_pooling %}
           · Evidence Version {{ current_scenario_version.version_number }}
+          {% endif %}
         </div>
         <nav><ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
@@ -168,7 +170,10 @@
             Evidence scope
           </div>
           <div style="font-size:12.5px;color:#6b7280;margin-top:3px;">
-            {% if evidence_scope == "compatible" %}
+            {% if not myScenario.use_family_evidence_pooling %}
+              {{ implementation_count }} implementation{{ implementation_count|pluralize }}
+              from this scenario, including its historical data. Other scenarios and family variants are not included.
+            {% elif evidence_scope == "compatible" %}
               {{ evidence_context.implementation_count }} implementation{{ evidence_context.implementation_count|pluralize }}
               from {{ evidence_context.scenario_count }} approved scenario variant{{ evidence_context.scenario_count|pluralize }}.
               Correctness is pooled; timing uses {{ myScenario.language|default:"the target language" }} only.
@@ -181,6 +186,7 @@
             {% endif %}
           </div>
         </div>
+        {% if myScenario.use_family_evidence_pooling %}
         <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="btn-group btn-group-sm" role="group" aria-label="Evidence scope">
           <a href="?scope=compatible{% if evidence_language %}&amp;language={{ evidence_language|urlencode }}{% endif %}"
@@ -213,8 +219,9 @@
           </select>
         </label>
         </div>
+        {% endif %}
       </div>
-      {% if evidence_scope == "compatible" and evidence_context.sources %}
+      {% if myScenario.use_family_evidence_pooling and evidence_scope == "compatible" and evidence_context.sources %}
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
         {% for source in evidence_context.sources %}
         <span class="badge rounded-pill" style="background:#eef4ff;color:#1e40af;border:1px solid #dbe7ff;font-weight:500;">
@@ -224,7 +231,7 @@
         {% endfor %}
       </div>
       {% endif %}
-      {% if evidence_context.restricted_source_count %}
+      {% if myScenario.use_family_evidence_pooling and evidence_context.restricted_source_count %}
       <div style="font-size:11.5px;color:#6b7280;margin-top:9px;">
         {{ evidence_context.restricted_implementation_count }}
         implementation{{ evidence_context.restricted_implementation_count|pluralize }}
@@ -250,9 +257,9 @@
   <div style="margin:16px 0 0; padding:12px 18px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; display:flex; align-items:flex-start; gap:12px;">
     <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
     <div style="font-size:13.5px; color:#92400e;">
-      <strong>Limited {{ evidence_scope }} data:</strong> Version {{ current_scenario_version.version_number }}
-      has <strong>{{ implementation_count }}</strong> eligible implementation{{ implementation_count|pluralize }}
-      from <strong>{{ total_implementation_count }}</strong> historical implementation{{ total_implementation_count|pluralize }}.
+      <strong>Limited data:</strong>
+      {% if myScenario.use_family_evidence_pooling %}Version {{ current_scenario_version.version_number }} has{% else %}This scenario has{% endif %}
+      <strong>{{ implementation_count }}</strong> eligible implementation{{ implementation_count|pluralize }}.
       At least <strong>{{ min_implementations }}</strong> are needed for reliable metrics and AI proposals.
       Results shown below may not reflect real learning patterns.
     </div>
@@ -490,11 +497,14 @@
       </div>
       <div class="modal-body pt-2">
         <p class="mb-2">
+          {% if myScenario.use_family_evidence_pooling %}
           Version {{ current_scenario_version.version_number }} has
           <strong>{{ proposal_implementation_count }}</strong> compatible student
-          implementation{{ proposal_implementation_count|pluralize }}
-          across approved current family variants
-          ({{ total_implementation_count }} local historical total).
+          implementation{{ proposal_implementation_count|pluralize }} across approved current family variants.
+          {% else %}
+          This scenario has <strong>{{ proposal_implementation_count }}</strong>
+          student implementation{{ proposal_implementation_count|pluralize }}, including historical data.
+          {% endif %}
           AI proposals are designed to work with at least <strong>{{ min_implementations }}</strong>.
         </p>
         <p class="text-muted small mb-0">
@@ -515,7 +525,8 @@
 
 <script>
 // ── Metrics ──────────────────────────────────────────────────────────────────
-document.getElementById('evidence-language-filter').addEventListener(
+const evidenceLanguageFilter = document.getElementById('evidence-language-filter');
+if (evidenceLanguageFilter) evidenceLanguageFilter.addEventListener(
   'change',
   (event) => {
     const params = new URLSearchParams(window.location.search);

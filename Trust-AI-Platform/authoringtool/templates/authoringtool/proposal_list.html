@@ -288,10 +288,13 @@
     <i class="bi bi-diagram-3-fill mt-1"></i>
     <div>
       <strong>Proposal evidence:</strong>
-      {{ evidence_context.implementation_count }} compatible
+      {{ evidence_context.implementation_count }} eligible
       implementation{{ evidence_context.implementation_count|pluralize }}
-      from {{ evidence_context.scenario_count }} scenario
-      variant{{ evidence_context.scenario_count|pluralize }}
+      {% if myScenario.use_family_evidence_pooling %}
+      from {{ evidence_context.scenario_count }} scenario variant{{ evidence_context.scenario_count|pluralize }}
+      {% else %}
+      from this scenario, including historical data
+      {% endif %}
       {% if evidence_context.languages %}
         ({{ evidence_context.languages|join:", " }})
       {% endif %}.
