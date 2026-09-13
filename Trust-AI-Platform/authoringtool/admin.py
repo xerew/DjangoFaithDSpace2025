@@ -6,7 +6,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import Count, Prefetch, Q
+from django.db.models import (
+    Case, Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery, Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.utils.html import format_html, format_html_join
@@ -1784,6 +1788,14 @@ class ScenarioAdmin(admin.ModelAdmin):
         'start_activity',
     )
     date_hierarchy = 'created_on'
+    list_per_page = 50
+    list_select_related = (
+        'created_by',
+        'family',
+        'current_version',
+        'start_activity',
+    )
+    show_full_result_count = False
     inlines = [PhaseInline]
     actions = ('scan_selected_for_family_matches',)
 
@@ -1864,12 +1876,116 @@ class ScenarioAdmin(admin.ModelAdmin):
         )
     implementation_count_display.short_description = 'Metrics & AI Evidence'
 
+    def get_queryset(self, request):
+        """Load the changelist without one evidence query per scenario row."""
+        queryset = super().get_queryset(request).select_related(
+            *self.list_select_related
+        )
+        eligible_quality = ['unreviewed', 'clean']
+
+        local_counts = (
+            UserScenarioScore.objects
+            .filter(
+                implementation__scenario_id=OuterRef('pk'),
+                implementation__data_quality_status__in=eligible_quality,
+            )
+            .exclude(implementation__user__groups__name='teachers')
+            .values('implementation__scenario_id')
+            .annotate(total=Count('implementation_id', distinct=True))
+            .values('total')[:1]
+        )
+        current_version_counts = (
+            UserScenarioScore.objects
+            .filter(
+                implementation__scenario_version_id=OuterRef(
+                    'current_version_id'
+                ),
+                implementation__version_confidence='exact',
+                implementation__data_quality_status__in=eligible_quality,
+            )
+            .exclude(implementation__user__groups__name='teachers')
+            .values('implementation__scenario_version_id')
+            .annotate(total=Count('implementation_id', distinct=True))
+            .values('total')[:1]
+        )
+        compatible_cluster = (
+            ScenarioVersionCompatibility.objects
+            .filter(
+                scenario_version_id=OuterRef('current_version_id'),
+                status='compatible',
+            )
+            .values('cluster_id')[:1]
+        )
+
+        queryset = queryset.annotate(
+            _admin_local_count=Coalesce(
+                Subquery(local_counts, output_field=IntegerField()),
+                Value(0),
+            ),
+            _admin_current_version_count=Coalesce(
+                Subquery(
+                    current_version_counts,
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            _admin_compatible_cluster_id=Subquery(
+                compatible_cluster,
+                output_field=IntegerField(),
+            ),
+        )
+        compatible_counts = (
+            UserScenarioScore.objects
+            .filter(
+                implementation__scenario_version__compatibility__cluster_id=(
+                    OuterRef('_admin_compatible_cluster_id')
+                ),
+                implementation__scenario_version__compatibility__status=(
+                    'compatible'
+                ),
+                implementation__scenario_version__is_current=True,
+                implementation__scenario_version__scenario__current_version_id=(
+                    F('implementation__scenario_version_id')
+                ),
+                implementation__version_confidence='exact',
+                implementation__data_quality_status__in=eligible_quality,
+            )
+            .exclude(implementation__user__groups__name='teachers')
+            .values(
+                'implementation__scenario_version__compatibility__cluster_id'
+            )
+            .annotate(total=Count('implementation_id', distinct=True))
+            .values('total')[:1]
+        )
+        return queryset.annotate(
+            _admin_compatible_count=Coalesce(
+                Subquery(compatible_counts, output_field=IntegerField()),
+                Value(0),
+            ),
+        ).annotate(
+            _admin_implementation_count=Case(
+                When(
+                    use_family_evidence_pooling=False,
+                    then=F('_admin_local_count'),
+                ),
+                When(
+                    _admin_compatible_cluster_id__isnull=False,
+                    then=F('_admin_compatible_count'),
+                ),
+                default=F('_admin_current_version_count'),
+                output_field=IntegerField(),
+            )
+        )
+
     def implementation_count_col(self, obj):
-        obj.ensure_current_version()
-        count = obj.metrics_implementation_count()
+        if hasattr(obj, '_admin_implementation_count'):
+            count = obj._admin_implementation_count
+        else:
+            count = obj.metrics_implementation_count()
         color = '#2e7d32' if count >= obj.ai_metrics_min_implementations else '#e65100'
         return format_html('<span style="color:{};font-weight:600;">{}</span>', color, count)
     implementation_count_col.short_description = 'Implementations'
+    implementation_count_col.admin_order_field = '_admin_implementation_count'
 
     @admin.action(description='Scan selected for possible family matches')
     def scan_selected_for_family_matches(self, request, queryset):

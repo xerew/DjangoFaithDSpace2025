@@ -2,12 +2,16 @@ import csv
 import tempfile
 from unittest.mock import patch
 
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import Group, User
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import Client, TestCase, TransactionTestCase, override_settings
+from django.test import (
+    Client, RequestFactory, TestCase, TransactionTestCase, override_settings,
+)
 from django.urls import reverse
 
+from authoringtool.admin import ScenarioAdmin
 from authoringtool.evidence import (
     get_evidence_answers,
     get_evidence_context,
@@ -134,6 +138,20 @@ class ScenarioEvidencePolicyTests(TestCase):
             get_evidence_implementation_count(self.scenario, 'historical'),
             1,
         )
+
+    def test_scenario_admin_counts_rows_without_per_row_queries(self):
+        model_admin = ScenarioAdmin(Scenario, AdminSite())
+        request = RequestFactory().get('/admin/authoringtool/scenario/')
+
+        with self.assertNumQueries(1):
+            rows = list(model_admin.get_queryset(request))
+            for row in rows:
+                model_admin.implementation_count_col(row)
+                str(row.created_by)
+                str(row.family)
+
+        scenario = next(row for row in rows if row.pk == self.scenario.pk)
+        self.assertEqual(scenario._admin_implementation_count, 2)
 
 
 class EvidenceCompatibilityMigrationTests(TransactionTestCase):
@@ -375,6 +393,26 @@ class CompatibleEvidencePoolingTests(TestCase):
         context = get_evidence_context(self.canonical, 'compatible')
         self.assertEqual(context['scenario_count'], 2)
         self.assertEqual(context['implementation_count'], 2)
+
+    def test_scenario_admin_annotates_compatible_family_count(self):
+        self.canonical.ensure_current_version()
+        self.translation.ensure_current_version()
+        self._record_implementations()
+        model_admin = ScenarioAdmin(Scenario, AdminSite())
+        request = RequestFactory().get('/admin/authoringtool/scenario/')
+
+        with self.assertNumQueries(1):
+            rows = list(
+                model_admin.get_queryset(request).filter(
+                    pk__in=[self.canonical.pk, self.translation.pk]
+                )
+            )
+            for row in rows:
+                model_admin.implementation_count_col(row)
+
+        counts = {row.pk: row._admin_implementation_count for row in rows}
+        self.assertEqual(counts[self.canonical.pk], 2)
+        self.assertEqual(counts[self.translation.pk], 1)
 
     def test_adaptation_requires_review_before_pooling(self):
         adaptation = Scenario.objects.create(
