@@ -2499,7 +2499,9 @@ class ActivityProposal(models.Model):
         return f"{self.get_proposal_type_display()} for '{self.activity}' ({self.get_status_display()})"
 
     def is_bandit_reward_eligible(self):
-        """Only current, policy-compliant, provenance-valid runs teach bandit."""
+        """Apply the scenario's policy to pedagogical review eligibility."""
+        if not self.scenario.use_family_evidence_pooling:
+            return True
         run = self.generation_run
         configured_scope = (
             'compatible'

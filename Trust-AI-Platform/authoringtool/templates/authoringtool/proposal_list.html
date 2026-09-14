@@ -283,7 +283,12 @@
     </div>
   </div>
 
-  {% if generation_run %}
+  {% if not myScenario.use_family_evidence_pooling %}
+  <div class="alert alert-info" role="status">
+    Showing all saved proposals for this scenario, including earlier generations.
+    Your previous review decisions are preserved. Review the proposed content before applying it to a new copy.
+  </div>
+  {% elif generation_run %}
   <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
     <i class="bi bi-diagram-3-fill mt-1"></i>
     <div>
@@ -531,7 +536,12 @@
     <div class="card">
       <div class="card-body pr-empty">
         <i class="bi bi-lightbulb text-muted"></i>
-        <h5 class="text-muted">No proposals yet</h5>
+        {% if myScenario.use_family_evidence_pooling %}
+          <h5 class="text-muted">No current proposals for this scenario version</h5>
+          <p>Previously saved recommendations are available in <a href="{% url 'proposal_history' myScenario.id %}">Proposal History</a>, including earlier scenario versions.</p>
+        {% else %}
+          <h5 class="text-muted">No saved proposals for this scenario</h5>
+        {% endif %}
         <p class="text-muted small">Run the LLM context generation from Metrics &amp; AI to generate activity proposals.</p>
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-primary btn-sm">
           <i class="bi bi-arrow-left me-1"></i> Go to Metrics &amp; AI

@@ -1,6 +1,6 @@
 {% extends "main.html" %}
 {% load group_tags %}
-{% block page_title %}<title>Trust AI Lab — Proposal History — {{ run.created_at|date:"d M Y" }} — {{ myScenario.name }}</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab — Proposal History — {% if run %}{{ run.created_at|date:"d M Y" }}{% else %}Earlier proposals{% endif %} — {{ myScenario.name }}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -52,12 +52,12 @@
       <div class="pr-hero-icon"><i class="bi bi-clock-history"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Proposals</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ run.created_at|date:"d M Y, H:i" }}</h2>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if run %}{{ run.created_at|date:"d M Y, H:i" }}{% else %}Earlier proposals{% endif %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
         <nav><ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">Proposals</a></li>
           <li class="breadcrumb-item"><a href="{% url 'proposal_history' myScenario.id %}">History</a></li>
-          <li class="breadcrumb-item active">{{ run.created_at|date:"d M Y" }}</li>
+          <li class="breadcrumb-item active">{% if run %}{{ run.created_at|date:"d M Y" }}{% else %}Earlier proposals{% endif %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
@@ -66,6 +66,11 @@
         </a>
       </div>
     </div>
+  </div>
+
+  <div class="alert alert-secondary" role="status">
+    Saved recommendations for reference only. Reviewing this history does not apply changes to the scenario.
+    {% if not run or not run.scenario_version_id %}The original scenario version was not recorded.{% endif %}
   </div>
 
   {% if evidence_context %}

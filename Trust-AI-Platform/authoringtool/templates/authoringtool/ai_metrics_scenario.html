@@ -147,6 +147,9 @@
         <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
           <i class="bi bi-arrow-left me-1"></i> Back to Scenario
         </a>
+        <a href="{% url 'proposal_history' myScenario.id %}" class="btn btn-sm hero-btn-ghost">
+          <i class="bi bi-clock-history me-1"></i> Proposal History
+        </a>
         {% if proposal_implementation_count >= min_implementations %}
           <a href="{% url 'proposal_list' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
             <i class="bi bi-lightbulb me-1"></i> Proposals

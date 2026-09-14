@@ -65,12 +65,37 @@
   </div>
 
   <section class="section">
+    <p class="text-muted">All saved recommendation runs for this scenario are available here for reference, including earlier versions. Review decisions shown are yours.</p>
+    {% if legacy_summary.total %}
+    <a href="{% url 'proposal_history_legacy' myScenario.id %}" class="run-card">
+      <div>
+        <div class="run-card-date">Earlier proposals</div>
+        <div class="run-card-meta">{{ legacy_summary.total }} proposal{{ legacy_summary.total|pluralize }} saved without a generation run. Available for reference.</div>
+      </div>
+      <div class="run-stats">
+        <span class="run-stat accepted">{{ legacy_summary.accepted }} accepted</span>
+        <span class="run-stat rejected">{{ legacy_summary.rejected }} rejected</span>
+        <span class="run-stat pending">{{ legacy_summary.never_decided }} never decided</span>
+      </div>
+    </a>
+    {% endif %}
     {% for summary in run_summaries %}
     <a href="{% url 'proposal_history_run_detail' myScenario.id summary.run.id %}" class="run-card">
       <div>
         <div class="run-card-date">{{ summary.run.created_at|date:"d M Y, H:i" }}</div>
         <div class="run-card-meta">
-          Triggered by {{ summary.run.created_by.get_full_name|default:summary.run.created_by.username|default:"Unknown" }}
+          {% if not summary.run.scenario_version_id %}
+            Earlier run — scenario version not recorded
+          {% elif summary.run.scenario_version_id != myScenario.current_version_id %}
+            Earlier scenario version (v{{ summary.run.scenario_version.version_number }})
+          {% elif summary.run.is_current %}
+            Latest run for this scenario version
+          {% else %}
+            Archived run (v{{ summary.run.scenario_version.version_number }})
+          {% endif %}
+        </div>
+        <div class="run-card-meta">
+          Triggered by {% if summary.run.created_by %}{{ summary.run.created_by.get_full_name|default:summary.run.created_by.username }}{% else %}Unknown{% endif %}
           · {{ summary.total }} proposal{{ summary.total|pluralize }}
           {% if summary.evidence_context %}
             · {{ summary.evidence_context.implementation_count }} eligible implementation{{ summary.evidence_context.implementation_count|pluralize }}
@@ -92,11 +117,13 @@
       </div>
     </a>
     {% empty %}
+    {% if not legacy_summary.total %}
     <div class="text-center text-muted py-5">
       <i class="bi bi-clock-history" style="font-size:2.5rem;color:#d1d9e0;"></i>
-      <p class="mt-2 mb-0">No past generations yet.</p>
-      <p class="small">History appears here after you regenerate proposals for this scenario.</p>
+      <p class="mt-2 mb-0">No saved proposals or generation runs for this scenario.</p>
+      <p class="small">If these proposals were generated on another scenario, open that scenario's Proposal History.</p>
     </div>
+    {% endif %}
     {% endfor %}
   </section>
 </main>

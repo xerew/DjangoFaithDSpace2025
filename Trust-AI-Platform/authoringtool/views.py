@@ -3054,7 +3054,7 @@ def proposal_list_view(request, scenario_id):
             is_current=True,
         )
         .first()
-    )
+    ) if myScenario.use_family_evidence_pooling else None
     if (
         current_generation_run
         and current_generation_run.evidence_scope == configured_evidence_scope
@@ -3073,12 +3073,15 @@ def proposal_list_view(request, scenario_id):
             'were archived; the scenario owner can generate a current set.',
         )
 
-    # 1. Fetch all shared proposals for the scenario's current generation run
-    proposals = ActivityProposal.objects.filter(
-        scenario=myScenario,
-        generation_run=current_generation_run,
-        generation_run__scenario_version=current_version,
-    )\
+    # Scenario-only mode includes every saved proposal for this scenario,
+    # including older versions, archived runs, and proposals without a run.
+    proposals = ActivityProposal.objects.filter(scenario=myScenario)
+    if myScenario.use_family_evidence_pooling:
+        proposals = proposals.filter(
+            generation_run=current_generation_run,
+            generation_run__scenario_version=current_version,
+        )
+    proposals = proposals\
         .select_related('activity', 'phase', 'scenario')\
         .prefetch_related('flag', 'categories_in_risk')\
         .order_by('-created_at')
@@ -3495,20 +3498,33 @@ def proposal_history_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
-    past_runs = ProposalGenerationRun.objects.filter(
-        scenario=myScenario, is_current=False
-    ).order_by('-created_at')
+    # History is the complete archive, including runs predating versioning
+    # and runs still marked current after their scenario version changed.
+    past_runs = (
+        ProposalGenerationRun.objects.filter(scenario=myScenario)
+        .select_related('created_by', 'scenario_version')
+        .annotate(
+            proposal_total=Count('proposals', distinct=True),
+            accepted_total=Count(
+                'proposals', distinct=True,
+                filter=Q(proposals__user_reviews__user=request.user,
+                         proposals__user_reviews__status='accepted'),
+            ),
+            rejected_total=Count(
+                'proposals', distinct=True,
+                filter=Q(proposals__user_reviews__user=request.user,
+                         proposals__user_reviews__status='rejected'),
+            ),
+        )
+        .order_by('-created_at', '-id')
+    )
 
     run_summaries = []
     for run in past_runs:
-        reviews = UserProposalReview.objects.filter(
-            user=request.user, proposal__generation_run=run
-        )
-        total = run.proposals.count()
-        accepted = sum(1 for r in reviews if r.status == 'accepted')
-        rejected = sum(1 for r in reviews if r.status == 'rejected')
-        decided_ids = {r.proposal_id for r in reviews if r.status in ('accepted', 'rejected')}
-        never_decided = total - len(decided_ids)
+        total = run.proposal_total
+        accepted = run.accepted_total
+        rejected = run.rejected_total
+        never_decided = total - accepted - rejected
         run_summaries.append({
             'run': run,
             'total': total,
@@ -3525,29 +3541,57 @@ def proposal_history_view(request, scenario_id):
             ),
         })
 
+    legacy_summary = ActivityProposal.objects.filter(
+        scenario=myScenario, generation_run__isnull=True,
+    ).aggregate(
+        total=Count('id', distinct=True),
+        accepted=Count(
+            'id', distinct=True,
+            filter=Q(user_reviews__user=request.user,
+                     user_reviews__status='accepted'),
+        ),
+        rejected=Count(
+            'id', distinct=True,
+            filter=Q(user_reviews__user=request.user,
+                     user_reviews__status='rejected'),
+        ),
+    )
+    legacy_summary['never_decided'] = (
+        legacy_summary['total'] - legacy_summary['accepted']
+        - legacy_summary['rejected']
+    )
+
     return render(request, 'authoringtool/proposal_history.html', {
         'myScenario': myScenario,
         'run_summaries': run_summaries,
+        'legacy_summary': legacy_summary,
     })
 
 
 @group_required('teachers')
-def proposal_history_run_detail_view(request, scenario_id, run_id):
+def proposal_history_run_detail_view(request, scenario_id, run_id=None):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
-    run = get_object_or_404(ProposalGenerationRun, id=run_id, scenario=myScenario)
+    run = (
+        get_object_or_404(ProposalGenerationRun, id=run_id, scenario=myScenario)
+        if run_id is not None else None
+    )
 
-    proposals = run.proposals.select_related('activity', 'phase')\
+    proposals = ActivityProposal.objects.filter(
+        scenario=myScenario, generation_run=run,
+    ).select_related('activity', 'phase')\
         .prefetch_related('flag', 'categories_in_risk')\
         .order_by('-created_at')
     user_reviews = {
         review.proposal_id: review
-        for review in UserProposalReview.objects.filter(user=request.user, proposal__generation_run=run)
+        for review in UserProposalReview.objects.filter(
+            user=request.user, proposal__in=proposals,
+        )
     }
     evidence_context = (
         evidence_context_visible_to_user(run.evidence_summary, request.user)
-        if run.evidence_summary
+        if run and run.evidence_summary
         else None
     )
 

@@ -4394,6 +4394,13 @@ def _build_personal_scenario(scenario_id, user_id):
         raise
     
 def get_accepted_reviews_for_personal_scenario(original_scenario, user):
+    if not original_scenario.use_family_evidence_pooling:
+        return UserProposalReview.objects.filter(
+            user=user,
+            proposal__scenario=original_scenario,
+            status='accepted',
+        ).select_related('proposal', 'proposal__activity', 'proposal__phase')
+
     current_version = original_scenario.ensure_current_version()
     current_run = (
         ProposalGenerationRun.objects
