@@ -40,7 +40,7 @@ services:
       context: ./deploy/ollama-tunnel
       dockerfile: Dockerfile
     environment:
-      SSH_HOST: ${OLLAMA_SSH_HOST:-147.102.17.66}
+      SSH_HOST: ${OLLAMA_SSH_HOST:-147.102.23.222}
       SSH_PORT: ${OLLAMA_SSH_PORT:-22}
       SSH_USER: ${OLLAMA_SSH_USER:-ngrammatikos}
       REMOTE_OLLAMA_HOST: ${OLLAMA_REMOTE_HOST:-127.0.0.1}
