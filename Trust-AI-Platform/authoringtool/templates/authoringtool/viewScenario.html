@@ -165,10 +165,13 @@
     min-height: 120px;
   }
   .mermaid { font-size: 13px; }
+  /* Natural-size SVG, centred; wider diagrams scroll inside .mermaid-wrap */
+  .mermaid svg { display: block; margin: 0 auto; max-width: none; height: auto; }
   /* Subgraph cluster label */
   .mermaid .cluster span { font-weight: 700 !important; font-size: 12.5px !important; }
   /* Edge label pill */
   .mermaid .edgeLabel .label { border-radius: 6px !important; font-size: 11.5px !important; }
+  .flow-direction-toggle .btn { font-size: 11.5px; padding: 3px 10px; }
 
   /* ── Empty state ── */
   .empty-phases { text-align: center; padding: 40px 20px; color: #9ca3af; }
@@ -704,15 +707,26 @@
     <div class="sc-card">
       <div class="sc-card-header">
         <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>Activity Flow Chart</span>
-        <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:11.5px; padding:3px 10px;"
-                data-bs-toggle="collapse" data-bs-target="#mermaidCollapse">
-          <i class="bi bi-chevron-up" id="mermaidChevron"></i>
-        </button>
+        <div class="d-flex align-items-center gap-2">
+          <div class="btn-group btn-group-sm flow-direction-toggle" role="group" aria-label="Flow chart layout">
+            <button type="button" class="btn btn-outline-primary" data-flow-direction="TD" aria-pressed="true">
+              <i class="bi bi-arrow-down"></i> Vertical
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-flow-direction="LR" aria-pressed="false">
+              <i class="bi bi-arrow-right"></i> Horizontal
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:11.5px; padding:3px 10px;"
+                  data-bs-toggle="collapse" data-bs-target="#mermaidCollapse">
+            <i class="bi bi-chevron-up" id="mermaidChevron"></i>
+          </button>
+        </div>
       </div>
       <div class="collapse show" id="mermaidCollapse">
         <div class="mermaid-wrap">
-          <div class="mermaid">{{ mermaid_graph_definition|safe }}</div>
+          <div class="mermaid" id="mermaidCanvas"></div>
         </div>
+        {{ mermaid_graph_definition|json_script:"mermaidSource" }}
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px 20px;padding:10px 18px 14px;border-top:1px solid #f3f4f6;font-size:12px;color:#6b7280;">
           <span style="display:flex;align-items:center;gap:6px;">
@@ -818,11 +832,12 @@
 {% endfor %}
 {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js"></script>
 <script>
   mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: 'base',
+    flowchart: { useMaxWidth: false },
     themeVariables: {
       /* Default node (fallback for any unstyled nodes) */
       primaryColor:        '#dbeafe',
@@ -840,6 +855,58 @@
       fontSize:            '13px',
     }
   });
+
+  // Flow chart: render from JSON so activity names are never parsed as HTML,
+  // and let the viewer switch between vertical and horizontal layouts.
+  (function () {
+    var source = document.getElementById('mermaidSource');
+    var canvas = document.getElementById('mermaidCanvas');
+    if (!source || !canvas) return;
+    var definition = JSON.parse(source.textContent || '""');
+    var buttons = document.querySelectorAll('[data-flow-direction]');
+    var storageKey = 'scenarioFlowDirection';
+    var renderCount = 0;
+
+    function savedDirection() {
+      try {
+        return localStorage.getItem(storageKey) === 'LR' ? 'LR' : 'TD';
+      } catch (e) {
+        return 'TD';
+      }
+    }
+
+    function render(direction) {
+      buttons.forEach(function (button) {
+        var active = button.dataset.flowDirection === direction;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      if (!definition) return;
+      renderCount += 1;
+      mermaid
+        .render(
+          'scenarioFlow' + renderCount,
+          definition.replace(/^graph TD/, 'flowchart ' + direction)
+        )
+        .then(function (result) {
+          canvas.innerHTML = result.svg;
+          if (result.bindFunctions) result.bindFunctions(canvas);
+        })
+        .catch(function (error) {
+          console.error('Flow chart could not be rendered', error);
+          canvas.textContent = 'The flow chart could not be rendered.';
+        });
+    }
+
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var direction = button.dataset.flowDirection;
+        try { localStorage.setItem(storageKey, direction); } catch (e) {}
+        render(direction);
+      });
+    });
+    render(savedDirection());
+  })();
 
   // LLM chevron toggle
   var llmEl = document.getElementById('llmScBody');
