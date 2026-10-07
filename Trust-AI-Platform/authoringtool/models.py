@@ -1259,6 +1259,85 @@ class ScenarioFamilyMatchDecision(models.Model):
         )
 
 
+class TranslationMatch(models.Model):
+    """A scored possible 1:1 translation between two scenarios."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending review'),
+        ('confirmed', 'Confirmed translation'),
+        ('rejected', 'Not a translation'),
+        ('changed', 'Changed since review'),
+    ]
+
+    scenario_a = models.ForeignKey(
+        Scenario,
+        on_delete=models.CASCADE,
+        related_name='translation_matches_as_a',
+    )
+    scenario_b = models.ForeignKey(
+        Scenario,
+        on_delete=models.CASCADE,
+        related_name='translation_matches_as_b',
+    )
+    confidence = models.PositiveSmallIntegerField(default=0, db_index=True)
+    exact_match = models.BooleanField(
+        default=False,
+        help_text='Every reachable activity and route matches 1:1.',
+    )
+    structure_score = models.FloatField(default=0)
+    route_score = models.FloatField(default=0)
+    anchor_score = models.FloatField(
+        default=0,
+        help_text='Share of numbers, formulas and images found in both.',
+    )
+    differences = models.JSONField(default=list, blank=True)
+    activity_map = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Matched [scenario A activity id, scenario B activity id].',
+    )
+    flow_signature_a = models.CharField(max_length=64, blank=True)
+    flow_signature_b = models.CharField(max_length=64, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True,
+    )
+    review_notes = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        'auth.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reviewed_translation_matches',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Translation Match'
+        verbose_name_plural = 'Translation Matches'
+        ordering = ['-confidence', 'scenario_a_id', 'scenario_b_id']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(scenario_a__lt=models.F('scenario_b')),
+                name='translation_match_ordered_pair',
+            ),
+            models.UniqueConstraint(
+                fields=['scenario_a', 'scenario_b'],
+                name='unique_translation_match_pair',
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.scenario_a.name} ↔ {self.scenario_b.name} '
+            f'({self.confidence}%)'
+        )
+
+
 class ScenarioHealthProxy(Scenario):
     """Proxy used solely to power the Scenario Health Check admin page."""
     class Meta:

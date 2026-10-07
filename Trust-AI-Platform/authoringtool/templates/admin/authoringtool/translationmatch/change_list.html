@@ -1,0 +1,41 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .object-tools form {
+      display: inline;
+      margin: 0;
+    }
+    .object-tools form button {
+      display: block;
+      padding: 3px 12px;
+      color: var(--object-tools-fg);
+      background: var(--object-tools-bg);
+      border: 0;
+      border-radius: 15px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.6875rem;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      line-height: 1.25rem;
+      text-transform: uppercase;
+    }
+    .object-tools form button:hover,
+    .object-tools form button:focus {
+      background: var(--object-tools-hover-bg);
+    }
+  </style>
+{% endblock %}
+
+{% block object-tools-items %}
+  <li>
+    <form method="post" action="{% url 'admin:authoringtool_translationmatch_scan' %}">
+      {% csrf_token %}
+      <button type="submit">Scan for translations</button>
+    </form>
+  </li>
+  {{ block.super }}
+{% endblock %}

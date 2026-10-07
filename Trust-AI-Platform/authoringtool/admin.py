@@ -32,11 +32,16 @@ from .models import (
     BanditPolicyConfiguration, ProposalGenerationRun,
     ProposalStructuralFailure, QValue, UserProposalReview, Language,
     ScenarioSimilarityProfile, ScenarioFamilyCandidate,
-    ScenarioFamilyMatchDecision,
+    ScenarioFamilyMatchDecision, TranslationMatch,
 )
 from .scenario_matching import (
     apply_candidate_decision,
     create_manual_family_candidate,
+)
+from .translation_matching import (
+    activity_text,
+    align_flows,
+    build_flow_profile,
 )
 from .evidence import get_evidence_implementation_count
 from usergroups.models import UserGroupMembership
@@ -1735,6 +1740,336 @@ class ScenarioFamilyMatchDecisionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class TranslationConfidenceFilter(admin.SimpleListFilter):
+    title = 'confidence'
+    parameter_name = 'confidence_band'
+    BANDS = {
+        '100': (100, 100),
+        '95': (95, 99),
+        '80': (80, 94),
+        'low': (0, 79),
+    }
+
+    def lookups(self, request, model_admin):
+        return [
+            ('100', '100%'),
+            ('95', '95–99%'),
+            ('80', '80–94%'),
+            ('low', 'Below 80%'),
+        ]
+
+    def queryset(self, request, queryset):
+        band = self.BANDS.get(self.value())
+        if not band:
+            return queryset
+        return queryset.filter(
+            confidence__gte=band[0],
+            confidence__lte=band[1],
+        )
+
+
+def _scenario_student_count(field):
+    """Distinct non-teacher students who answered in the referenced scenario."""
+    return Coalesce(
+        Subquery(
+            UserAnswer.objects
+            .filter(activity__scenario=OuterRef(field))
+            .exclude(user__groups__name='teachers')
+            .values('activity__scenario')
+            .annotate(total=Count('user', distinct=True))
+            .values('total')[:1],
+            output_field=IntegerField(),
+        ),
+        Value(0),
+    )
+
+
+CONFIRM_EXACT_ONLY_MESSAGE = (
+    'Only exact 1:1 matches can be confirmed. Fix the differences listed '
+    'below in one of the scenarios, rescan, and confirm again.'
+)
+
+
+class TranslationMatchForm(forms.ModelForm):
+    class Meta:
+        model = TranslationMatch
+        fields = ('status', 'review_notes')
+
+    def clean_status(self):
+        status = self.cleaned_data['status']
+        if status == 'confirmed' and not self.instance.exact_match:
+            raise ValidationError(CONFIRM_EXACT_ONLY_MESSAGE)
+        return status
+
+
+@admin.register(TranslationMatch)
+class TranslationMatchAdmin(admin.ModelAdmin):
+    """Review scored 1:1 translation pairs and confirm or reject them."""
+
+    form = TranslationMatchForm
+    change_list_template = (
+        'admin/authoringtool/translationmatch/change_list.html'
+    )
+    list_display = (
+        'confidence_display',
+        'scenario_a_display',
+        'scenario_b_display',
+        'students_pooled',
+        'exact_match',
+        'differences_summary',
+        'status',
+        'reviewed_by',
+    )
+    list_filter = ('status', TranslationConfidenceFilter, 'exact_match')
+    search_fields = (
+        'scenario_a__name',
+        'scenario_b__name',
+        '=scenario_a__id',
+        '=scenario_b__id',
+    )
+    ordering = ('-confidence', 'scenario_a_id', 'scenario_b_id')
+    list_per_page = 100
+    actions = ('confirm_selected', 'reject_selected', 'reset_selected')
+    fields = (
+        'flow_comparison',
+        ('confidence_display', 'exact_match'),
+        ('structure_score', 'route_score', 'anchor_score'),
+        'differences_display',
+        'status',
+        'review_notes',
+        ('reviewed_by', 'reviewed_at'),
+        ('scenario_a', 'scenario_b'),
+        ('created_at', 'updated_at'),
+    )
+    readonly_fields = (
+        'flow_comparison',
+        'confidence_display',
+        'exact_match',
+        'structure_score',
+        'route_score',
+        'anchor_score',
+        'differences_display',
+        'reviewed_by',
+        'reviewed_at',
+        'scenario_a',
+        'scenario_b',
+        'created_at',
+        'updated_at',
+    )
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related('scenario_a', 'scenario_b', 'reviewed_by')
+            .annotate(
+                _students_a=_scenario_student_count('scenario_a'),
+                _students_b=_scenario_student_count('scenario_b'),
+            )
+            .annotate(_students_pooled=F('_students_a') + F('_students_b'))
+        )
+
+    def get_urls(self):
+        return [
+            path(
+                'scan/',
+                self.admin_site.admin_view(self.scan_view),
+                name='authoringtool_translationmatch_scan',
+            ),
+        ] + super().get_urls()
+
+    def has_add_permission(self, request):
+        return False
+
+    def scan_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        changelist = reverse('admin:authoringtool_translationmatch_changelist')
+        if request.method != 'POST':
+            return HttpResponseRedirect(changelist)
+        from .tasks import scan_translation_matches_task
+
+        task = scan_translation_matches_task.delay()
+        self.message_user(
+            request,
+            (
+                'Translation scan started. Refresh this page when the '
+                f'background task finishes. Task ID: {task.id}'
+            ),
+            level=messages.INFO,
+        )
+        return HttpResponseRedirect(changelist)
+
+    @admin.display(description='Confidence', ordering='confidence')
+    def confidence_display(self, obj):
+        colour = (
+            '#2e7d32' if obj.confidence >= 95
+            else '#e65100' if obj.confidence >= 80
+            else 'var(--error-fg)'
+        )
+        return format_html(
+            '<strong style="color:{}">{}%</strong>',
+            colour,
+            obj.confidence,
+        )
+
+    def _scenario_cell(self, scenario, students):
+        return format_html(
+            '<a href="{}">{} · {}</a><br>'
+            '<span style="color:var(--body-quiet-color)">{} · {} students'
+            '</span>',
+            reverse('admin:authoringtool_scenario_change', args=[scenario.id]),
+            scenario.id,
+            scenario.name,
+            (scenario.language or '').strip() or 'no language',
+            students,
+        )
+
+    @admin.display(description='Scenario A', ordering='scenario_a__name')
+    def scenario_a_display(self, obj):
+        return self._scenario_cell(
+            obj.scenario_a,
+            getattr(obj, '_students_a', 0),
+        )
+
+    @admin.display(description='Scenario B', ordering='scenario_b__name')
+    def scenario_b_display(self, obj):
+        return self._scenario_cell(
+            obj.scenario_b,
+            getattr(obj, '_students_b', 0),
+        )
+
+    @admin.display(description='Students pooled', ordering='_students_pooled')
+    def students_pooled(self, obj):
+        return getattr(obj, '_students_pooled', 0)
+
+    @admin.display(description='Differences')
+    def differences_summary(self, obj):
+        differences = obj.differences or []
+        if not differences:
+            return '—'
+        more = len(differences) - 2
+        return format_html(
+            '{}{}',
+            format_html_join('', '<div>{}</div>', (
+                (difference,) for difference in differences[:2]
+            )),
+            format_html(
+                '<div style="color:var(--body-quiet-color)">+ {} more</div>',
+                more,
+            ) if more > 0 else '',
+        )
+
+    @admin.display(description='Differences')
+    def differences_display(self, obj):
+        differences = obj.differences or []
+        if not differences:
+            return 'None: every reachable activity and route matches.'
+        return format_html(
+            '<ul style="margin:0;padding-left:18px">{}</ul>',
+            format_html_join('', '<li>{}</li>', (
+                (difference,) for difference in differences
+            )),
+        )
+
+    @admin.display(description='Side-by-side flow')
+    def flow_comparison(self, obj):
+        if not obj.pk:
+            return '—'
+        profile_a = build_flow_profile(obj.scenario_a)
+        profile_b = build_flow_profile(obj.scenario_b)
+        marks = {
+            'same': '✓',
+            'route differs': '✓ activity · ✗ route',
+            'differs': '✗ differs',
+            'only here': '✗ only in one',
+            'unreachable': 'unreachable',
+        }
+
+        def cell(profile, index):
+            if index is None:
+                return ('', '', '')
+            activity = profile['order'][index]
+            return (
+                f'#{index + 1}',
+                profile['tokens'][index].split('|')[0],
+                activity_text(activity),
+            )
+
+        rows = (
+            cell(profile_a, index_a)
+            + cell(profile_b, index_b)
+            + (marks[status],)
+            for index_a, index_b, status in align_flows(profile_a, profile_b)
+        )
+        return format_html(
+            '<table style="width:100%"><thead><tr>'
+            '<th>#</th><th>Type</th><th>{} · {}</th>'
+            '<th>#</th><th>Type</th><th>{} · {}</th><th>Match</th>'
+            '</tr></thead><tbody>{}</tbody></table>',
+            obj.scenario_a.id,
+            obj.scenario_a.name,
+            obj.scenario_b.id,
+            obj.scenario_b.name,
+            format_html_join(
+                '',
+                '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>'
+                '<td>{}</td><td>{}</td><td>{}</td></tr>',
+                rows,
+            ),
+        )
+
+    def save_model(self, request, obj, form, change):
+        if 'status' in form.changed_data:
+            if obj.status in {'confirmed', 'rejected'}:
+                obj.reviewed_by = request.user
+                obj.reviewed_at = timezone.now()
+            elif obj.status == 'pending':
+                obj.reviewed_by = None
+                obj.reviewed_at = None
+        super().save_model(request, obj, form, change)
+
+    def _review(self, request, queryset, status, label):
+        reviewer = request.user if status != 'pending' else None
+        updated = TranslationMatch.objects.filter(
+            pk__in=queryset.values('pk')
+        ).update(
+            status=status,
+            reviewed_by=reviewer,
+            reviewed_at=timezone.now() if reviewer else None,
+        )
+        self.message_user(
+            request,
+            f'{updated} translation match(es) marked as {label}.',
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description='Confirm selected as translations (exact 1:1 only)')
+    def confirm_selected(self, request, queryset):
+        not_exact = queryset.filter(exact_match=False).count()
+        exact = queryset.filter(exact_match=True)
+        if exact.exists():
+            self._review(request, exact, 'confirmed', 'confirmed')
+        if not_exact:
+            self.message_user(
+                request,
+                (
+                    f'{not_exact} selected match(es) were not confirmed '
+                    'because they are not exact 1:1. Open one to see what '
+                    'differs.'
+                ),
+                level=messages.WARNING,
+            )
+
+    @admin.action(description='Reject selected (not translations)')
+    def reject_selected(self, request, queryset):
+        self._review(request, queryset, 'rejected', 'rejected')
+
+    @admin.action(description='Reset selected to pending review')
+    def reset_selected(self, request, queryset):
+        self._review(request, queryset, 'pending', 'pending')
 
 
 class PhaseInline(admin.TabularInline):

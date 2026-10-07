@@ -38,3 +38,35 @@ def _sqlite_safe_placeholder(self, value, compiler, connection):
 
 
 _IRF.get_placeholder = _sqlite_safe_placeholder
+
+# ArrayField (QuestionBunch.activity_ids) casts its placeholder to a Postgres
+# array type; on SQLite store the list as JSON text instead.
+import json as _json  # noqa: E402
+
+from django.contrib.postgres.fields import ArrayField as _AF  # noqa: E402
+
+_orig_array_placeholder = _AF.get_placeholder
+_orig_array_prep = _AF.get_db_prep_value
+
+
+def _sqlite_array_placeholder(self, value, compiler, connection):
+    if connection.vendor == 'sqlite':
+        return '%s'
+    return _orig_array_placeholder(self, value, compiler, connection)
+
+
+def _sqlite_array_prep(self, value, connection, prepared=False):
+    if connection.vendor == 'sqlite' and isinstance(value, (list, tuple)):
+        return _json.dumps(list(value))
+    return _orig_array_prep(self, value, connection, prepared)
+
+
+def _sqlite_array_from_db(self, value, expression, connection):
+    if connection.vendor == 'sqlite' and isinstance(value, str):
+        return _json.loads(value)
+    return value
+
+
+_AF.get_placeholder = _sqlite_array_placeholder
+_AF.get_db_prep_value = _sqlite_array_prep
+_AF.from_db_value = _sqlite_array_from_db

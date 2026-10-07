@@ -90,6 +90,14 @@ def scan_scenario_family_candidates_task(
 
 
 @shared_task
+def scan_translation_matches_task(scenario_ids=None):
+    """Score possible 1:1 translations for administrator review."""
+    from .translation_matching import scan_translation_matches
+
+    return scan_translation_matches(scenario_ids=scenario_ids)
+
+
+@shared_task
 def review_scenario_family_candidate_with_llm_task(candidate_id):
     """Generate and persist one non-binding Ollama family review."""
     from .scenario_matching import review_candidate_with_llm
