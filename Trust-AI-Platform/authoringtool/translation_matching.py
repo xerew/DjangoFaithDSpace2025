@@ -14,6 +14,7 @@ import json
 import re
 
 from django.db import transaction
+from django.db.models import Count, Q
 
 from .models import (
     Activity,
@@ -27,6 +28,8 @@ from .models import (
 
 
 MIN_CONFIDENCE = 50
+# Scenarios with fewer activities across all their phases are not matched.
+MIN_ACTIVITIES = 10
 # Aligned activities sharing this much wording are a same-language copy.
 SAME_LANGUAGE_WORD_OVERLAP = 0.5
 BRANCH_LABELS = ['High branch', 'Moderate branch', 'Low branch']
@@ -535,10 +538,21 @@ def scan_translation_matches(scenario_ids=None, dry_run=False):
     Review decisions are kept on a rescan. A reviewed pair whose flow has
     changed since is marked ``changed`` so it can be checked again.
     """
-    scenarios = Scenario.objects.order_by('id')
+    scenarios = Scenario.objects.annotate(
+        phase_activity_count=Count(
+            'activities',
+            filter=Q(activities__phase__isnull=False),
+        ),
+    ).order_by('id')
     if scenario_ids:
         scenarios = scenarios.filter(id__in=scenario_ids)
-    candidates = list(find_translation_candidates(scenarios))
+    too_small = set(
+        scenarios.filter(phase_activity_count__lt=MIN_ACTIVITIES)
+        .values_list('id', flat=True)
+    )
+    candidates = list(find_translation_candidates(
+        scenarios.filter(phase_activity_count__gte=MIN_ACTIVITIES)
+    ))
     if dry_run:
         return {'matches': len(candidates), 'candidates': [
             {
@@ -603,6 +617,9 @@ def scan_translation_matches(scenario_ids=None, dry_run=False):
             if match.status == 'pending':
                 match.delete()
                 removed += 1
+            elif {match.scenario_a_id, match.scenario_b_id} & too_small:
+                # No longer eligible for matching; keep the decision as is.
+                continue
             elif match.status in {'confirmed', 'rejected'}:
                 match.status = 'changed'
                 match.save(update_fields=['status', 'updated_at'])

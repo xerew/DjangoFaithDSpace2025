@@ -68,6 +68,19 @@ GREEK_STEPS = [
     ),
 ]
 
+# Scenarios need at least 10 activities to be matched; extra explanations
+# at the end keep the positions of the first four activities unchanged.
+SHORT_ENGLISH_STEPS = list(ENGLISH_STEPS)
+SHORT_GREEK_STEPS = list(GREEK_STEPS)
+ENGLISH_STEPS = SHORT_ENGLISH_STEPS + [
+    ('Explanation', f'Step {n}: the pendulum swings for {n}.5 seconds.', [])
+    for n in range(5, 11)
+]
+GREEK_STEPS = SHORT_GREEK_STEPS + [
+    ('Explanation', f'Βήμα {n}: το εκκρεμές ταλαντώνεται για {n}.5 δευτερόλεπτα.', [])
+    for n in range(5, 11)
+]
+
 
 class TranslationMatchingBase(TestCase):
     def setUp(self):
@@ -396,6 +409,79 @@ class TranslationScanTests(TranslationMatchingBase):
         self.assertTrue(match.exact_match)
         self.assertEqual(match.status, 'pending')
         self.assertEqual(summary['matches'], 1)
+
+    def test_scenarios_with_fewer_than_10_activities_are_not_matched(self):
+        self.build('Short pendulum', 'English', SHORT_ENGLISH_STEPS)
+        self.build('Σύντομο εκκρεμές', 'Ελληνικά', SHORT_GREEK_STEPS)
+
+        summary = scan_translation_matches()
+
+        self.assertFalse(TranslationMatch.objects.exists())
+        self.assertEqual(summary['matches'], 0)
+
+    def test_scenario_without_activities_is_not_matched(self):
+        self.build('Pendulum', 'English', ENGLISH_STEPS)
+        Scenario.objects.create(
+            name='Empty', language='Ελληνικά',
+            created_by=self.owner, updated_by=self.owner,
+        )
+
+        scan_translation_matches()
+
+        self.assertFalse(TranslationMatch.objects.exists())
+
+    def test_activities_count_across_all_phases(self):
+        english, english_activities = self.build(
+            'Pendulum', 'English', ENGLISH_STEPS,
+        )
+        greek, greek_activities = self.build(
+            'Εκκρεμές', 'Ελληνικά', GREEK_STEPS,
+        )
+        for scenario, activities in (
+            (english, english_activities),
+            (greek, greek_activities),
+        ):
+            second = Phase.objects.create(
+                name='Second', scenario=scenario,
+                created_by=self.owner, updated_by=self.owner,
+            )
+            Activity.objects.filter(
+                pk__in=[activity.pk for activity in activities[5:]],
+            ).update(phase=second)
+
+        scan_translation_matches()
+
+        self.assertEqual(TranslationMatch.objects.count(), 1)
+
+    def test_pending_match_is_removed_when_scenario_drops_below_10(self):
+        english, english_activities = self.build(
+            'Pendulum', 'English', ENGLISH_STEPS,
+        )
+        self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+        scan_translation_matches()
+        self.assertEqual(TranslationMatch.objects.count(), 1)
+        Activity.objects.filter(
+            pk__in=[activity.pk for activity in english_activities[4:]],
+        ).delete()
+
+        scan_translation_matches()
+
+        self.assertFalse(TranslationMatch.objects.exists())
+
+    def test_reviewed_match_is_kept_when_scenario_drops_below_10(self):
+        english, english_activities = self.build(
+            'Pendulum', 'English', ENGLISH_STEPS,
+        )
+        self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+        scan_translation_matches()
+        TranslationMatch.objects.update(status='confirmed')
+        Activity.objects.filter(
+            pk__in=[activity.pk for activity in english_activities[4:]],
+        ).delete()
+
+        scan_translation_matches()
+
+        self.assertEqual(TranslationMatch.objects.get().status, 'confirmed')
 
     def test_same_language_copy_is_not_a_translation_candidate(self):
         self.build('Pendulum', 'English', ENGLISH_STEPS)

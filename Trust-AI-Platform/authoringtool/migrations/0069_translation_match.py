@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Translation Match',
                 'verbose_name_plural': 'Translation Matches',
                 'ordering': ['-confidence', 'scenario_a_id', 'scenario_b_id'],
-                'constraints': [models.CheckConstraint(condition=models.Q(('scenario_a__lt', models.F('scenario_b'))), name='translation_match_ordered_pair'), models.UniqueConstraint(fields=('scenario_a', 'scenario_b'), name='unique_translation_match_pair')],
+                'constraints': [models.CheckConstraint(check=models.Q(('scenario_a__lt', models.F('scenario_b'))), name='translation_match_ordered_pair'), models.UniqueConstraint(fields=('scenario_a', 'scenario_b'), name='unique_translation_match_pair')],
             },
         ),
     ]
