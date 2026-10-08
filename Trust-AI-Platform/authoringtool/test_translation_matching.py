@@ -545,6 +545,82 @@ class ScanTranslationsCommandTests(TranslationMatchingBase):
         self.assertEqual(TranslationMatch.objects.count(), 1)
 
 
+class TranslationVisibilityFilterTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            'visibility_admin',
+            password='pass',
+        )
+        self.pairs = {}
+        for label, first, second in (
+            ('public-public', 'public', 'public'),
+            ('public-private', 'public', 'private'),
+            ('org-org', 'org', 'org'),
+        ):
+            scenarios = [
+                Scenario.objects.create(
+                    name=f'{label} {side}',
+                    visibility_status=visibility,
+                    created_by=self.admin_user,
+                    updated_by=self.admin_user,
+                )
+                for side, visibility in (('A', first), ('B', second))
+            ]
+            self.pairs[label] = TranslationMatch.objects.create(
+                scenario_a=scenarios[0],
+                scenario_b=scenarios[1],
+                confidence=100,
+                exact_match=True,
+            )
+        self.client.force_login(self.admin_user)
+        self.url = reverse('admin:authoringtool_translationmatch_changelist')
+
+    def shown(self, response):
+        return {
+            match.pk for match in response.context['cl'].result_list
+        }
+
+    def test_without_selection_all_pairs_are_shown(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(
+            self.shown(response),
+            {match.pk for match in self.pairs.values()},
+        )
+
+    def test_one_visibility_requires_both_scenarios_to_match(self):
+        response = self.client.get(self.url, {'visibility': 'public'})
+
+        self.assertEqual(
+            self.shown(response),
+            {self.pairs['public-public'].pk},
+        )
+
+    def test_several_visibilities_can_be_ticked(self):
+        response = self.client.get(self.url, {'visibility': 'public,private'})
+
+        self.assertEqual(
+            self.shown(response),
+            {self.pairs['public-public'].pk, self.pairs['public-private'].pk},
+        )
+
+    def test_filter_shows_a_checkbox_per_visibility(self):
+        response = self.client.get(self.url, {'visibility': 'org'})
+
+        self.assertContains(response, '☐ Public')
+        self.assertContains(response, '☐ Private (In-Progress)')
+        self.assertContains(response, '☑ Organization Users Only')
+        self.assertContains(response, '☑', count=1)
+
+    def test_unknown_visibility_values_are_ignored(self):
+        response = self.client.get(self.url, {'visibility': 'secret'})
+
+        self.assertEqual(
+            self.shown(response),
+            {match.pk for match in self.pairs.values()},
+        )
+
+
 class TranslationMatchAdminTests(TranslationMatchingBase):
     def setUp(self):
         super().setUp()

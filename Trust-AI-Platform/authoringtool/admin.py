@@ -1770,6 +1770,59 @@ class TranslationConfidenceFilter(admin.SimpleListFilter):
         )
 
 
+class ScenarioVisibilityFilter(admin.SimpleListFilter):
+    """Tick one or more visibilities; both scenarios of a pair must match.
+
+    The checkboxes are text symbols in the standard filter template, so the
+    filter looks the same on every Django version the platform runs.
+    """
+
+    title = 'scenario visibility'
+    parameter_name = 'visibility'
+
+    def lookups(self, request, model_admin):
+        return Scenario.VISIBILITY_CHOICES
+
+    def selected(self):
+        valid = {value for value, _ in Scenario.VISIBILITY_CHOICES}
+        return [
+            value
+            for value in (self.value() or '').split(',')
+            if value in valid
+        ]
+
+    def queryset(self, request, queryset):
+        selected = self.selected()
+        if not selected:
+            return queryset
+        return queryset.filter(
+            scenario_a__visibility_status__in=selected,
+            scenario_b__visibility_status__in=selected,
+        )
+
+    def choices(self, changelist):
+        selected = self.selected()
+        for value, label in self.lookup_choices:
+            ticked = value in selected
+            toggled = (
+                [item for item in selected if item != value]
+                if ticked else selected + [value]
+            )
+            yield {
+                'selected': ticked,
+                'display': f"{'☑' if ticked else '☐'} {label}",
+                'query_string': (
+                    changelist.get_query_string(
+                        {self.parameter_name: ','.join(toggled)},
+                    )
+                    if toggled
+                    else changelist.get_query_string(
+                        remove=[self.parameter_name],
+                    )
+                ),
+            }
+
+
 def _scenario_student_count(field):
     """Distinct non-teacher students who answered in the referenced scenario."""
     return Coalesce(
@@ -1822,7 +1875,12 @@ class TranslationMatchAdmin(admin.ModelAdmin):
         'status',
         'reviewed_by',
     )
-    list_filter = ('status', TranslationConfidenceFilter, 'exact_match')
+    list_filter = (
+        'status',
+        TranslationConfidenceFilter,
+        ScenarioVisibilityFilter,
+        'exact_match',
+    )
     search_fields = (
         'scenario_a__name',
         'scenario_b__name',
