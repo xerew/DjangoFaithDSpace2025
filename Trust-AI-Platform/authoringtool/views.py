@@ -49,6 +49,14 @@ from .evidence import (
     normalize_evidence_language,
     normalize_evidence_scope,
 )
+from collections import defaultdict
+
+from .translation_matching import (
+    is_english,
+    pooled_implementation_count,
+    translation_group_ids,
+    translation_groups,
+)
 from .graph_validation import (
     ScenarioGraphValidationError,
     assert_scenario_graph_integrity,
@@ -438,10 +446,76 @@ def scenarios(request):
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios visible to members of the org
         ).filter(filters).distinct().order_by('-created_on')
 
+    # One card per confirmed translation group: the English version, or else
+    # the oldest; the other versions open from that card's Translations modal.
+    groups = translation_groups()
+    if groups:
+        grouped = defaultdict(list)
+        for row in (
+            Scenario.objects
+            .filter(id__in=[
+                scenario_id
+                for scenario_id in visible_scenarios.values_list('id', flat=True)
+                if scenario_id in groups
+            ])
+            .values('id', 'language', 'created_on')
+        ):
+            grouped[groups[row['id']]].append(row)
+        hidden_ids = set()
+        for members in grouped.values():
+            if len(members) < 2:
+                continue
+            oldest_first = sorted(members, key=lambda m: (m['created_on'], m['id']))
+            shown = next(
+                (m for m in oldest_first if is_english(m['language'])),
+                oldest_first[0],
+            )
+            hidden_ids.update(m['id'] for m in members if m['id'] != shown['id'])
+        if hidden_ids:
+            visible_scenarios = visible_scenarios.exclude(id__in=hidden_ids)
+
     # Paginate before the can_edit loop (15 per page)
     paginator = Paginator(visible_scenarios, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    # Versions behind each card that represents a translation group
+    page_groups = {
+        scenario.id: groups[scenario.id]
+        for scenario in page_obj
+        if scenario.id in groups
+    }
+    member_ids = set().union(*page_groups.values()) if page_groups else set()
+    viewable = {
+        scenario.id: scenario
+        for scenario in scenarios_visible_to_user(
+            request.user,
+            Scenario.objects.filter(id__in=member_ids),
+        ).select_related('created_by')
+    }
+    students = {
+        row['activity__scenario_id']: row['students']
+        for row in UserAnswer.objects
+        .filter(activity__scenario_id__in=member_ids)
+        .exclude(user__groups__name='teachers')
+        .values('activity__scenario_id')
+        .annotate(students=Count('user', distinct=True))
+    }
+    for scenario in page_obj:
+        group = page_groups.get(scenario.id, frozenset())
+        versions = sorted(
+            (viewable[member_id] for member_id in group if member_id in viewable),
+            key=lambda version: (
+                not is_english(version.language),
+                (version.language or '').casefold(),
+                version.name,
+            ),
+        )
+        for version in versions:
+            version.student_count = students.get(version.id, 0)
+        scenario.translation_versions = versions
+        scenario.translation_count = max(len(group) - 1, 0)
+        scenario.hidden_translation_count = len(group) - len(versions)
 
     # Process only the current page's scenarios for can_edit
     user_org_ids = set(request.user.member_of_organizations.values_list('id', flat=True))
@@ -846,8 +920,40 @@ def viewScenario(request, id):
         .order_by('-version_number')[:10]
     )
 
+    # Confirmed 1:1 translations, limited to what this teacher may open.
+    translation_ids = translation_group_ids(myScenario)
+    translations = list(
+        scenarios_visible_to_user(
+            request.user,
+            Scenario.objects.filter(id__in=translation_ids),
+        )
+        .select_related('created_by')
+        .order_by('language', 'name')
+    )
+    translation_students = {
+        row['activity__scenario_id']: row['students']
+        for row in UserAnswer.objects
+        .filter(activity__scenario_id__in=[t.id for t in translations])
+        .exclude(user__groups__name='teachers')
+        .values('activity__scenario_id')
+        .annotate(students=Count('user', distinct=True))
+    }
+    for translation in translations:
+        translation.student_count = translation_students.get(translation.id, 0)
+
+    # Metrics & AI unlocks on the students of the scenario and its confirmed
+    # translations together; each scenario still shows its own count.
+    proposal_threshold_count = (
+        pooled_implementation_count(myScenario)
+        if translation_ids else implementation_count
+    )
+
     template = loader.get_template('authoringtool/viewScenario.html')
     context = {
+        'proposal_threshold_count': proposal_threshold_count,
+        'translations': translations,
+        'hidden_translation_count': len(translation_ids) - len(translations),
+        'translation_total': len(translation_ids),
         'myScenario': myScenario,
         'min_age': scenario_min_age,
         'max_age': scenario_max_age,
@@ -2765,7 +2871,9 @@ def ai_metrics(request, scenario_id):
         'implementation_count': implementation_count,
         'local_implementation_count': local_implementation_count,
         'compatible_implementation_count': compatible_implementation_count,
-        'proposal_implementation_count': scenario.metrics_implementation_count(),
+        # Proposals use the students of all confirmed translations together.
+        'proposal_implementation_count': pooled_implementation_count(scenario),
+        'translation_count': len(translation_group_ids(scenario)),
         'total_implementation_count': total_implementation_count,
         'legacy_implementation_count': legacy_implementation_count,
         'excluded_implementation_count': excluded_implementation_count,

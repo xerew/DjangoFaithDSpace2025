@@ -504,6 +504,10 @@
           Version {{ current_scenario_version.version_number }} has
           <strong>{{ proposal_implementation_count }}</strong> compatible student
           implementation{{ proposal_implementation_count|pluralize }} across approved current family variants.
+          {% elif translation_count %}
+          This scenario and its {{ translation_count }} confirmed translation{{ translation_count|pluralize }} have
+          <strong>{{ proposal_implementation_count }}</strong> student
+          implementation{{ proposal_implementation_count|pluralize }} together, including historical data.
           {% else %}
           This scenario has <strong>{{ proposal_implementation_count }}</strong>
           student implementation{{ proposal_implementation_count|pluralize }}, including historical data.

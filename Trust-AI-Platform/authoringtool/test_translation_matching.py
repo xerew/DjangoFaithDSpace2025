@@ -621,6 +621,93 @@ class TranslationVisibilityFilterTests(TestCase):
         )
 
 
+class ScenarioTranslationsModalTests(TestCase):
+    def setUp(self):
+        self.teachers = Group.objects.create(name='teachers')
+        self.owner = User.objects.create_user('modal_owner', password='pass')
+        self.other = User.objects.create_user('modal_other', password='pass')
+        for teacher in (self.owner, self.other):
+            teacher.groups.add(self.teachers)
+        self.english = self.scenario('Pendulum', 'English', 'public')
+        self.greek = self.scenario('Εκκρεμές', 'Ελληνικά', 'public')
+        self.romanian = self.scenario('Pendulul', 'Romanian', 'public')
+        self.client.force_login(self.owner)
+
+    def scenario(self, name, language, visibility, owner=None):
+        owner = owner or self.owner
+        return Scenario.objects.create(
+            name=name, language=language, visibility_status=visibility,
+            created_by=owner, updated_by=owner,
+        )
+
+    def link(self, first, second, status='confirmed'):
+        first, second = sorted((first, second), key=lambda s: s.id)
+        return TranslationMatch.objects.create(
+            scenario_a=first, scenario_b=second,
+            confidence=100, exact_match=True, status=status,
+        )
+
+    def view(self, scenario):
+        return self.client.get(reverse('viewScenario', args=[scenario.id]))
+
+    def test_confirmed_translation_is_listed(self):
+        self.link(self.english, self.greek)
+
+        response = self.view(self.english)
+
+        self.assertEqual(
+            [t.id for t in response.context['translations']],
+            [self.greek.id],
+        )
+        self.assertContains(response, 'Translations (1)')
+        self.assertContains(response, 'Εκκρεμές')
+
+    def test_translations_of_translations_are_listed(self):
+        self.link(self.english, self.greek)
+        self.link(self.greek, self.romanian)
+
+        response = self.view(self.english)
+
+        self.assertEqual(
+            {t.id for t in response.context['translations']},
+            {self.greek.id, self.romanian.id},
+        )
+        self.assertContains(response, 'Translations (2)')
+
+    def test_unconfirmed_matches_are_not_listed(self):
+        self.link(self.english, self.greek, status='pending')
+        self.link(self.english, self.romanian, status='changed')
+
+        response = self.view(self.english)
+
+        self.assertEqual(list(response.context['translations']), [])
+        self.assertNotContains(response, 'Translations (')
+
+    def test_private_translation_of_another_teacher_is_hidden_but_counted(self):
+        hidden = self.scenario(
+            'Pendolo privato', 'Italiano', 'private', owner=self.other,
+        )
+        self.link(self.english, self.greek)
+        self.link(self.english, hidden)
+
+        response = self.view(self.english)
+
+        self.assertEqual(
+            [t.id for t in response.context['translations']],
+            [self.greek.id],
+        )
+        self.assertEqual(response.context['hidden_translation_count'], 1)
+        self.assertContains(response, 'Translations (2)')
+        self.assertNotContains(response, 'Pendolo privato')
+
+    def test_scenario_family_is_not_shown(self):
+        response = self.view(self.english)
+
+        self.assertNotContains(response, '>Scenario Family<')
+        self.assertNotContains(response, '<i class="bi bi-collection"></i> Family')
+        self.assertNotContains(response, '<i class="bi bi-diagram-3"></i> Variant')
+
+
 class TranslationMatchAdminTests(TranslationMatchingBase):
     def setUp(self):
         super().setUp()

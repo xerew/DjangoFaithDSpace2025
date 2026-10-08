@@ -44,9 +44,14 @@ def get_scenario_evidence_cache_paths(
         if language
         else 'all-languages'
     )
+    # Confirmed translations add their answers; refresh when those change.
+    from .translation_matching import translation_pool_signature
+
+    pool = translation_pool_signature(scenario)
     prefix = (
         f'scenario_{scenario.id}_v{version.id}_{scope}_'
         f'{language_slug}_{signature}'
+        + (f'_tr{pool}' if pool else '')
     )
     return {
         'metrics': os.path.join(

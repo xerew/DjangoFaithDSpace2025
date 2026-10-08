@@ -6,7 +6,7 @@ Each candidate pair gets a confidence (0-100) and a list of the differences
 found, so an administrator can confirm or reject it.
 """
 
-from collections import Counter
+from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 import hashlib
 from html import unescape
@@ -14,7 +14,7 @@ import json
 import re
 
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 
 from .models import (
     Activity,
@@ -24,6 +24,7 @@ from .models import (
     QuestionBunch,
     Scenario,
     TranslationMatch,
+    UserAnswer,
 )
 
 
@@ -530,6 +531,118 @@ def find_translation_candidates(scenarios=None):
             if result['lexical'] >= SAME_LANGUAGE_WORD_OVERLAP:
                 continue
             yield profile_a, profile_b, result
+
+
+ENGLISH_LANGUAGE_NAMES = {
+    'english', 'en', 'eng', 'inglês', 'ingles', 'inglés', 'anglais',
+    'englisch', 'inglese', 'engleză', 'αγγλικά',
+}
+
+
+def is_english(language):
+    return (language or '').strip().casefold() in ENGLISH_LANGUAGE_NAMES
+
+
+def _confirmed_links():
+    """Neighbour map of confirmed pairs: id -> {other id: {own act: other act}}."""
+    links = defaultdict(dict)
+    for first, second, pairs in TranslationMatch.objects.filter(
+        status='confirmed',
+    ).values_list('scenario_a_id', 'scenario_b_id', 'activity_map'):
+        pairs = pairs or []
+        links[first][second] = {a: b for a, b in pairs}
+        links[second][first] = {b: a for a, b in pairs}
+    return links
+
+
+def translation_groups():
+    """Each scenario in a confirmed translation group -> the whole group."""
+    links = _confirmed_links()
+    groups = {}
+    for start in links:
+        if start in groups:
+            continue
+        group = {start}
+        queue = [start]
+        while queue:
+            for other in links[queue.pop()]:
+                if other not in group:
+                    group.add(other)
+                    queue.append(other)
+        frozen = frozenset(group)
+        for member in group:
+            groups[member] = frozen
+    return groups
+
+
+def translation_group_ids(scenario):
+    """Ids of scenarios joined to this one by confirmed translations.
+
+    Confirmed pairs are exact 1:1 matches, so the relation carries over: if
+    A translates B and B translates C, then C is listed for A as well.
+    """
+    return set(translation_groups().get(scenario.id, {scenario.id})) - {scenario.id}
+
+
+def translation_activity_maps(scenario):
+    """For every other member of the group: {its activity id: our activity id}.
+
+    Members reached through another translation get the two mappings chained.
+    """
+    links = _confirmed_links()
+    to_target = {scenario.id: None}
+    queue = [scenario.id]
+    while queue:
+        current = queue.pop(0)
+        current_map = to_target[current]
+        for other, other_to_current in (
+            (other, {theirs: ours for ours, theirs in pairs.items()})
+            for other, pairs in links[current].items()
+        ):
+            if other in to_target:
+                continue
+            if current_map is None:
+                to_target[other] = dict(other_to_current)
+            else:
+                to_target[other] = {
+                    theirs: current_map[ours]
+                    for theirs, ours in other_to_current.items()
+                    if ours in current_map
+                }
+            queue.append(other)
+    del to_target[scenario.id]
+    return to_target
+
+
+def pooled_implementation_count(scenario):
+    """Implementations of the scenario plus all its confirmed translations."""
+    members = Scenario.objects.filter(id__in=translation_group_ids(scenario))
+    return scenario.metrics_implementation_count() + sum(
+        member.metrics_implementation_count() for member in members
+    )
+
+
+def translation_pool_signature(scenario):
+    """Changes when translation answers or confirmed pairs change; '' if none."""
+    member_ids = sorted(translation_group_ids(scenario))
+    if not member_ids:
+        return ''
+    state = UserAnswer.objects.filter(
+        activity__scenario_id__in=member_ids,
+    ).aggregate(count=Count('id'), latest=Max('id'))
+    links = list(
+        TranslationMatch.objects.filter(
+            status='confirmed',
+        ).filter(
+            Q(scenario_a_id__in=member_ids + [scenario.id])
+            | Q(scenario_b_id__in=member_ids + [scenario.id])
+        ).order_by('id').values_list('id', 'updated_at')
+    )
+    payload = json.dumps(
+        [member_ids, state['count'], state['latest'], links],
+        default=str,
+    )
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]
 
 
 def scan_translation_matches(scenario_ids=None, dry_run=False):

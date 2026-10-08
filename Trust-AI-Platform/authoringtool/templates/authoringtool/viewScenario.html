@@ -244,7 +244,13 @@
         <a href="{% url 'proposal_history' myScenario.id %}" class="btn btn-sm hero-btn-outline">
           <i class="bi bi-clock-history me-1"></i> Proposal History
         </a>
-        {% if implementation_count >= myScenario.ai_metrics_min_implementations %}
+        {% if translation_total %}
+          <button type="button" class="btn btn-sm hero-btn-outline"
+                  data-bs-toggle="modal" data-bs-target="#translationsModal">
+            <i class="bi bi-translate me-1"></i> Translations ({{ translation_total }})
+          </button>
+        {% endif %}
+        {% if proposal_threshold_count >= myScenario.ai_metrics_min_implementations %}
           <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-outline">
             <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
           </a>
@@ -292,16 +298,6 @@
                 <div class="meta-lbl"><i class="bi bi-translate"></i> Language</div>
                 <div class="meta-val">{{ myScenario.language }}</div>
               </div>
-              {% if scenario_family %}
-              <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-collection"></i> Family</div>
-                <div class="meta-val">{{ scenario_family.title }}</div>
-              </div>
-              <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-diagram-3"></i> Variant</div>
-                <div class="meta-val">{{ myScenario.get_variant_type_display }}</div>
-              </div>
-              {% endif %}
               {% if current_scenario_version %}
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-layers"></i> Evidence Version</div>
@@ -335,86 +331,6 @@
             </div>
           </div>
         </div>
-
-        {% if scenario_family and myScenario.use_family_evidence_pooling %}
-        <!-- Scenario family totals and visible language/adaptation variants -->
-        <div class="sc-card">
-          <div class="sc-card-header">
-            <span><i class="bi bi-collection me-2" style="color:#1a56db;"></i>Scenario Family</span>
-            <span style="font-size:11.5px; color:#6b7280; font-weight:500;">
-              {{ family_variants|length }} visible variant{{ family_variants|length|pluralize }}
-            </span>
-          </div>
-          <div class="sc-card-body">
-            <div style="font-size:14px; font-weight:700; color:#1f2937;">{{ scenario_family.title }}</div>
-            <div style="font-size:12.5px; color:#6b7280; margin-top:4px;">
-              <strong style="color:#1a56db;">{{ family_implementation_count }}</strong>
-              student implementation{{ family_implementation_count|pluralize }}
-              across the variants you can access
-            </div>
-
-            {% if family_language_counts %}
-            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">
-              {% for item in family_language_counts %}
-              <span class="badge rounded-pill"
-                    style="background:#eef4ff; color:#1e40af; border:1px solid #dbe7ff; font-weight:500;">
-                {{ item.language }}: {{ item.implementation_count }}
-              </span>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            <div style="margin-top:14px; border-top:1px solid #eef1f6;">
-              {% for variant in family_variants %}
-              <a href="{% url 'viewScenario' id=variant.id %}"
-                 style="display:block; padding:10px 0; border-bottom:1px solid #f3f4f6; text-decoration:none;">
-                <div style="display:flex; justify-content:space-between; gap:10px;">
-                  <span style="font-size:12.5px; font-weight:600; color:#1f2937;">
-                    {{ variant.name }}
-                    {% if variant.id == myScenario.id %}
-                    <span style="color:#1a56db;">(current)</span>
-                    {% endif %}
-                  </span>
-                  <span style="font-size:12px; color:#4b5563; white-space:nowrap;">
-                    {{ variant.implementation_count }}
-                  </span>
-                </div>
-                <div style="font-size:11.5px; color:#9ca3af; margin-top:2px;">
-                  {{ variant.language|default:"Language not set" }} · {{ variant.get_variant_type_display }}
-                </div>
-              </a>
-              {% endfor %}
-            </div>
-
-            {% if family_counts_are_partial %}
-            <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:11.5px; color:#6b7280;">
-              Private variants you cannot access are excluded from these totals.
-            </div>
-            {% endif %}
-            <div style="font-size:11.5px; color:#6b7280; margin-top:12px; line-height:1.5;">
-              {% if myScenario.use_family_evidence_pooling %}
-                The reliability threshold uses
-                <strong>{{ implementation_count }}</strong> compatible
-                implementation{{ implementation_count|pluralize }}:
-                {{ local_implementation_count }} from this scenario and
-                {{ compatible_external_implementation_count }} from approved
-                family variants.
-              {% else %}
-                Family evidence pooling is disabled. Dashboard and Metrics &amp; AI use
-                all <strong>{{ implementation_count }}</strong> implementation{{ implementation_count|pluralize }}
-                belonging to this scenario, including historical data.
-              {% endif %}
-            </div>
-            {% if myScenario.use_family_evidence_pooling and excluded_implementation_count %}
-            <div class="alert alert-light border mt-2 mb-0 py-2 px-3" style="font-size:11.5px; color:#6b7280;">
-              {{ excluded_implementation_count }} historical or incompatible
-              implementation{{ excluded_implementation_count|pluralize }} remain
-              visible in totals but are excluded from AI evidence.
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        {% endif %}
 
         {% if myScenario.use_family_evidence_pooling %}
         <div class="sc-card">
@@ -754,8 +670,65 @@
   </section>
 </main>
 
+{% if translation_total %}
+<div class="modal fade" id="translationsModal" tabindex="-1" aria-labelledby="translationsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="translationsModalLabel">
+          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>Translations of {{ myScenario.name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#6b7280; margin-bottom:12px;">
+          Confirmed 1:1 translations: the same activities, answers and routes in another language.
+        </p>
+        {% if translations %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle" style="font-size:13.5px;">
+            <thead>
+              <tr>
+                <th scope="col">Scenario</th>
+                <th scope="col">Language</th>
+                <th scope="col">Visibility</th>
+                <th scope="col">Owner</th>
+                <th scope="col" class="text-end">Students</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for translation in translations %}
+              <tr>
+                <td style="font-weight:600;">{{ translation.name }}</td>
+                <td>{{ translation.language|default:"Not set" }}</td>
+                <td>{{ translation.get_visibility_status_display }}</td>
+                <td>{{ translation.created_by.get_full_name|default:translation.created_by }}</td>
+                <td class="text-end">{{ translation.student_count }}</td>
+                <td class="text-end" style="white-space:nowrap;">
+                  <a href="{% url 'viewScenario' id=translation.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                  <a href="{% url 'studentView' scenario_id=translation.id %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Open as student</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        {% if hidden_translation_count %}
+        <div class="alert alert-light border mb-0 py-2 px-3" style="font-size:12.5px; color:#6b7280;">
+          {{ hidden_translation_count }} more translation{{ hidden_translation_count|pluralize }}
+          {{ hidden_translation_count|pluralize:"is,are" }} private to another teacher.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- ── Low-data warning modal (shown when implementations < threshold) ── -->
-{% if implementation_count < myScenario.ai_metrics_min_implementations %}
+{% if proposal_threshold_count < myScenario.ai_metrics_min_implementations %}
 <div class="modal fade" id="lowDataWarningModal" tabindex="-1" aria-labelledby="lowDataWarningLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;">
@@ -771,6 +744,11 @@
             Version {{ current_scenario_version.version_number }} has
             <strong>{{ implementation_count }}</strong> compatible student
             implementation{{ implementation_count|pluralize }} across approved family variants.
+          {% elif translation_total %}
+            This scenario and its confirmed translations have
+            <strong>{{ proposal_threshold_count }}</strong> student
+            implementation{{ proposal_threshold_count|pluralize }} together
+            ({{ implementation_count }} in this scenario).
           {% else %}
             This scenario has <strong>{{ implementation_count }}</strong> student
             implementation{{ implementation_count|pluralize }}, including historical data.

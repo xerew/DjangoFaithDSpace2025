@@ -32,6 +32,7 @@ from .graph_validation import (
     ScenarioGraphValidationError,
     assert_scenario_graph_integrity,
 )
+from .translation_matching import translation_activity_maps
 from django.core.cache import cache
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
@@ -2171,6 +2172,53 @@ def compute_category_metrics_per_phase_activity(
         ).select_related('answer')
     }
 
+    # Confirmed 1:1 translations add their students' answers, mapped onto this
+    # scenario's activities. Their time counts only for the same language.
+    same_language = dict.fromkeys(valid_implementation_ids, True)
+    source_languages = {(scenario.language or '').strip() or 'Unspecified'}
+    target_language = (scenario.language or '').strip().casefold()
+    for member_id, to_target in translation_activity_maps(scenario).items():
+        member = Scenario.objects.filter(pk=member_id).first()
+        member_start = next(
+            (theirs for theirs, ours in to_target.items() if ours == min_activity.id),
+            None,
+        )
+        if member is None or member_start is None:
+            continue
+        member_answers = get_last_answers(member_id, 'local')
+        if start_date:
+            member_answers = member_answers.filter(created_on__gte=parse_date(start_date))
+        if end_date:
+            member_answers = member_answers.filter(created_on__lte=parse_date(end_date) + timedelta(days=1))
+        member_users = User.objects.filter(
+            id__in=UserGroupMembership.objects.filter(group_id__in=group_ids).values_list('user_id', flat=True)
+        ) if group_ids else User.objects.filter(
+            Q(userscenarioscore__scenario=member) &
+            (Q(school_department__isnull=False) | Q(id__in=UserGroupMembership.objects.values('user_id')))
+        )
+        member_implementations = set(
+            member_answers.filter(
+                user_id__in=member_users.exclude(groups__name='teachers').values('id'),
+                activity_id=member_start,
+            ).values_list('implementation_id', flat=True)
+        )
+        member_is_same_language = (
+            (member.language or '').strip().casefold() == target_language
+        )
+        for user_answer in member_answers.filter(
+            implementation_id__in=member_implementations,
+            activity_id__in=list(to_target),
+        ).select_related('answer'):
+            latest_answers[(
+                user_answer.implementation_id,
+                to_target[user_answer.activity_id],
+            )] = user_answer
+        for implementation_id in member_implementations:
+            same_language[implementation_id] = member_is_same_language
+        valid_implementation_ids |= member_implementations
+        if member_implementations:
+            source_languages.add((member.language or '').strip() or 'Unspecified')
+
     all_activities = list(
         Activity.objects
         .filter(phase__scenario=scenario)
@@ -2267,6 +2315,7 @@ def compute_category_metrics_per_phase_activity(
 
             category_data = {'High': [], 'Moderate': [], 'Low': []}
             correctness_data = {'High': [], 'Moderate': [], 'Low': []}
+            counted = {'High': 0, 'Moderate': 0, 'Low': 0}
 
             for implementation_id in valid_implementation_ids:
                 cat = implementation_phase_category.get(
@@ -2278,16 +2327,23 @@ def compute_category_metrics_per_phase_activity(
                 ua = latest_answers.get(
                     (implementation_id, activity.id)
                 )
-                if not ua or not ua.timing:
+                if not ua:
                     continue
-                category_data[cat].append(ua.timing)
+                if same_language.get(implementation_id, True):
+                    if not ua.timing:
+                        continue
+                    category_data[cat].append(ua.timing)
+                elif not ua.answer:
+                    # Another language: only the answer is comparable.
+                    continue
+                counted[cat] += 1
                 if ua.answer:
                     correctness_data[cat].append(ua.answer.is_correct)
 
             for cat in ['High', 'Moderate', 'Low']:
                 timings = category_data[cat]
                 correct_flags = correctness_data[cat]
-                total = len(timings)
+                total = counted[cat]
                 correct = sum(correct_flags) if correct_flags else 0
                 wrong = total - correct if correct_flags else 0
                 pct_c = round((correct / total) * 100, 1) if total else ''
@@ -2305,7 +2361,7 @@ def compute_category_metrics_per_phase_activity(
                     '% Correct': pct_c,
                     '% Wrong': pct_w,
                     'Avg Time': avg_time,
-                    'Timing Total': total,
+                    'Timing Total': len(timings),
                     'Next Low': next_low,
                     'Next Moderate': next_mid,
                     'Next High': next_high,
@@ -2315,10 +2371,7 @@ def compute_category_metrics_per_phase_activity(
                         if evidence_scope == 'historical'
                         else str(scenario.current_version_id or '')
                     ),
-                    'Source Languages': (
-                        (scenario.language or '').strip()
-                        or 'Unspecified'
-                    ),
+                    'Source Languages': ', '.join(sorted(source_languages)),
                     'Evidence Language Filter': (
                         evidence_language or 'All compatible languages'
                     ),

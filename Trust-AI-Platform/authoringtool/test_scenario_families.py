@@ -401,7 +401,9 @@ class ScenarioFamilyTests(TestCase):
                 {'language': 'Greek', 'implementation_count': 2},
             ],
         )
-        self.assertContains(
+        # The family card is no longer shown on the scenario page; confirmed
+        # translations are listed in the Translations modal instead.
+        self.assertNotContains(
             response,
             'The reliability threshold uses',
         )
