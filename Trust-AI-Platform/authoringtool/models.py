@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import IntegerRangeField, ArrayField
@@ -531,12 +532,19 @@ class Scenario(models.Model):
         if draft:
             draft.refresh_from_scenario()
             return self.current_version
-        if self.has_student_evidence():
+        if self.requires_revision_draft():
             raise ValidationError(
                 'Start a revision draft before editing a scenario that has '
                 'student implementations.'
             )
         return self.ensure_current_version(created_by=created_by)
+
+    def requires_revision_draft(self):
+        """Edits need a revision draft: protection is on and students used it."""
+        return (
+            getattr(settings, 'SCENARIO_REVISION_PROTECTION', False)
+            and self.has_student_evidence()
+        )
 
     def has_student_evidence(self):
         """Return whether any non-teacher implementation uses this scenario."""

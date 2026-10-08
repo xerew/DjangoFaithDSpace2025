@@ -224,7 +224,7 @@
             <i class="bi bi-pencil me-1"></i>
             {% if revision_draft %}Continue Draft{% else %}Edit{% endif %}
           </a>
-          {% if revision_draft or not myScenario.has_student_evidence %}
+          {% if revision_draft or not revision_protected %}
             {% if phase_count < 5 %}
             <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
               <i class="bi bi-plus-circle me-1"></i> New Phase

@@ -100,7 +100,7 @@ def user_can_generate_proposals(user, scenario):
 def authoring_revision_guard(request, scenario):
     """Require an explicit draft before mutating implemented scenarios."""
     if (
-        not scenario.has_student_evidence()
+        not scenario.requires_revision_draft()
         or hasattr(scenario, 'revision_draft')
     ):
         return None
@@ -622,7 +622,7 @@ def updateScenario(request, id):
         'languages': Language.objects.all(),
         'all_subjects': Subject.objects.all(),
         'selected_subject_ids': list(updateScenario.subjects.values_list('id', flat=True)),
-        'has_student_evidence': updateScenario.has_student_evidence(),
+        'revision_protected': updateScenario.requires_revision_draft(),
         'revision_draft': getattr(
             updateScenario,
             'revision_draft',
@@ -641,6 +641,14 @@ def begin_scenario_revision(request, scenario_id):
         and not is_admin_user(request.user)
     ):
         return HttpResponseForbidden("You don't own this scenario.")
+    if not getattr(settings, 'SCENARIO_REVISION_PROTECTION', False):
+        messages.info(
+            request,
+            'Revision drafts are switched off. Edit the scenario directly.',
+        )
+        return HttpResponseRedirect(
+            reverse('updateScenario', args=[scenario.id])
+        )
     draft = scenario.begin_revision_draft(request.user)
     messages.success(
         request,
@@ -981,6 +989,7 @@ def viewScenario(request, id):
         'scenario_versions': scenario_versions,
         'evidence_context': evidence_context,
         'revision_draft': getattr(myScenario, 'revision_draft', None),
+        'revision_protected': myScenario.requires_revision_draft(),
     }
     return HttpResponse(template.render(context, request))
 

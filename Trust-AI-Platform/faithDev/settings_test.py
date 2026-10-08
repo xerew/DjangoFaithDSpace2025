@@ -22,6 +22,9 @@ CACHES = {
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = False
+# Keep the revision-draft workflow under test; tests of the switched-off
+# behaviour override this.
+SCENARIO_REVISION_PROTECTION = True
 
 # Patch django.contrib.postgres range fields so their SQL placeholder degrades
 # gracefully to plain %s on SQLite.  Without this, IntegerRangeField generates

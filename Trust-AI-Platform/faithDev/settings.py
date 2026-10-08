@@ -247,6 +247,13 @@ CELERY_RESULT_EXPIRES = 3600  # Task results expire after 1 hour
 # Scenario-family discovery. The multilingual model is loaded lazily by the
 # explicit admin scan, and deterministic structural scoring remains available
 # if the model cannot be loaded.
+# Revision protection: once students have used a scenario, teachers must open
+# a revision draft (pausing students) and publish it to edit. Off by default;
+# set SCENARIO_REVISION_PROTECTION=1 to turn it on.
+SCENARIO_REVISION_PROTECTION = (
+    os.environ.get('SCENARIO_REVISION_PROTECTION', '0').lower()
+    in {'1', 'true', 'yes', 'on'}
+)
 SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = (
     os.environ.get('SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED', '1').lower()
     in {'1', 'true', 'yes', 'on'}
