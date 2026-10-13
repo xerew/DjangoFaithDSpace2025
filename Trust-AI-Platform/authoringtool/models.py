@@ -1926,32 +1926,43 @@ class ScenarioImplementation(models.Model):
 
     @classmethod
     def start_or_resume(cls, user, scenario):
-        """Return the active exact attempt for the current scenario version."""
+        """Return the student's single attempt, creating it on first visit.
+
+        Students cannot restart a scenario, so completed and legacy attempts
+        are returned unchanged. An active attempt that began on an earlier
+        published revision continues, but is marked suspect because its
+        answers span two revisions.
+        """
         version = scenario.ensure_current_version()
         with transaction.atomic():
-            active = (
+            existing = (
                 cls.objects.select_for_update()
-                .filter(user=user, scenario=scenario, status='active')
+                .filter(user=user, scenario=scenario)
+                .exclude(status='abandoned')
+                .order_by('-started_at', '-id')
                 .first()
             )
+            if existing is None:
+                return cls.objects.create(
+                    user=user,
+                    scenario=scenario,
+                    scenario_version=version,
+                    version_confidence='exact',
+                    data_quality_status='unreviewed',
+                    status='active',
+                ), True
             if (
-                active
-                and active.version_confidence == 'exact'
-                and active.scenario_version_id == version.id
+                existing.status == 'active'
+                and existing.version_confidence == 'exact'
+                and existing.scenario_version_id != version.id
+                and existing.data_quality_status in ('unreviewed', 'clean')
             ):
-                return active, False
-            if active:
-                active.status = 'abandoned'
-                active.completed_at = timezone.now()
-                active.save(update_fields=['status', 'completed_at'])
-            return cls.objects.create(
-                user=user,
-                scenario=scenario,
-                scenario_version=version,
-                version_confidence='exact',
-                data_quality_status='unreviewed',
-                status='active',
-            ), True
+                existing.data_quality_status = 'suspect'
+                existing.save(update_fields=['data_quality_status'])
+                UserScenarioScore.objects.filter(
+                    implementation=existing
+                ).update(data_quality_status='suspect')
+            return existing, False
 
     def complete(self):
         if self.status == 'completed':

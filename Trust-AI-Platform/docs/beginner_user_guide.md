@@ -112,7 +112,7 @@ For your first attempt, build a short private scenario with one phase, one conte
 4. If pre-scenario questions appear, answer them and confirm submission.
 5. Select **I am ready** and follow each activity.
 6. Read any feedback before moving on. Some answers lead to different next activities.
-7. Use **Restart** only when you intend to begin the scenario again.
+7. Each scenario is completed once. If you leave, you continue where you stopped; only your teacher can reset your progress.
 
 <div class="page-break"></div>
 
@@ -331,7 +331,7 @@ Use **Edit Group** to change its name, number of students, or assigned scenarios
 2. Test embedded simulations/labs on the classroom network and devices.
 3. Verify the scenario is assigned to the correct group.
 4. Check that student accounts can sign in.
-5. Decide whether learners may restart.
+5. Remember that learners cannot restart; only a teacher can reset a learner's progress.
 6. Keep a short offline activity ready in case an external lab is unavailable.
 
 <div class="page-break"></div>
@@ -354,9 +354,9 @@ Open **Student View**. Search by name or filter by language and subject. Only sc
 
 Your route may differ from another learner's because answers and performance can lead to different activities. This is expected.
 
-## Restart or leave
+## Leave and return
 
-**Restart** begins the scenario again. Use it only when instructed, because a restart can affect the attempt history. To work on another scenario, return to the scenario list.
+You cannot restart a scenario. If you leave, your progress is saved and you continue from where you stopped. Once you finish, the scenario stays completed. To work on another scenario, return to the scenario list.
 
 ## Submit feedback
 

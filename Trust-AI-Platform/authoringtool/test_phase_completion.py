@@ -158,14 +158,26 @@ class RevisionPublishWorkflowTests(PhaseCompletionBase):
             ).exists()
         )
 
+        # Students cannot restart: the attempt begun on version one continues
+        # and is excluded from clean evidence because it spans two revisions.
         self.client.force_login(self.student)
         resumed = self.client.get(
             reverse('studentView', args=[self.scenario.id])
         )
         self.assertEqual(resumed.status_code, 200)
+        implementation = resumed.context['implementation']
+        self.assertEqual(implementation.scenario_version_id, version_one.id)
+        self.assertEqual(implementation.data_quality_status, 'suspect')
         self.assertEqual(
-            resumed.context['implementation'].scenario_version_id,
-            self.scenario.current_version_id,
+            implementation.score.data_quality_status,
+            'suspect',
+        )
+        self.assertEqual(
+            ScenarioImplementation.objects.filter(
+                user=self.student,
+                scenario=self.scenario,
+            ).count(),
+            1,
         )
 
     def test_published_version_and_activity_revision_are_immutable(self):
@@ -287,6 +299,61 @@ class ImplementationAndActivityLineageTests(PhaseCompletionBase):
             score.implementation_id,
         )
         self.assertIsNone(answer.scenario_version_id)
+
+    def test_student_cannot_restart_a_completed_scenario(self):
+        self.client.force_login(self.student)
+        first = self.client.get(
+            reverse('studentView', args=[self.scenario.id])
+        ).context['implementation']
+        first.complete()
+
+        for _ in range(2):
+            revisit = self.client.get(
+                reverse('studentView', args=[self.scenario.id])
+            )
+            self.assertEqual(revisit.context['implementation'].id, first.id)
+
+        self.assertEqual(
+            ScenarioImplementation.objects.filter(
+                user=self.student,
+                scenario=self.scenario,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            UserScenarioScore.objects.filter(
+                user=self.student,
+                scenario=self.scenario,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            get_evidence_implementation_count(self.scenario, 'local'),
+            1,
+        )
+
+    def test_legacy_student_resumes_the_legacy_attempt(self):
+        legacy_score = UserScenarioScore.objects.create(
+            user=self.student,
+            scenario=self.scenario,
+            version_confidence='legacy_unknown',
+        )
+        self.client.force_login(self.student)
+        response = self.client.get(
+            reverse('studentView', args=[self.scenario.id])
+        )
+
+        self.assertEqual(
+            response.context['implementation'].id,
+            legacy_score.implementation_id,
+        )
+        self.assertEqual(
+            ScenarioImplementation.objects.filter(
+                user=self.student,
+                scenario=self.scenario,
+            ).count(),
+            1,
+        )
 
 
 class FamilyLanguageAnalyticsTests(PhaseCompletionBase):
