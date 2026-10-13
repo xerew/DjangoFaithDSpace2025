@@ -224,12 +224,16 @@ CACHES = {
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 # SESSION_SAVE_EVERY_REQUEST = True  # Disabled to reduce Redis write load on every request
 
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
+# Mailbox hosted at Papaki. Use the server's real hostname: the TLS certificate
+# covers *.papaki.gr, not mail.trust-ai-lab.eu.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'linux243.papaki.gr')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'trust.ai.lab.eu@gmail.com'
+EMAIL_TIMEOUT = 30
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'info@trust-ai-lab.eu')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'Trust AI Lab <{EMAIL_HOST_USER}>')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 SITE_URL = os.environ.get('SITE_URL', 'https://trust-ai-lab.eu').rstrip('/')
 
 # Use SMTP when password is available, fall back to console in development
