@@ -539,6 +539,14 @@ class Scenario(models.Model):
             )
         return self.ensure_current_version(created_by=created_by)
 
+    @property
+    def family_pooling_enabled(self):
+        """Family evidence pooling: switched on platform-wide and per scenario."""
+        return (
+            getattr(settings, 'SCENARIO_FAMILY_FEATURES', False)
+            and self.use_family_evidence_pooling
+        )
+
     def requires_revision_draft(self):
         """Edits need a revision draft: protection is on and students used it."""
         return (
@@ -657,7 +665,7 @@ class Scenario(models.Model):
         from .evidence import get_evidence_implementation_count
 
         scope = (
-            'compatible' if self.use_family_evidence_pooling else 'local'
+            'compatible' if self.family_pooling_enabled else 'local'
         )
         return get_evidence_implementation_count(self, scope)
 
@@ -2675,12 +2683,12 @@ class ActivityProposal(models.Model):
 
     def is_bandit_reward_eligible(self):
         """Apply the scenario's policy to pedagogical review eligibility."""
-        if not self.scenario.use_family_evidence_pooling:
+        if not self.scenario.family_pooling_enabled:
             return True
         run = self.generation_run
         configured_scope = (
             'compatible'
-            if run and run.scenario.use_family_evidence_pooling
+            if run and run.scenario.family_pooling_enabled
             else 'local'
         )
         if (

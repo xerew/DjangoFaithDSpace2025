@@ -49,6 +49,39 @@ from usergroups.models import UserGroupMembership
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+def family_features_on():
+    return getattr(settings, 'SCENARIO_FAMILY_FEATURES', False)
+
+
+def versioning_screens_on():
+    return family_features_on() or getattr(
+        settings, 'SCENARIO_REVISION_PROTECTION', False,
+    )
+
+
+class FamilyFeatureAdminMixin:
+    """Hidden from the admin index while scenario family features are off."""
+
+    def has_module_permission(self, request):
+        return family_features_on() and super().has_module_permission(request)
+
+
+class VersioningAdminMixin:
+    """Hidden while both family features and revision protection are off."""
+
+    def has_module_permission(self, request):
+        return versioning_screens_on() and super().has_module_permission(request)
+
+
+class RevisionDraftAdminMixin:
+    """Like versioning screens, but kept while any draft is still open."""
+
+    def has_module_permission(self, request):
+        return (
+            versioning_screens_on() or ScenarioRevisionDraft.objects.exists()
+        ) and super().has_module_permission(request)
+
+
 def make_csv_export(filename, headers, row_fn):
     """Return an admin action that exports the queryset as CSV."""
     def export(modeladmin, request, queryset):
@@ -151,7 +184,7 @@ class LanguageAdmin(admin.ModelAdmin):
 # ─── Scenario ─────────────────────────────────────────────────────────────────
 
 @admin.register(ScenarioFamily)
-class ScenarioFamilyAdmin(admin.ModelAdmin):
+class ScenarioFamilyAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'title',
@@ -508,7 +541,8 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
 
     def has_module_permission(self, request):
         return (
-            request.user.is_staff
+            family_features_on()
+            and request.user.is_staff
             and request.user.has_perm(
                 'authoringtool.view_scenariofamilyreviewproxy'
             )
@@ -687,7 +721,7 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioVersion)
-class ScenarioVersionAdmin(admin.ModelAdmin):
+class ScenarioVersionAdmin(VersioningAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'scenario',
@@ -762,7 +796,7 @@ class ScenarioVersionAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioRevisionDraft)
-class ScenarioRevisionDraftAdmin(admin.ModelAdmin):
+class ScenarioRevisionDraftAdmin(RevisionDraftAdminMixin, admin.ModelAdmin):
     list_display = (
         'scenario',
         'base_version',
@@ -810,7 +844,7 @@ class ScenarioRevisionDraftAdmin(admin.ModelAdmin):
 
 
 @admin.register(EvidenceCompatibilityCluster)
-class EvidenceCompatibilityClusterAdmin(admin.ModelAdmin):
+class EvidenceCompatibilityClusterAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'name',
@@ -880,7 +914,7 @@ class EvidenceCompatibilityClusterAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioVersionCompatibility)
-class ScenarioVersionCompatibilityAdmin(admin.ModelAdmin):
+class ScenarioVersionCompatibilityAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'scenario_name',
@@ -980,7 +1014,7 @@ class ScenarioVersionCompatibilityAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioSimilarityProfile)
-class ScenarioSimilarityProfileAdmin(admin.ModelAdmin):
+class ScenarioSimilarityProfileAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'scenario',
         'scenario_version',
@@ -1059,7 +1093,7 @@ class ScenarioSimilarityProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioFamilyCandidate)
-class ScenarioFamilyCandidateAdmin(admin.ModelAdmin):
+class ScenarioFamilyCandidateAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     change_form_template = (
         'admin/authoringtool/scenariofamilycandidate/change_form.html'
     )
@@ -1697,7 +1731,7 @@ class ScenarioFamilyCandidateAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScenarioFamilyMatchDecision)
-class ScenarioFamilyMatchDecisionAdmin(admin.ModelAdmin):
+class ScenarioFamilyMatchDecisionAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'candidate',
         'decision',
@@ -2285,6 +2319,44 @@ class ScenarioAdmin(admin.ModelAdmin):
         }),
     )
 
+    FAMILY_ONLY_FIELDS = {
+        'family', 'variant_type', 'current_version',
+        'use_family_evidence_pooling',
+    }
+
+    def get_list_display(self, request):
+        columns = super().get_list_display(request)
+        if family_features_on():
+            return columns
+        return [column for column in columns if column not in self.FAMILY_ONLY_FIELDS]
+
+    def get_list_filter(self, request):
+        filters = super().get_list_filter(request)
+        if family_features_on():
+            return filters
+        return [item for item in filters if item not in self.FAMILY_ONLY_FIELDS]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if family_features_on():
+            return fieldsets
+        trimmed = []
+        for name, options in fieldsets:
+            fields = [
+                field for field in options.get('fields', ())
+                if field not in self.FAMILY_ONLY_FIELDS
+            ]
+            if name == 'Family & Origin':
+                name = 'Origin'
+            trimmed.append((name, {**options, 'fields': fields}))
+        return trimmed
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not family_features_on():
+            actions.pop('scan_selected_for_family_matches', None)
+        return actions
+
     def implementation_count_display(self, obj):
         if not obj.pk:
             return '—'
@@ -2293,7 +2365,7 @@ class ScenarioAdmin(admin.ModelAdmin):
         count = obj.metrics_implementation_count()
         label = (
             'compatible implementations'
-            if obj.use_family_evidence_pooling
+            if obj.family_pooling_enabled
             else 'scenario implementations'
         )
         threshold = obj.ai_metrics_min_implementations
@@ -2636,7 +2708,7 @@ class ActivityConceptMemberInline(admin.TabularInline):
 
 
 @admin.register(ActivityConcept)
-class ActivityConceptAdmin(admin.ModelAdmin):
+class ActivityConceptAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'title',
@@ -2676,7 +2748,7 @@ class ActivityConceptAdmin(admin.ModelAdmin):
 
 
 @admin.register(ActivityRevision)
-class ActivityRevisionAdmin(admin.ModelAdmin):
+class ActivityRevisionAdmin(VersioningAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'concept',
@@ -2740,7 +2812,7 @@ class ActivityRevisionAdmin(admin.ModelAdmin):
 
 
 @admin.register(ActivityMatchingProxy)
-class ActivityMatchingAdmin(admin.ModelAdmin):
+class ActivityMatchingAdmin(FamilyFeatureAdminMixin, admin.ModelAdmin):
     """Dedicated manual mapping surface for cross-variant activities."""
 
     list_display = (

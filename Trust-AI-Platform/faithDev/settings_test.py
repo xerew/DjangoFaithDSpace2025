@@ -25,6 +25,8 @@ SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = False
 # Keep the revision-draft workflow under test; tests of the switched-off
 # behaviour override this.
 SCENARIO_REVISION_PROTECTION = True
+# Keep family features under test; switched-off tests override this.
+SCENARIO_FAMILY_FEATURES = True
 
 # Patch django.contrib.postgres range fields so their SQL placeholder degrades
 # gracefully to plain %s on SQLite.  Without this, IntegerRangeField generates

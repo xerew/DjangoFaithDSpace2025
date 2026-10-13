@@ -283,7 +283,7 @@
     </div>
   </div>
 
-  {% if not myScenario.use_family_evidence_pooling %}
+  {% if not myScenario.family_pooling_enabled %}
   <div class="alert alert-info" role="status">
     Showing all saved proposals for this scenario, including earlier generations.
     Your previous review decisions are preserved. Review the proposed content before applying it to a new copy.
@@ -295,7 +295,7 @@
       <strong>Proposal evidence:</strong>
       {{ evidence_context.implementation_count }} eligible
       implementation{{ evidence_context.implementation_count|pluralize }}
-      {% if myScenario.use_family_evidence_pooling %}
+      {% if myScenario.family_pooling_enabled %}
       from {{ evidence_context.scenario_count }} scenario variant{{ evidence_context.scenario_count|pluralize }}
       {% else %}
       from this scenario, including historical data
@@ -536,7 +536,7 @@
     <div class="card">
       <div class="card-body pr-empty">
         <i class="bi bi-lightbulb text-muted"></i>
-        {% if myScenario.use_family_evidence_pooling %}
+        {% if myScenario.family_pooling_enabled %}
           <h5 class="text-muted">No current proposals for this scenario version</h5>
           <p>Previously saved recommendations are available in <a href="{% url 'proposal_history' myScenario.id %}">Proposal History</a>, including earlier scenario versions.</p>
         {% else %}

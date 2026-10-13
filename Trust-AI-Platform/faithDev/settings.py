@@ -258,6 +258,13 @@ SCENARIO_REVISION_PROTECTION = (
     os.environ.get('SCENARIO_REVISION_PROTECTION', '0').lower()
     in {'1', 'true', 'yes', 'on'}
 )
+# Scenario families: family evidence pooling, family matching and their admin
+# screens. Off by default (confirmed translations work without it); set
+# SCENARIO_FAMILY_FEATURES=1 to turn it on.
+SCENARIO_FAMILY_FEATURES = (
+    os.environ.get('SCENARIO_FAMILY_FEATURES', '0').lower()
+    in {'1', 'true', 'yes', 'on'}
+)
 SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED = (
     os.environ.get('SCENARIO_SIMILARITY_EMBEDDINGS_ENABLED', '1').lower()
     in {'1', 'true', 'yes', 'on'}

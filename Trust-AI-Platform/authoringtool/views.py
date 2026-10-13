@@ -991,6 +991,10 @@ def viewScenario(request, id):
         'evidence_context': evidence_context,
         'revision_draft': getattr(myScenario, 'revision_draft', None),
         'revision_protected': myScenario.requires_revision_draft(),
+        'show_version_details': (
+            getattr(settings, 'SCENARIO_FAMILY_FEATURES', False)
+            or getattr(settings, 'SCENARIO_REVISION_PROTECTION', False)
+        ),
     }
     return HttpResponse(template.render(context, request))
 
@@ -3228,7 +3232,7 @@ def proposal_list_view(request, scenario_id):
     )
     configured_evidence_scope = (
         'compatible'
-        if myScenario.use_family_evidence_pooling
+        if myScenario.family_pooling_enabled
         else 'local'
     )
     current_evidence_context = get_evidence_context(
@@ -3243,7 +3247,7 @@ def proposal_list_view(request, scenario_id):
             is_current=True,
         )
         .first()
-    ) if myScenario.use_family_evidence_pooling else None
+    ) if myScenario.family_pooling_enabled else None
     if (
         current_generation_run
         and current_generation_run.evidence_scope == configured_evidence_scope
@@ -3265,7 +3269,7 @@ def proposal_list_view(request, scenario_id):
     # Scenario-only mode includes every saved proposal for this scenario,
     # including older versions, archived runs, and proposals without a run.
     proposals = ActivityProposal.objects.filter(scenario=myScenario)
-    if myScenario.use_family_evidence_pooling:
+    if myScenario.family_pooling_enabled:
         proposals = proposals.filter(
             generation_run=current_generation_run,
             generation_run__scenario_version=current_version,

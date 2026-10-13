@@ -16,7 +16,7 @@ EVIDENCE_SCOPES = {'local', 'compatible', 'historical'}
 
 def normalize_evidence_scope(scope, scenario=None):
     """Resolve a requested scope under the scenario's evidence policy."""
-    if scenario is not None and not scenario.use_family_evidence_pooling:
+    if scenario is not None and not scenario.family_pooling_enabled:
         return 'local'
     return scope if scope in EVIDENCE_SCOPES else 'compatible'
 
@@ -44,7 +44,7 @@ def get_evidence_versions(scenario, scope='compatible', language=''):
 def get_evidence_scores(scenario, scope='compatible', language=''):
     scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
-    if scope == 'local' and not scenario.use_family_evidence_pooling:
+    if scope == 'local' and not scenario.family_pooling_enabled:
         scores = UserScenarioScore.objects.filter(
             implementation__scenario=scenario,
             implementation__data_quality_status__in=['unreviewed', 'clean'],
@@ -93,7 +93,7 @@ def get_evidence_answers(scenario, scope='compatible', language=''):
     """Return answers with an eligible implementation in an evidence version."""
     scope = normalize_evidence_scope(scope, scenario)
     language = normalize_evidence_language(language)
-    if scope == 'local' and not scenario.use_family_evidence_pooling:
+    if scope == 'local' and not scenario.family_pooling_enabled:
         return (
             UserAnswer.objects
             .filter(
@@ -215,7 +215,7 @@ def _get_evidence_source_payload(
         .order_by('id')
     )
     membership_rows = []
-    if scenario.use_family_evidence_pooling:
+    if scenario.family_pooling_enabled:
         membership_rows = list(
             ScenarioVersionCompatibility.objects
             .filter(scenario_version_id__in=versions)

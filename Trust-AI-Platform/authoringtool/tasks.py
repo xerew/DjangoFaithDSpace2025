@@ -166,7 +166,7 @@ def _on_rm_error(func, path, exc_info):
 def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     version_id = scenario.ensure_current_version().id
-    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    policy = 'family' if scenario.family_pooling_enabled else 'scenario'
     cache_key = f"analytics:sankey:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -357,7 +357,7 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
 def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     version_id = scenario.ensure_current_version().id
-    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    policy = 'family' if scenario.family_pooling_enabled else 'scenario'
     cache_key = f"analytics:final_perf:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -777,7 +777,7 @@ def compute_performance_data(scenario_id, group_ids, start_date, end_date):
 def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activity_type):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     version_id = scenario.ensure_current_version().id
-    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    policy = 'family' if scenario.family_pooling_enabled else 'scenario'
     cache_key = (
         f"analytics:time_spent:{scenario_id}:v{version_id}:{policy}:"
         f"{group_ids}:{start_date}:{end_date}:{activity_type}:"
@@ -1173,7 +1173,7 @@ def compute_performers_data(scenario_id, group_ids, start_date, end_date):
 def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end_date):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     version_id = scenario.ensure_current_version().id
-    policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
+    policy = 'family' if scenario.family_pooling_enabled else 'scenario'
     cache_key = f"analytics:time_by_perf:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -3683,7 +3683,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         created_by=triggered_by,
     )
     evidence_scope = (
-        'compatible' if scenario.use_family_evidence_pooling else 'local'
+        'compatible' if scenario.family_pooling_enabled else 'local'
     )
     evidence_context = get_evidence_context(
         scenario,
@@ -4482,7 +4482,7 @@ def _build_personal_scenario(scenario_id, user_id):
         raise
     
 def get_accepted_reviews_for_personal_scenario(original_scenario, user):
-    if not original_scenario.use_family_evidence_pooling:
+    if not original_scenario.family_pooling_enabled:
         return UserProposalReview.objects.filter(
             user=user,
             proposal__scenario=original_scenario,
@@ -4503,7 +4503,7 @@ def get_accepted_reviews_for_personal_scenario(original_scenario, user):
         return UserProposalReview.objects.none()
     configured_evidence_scope = (
         'compatible'
-        if original_scenario.use_family_evidence_pooling
+        if original_scenario.family_pooling_enabled
         else 'local'
     )
     if (
