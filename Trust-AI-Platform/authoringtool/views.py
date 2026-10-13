@@ -1479,6 +1479,51 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
+
+@require_POST
+@group_required('teachers')
+def set_start_activity(request, scenario_id, activity_id):
+    """Make an activity the one new students begin the scenario with."""
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
+    activity = get_object_or_404(Activity, id=activity_id, scenario=scenario)
+    blocked = authoring_revision_guard(request, scenario)
+    if blocked:
+        return blocked
+
+    Scenario.objects.filter(pk=scenario.pk).update(start_activity=activity)
+    scenario.start_activity = activity
+    scenario.refresh_version_if_initialized(created_by=request.user)
+    messages.success(
+        request,
+        f'"{activity.name}" is now the first activity. New students start '
+        f'here; students already part-way through continue where they are.',
+    )
+    leads_on = (
+        NextQuestionLogic.objects.filter(
+            activity=activity,
+            next_activity__isnull=False,
+        ).exists()
+        or EvQuestionBranching.objects.filter(activity=activity).filter(
+            Q(next_question_on_high__isnull=False)
+            | Q(next_question_on_mid__isnull=False)
+            | Q(next_question_on_low__isnull=False)
+        ).exists()
+    )
+    if not leads_on:
+        messages.warning(
+            request,
+            f'"{activity.name}" does not lead to another activity yet, so '
+            f'students would stop after it. Set its next activity (or its '
+            f'answers\' next activities) to the activity that used to come first.',
+        )
+    if activity.phase_id:
+        return HttpResponseRedirect(
+            reverse('activity', args=[scenario.id, activity.phase_id, activity.id])
+        )
+    return HttpResponseRedirect(reverse('viewScenario', args=[scenario.id]))
+
 def viewActivity(request, scenario_id, phase_id, activity_id):
     myActivity = Activity.objects.get(id=activity_id)
     next_activity_logic = NextQuestionLogic.objects.filter(activity=activity_id).first()
@@ -1549,6 +1594,13 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
         'existingRemote': existingRemote,
         'existingVR_AR': existingVR_AR,
         'can_edit': can_edit,
+        'can_set_first': (
+            is_admin_user(request.user)
+            or myScenario.created_by == request.user
+        ),
+        'is_first_activity': (
+            getattr(myScenario.get_start_activity(), 'id', None) == myActivity.id
+        ),
         "llm_html": mark_safe(markdown.markdown(myActivity.llm_context or "")),
     }
     return HttpResponse(template.render(context, request))

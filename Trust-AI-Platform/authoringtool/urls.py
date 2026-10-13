@@ -33,6 +33,7 @@ urlpatterns = [
     path('scenarios/<int:scenario_id>/phase/<int:phase_id>/updateActivity/<int:activity_id>', views.updateActivity, name='updateActivity'),
     path('scenarios/<int:scenario_id>/phase/<int:phase_id>/updateActivityData/<int:activity_id>', views.updateActivityData, name='updateActivityData'),
     path('scenarios/<int:scenario_id>/phase/<int:phase_id>/deleteActivity/<int:activity_id>', views.deleteActivity, name='deleteActivity'),
+    path('scenarios/<int:scenario_id>/activity/<int:activity_id>/make-first/', views.set_start_activity, name='set_start_activity'),
     path('scenarios/<int:scenario_id>/phase/<int:phase_id>/activity/<int:activity_id>/createAnswer/', views.createAnswers, name='createAnswers'),
     path('scenarios/<int:scenario_id>/viewPhase/<int:phase_id>/viewActivity/<int:activity_id>/', views.viewActivity, name='activity'),
     path('scenarios/<int:scenario_id>/phase/<int:phase_id>/activity/<int:activity_id>/deleteAnswer/<int:answer_id>', views.deleteAnswer, name='deleteAnswer'),
