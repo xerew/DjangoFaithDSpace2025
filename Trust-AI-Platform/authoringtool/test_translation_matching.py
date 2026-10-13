@@ -256,7 +256,6 @@ class TranslationScoringTests(TranslationMatchingBase):
     def test_activity_setting_differences_are_named_and_not_exact(self):
         cases = [
             ('is_primary_ev', True, 'primary evaluation'),
-            ('must_wait', True, 'must wait'),
             ('score_limit', 2.5, 'score limit'),
         ]
         for field, value, label in cases:
@@ -275,6 +274,16 @@ class TranslationScoringTests(TranslationMatchingBase):
                     any(label in d for d in result['differences']),
                     result['differences'],
                 )
+
+    def test_must_wait_is_ignored(self):
+        Activity.objects.filter(pk=self.greek_activities[1].pk).update(
+            must_wait=True,
+        )
+
+        result = self.compare(self.english, self.greek)
+
+        self.assertTrue(result['exact'], result['differences'])
+        self.assertEqual(result['confidence'], 100)
 
     def test_phase_placement_difference_is_named_and_not_exact(self):
         english_second = Phase.objects.create(
@@ -328,8 +337,14 @@ class TranslationScoringTests(TranslationMatchingBase):
         self.assertTrue(result['exact'], result['differences'])
         self.assertEqual(result['confidence'], 100)
 
+    def make_primary(self, *activities):
+        Activity.objects.filter(pk__in=[a.pk for a in activities]).update(
+            is_evaluatable=True, is_primary_ev=True,
+        )
+
     def test_question_bunch_difference_is_named_and_not_exact(self):
         english, greek = self.english_activities, self.greek_activities
+        self.make_primary(english[1], greek[1])
         QuestionBunch.objects.create(
             activity_primary=english[1],
             activity_ids=[english[1].id, english[2].id],
@@ -347,8 +362,32 @@ class TranslationScoringTests(TranslationMatchingBase):
             result['differences'],
         )
 
+    def test_bunch_on_activity_that_is_not_evaluated_is_ignored(self):
+        english, greek = self.english_activities, self.greek_activities
+        QuestionBunch.objects.create(
+            activity_primary=greek[0],
+            activity_ids=[greek[0].id, greek[1].id],
+        )
+
+        result = self.compare(self.english, self.greek)
+
+        self.assertTrue(result['exact'], result['differences'])
+
+    def test_bunch_of_only_itself_counts_as_no_bunch(self):
+        english, greek = self.english_activities, self.greek_activities
+        self.make_primary(english[1], greek[1])
+        QuestionBunch.objects.create(
+            activity_primary=greek[1],
+            activity_ids=[greek[1].id],
+        )
+
+        result = self.compare(self.english, self.greek)
+
+        self.assertTrue(result['exact'], result['differences'])
+
     def test_matching_question_bunches_stay_exact(self):
         english, greek = self.english_activities, self.greek_activities
+        self.make_primary(english[1], greek[1])
         QuestionBunch.objects.create(
             activity_primary=english[1],
             activity_ids=[english[1].id, english[2].id],
@@ -821,6 +860,31 @@ class TranslationMatchAdminTests(TranslationMatchingBase):
 
         self.assertContains(response, 'What happens to the period')
         self.assertContains(response, 'Τι συμβαίνει στην περίοδο')
+
+    def test_detail_page_groups_activities_by_phase(self):
+        for scenario, name in ((self.english, 'Explain'), (self.greek, 'Εξήγηση')):
+            second = Phase.objects.create(
+                name=name, scenario=scenario,
+                created_by=self.owner, updated_by=self.owner,
+            )
+            last_five = list(
+                Activity.objects.filter(scenario=scenario)
+                .order_by('-created_on', '-id')
+                .values_list('id', flat=True)[:5]
+            )
+            Activity.objects.filter(pk__in=last_five).update(phase=second)
+
+        response = self.client.get(
+            reverse(
+                'admin:authoringtool_translationmatch_change',
+                args=[self.match.pk],
+            )
+        )
+
+        self.assertContains(response, 'class="flow-phase"', count=2)
+        self.assertContains(response, 'Phase 1 · Phase')
+        self.assertContains(response, 'Phase 2 · Explain')
+        self.assertContains(response, 'Phase 2 · Εξήγηση')
 
     def test_scan_button_starts_background_scan(self):
         response = self.client.post(

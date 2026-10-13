@@ -2056,12 +2056,39 @@ class TranslationMatchAdmin(admin.ModelAdmin):
                 activity_text(activity),
             )
 
-        rows = (
-            cell(profile_a, index_a)
-            + cell(profile_b, index_b)
-            + (marks[status],)
-            for index_a, index_b, status in align_flows(profile_a, profile_b)
-        )
+        def phase_label(profile, index):
+            if index is None:
+                return ''
+            phase = profile['order'][index].phase
+            rank = profile['fields'][index]['phase']
+            return f'Phase {rank} · {phase.name}' if phase else 'No phase'
+
+        fragments = []
+        current_group = None
+        for index_a, index_b, status in align_flows(profile_a, profile_b):
+            if status == 'unreachable':
+                group = 'unreachable'
+                labels = ('Not reachable from the start', '')
+            elif index_a is not None:
+                group = ('a', profile_a['fields'][index_a]['phase'])
+                labels = (phase_label(profile_a, index_a), phase_label(profile_b, index_b))
+            else:
+                group = ('b', profile_b['fields'][index_b]['phase'])
+                labels = ('', phase_label(profile_b, index_b))
+            if group != current_group:
+                current_group = group
+                fragments.append(format_html(
+                    '<tr class="flow-phase" style="background:var(--darkened-bg);">'
+                    '<th colspan="3">{}</th><th colspan="3">{}</th><th></th></tr>',
+                    *labels,
+                ))
+            fragments.append(format_html(
+                '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>'
+                '<td>{}</td><td>{}</td><td>{}</td></tr>',
+                *cell(profile_a, index_a),
+                *cell(profile_b, index_b),
+                marks[status],
+            ))
         return format_html(
             '<table style="width:100%"><thead><tr>'
             '<th>#</th><th>Type</th><th>{} · {}</th>'
@@ -2071,12 +2098,7 @@ class TranslationMatchAdmin(admin.ModelAdmin):
             obj.scenario_a.name,
             obj.scenario_b.id,
             obj.scenario_b.name,
-            format_html_join(
-                '',
-                '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>'
-                '<td>{}</td><td>{}</td><td>{}</td></tr>',
-                rows,
-            ),
+            format_html_join('', '{}', ((fragment,) for fragment in fragments)),
         )
 
     def save_model(self, request, obj, form, change):

@@ -50,7 +50,8 @@ def _short(activity, length=40):
 
 
 # Every language-neutral setting that changes routing or scoring, with the
-# label used when two otherwise matching activities differ in it.
+# label used when two otherwise matching activities differ in it. ("Must
+# wait" is deliberately left out: it does not affect matching.)
 FIELD_LABELS = {
     'type': 'activity type',
     'answers': 'number of answers',
@@ -58,7 +59,6 @@ FIELD_LABELS = {
     'weights': 'answer weights',
     'evaluated': 'evaluated (branching) question',
     'primary': 'primary evaluation question',
-    'must_wait': 'must wait',
     'score_limit': 'score limit',
     'phase': 'phase',
     'simulation': 'simulation',
@@ -81,7 +81,6 @@ def _fields(activity, answers, phase_rank):
         'weights': ','.join(str(answer.answer_weight) for answer in answers),
         'evaluated': 'yes' if activity.is_evaluatable else 'no',
         'primary': 'yes' if activity.is_primary_ev else 'no',
-        'must_wait': 'yes' if activity.must_wait else 'no',
         'score_limit': f'{activity.score_limit:g}',
         'phase': str(phase_rank.get(activity.phase_id, 0)),
         'simulation': str(activity.simulation_id or ''),
@@ -180,12 +179,21 @@ def build_flow_profile(scenario):
             start=1,
         )
     }
-    bunch_members = {
-        bunch.activity_primary_id: list(bunch.activity_ids or [])
-        for bunch in QuestionBunch.objects.filter(
-            activity_primary__scenario=scenario,
-        )
-    }
+    # Scoring only uses bunches of evaluated primary questions, and a bunch of
+    # just the question itself scores like no bunch; compare only the rest.
+    bunch_members = {}
+    for bunch in QuestionBunch.objects.filter(
+        activity_primary__scenario=scenario,
+    ):
+        primary = activities.get(bunch.activity_primary_id)
+        members = list(bunch.activity_ids or [])
+        if (
+            primary is not None
+            and primary.is_evaluatable
+            and primary.is_primary_ev
+            and members != [primary.id]
+        ):
+            bunch_members[primary.id] = members
 
     order = []
     if start and start.id in activities:
