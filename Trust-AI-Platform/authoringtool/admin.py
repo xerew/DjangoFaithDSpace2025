@@ -32,7 +32,7 @@ from .models import (
     BanditPolicyConfiguration, ProposalGenerationRun,
     ProposalStructuralFailure, QValue, UserProposalReview, Language,
     ScenarioSimilarityProfile, ScenarioFamilyCandidate,
-    ScenarioFamilyMatchDecision, TranslationMatch,
+    ScenarioFamilyMatchDecision, TranslationMatch, HelpRequest,
 )
 from .scenario_matching import (
     apply_candidate_decision,
@@ -2128,6 +2128,31 @@ class TranslationMatchAdmin(admin.ModelAdmin):
     @admin.action(description='Reset selected to pending review')
     def reset_selected(self, request, queryset):
         self._review(request, queryset, 'pending', 'pending')
+
+
+@admin.register(HelpRequest)
+class HelpRequestAdmin(admin.ModelAdmin):
+    """Read-only log of students' "Ask for help" pauses."""
+
+    list_display = (
+        'user',
+        'scenario',
+        'activity',
+        'phase',
+        'started_at',
+        'ended_at',
+        'duration_seconds',
+    )
+    list_filter = ('scenario',)
+    search_fields = ('user__username', 'scenario__name', 'activity__name')
+    date_hierarchy = 'started_at'
+    list_select_related = ('user', 'scenario', 'activity', 'phase')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 class PhaseInline(admin.TabularInline):

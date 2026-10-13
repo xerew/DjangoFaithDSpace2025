@@ -4,6 +4,8 @@ from authoringtool import views as authoring_views
 
 urlpatterns = [
     path('scenario/<int:scenario_id>/', views.scenario_viewer, name='studentView'),
+    path('scenario/<int:scenario_id>/help/start/', views.help_start, name='help_start'),
+    path('scenario/<int:scenario_id>/help/end/', views.help_end, name='help_end'),
     path('scenario/<int:scenario_id>/questions/', views.scenario_form, name='scenario_questions'),
     path('scenario/<int:scenario_id>/questions/submit/', views.submit_answers, name='submit_answers'),
     path('chatbot/', views.chatbot_interaction, name='chatbot_interaction'),

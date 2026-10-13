@@ -1363,7 +1363,124 @@
               </script>
             </div>
           </div>
-          
+
+          <div class="card">
+            <div class="card-body pb-0">
+              <h5 class="card-title">Help Time (Ask for help)</h5>
+              <p style="font-size:12.5px;color:#6b7280;margin:-6px 0 8px;">
+                Average time per student spent paused while asking for help. This time is excluded from the time-spent chart above.
+              </p>
+              <div>
+                <label><input type="radio" name="helpLevel" value="activity" checked> Activities</label>
+                <label><input type="radio" name="helpLevel" value="phase"> Phases</label>
+                <label><input type="radio" name="helpLevel" value="scenario"> Scenario</label>
+              </div>
+              <div id="helpTimeLoading" style="min-height: 300px; text-align: center; display: none;">
+                <p style="font-size: 18px; color: gray;">⏳ Loading help time... Please wait.</p>
+              </div>
+              <div id="helpTimeEmpty" style="min-height: 120px; text-align: center; display: none;">
+                <p style="font-size: 15px; color: gray; padding-top: 40px;">No help requests for this selection.</p>
+              </div>
+              <div id="helpTimeChart" style="min-height: 300px; display: none;" class="echart"></div>
+              <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                  const scenarioSelect = document.getElementById("scenarioSelect");
+                  const startDateInput = document.getElementById("start-date-input");
+                  const endDateInput = document.getElementById("end-date-input");
+                  const groupSelect = document.getElementById("groupSelect");
+                  const filterForm = document.getElementById("filter-form");
+                  const loading = document.getElementById("helpTimeLoading");
+                  const empty = document.getElementById("helpTimeEmpty");
+                  const chartElement = document.getElementById("helpTimeChart");
+
+                  function fetchAndRenderHelpTime() {
+                    const scenarioId = scenarioSelect.value;
+                    if (!scenarioId) return;
+                    const params = new URLSearchParams({
+                      level: document.querySelector('input[name="helpLevel"]:checked').value,
+                      group_ids: Array.from(groupSelect.selectedOptions).map((option) => option.value).join(","),
+                    });
+                    if (startDateInput.value) params.append("start_date", startDateInput.value);
+                    if (endDateInput.value) params.append("end_date", endDateInput.value);
+
+                    loading.style.display = "block";
+                    empty.style.display = "none";
+                    chartElement.style.display = "none";
+                    fetch(`/authoringtool/help_time_data/${scenarioId}/?${params.toString()}`)
+                      .then((response) => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.json();
+                      })
+                      .then((data) => {
+                        if (scenarioSelect.value !== scenarioId) return;
+                        loading.style.display = "none";
+                        if (!data.requests.some((count) => count > 0)) {
+                          empty.style.display = "block";
+                          return;
+                        }
+                        chartElement.style.display = "block";
+                        renderHelpTimeChart(data);
+                      })
+                      .catch((error) => {
+                        loading.innerHTML = `<p style="font-size: 18px; color: red;">⚠️ Error: ${error.message}</p>`;
+                      });
+                  }
+
+                  function renderHelpTimeChart(data) {
+                    const maxLength = 20;
+                    const labels = data.categories.map((name) =>
+                      name.length > maxLength ? name.substring(0, maxLength) + "..." : name
+                    );
+                    const chart = echarts.getInstanceByDom(chartElement) || echarts.init(chartElement);
+                    chart.clear();
+                    chart.setOption({
+                      tooltip: {
+                        trigger: "axis",
+                        axisPointer: { type: "shadow" },
+                        formatter: (items) => {
+                          const i = items[0].dataIndex;
+                          return `${data.categories[i]}<br>`
+                            + `Average help time: ${data.average_help_seconds[i]} s<br>`
+                            + `Total help time: ${data.total_help_seconds[i]} s<br>`
+                            + `Help requests: ${data.requests[i]}<br>`
+                            + `Students who asked: ${data.students_asking[i]}`;
+                        },
+                      },
+                      legend: { data: ["Average Help Time"] },
+                      xAxis: {
+                        type: "category",
+                        data: labels,
+                        axisLabel: { rotate: 30, interval: 0 },
+                      },
+                      yAxis: {
+                        type: "value",
+                        name: "Time (seconds)",
+                        min: 0,
+                        axisLabel: { formatter: "{value} s" },
+                      },
+                      series: [{
+                        name: "Average Help Time",
+                        type: "bar",
+                        data: data.average_help_seconds,
+                        color: "#E0A458",
+                      }],
+                      grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+                    });
+                    setTimeout(() => chart.resize(), 500);
+                  }
+
+                  filterForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    fetchAndRenderHelpTime();
+                  });
+                  document.getElementsByName("helpLevel").forEach((option) =>
+                    option.addEventListener("change", fetchAndRenderHelpTime)
+                  );
+                });
+              </script>
+            </div>
+          </div>
+
           
           
           

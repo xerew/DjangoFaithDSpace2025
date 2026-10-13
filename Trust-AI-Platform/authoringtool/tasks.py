@@ -32,6 +32,7 @@ from .graph_validation import (
     ScenarioGraphValidationError,
     assert_scenario_graph_integrity,
 )
+from .help_time import help_cache_token, help_totals
 from .translation_matching import translation_activity_maps
 from django.core.cache import cache
 from datetime import timedelta
@@ -777,7 +778,11 @@ def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activi
     scenario = get_object_or_404(Scenario, id=scenario_id)
     version_id = scenario.ensure_current_version().id
     policy = 'family' if scenario.use_family_evidence_pooling else 'scenario'
-    cache_key = f"analytics:time_spent:{scenario_id}:v{version_id}:{policy}:{group_ids}:{start_date}:{end_date}:{activity_type}"
+    cache_key = (
+        f"analytics:time_spent:{scenario_id}:v{version_id}:{policy}:"
+        f"{group_ids}:{start_date}:{end_date}:{activity_type}:"
+        f"help{help_cache_token(scenario)}"
+    )
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -823,46 +828,43 @@ def compute_time_spent_data(scenario_id, group_ids, start_date, end_date, activi
 
     data = {'categories': [], 'time_spent': []}
 
+    # Working time excludes the time a student spent paused asking for help.
+    help_by_pair = help_totals(scenario, user_ids=user_ids)['by_user_activity']
+
+    def active_totals(answer_rows):
+        """Sum active seconds and distinct students per group key."""
+        totals = defaultdict(float)
+        students = defaultdict(set)
+        for key, user_id, activity_id, timing in answer_rows:
+            help_seconds = help_by_pair.get((user_id, activity_id), 0)
+            totals[key] += max((timing or 0) - help_seconds, 0)
+            students[key].add(user_id)
+        return totals, students
+
     if data_type == 'activities_timing':
         activities = list(Activity.objects.filter(scenario=scenario, activity_type=activity_type_q))
-
-        # ONE query: total timing + distinct student count per activity
-        stats = {
-            row['activity_id']: row
-            for row in (
-                last_answers
-                .filter(activity__in=activities)
-                .values('activity_id')
-                .annotate(total_time=Sum('timing'), student_count=Count('user', distinct=True))
-            )
-        }
+        totals, students = active_totals(
+            last_answers
+            .filter(activity__in=activities)
+            .values_list('activity_id', 'user_id', 'activity_id', 'timing')
+        )
 
         for activity in activities:
             data['categories'].append(activity.name)
-            s = stats.get(activity.id, {})
-            total = s.get('total_time') or 0
-            count = s.get('student_count') or 1
-            data['time_spent'].append(total / count)
+            count = len(students.get(activity.id, ())) or 1
+            data['time_spent'].append(totals.get(activity.id, 0) / count)
 
     else:
         phases = list(Phase.objects.filter(scenario=scenario))
-
-        # ONE query: total timing + distinct student count per phase
-        stats = {
-            row['activity__phase_id']: row
-            for row in (
-                last_answers
-                .values('activity__phase_id')
-                .annotate(total_time=Sum('timing'), student_count=Count('user', distinct=True))
-            )
-        }
+        totals, students = active_totals(
+            last_answers
+            .values_list('activity__phase_id', 'user_id', 'activity_id', 'timing')
+        )
 
         for phase in phases:
             data['categories'].append(phase.name)
-            s = stats.get(phase.id, {})
-            total = s.get('total_time') or 0
-            count = s.get('student_count') or 1
-            data['time_spent'].append(total / count)
+            count = len(students.get(phase.id, ())) or 1
+            data['time_spent'].append(totals.get(phase.id, 0) / count)
 
     cache.set(cache_key, data, timeout=3600)
     return data
@@ -1950,6 +1952,13 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
         for row in phase_start_qs.values('user_id', 'activity__phase_id').annotate(first_ts=Min('created_on'))
     }
 
+    # Help pauses: excluded from working time, reported in their own columns
+    help = help_totals(scenario, user_ids=valid_user_ids)
+    help_by_pair = help['by_user_activity']
+
+    def active_time(user_id, activity_id, timing):
+        return max(timing - help_by_pair.get((user_id, activity_id), 0), 0)
+
     # Main loop -- no DB queries inside
     csv_data = []
     for user in valid_users:
@@ -1968,7 +1977,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             for activity in phase_activities_map[phase.id]:
                 ua = last_answers_dict.get((user.id, activity.id))
                 if ua and ua.timing:
-                    phase_total_time += ua.timing
+                    phase_total_time += active_time(user.id, activity.id, ua.timing)
 
             for primary_activity in phase_primary_map[phase.id]:
                 if primary_activity.id in bunches:
@@ -2004,6 +2013,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
                 phase_start_time.strftime('%Y-%m-%d %H:%M:%S') if phase_start_time else '',
                 phase_total_time,
                 phase_total_score,
+                help['by_user_phase'].get((user.id, phase.id), 0),
             ])
 
         final_percentage = (total_weighted_score / total_max_weighted_score) * 100 if total_max_weighted_score > 0 else 0
@@ -2015,18 +2025,24 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             final_categorization = 'Low'
 
         row.append(final_categorization)
+        user_help = help['by_user'].get(user.id, {'seconds': 0, 'requests': 0})
+        row.extend([user_help['seconds'], user_help['requests']])
 
         if include_activity_detail:
             for phase in phases:
                 for activity in sorted(phase_activities_map[phase.id], key=lambda a: a.id):
                     act_type = activity.activity_type.name if activity.activity_type else ''
                     ua = last_answers_dict.get((user.id, activity.id))
-                    timing = ua.timing if ua and ua.timing is not None else ''
+                    timing = (
+                        active_time(user.id, activity.id, ua.timing)
+                        if ua and ua.timing is not None else ''
+                    )
                     if activity.is_evaluatable and ua and ua.answer:
                         score = ua.answer.answer_weight
                     else:
                         score = ''
-                    row.extend([act_type, timing, score])
+                    activity_help = help_by_pair.get((user.id, activity.id), 0)
+                    row.extend([act_type, timing, score, activity_help])
 
         csv_data.append(row)
 
@@ -2034,14 +2050,25 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     csv_writer = csv.writer(csv_buffer)
     header = ['User ID', 'Username', 'Scenario Name']
     for phase in phases:
-        header.extend([phase.name + ' Categorization', phase.name + ' Start Time', phase.name + ' Time', phase.name + ' Score'])
-    header.append('Final Categorization')
+        header.extend([
+            phase.name + ' Categorization',
+            phase.name + ' Start Time',
+            phase.name + ' Time',
+            phase.name + ' Score',
+            phase.name + ' Help Time (s)',
+        ])
+    header.extend(['Final Categorization', 'Total Help Time (s)', 'Help Requests'])
 
     if include_activity_detail:
         for phase in phases:
             for activity in sorted(phase_activities_map[phase.id], key=lambda a: a.id):
                 prefix = f"{phase.name} > {activity.name}"
-                header.extend([f"{prefix} Type", f"{prefix} Time (s)", f"{prefix} Score"])
+                header.extend([
+                    f"{prefix} Type",
+                    f"{prefix} Time (s)",
+                    f"{prefix} Score",
+                    f"{prefix} Help Time (s)",
+                ])
 
     csv_writer.writerow(header)
     csv_writer.writerows(csv_data)

@@ -108,6 +108,7 @@
             if (data.type === 'activityIdReceived') {
                 const readyButton = document.getElementById('readyButton');
                 if (readyButton) readyButton.style.display = 'none';
+                if (typeof showAskHelpButton === 'function') showAskHelpButton();
                 latestPendulumData = { "Pendulum 1": null, "Pendulum 2": null };
                 sendPendulumDataToIframe();
                 fetchAndDisplayActivity(data.activityId);
@@ -128,7 +129,76 @@
             }
           });
 		  
+		{% if not is_teacher %}
+		// ── Ask for help: pause the scenario until the student resumes ──
+		// While paused the chat is covered, so the student cannot continue.
+		// The server records the help period; no timer is shown.
+		const helpUrls = {
+			start: "{% url 'help_start' myScenario.id %}",
+			end: "{% url 'help_end' myScenario.id %}",
+		};
+		const csrfToken = "{{ csrf_token }}";
+		// Read on demand: this script runs before the help-text element is parsed.
+		function helpText(key) {
+			return JSON.parse(document.getElementById('help-text').textContent)[key];
+		}
+
+		let scenarioStarted = false;
+
+		function showAskHelpButton() {
+			scenarioStarted = true;
+			const button = document.getElementById('askHelpButton');
+			const overlay = document.getElementById('helpPauseOverlay');
+			if (button && overlay && overlay.hidden) button.style.display = '';
+		}
+
+		function setHelpPaused(paused) {
+			const overlay = document.getElementById('helpPauseOverlay');
+			const button = document.getElementById('askHelpButton');
+			if (!overlay) return;
+			overlay.hidden = !paused;
+			if (button) button.style.display = paused || !scenarioStarted ? 'none' : '';
+			if (paused) document.getElementById('resumeHelpButton').focus();
+		}
+
+		function postHelp(url, body) {
+			return fetch(url, {
+				method: 'POST',
+				headers: {
+					'X-CSRFToken': csrfToken,
+					'Content-Type': 'application/x-www-form-urlencoded',
+				},
+				body: new URLSearchParams(body || {}),
+			}).then((response) => {
+				if (!response.ok) throw new Error(`HTTP ${response.status}`);
+				return response.json();
+			});
+		}
+
+		function startHelpPause() {
+			const button = document.getElementById('askHelpButton');
+			const activityId = document.getElementById('activityContainer').getAttribute('data-activity-id');
+			button.disabled = true;
+			postHelp(helpUrls.start, { activity_id: activityId })
+				.then(() => setHelpPaused(true))
+				.catch(() => alert(helpText('pause_error')))
+				.finally(() => { button.disabled = false; });
+		}
+
+		function endHelpPause() {
+			const button = document.getElementById('resumeHelpButton');
+			button.disabled = true;
+			postHelp(helpUrls.end)
+				.then(() => setHelpPaused(false))
+				.catch(() => alert(helpText('resume_error')))
+				.finally(() => { button.disabled = false; });
+		}
+		{% endif %}
+
 		function sendReadyMessage() {
+			// A student paused for help cannot start or continue until Resume.
+			const pauseOverlay = document.getElementById('helpPauseOverlay');
+			if (pauseOverlay && !pauseOverlay.hidden) return;
 			const iframe = document.querySelector('.chatbot-container iframe');
 			if (iframe && iframe.contentWindow) {
 				// displayText is shown in the chat bubble; rasaMessage bypasses NLU via direct intent
@@ -182,6 +252,20 @@
         gap: 10px;
       }
       #readyButton:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.22); }
+      .help-pause-overlay {
+        position: absolute; inset: 0; z-index: 20;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(15, 23, 42, 0.78); border-radius: inherit;
+        color: #fff; text-align: center; padding: 24px;
+      }
+      .help-pause-overlay[hidden] { display: none; }
+      .help-pause-box h3 { font-size: 18px; font-weight: 700; margin: 10px 0 6px; color: #fff; }
+      .help-pause-box p { font-size: 14px; margin: 0 0 18px; opacity: 0.9; }
+      #resumeHelpButton {
+        border: 0; border-radius: 10px; padding: 10px 22px; cursor: pointer;
+        background: #16a34a; color: #fff; font-weight: 700; font-size: 15px;
+      }
+      #resumeHelpButton:disabled, #askHelpButton:disabled { opacity: 0.6; cursor: wait; }
 .chatbot-card {
         border-radius: 12px;
         overflow: hidden;
@@ -269,6 +353,10 @@
               <button onclick="sendRestartAndYes()" class="sv-hero-btn-ghost">
                 <i class="bi bi-arrow-counterclockwise"></i> Restart
               </button>
+              {% else %}
+              <button type="button" id="askHelpButton" class="sv-hero-btn-ghost" style="display:none;" onclick="startHelpPause()" dir="{{ help_text.dir }}">
+                <i class="bi bi-hand-index-thumb"></i> {{ help_text.ask }}
+              </button>
               {% endif %}
               <a href="{% url 'studentScenarios' %}" class="sv-hero-btn-ghost">
                 <i class="bi bi-arrow-left"></i> Back to Scenarios
@@ -309,10 +397,23 @@
 
                 <!-- Chatbot -->
                 <div class="col-12 col-md-4">
-                  <div class="chatbot-card">
+                  <div class="chatbot-card" style="position:relative;">
                     <div class="chatbot-container">
                       <iframe src="{% url 'chat_interface' %}" style="width:100%; height:60vh; border:none;"></iframe>
                     </div>
+                    {% if not is_teacher %}
+                    <div id="helpPauseOverlay" class="help-pause-overlay" role="dialog" aria-modal="true" aria-labelledby="helpPauseTitle"{% if not help_paused %} hidden{% endif %}>
+                      <div class="help-pause-box" dir="{{ help_text.dir }}">
+                        <i class="bi bi-pause-circle" style="font-size:40px;"></i>
+                        <h3 id="helpPauseTitle">{{ help_text.title }}</h3>
+                        <p>{{ help_text.message }}</p>
+                        <button type="button" id="resumeHelpButton" onclick="endHelpPause()">
+                          <i class="bi bi-play-fill"></i> {{ help_text.resume }}
+                        </button>
+                      </div>
+                    </div>
+                    {{ help_text|json_script:"help-text" }}
+                    {% endif %}
                   </div>
                 </div>
 

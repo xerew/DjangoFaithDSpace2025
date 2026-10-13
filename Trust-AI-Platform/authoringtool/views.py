@@ -51,6 +51,7 @@ from .evidence import (
 )
 from collections import defaultdict
 
+from .help_time import help_time_chart
 from .translation_matching import (
     is_english,
     pooled_implementation_count,
@@ -2092,6 +2093,25 @@ def time_spent_data(request, scenario_id):
 
     # Return task ID to the client
     return JsonResponse({'task_id': result.id})
+
+@group_required('teachers')
+def help_time_data(request, scenario_id):
+    """Help-time chart data: average pause time per activity, phase or scenario."""
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    group_ids = [
+        int(group_id)
+        for group_id in request.GET.get('group_ids', '').split(',')
+        if group_id.isdigit()
+    ]
+    return JsonResponse(help_time_chart(
+        scenario,
+        level=request.GET.get('level', 'activity'),
+        group_ids=group_ids,
+        start_date=request.GET.get('start_date'),
+        end_date=request.GET.get('end_date'),
+    ))
 
 def get_time_spent_data_task_status(request, task_id):
     result = AsyncResult(task_id)

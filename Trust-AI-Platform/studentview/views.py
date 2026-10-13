@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
+from studentview.help_labels import help_labels
 from authoringtool.models import (
     Scenario,
     Activity,
@@ -19,7 +20,9 @@ from authoringtool.models import (
     MultilingualQuestion,
     ScenarioImplementation,
     UserScenarioScore,
+    HelpRequest,
 )
+from django.views.decorators.http import require_POST
 from authoringtool.models import Subject
 from usergroups.models import UserGroupMembership
 import json
@@ -95,12 +98,78 @@ def scenario_viewer(request, scenario_id):
         if fb_form and not user_has_responded(fb_form, user, scenario):
             feedback_form_json = json.dumps(serialize_form(fb_form), ensure_ascii=False)
 
+    help_paused = (
+        not is_teacher
+        and HelpRequest.objects.filter(
+            user=user,
+            scenario=scenario,
+            ended_at__isnull=True,
+        ).exists()
+    )
+
     return render(request, 'studentview/scenarioView.html', {
         'activity': first_activity, 'myScenario': scenario, 'user': user,
         'is_teacher': is_teacher,
         'implementation': implementation,
         'feedback_form_json': feedback_form_json,
+        'help_paused': help_paused,
+        'help_text': help_labels(scenario.language),
     })
+
+
+def _is_teacher(user):
+    return user.groups.filter(name="teachers").exists()
+
+
+@login_required
+@require_POST
+def help_start(request, scenario_id):
+    """Pause the scenario: the student asks for help on the current activity."""
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    if _is_teacher(request.user):
+        return JsonResponse({'error': 'Only students can ask for help.'}, status=403)
+    activity = Activity.objects.filter(
+        pk=request.POST.get('activity_id') or None,
+        scenario=scenario,
+    ).select_related('phase').first()
+    if activity is None:
+        return JsonResponse(
+            {'error': 'The activity does not belong to this scenario.'},
+            status=400,
+        )
+    open_request = HelpRequest.objects.filter(
+        user=request.user,
+        scenario=scenario,
+        ended_at__isnull=True,
+    ).first()
+    if open_request is None:
+        HelpRequest.objects.create(
+            user=request.user,
+            scenario=scenario,
+            implementation=ScenarioImplementation.objects.filter(
+                user=request.user,
+                scenario=scenario,
+            ).exclude(status='abandoned').order_by('-started_at', '-id').first(),
+            activity=activity,
+            phase=activity.phase,
+        )
+    return JsonResponse({'paused': True})
+
+
+@login_required
+@require_POST
+def help_end(request, scenario_id):
+    """Resume the scenario and store how long the help pause lasted."""
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    seconds = 0
+    for open_request in HelpRequest.objects.filter(
+        user=request.user,
+        scenario=scenario,
+        ended_at__isnull=True,
+    ):
+        open_request.close()
+        seconds += open_request.duration_seconds or 0
+    return JsonResponse({'paused': False, 'seconds': seconds})
 
 @login_required
 def scenario_form(request, scenario_id):

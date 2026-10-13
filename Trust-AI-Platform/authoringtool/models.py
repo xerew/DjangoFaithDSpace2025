@@ -2216,7 +2216,84 @@ class UserAnswer(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.activity.name}"
-        
+
+
+class HelpRequest(models.Model):
+    """A period in which a student paused a scenario to ask for help.
+
+    While a period is open the student cannot continue; its seconds are help
+    time for the activity, its phase and the scenario, and are excluded from
+    the activity's working time in analytics.
+    """
+
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='help_requests',
+    )
+    scenario = models.ForeignKey(
+        Scenario,
+        on_delete=models.CASCADE,
+        related_name='help_requests',
+    )
+    implementation = models.ForeignKey(
+        ScenarioImplementation,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='help_requests',
+    )
+    activity = models.ForeignKey(
+        Activity,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='help_requests',
+    )
+    phase = models.ForeignKey(
+        Phase,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='help_requests',
+    )
+    started_at = models.DateTimeField(default=timezone.now, db_index=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Help Request'
+        verbose_name_plural = 'Help Requests'
+        ordering = ['-started_at', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'scenario'],
+                condition=models.Q(ended_at__isnull=True),
+                name='one_open_help_request_per_user_scenario',
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=['scenario', 'activity'],
+                name='help_scenario_activity_idx',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} needed help in {self.scenario}'
+
+    def close(self, ended_at=None):
+        """End the pause and store its length in whole seconds."""
+        if self.ended_at:
+            return
+        self.ended_at = ended_at or timezone.now()
+        self.duration_seconds = max(
+            0,
+            int((self.ended_at - self.started_at).total_seconds()),
+        )
+        self.save(update_fields=['ended_at', 'duration_seconds'])
+
+
 class SchoolDepartment(models.Model):
     name = models.CharField(max_length=100)
 

@@ -45,6 +45,7 @@ urlpatterns = [
     path('activity_answers_data/<int:scenario_id>/', views.activity_answers_data, name='activity_answer_data'),
     path('performance_data/<int:scenario_id>/', views.performance_data, name='performance_data'),
     path('time_spent_data/<int:scenario_id>/', views.time_spent_data, name='time_spent_data'),
+    path('help_time_data/<int:scenario_id>/', views.help_time_data, name='help_time_data'),
     path('detailed_phase_scores_data/<int:scenario_id>/', views.detailed_phase_scores_data, name='detailed_phase_scores_data'),
     path('performers_data/<int:scenario_id>/', views.performers_data, name='performers_data'),
     path('time_spent_by_performer_type/<int:scenario_id>/', views.time_spent_by_performer_type, name='time_spent_by_performer_type'),
