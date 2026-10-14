@@ -152,6 +152,9 @@
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
+        <a class="hero-btn-solid" href="{% url 'archived_scenarios' %}" style="text-decoration:none;background:rgba(255,255,255,0.15);color:#fff;">
+          <i class="bi bi-archive"></i> Archived
+        </a>
         <button class="hero-btn-solid" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
           <i class="bi bi-plus-lg"></i> Create New
         </button>
@@ -354,13 +357,14 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-                Are you sure you want to delete <strong>{{ scenario.name }}</strong>?
-                This cannot be undone.
+                Delete <strong>{{ scenario.name }}</strong>? On the next page you will
+                see whether students have used it. If they have, it is archived instead,
+                and all of their work is kept.
               </div>
               <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <a type="button" class="btn btn-danger btn-sm" href="{% url 'deleteScenario' id=scenario.id %}">
-                  <i class="bi bi-trash me-1"></i> Yes, Delete
+                  <i class="bi bi-trash me-1"></i> Continue
                 </a>
               </div>
             </div>

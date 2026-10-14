@@ -25,6 +25,7 @@ from authoringtool.tasks import (
     compute_student_performance_metrics,
     compute_time_spent_data,
 )
+from usergroups.models import UserGroup
 
 
 class HelpRequestBase(TestCase):
@@ -60,13 +61,24 @@ class HelpRequestBase(TestCase):
             NextQuestionLogic.objects.create(
                 activity=self.first, answer=answer, next_activity=self.second,
             )
+        self.student_group().assigned_scenarios.add(self.scenario)
         self.scenario.refresh_from_db()
 
     def make_student(self, username):
         student = User.objects.create_user(username, password='pass')
         student.school_department = self.department
         student.save()
+        self.student_group().members.add(student)
         return student
+
+    def student_group(self):
+        # Students only reach scenarios assigned to their group; the
+        # scenario is assigned once it exists (see setUp).
+        group, _ = UserGroup.objects.get_or_create(
+            name='Help class',
+            defaults={'prefix': 'hlp', 'number_of_users': 0, 'created_by': self.teacher},
+        )
+        return group
 
     def make_question(self, phase, text):
         activity = Activity.objects.create(
@@ -75,8 +87,14 @@ class HelpRequestBase(TestCase):
             activity_type=self.question_type, is_evaluatable=False,
             created_by=self.teacher, updated_by=self.teacher,
         )
-        Answer.objects.create(activity=activity, text='A', is_correct=True)
-        Answer.objects.create(activity=activity, text='B', is_correct=False)
+        Answer.objects.create(
+            activity=activity, text='A', is_correct=True,
+            created_by=self.teacher, updated_by=self.teacher,
+        )
+        Answer.objects.create(
+            activity=activity, text='B', is_correct=False,
+            created_by=self.teacher, updated_by=self.teacher,
+        )
         return activity
 
     def answer(self, student, activity, timing):

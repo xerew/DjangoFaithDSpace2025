@@ -13,7 +13,7 @@ def teacher_home(request):
     my_group_count = UserGroup.objects.filter(created_by=user).count()
     total_students = UserGroupMembership.objects.filter(group__created_by=user).count()
     latest_public = Scenario.objects.filter(
-        visibility_status='public'
+        visibility_status='public', archived_at__isnull=True,
     ).order_by('-created_on')[:5]
 
     return render(request, 'home/home.html', {

@@ -187,6 +187,17 @@ class Scenario(models.Model):
 
     subjects = models.ManyToManyField('Subject', blank=True, related_name='scenarios')
 
+    # A scenario that students have used is archived instead of deleted: it is
+    # hidden from every list but its evidence is kept and it can be restored.
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    archived_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='archived_scenarios',
+    )
+
     # Minimum implementations before Scenario Metrics & AI button is shown
     ai_metrics_min_implementations = models.PositiveIntegerField(
         default=200,
@@ -555,13 +566,17 @@ class Scenario(models.Model):
         )
 
     def has_student_evidence(self):
-        """Return whether any non-teacher implementation uses this scenario."""
+        """Return whether any student (non-teacher) has used this scenario."""
         if ScenarioImplementation.objects.filter(
             scenario=self
         ).exclude(user__groups__name='teachers').exists():
             return True
-        return UserScenarioScore.objects.filter(
+        if UserScenarioScore.objects.filter(
             scenario=self
+        ).exclude(user__groups__name='teachers').exists():
+            return True
+        return UserAnswer.objects.filter(
+            activity__scenario=self
         ).exclude(user__groups__name='teachers').exists()
 
     def begin_revision_draft(self, created_by):
@@ -1823,14 +1838,15 @@ class ScenarioImplementation(models.Model):
         ('excluded', 'Excluded'),
     ]
 
+    # PROTECT: a student's attempts are never deleted with the user or scenario.
     user = models.ForeignKey(
         'auth.User',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='scenario_implementations',
     )
     scenario = models.ForeignKey(
         Scenario,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='implementations',
     )
     scenario_version = models.ForeignKey(
@@ -1991,8 +2007,9 @@ class UserScenarioScore(models.Model):
         ('suspect', 'Suspect'),
         ('excluded', 'Excluded'),
     ]
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    # PROTECT: scores are never deleted with the user or scenario.
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    scenario = models.ForeignKey(Scenario, on_delete=models.PROTECT)
     implementation = models.OneToOneField(
         ScenarioImplementation,
         null=True,
@@ -2106,9 +2123,13 @@ class UserAnswer(models.Model):
         ('exact', 'Exact scenario version'),
         ('legacy_unknown', 'Legacy version unknown'),
     ]
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    activity = models.ForeignKey(Activity, on_delete=models.CASCADE)
+    # Answers outlive the user's deletion attempt (PROTECT) and the removal of
+    # their activity or answer option (SET_NULL); detached_from then keeps a
+    # snapshot of what was removed. See authoringtool.evidence_retention.
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True)
     answer = models.ForeignKey(Answer, on_delete=models.SET_NULL, null=True, blank=True)
+    detached_from = models.JSONField(default=dict, blank=True)
     implementation = models.ForeignKey(
         ScenarioImplementation,
         null=True,
@@ -2234,14 +2255,15 @@ class HelpRequest(models.Model):
     the activity's working time in analytics.
     """
 
+    # PROTECT: help requests are never deleted with the user or scenario.
     user = models.ForeignKey(
         'auth.User',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='help_requests',
     )
     scenario = models.ForeignKey(
         Scenario,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='help_requests',
     )
     implementation = models.ForeignKey(
@@ -2315,8 +2337,8 @@ class SchoolDepartment(models.Model):
         
 class PhetLabSessions(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False, default='Phet Default')
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    activity = models.ForeignKey(Activity, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True)
     mass_1 = models.FloatField(null=True, blank=True)
     mass_2 = models.FloatField(null=True, blank=True)
     length_1 = models.FloatField(null=True, blank=True)
@@ -2336,10 +2358,12 @@ class PhetLabSessions(models.Model):
         return f"{self.name} - {self.user.id} - Activity {self.activity}"
 
 class RemoteLabSession(models.Model):
-    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='lab_sessions')  # Adjusted to refer to Activity instead of Question
-    phase = models.ForeignKey(Phase, on_delete=models.CASCADE, related_name='lab_sessions')
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='lab_sessions')
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    # Lab sessions are student evidence: kept when the activity or phase is
+    # removed, never deleted with the scenario or user.
+    activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True, related_name='lab_sessions')
+    phase = models.ForeignKey(Phase, on_delete=models.SET_NULL, null=True, blank=True, related_name='lab_sessions')
+    scenario = models.ForeignKey(Scenario, on_delete=models.PROTECT, related_name='lab_sessions')
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     start = models.DateTimeField()
     end = models.DateTimeField()
     lab_name = models.CharField(max_length=255)
@@ -2388,8 +2412,8 @@ class MultilingualQuestion(models.Model):
 
 class MultilingualAnswer(models.Model):
     question = models.ForeignKey(MultilingualQuestion, on_delete=models.CASCADE, related_name='answers')
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='question_answers', null=True, blank=True)
+    user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    scenario = models.ForeignKey(Scenario, on_delete=models.PROTECT, related_name='question_answers', null=True, blank=True)
     answer_text = models.TextField()
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)

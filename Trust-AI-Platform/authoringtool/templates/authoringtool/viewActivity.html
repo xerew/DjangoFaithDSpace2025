@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load html_tags %}
 {% block page_title %}<title>Trust AI Lab — Activity Details</title>{% endblock %}
 {% block atcontent %}
 
@@ -321,7 +322,7 @@
         {% if activity.text %}
         <div class="info-card">
           <div class="info-card-header"><i class="bi bi-text-paragraph"></i> Content</div>
-          <div class="content-body">{{ activity.text|safe }}</div>
+          <div class="content-body">{{ activity.text|clean_html }}</div>
         </div>
         {% endif %}
 
@@ -449,7 +450,7 @@
                     <div class="modal-footer border-0">
                       <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                       <a class="btn btn-danger btn-sm" href="{% url 'deleteAnswer' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id answer_id=answer.id %}">
-                        <i class="bi bi-trash3 me-1"></i>Yes, Delete
+                        <i class="bi bi-trash3 me-1"></i>Continue
                       </a>
                     </div>
                   </div>

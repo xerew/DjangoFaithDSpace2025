@@ -1857,7 +1857,10 @@ def _compute_compatible_category_metrics_data(
     return combined_data
 
 @shared_task
-def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date, include_activity_detail=False):
+def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_date, include_activity_detail=False,
+                                        named_user_ids=None):
+    """Per-student CSV. When named_user_ids is given, every other student is
+    listed without an ID under a pseudonym ("Student 1", "Student 2", ...)."""
     scenario = get_object_or_404(Scenario, id=scenario_id)
     phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
 
@@ -1961,8 +1964,14 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
 
     # Main loop -- no DB queries inside
     csv_data = []
+    named_ids = None if named_user_ids is None else set(named_user_ids)
+    pseudonym_count = 0
     for user in valid_users:
-        row = [user.id, user.username, scenario.name]
+        if named_ids is None or user.id in named_ids:
+            row = [user.id, user.username, scenario.name]
+        else:
+            pseudonym_count += 1
+            row = ['', f'Student {pseudonym_count}', scenario.name]
         total_weighted_score = 0
         total_max_weighted_score = 0
 

@@ -168,12 +168,19 @@ window.addEventListener('message', function(event) {
 
 // ---------------------------------------------------------------------------
 // Send message to Rasa (fetch-based, no artificial delay)
+// Goes through Django, which replaces user_id with the logged-in user.
 // ---------------------------------------------------------------------------
+function csrfToken() {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  return meta ? meta.content : '';
+}
+
 async function send(message) {
   try {
     const response = await fetch(rasa_server_url, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
       body:    JSON.stringify({
         message,
         sender:   sender_id,

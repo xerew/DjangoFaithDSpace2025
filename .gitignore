@@ -24,6 +24,13 @@ data/
 Trust-AI-Platform/media/
 Trust-AI-Platform/staticfiles/
 Trust-AI-Platform/static/pdfs/
+Trust-AI-Platform/ai_metrics_cache/
+Trust-AI-Platform/rag_pdfs/
+Trust-AI-Platform/rag_indexes/
+
+# Exports containing personal data or passwords
+Trust-AI-Platform/user_credentials.txt
+Trust-AI-Platform/users_export.csv
 
 # OS metadata
 .DS_Store

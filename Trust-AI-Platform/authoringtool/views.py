@@ -13,6 +13,7 @@ import re
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count, Q, Max, Min, F, Avg
 from django.core.cache import cache
+from django.db import transaction
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -69,6 +70,14 @@ from pathlib import Path
 from django.views.decorators.http import require_POST
 import markdown
 from django.utils.safestring import mark_safe
+from .html_safety import sanitize_html
+from .evidence_retention import (
+    delete_or_archive_scenario,
+    detach_student_evidence,
+    removal_impact,
+    restore_scenario as restore_scenario_record,
+    scenario_impact,
+)
 from django.core.files.storage import FileSystemStorage
 from django.utils._os import safe_join
 
@@ -77,17 +86,97 @@ def is_admin_user(user):
     return user.is_superuser or user.is_staff
 
 
+def _count(number, noun):
+    return f"{number} {noun}{'' if number == 1 else 's'}"
+
+
 def user_can_view_scenario(user, scenario):
-    """Return whether a user may view a scenario and its shared analytics."""
+    """Return whether a user may view a scenario and its shared analytics.
+
+    Archived scenarios are visible to their owner and admins only.
+    """
     if not getattr(user, "is_authenticated", False):
         return False
     if is_admin_user(user) or scenario.created_by_id == user.id:
         return True
+    if scenario.archived_at:
+        return False
     if scenario.visibility_status == "public":
         return True
     if scenario.visibility_status == "org":
         return scenario.organizations.filter(members=user).exists()
     return False
+
+
+def can_name_all_students(user, scenario):
+    """Owners and admins see every student's name in per-student exports."""
+    return is_admin_user(user) or scenario.created_by_id == user.id
+
+
+def analytics_group_scope(request, scenario):
+    """Return the group IDs a viewer may analyse, or None to refuse.
+
+    Every teacher who can view the scenario sees analytics for all of its
+    students (an empty list means everyone). Only owners and admins may filter
+    by another teacher's group; others may filter by their own groups only.
+    """
+    group_ids = [
+        int(group_id)
+        for group_id in request.GET.get('group_ids', '').split(',')
+        if group_id.strip().isdigit()
+    ]
+    user = request.user
+    if not group_ids or can_name_all_students(user, scenario):
+        return group_ids
+    own_group_ids = set(
+        UserGroup.objects.filter(created_by=user).values_list('id', flat=True)
+    )
+    return group_ids if set(group_ids) <= own_group_ids else None
+
+
+ANALYTICS_TASK_OWNER_KEY = 'analytics_task_owner:{}'
+
+
+def start_analytics_task(request, scenario_id, task, *extra_args,
+                         groups_as_text=False):
+    """Check access, start an analytics task and remember who started it.
+
+    Each extra argument may be a callable taking the scenario, so a view can
+    pass values that depend on it.
+    """
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    group_ids = analytics_group_scope(request, scenario)
+    if group_ids is None:
+        return HttpResponseForbidden("You can only analyse your own groups.")
+    if groups_as_text:
+        group_ids = ','.join(str(group_id) for group_id in group_ids)
+    result = task.delay(
+        scenario.id,
+        group_ids,
+        request.GET.get('start_date'),
+        request.GET.get('end_date'),
+        *(arg(scenario) if callable(arg) else arg for arg in extra_args),
+    )
+    cache.set(
+        ANALYTICS_TASK_OWNER_KEY.format(result.id),
+        request.user.id,
+        timeout=24 * 60 * 60,
+    )
+    return JsonResponse({'task_id': result.id})
+
+
+def analytics_task_status(request, task_id):
+    """Report an analytics task's result to the user who started it."""
+    if cache.get(ANALYTICS_TASK_OWNER_KEY.format(task_id)) != request.user.id:
+        raise Http404("Unknown analytics task.")
+    result = AsyncResult(task_id)
+    if result.state == 'SUCCESS':
+        return JsonResponse({"status": "completed", "data": result.result})
+    if result.state == 'FAILURE':
+        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return JsonResponse({'status': 'pending'})
 
 
 def user_can_generate_proposals(user, scenario):
@@ -354,13 +443,13 @@ def index(request):
     departments = SchoolDepartment.objects.all()
     # print('EINAI', request.user.is_staff)
     if is_admin_user(user):
-        myScenarios = Scenario.objects.all()
+        myScenarios = Scenario.objects.filter(archived_at__isnull=True)
     # Check if the user belongs to the 'teachers' group
     # if user.groups.filter(name='teachers').exists():
         # If the user is a teacher, show their scenarios, public ones, and org ones they belong to
     else:
         org_ids = user.member_of_organizations.values_list('id', flat=True)
-        myScenarios = Scenario.objects.filter(
+        myScenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
             Q(created_by=user) |  # Scenarios the user created
             Q(visibility_status='public') |  # Public scenarios
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios the user is part of
@@ -402,7 +491,7 @@ def scenarios(request):
     visibility_filter = request.GET.get('visibility', 'all')  # Visibility filter
     selected_subject_ids = [int(x) for x in request.GET.getlist('subject') if x.isdigit()]
 
-    filters = Q()
+    filters = Q(archived_at__isnull=True)
 
     # Search by name, description, or creator username
     if query:
@@ -771,22 +860,64 @@ def updateScenarioData(request, id):
 
 @group_required('teachers')
 def deleteScenario(request, id):
-    deleteScenario = get_object_or_404(Scenario, id=id)
-    if deleteScenario.created_by != request.user and not is_admin_user(request.user):
+    scenario = get_object_or_404(Scenario, id=id, archived_at__isnull=True)
+    if scenario.created_by != request.user and not is_admin_user(request.user):
         return HttpResponseForbidden("You don't own this scenario.")
-    if deleteScenario.has_student_evidence():
-        messages.error(
+    if request.method != 'POST':
+        impact = scenario_impact(scenario)
+        warning = ''
+        if impact['students']:
+            warning = (
+                f"{_count(impact['students'], 'student')} used this scenario. "
+                "It will be archived instead of deleted: hidden from every "
+                "list, with all of their work kept. You can restore it from "
+                "Archived scenarios."
+            )
+        return render(request, 'confirm_removal.html', {
+            'title': f'Delete “{scenario.name}”?',
+            'message': 'The scenario, its phases and its activities will be removed.',
+            'warning': warning,
+            'confirm_label': 'Archive scenario' if warning else 'Delete scenario',
+            'danger': not warning,
+            'cancel_url': reverse('viewScenario', args=[scenario.id]),
+        })
+    name = scenario.name
+    if delete_or_archive_scenario(scenario, request.user) == 'archived':
+        messages.success(
             request,
-            'Scenarios with student implementations cannot be deleted. '
-            'Change visibility or publish a new revision instead.',
+            f"“{name}” was archived. Students' work is kept and you can "
+            "restore it from Archived scenarios.",
         )
-        return HttpResponseRedirect(
-            reverse('viewScenario', args=[deleteScenario.id])
-        )
-    deleteScenario.delete()
+    else:
+        messages.success(request, f'“{name}” was deleted.')
     return HttpResponseRedirect(reverse('scenarios'))
 
+
+@group_required('teachers')
+def archived_scenarios(request):
+    scenarios = Scenario.objects.filter(archived_at__isnull=False)
+    if not is_admin_user(request.user):
+        scenarios = scenarios.filter(created_by=request.user)
+    return render(request, 'authoringtool/archived_scenarios.html', {
+        'scenarios': scenarios.select_related('archived_by').order_by('-archived_at'),
+    })
+
+
+@require_POST
+@group_required('teachers')
+def restore_scenario(request, scenario_id):
+    scenario = get_object_or_404(Scenario, id=scenario_id, archived_at__isnull=False)
+    if scenario.created_by != request.user and not is_admin_user(request.user):
+        return HttpResponseForbidden("You don't own this scenario.")
+    restore_scenario_record(scenario)
+    messages.success(request, f'“{scenario.name}” was restored.')
+    return HttpResponseRedirect(reverse('viewScenario', args=[scenario.id]))
+
+@group_required('teachers')
 def serve_rag_pdf(request, scenario_id, filename):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     try:
         folder = safe_join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}")
         file_path = safe_join(folder, filename)
@@ -971,7 +1102,7 @@ def viewScenario(request, id):
         'mermaid_graph_definition': mermaid_graph_definition,
         'can_edit': can_edit,
         'rag_files': rag_files,
-        "llm_html": mark_safe(markdown.markdown(myScenario.llm_context or "")),
+        "llm_html": mark_safe(sanitize_html(markdown.markdown(myScenario.llm_context or ""))),
         'implementation_count': implementation_count,
         'local_implementation_count': local_implementation_count,
         'compatible_external_implementation_count': max(
@@ -1093,14 +1224,38 @@ def deletePhase(request, scenario_id, phase_id):
     if Phase.objects.filter(scenario=scenario).count() <= 1:
         messages.error(request, "A scenario must have at least 1 phase.")
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
-    deletePhase = get_object_or_404(Phase, id=phase_id)
-    deletePhase.delete()
+    phase = get_object_or_404(Phase, id=phase_id, scenario=scenario)
+    activities = list(phase.activities.all())
+    if request.method != 'POST':
+        impact = removal_impact(activities=activities)
+        warning = ''
+        if impact['students']:
+            warning = (
+                f"{_count(impact['students'], 'student')} answered this phase "
+                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+                "their answers are kept for research but no longer appear in "
+                "this scenario's charts."
+            )
+        return render(request, 'confirm_removal.html', {
+            'title': f'Delete phase “{phase.name}”?',
+            'message': 'This cannot be undone.',
+            'warning': warning,
+            'confirm_label': 'Delete anyway' if warning else 'Delete phase',
+            'danger': True,
+            'cancel_url': reverse('viewScenario', args=[scenario_id]),
+        })
+    with transaction.atomic():
+        detach_student_evidence(activities=activities, removed_by=request.user)
+        phase.delete()
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
+@group_required('teachers')
 def viewPhase(request, scenario_id, phase_id):
-    myPhase = Phase.objects.get(id=phase_id)
-    myScenario = Scenario.objects.get(id=scenario_id)
+    myScenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    myPhase = get_object_or_404(Phase, id=phase_id, scenario=myScenario)
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
     can_edit = False
     if is_admin_user(request.user) or myScenario.created_by == request.user:
@@ -1116,7 +1271,7 @@ def viewPhase(request, scenario_id, phase_id):
         'myScenario': myScenario,
         'activities': activities,
         'can_edit': can_edit,
-        "llm_html": mark_safe(markdown.markdown(myPhase.llm_context or "")),
+        "llm_html": mark_safe(sanitize_html(markdown.markdown(myPhase.llm_context or ""))),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1445,6 +1600,8 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
             NextQuestionLogic.objects.filter(activity=updateActivity).delete()
             return HttpResponseRedirect(reverse('updateAnswers', args=[scenario_id, phase_id, updateActivity.id]))
         elif formerActivity.activity_type.name == 'Question':
+            removed_answers = list(Answer.objects.filter(activity=updateActivity))
+            detach_student_evidence(answers=removed_answers, removed_by=request.user)
             Answer.objects.filter(activity=updateActivity).delete()
             if not next_activity_id:
                 next_activity_instance = None
@@ -1478,8 +1635,28 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
-    deleteActivity = get_object_or_404(Activity, id=activity_id)
-    deleteActivity.delete()
+    activity = get_object_or_404(Activity, id=activity_id, scenario=scenario)
+    if request.method != 'POST':
+        impact = removal_impact(activities=[activity])
+        warning = ''
+        if impact['students']:
+            warning = (
+                f"{_count(impact['students'], 'student')} answered this activity "
+                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+                "their answers are kept for research but no longer appear in "
+                "this scenario's charts."
+            )
+        return render(request, 'confirm_removal.html', {
+            'title': f'Delete activity “{activity.name}”?',
+            'message': 'This cannot be undone.',
+            'warning': warning,
+            'confirm_label': 'Delete anyway' if warning else 'Delete activity',
+            'danger': True,
+            'cancel_url': reverse('activity', args=[scenario_id, phase_id, activity_id]),
+        })
+    with transaction.atomic():
+        detach_student_evidence(activities=[activity], removed_by=request.user)
+        activity.delete()
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
@@ -1528,10 +1705,13 @@ def set_start_activity(request, scenario_id, activity_id):
         )
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario.id]))
 
+@group_required('teachers')
 def viewActivity(request, scenario_id, phase_id, activity_id):
-    myActivity = Activity.objects.get(id=activity_id)
+    myScenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, myScenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    myActivity = get_object_or_404(Activity, id=activity_id, scenario=myScenario)
     next_activity_logic = NextQuestionLogic.objects.filter(activity=activity_id).first()
-    myScenario = Scenario.objects.get(id=scenario_id)
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
     can_edit = False
     if is_admin_user(request.user) or myScenario.created_by == request.user:
@@ -1605,7 +1785,7 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
         'is_first_activity': (
             getattr(myScenario.get_start_activity(), 'id', None) == myActivity.id
         ),
-        "llm_html": mark_safe(markdown.markdown(myActivity.llm_context or "")),
+        "llm_html": mark_safe(sanitize_html(markdown.markdown(myActivity.llm_context or ""))),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1691,8 +1871,30 @@ def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
-    deleteAnswer = Answer.objects.get(id=answer_id)
-    deleteAnswer.delete()
+    answer = get_object_or_404(
+        Answer, id=answer_id, activity_id=activity_id, activity__scenario=scenario,
+    )
+    if request.method != 'POST':
+        impact = removal_impact(answers=[answer])
+        warning = ''
+        if impact['students']:
+            warning = (
+                f"{_count(impact['students'], 'student')} answered this answer option "
+                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+                "their answers are kept for research but no longer appear in "
+                "this scenario's charts."
+            )
+        return render(request, 'confirm_removal.html', {
+            'title': f'Delete answer option “{answer.text}”?',
+            'message': 'This cannot be undone.',
+            'warning': warning,
+            'confirm_label': 'Delete anyway' if warning else 'Delete answer option',
+            'danger': True,
+            'cancel_url': reverse('activity', args=[scenario_id, phase_id, activity_id]),
+        })
+    with transaction.atomic():
+        detach_student_evidence(answers=[answer], removed_by=request.user)
+        answer.delete()
     scenario.refresh_version_if_initialized(
         created_by=request.user
     )
@@ -1786,7 +1988,9 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         # Delete any existing answers not included in the submission
         for answer_id in existing_answer_ids:
             if answer_id not in submitted_answer_ids:
-                Answer.objects.get(id=answer_id).delete()
+                removed_answer = Answer.objects.get(id=answer_id)
+                detach_student_evidence(answers=[removed_answer], removed_by=request.user)
+                removed_answer.delete()
 
         activity.scenario.refresh_version_if_initialized(
             created_by=request.user
@@ -1982,25 +2186,16 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
         )
         return HttpResponseRedirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
+@group_required('teachers')
 def sankey_data(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
+    return start_analytics_task(
+        request, scenario_id, compute_sankey_data,
+        groups_as_text=True,
+    )
 
-    # Trigger Celery task
-    result = compute_sankey_data.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_sankey_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
 def check_for_duplicate_answers(scenario_id):
     # Get all answers for the scenario
@@ -2055,100 +2250,43 @@ def get_last_answers_only_for_users(scenario_id, start_date=None, end_date=None)
     # Use the last answer IDs to retrieve the corresponding UserAnswer objects
     return UserAnswer.objects.filter(id__in=[entry['last_answer_id'] for entry in last_answers])
 
+@group_required('teachers')
 def final_performance(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_final_performance,
+    )
 
-    # Trigger Celery task
-    result = compute_final_performance.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_final_performance_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def activity_answers_data(request, scenario_id):
-    scenario = get_object_or_404(Scenario, id=scenario_id)
-    data_type = request.GET.get('type', 'activities')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_activity_answers_data,
+        request.GET.get('type', 'activities'),
+    )
 
-    # Trigger Celery task
-    result = compute_activity_answers_data.delay(scenario_id, group_ids, start_date, end_date, data_type)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_activity_answers_data_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def performance_data(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_performance_data,
+    )
 
-    # Trigger Celery task
-    result = compute_performance_data.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_performance_data_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def time_spent_data(request, scenario_id):
-    scenario = get_object_or_404(Scenario, id=scenario_id)
-    data_type = request.GET.get('type', 'activities')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
-
-    # Trigger Celery task
-    result = compute_time_spent_data.delay(scenario_id, group_ids, start_date, end_date, data_type)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
+    return start_analytics_task(
+        request, scenario_id, compute_time_spent_data,
+        request.GET.get('type', 'activities'),
+    )
 
 @group_required('teachers')
 def help_time_data(request, scenario_id):
@@ -2156,11 +2294,9 @@ def help_time_data(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot view this scenario.")
-    group_ids = [
-        int(group_id)
-        for group_id in request.GET.get('group_ids', '').split(',')
-        if group_id.isdigit()
-    ]
+    group_ids = analytics_group_scope(request, scenario)
+    if group_ids is None:
+        return HttpResponseForbidden("You can only analyse your own groups.")
     return JsonResponse(help_time_chart(
         scenario,
         level=request.GET.get('level', 'activity'),
@@ -2169,94 +2305,46 @@ def help_time_data(request, scenario_id):
         end_date=request.GET.get('end_date'),
     ))
 
+@group_required('teachers')
 def get_time_spent_data_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def detailed_phase_scores_data(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_detailed_phase_scores_data,
+    )
 
-    # Trigger Celery task
-    result = compute_detailed_phase_scores_data.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_detailed_phase_scores_data_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def performers_data(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_performers_data,
+    )
 
-    # Trigger Celery task
-    result = compute_performers_data.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_performers_data_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def time_spent_by_performer_type(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
+    return start_analytics_task(
+        request, scenario_id, compute_time_spent_by_performer_type,
+    )
 
-    # Trigger Celery task
-    result = compute_time_spent_by_performer_type.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
+@group_required('teachers')
 def get_time_spent_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
 # TODO: Move performance_by_department computation to a Celery task to avoid blocking the web worker.
 @group_required('teachers')
 def performance_by_department(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
@@ -2637,10 +2725,11 @@ def lms_lti_launch(request, experiment_id): #=None
     # Render a form that will auto-submit the POST request to the LTI tool
     return render(request, 'lti_integration.html', {'launch_url': launch_url, 'params': params})
 
+@group_required('teachers')
 def lab_sessions_data(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    
-    print("SCENARIO :", scenario, scenario.id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     # Optional date filtering from request parameters
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -2747,58 +2836,40 @@ def get_first_answers(scenario_id):
     # Use the first answer IDs to retrieve the corresponding UserAnswer objects
     return UserAnswer.objects.filter(id__in=[entry['first_answer_id'] for entry in first_answers])
 
+@group_required('teachers')
 def scenario_paths(request, scenario_id):
-    scenario = get_object_or_404(Scenario, id=scenario_id)
-    
-    # Parse start and end dates from request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    # Convert group_ids to a list of integers (if it's not empty)
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []  # Ensure it's an empty list, not None
-
-    # Trigger Celery task
-    result = compute_scenario_paths.delay(scenario_id, group_ids, start_date, end_date)
-
-    # Return task ID to the client
-    return JsonResponse({'task_id': result.id})
-
-def get_scenario_paths_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
-
-def student_performance_metrics(request, scenario_id):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    group_ids = request.GET.get('group_ids', '')
-    include_activity_detail = request.GET.get('include_activity_detail', '0') == '1'
-    if group_ids:
-        group_ids = [int(g) for g in group_ids.split(',') if g.isdigit()]
-    else:
-        group_ids = []
-
-    result = compute_student_performance_metrics.delay(
-        scenario_id, group_ids, start_date, end_date, include_activity_detail
+    return start_analytics_task(
+        request, scenario_id, compute_scenario_paths,
     )
-    return JsonResponse({'task_id': result.id})
 
+@group_required('teachers')
+def get_scenario_paths_task_status(request, task_id):
+    return analytics_task_status(request, task_id)
+
+@group_required('teachers')
+def student_performance_metrics(request, scenario_id):
+    def named_user_ids(scenario):
+        # Students outside the viewer's own groups are pseudonymised unless
+        # the viewer owns the scenario.
+        if can_name_all_students(request.user, scenario):
+            return None
+        return list(
+            UserGroupMembership.objects
+            .filter(group__created_by=request.user)
+            .values_list('user_id', flat=True)
+        )
+
+    return start_analytics_task(
+        request, scenario_id, compute_student_performance_metrics,
+        request.GET.get('include_activity_detail', '0') == '1',
+        named_user_ids,
+    )
+
+@group_required('teachers')
 def get_student_performance_metrics_task_status(request, task_id):
-    result = AsyncResult(task_id)
-    if result.state == 'SUCCESS':
-        return JsonResponse({"status": "completed", "data": result.result})
-    elif result.state == 'PENDING':
-        return JsonResponse({'status': 'pending'})
-    elif result.state == 'FAILURE':
-        return JsonResponse({'status': 'failed', 'error': str(result.info)})
+    return analytics_task_status(request, task_id)
 
+@group_required('teachers')
 def get_teacher_groups(request, scenario_id):
     groups = UserGroup.objects.filter(
         created_by=request.user,
@@ -3652,6 +3723,8 @@ def import_scenario(request):
 def export_scenario(request, scenario_id):
     from .exporter import ScenarioExporter
     scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
     safe_name = re.sub(r'[^\w\s-]', '', scenario.name).strip().replace(' ', '_')
     base = safe_name[:60]
     exporter = ScenarioExporter(scenario)

@@ -48,39 +48,6 @@
             }
         }
 		
-        function sendMessageToRasa(message) {
-            const userId = '{{ user.id }}';  // Django template variable for user ID
-            const scenarioId = '{{ myScenario.id }}';  // Django template variable for scenario ID
-			const scenarioLang = '{{ myScenario.language }}';
-			
-			console.log('SCENARIO LANG:', scenarioLang);
-
-            const payload = {
-                sender: userId,
-                message: message,
-                metadata: {
-                    scenario_id: scenarioId,
-					scenario_lang: scenarioLang,
-                    user_id: userId,
-					pendulum_lab: latestPendulumData,
-					//experiment_data: latestExperimentLog // LabsLand Integration
-                }
-            };
-
-            console.log("Sending to Rasa:", payload);
-
-            fetch('/rasa/webhooks/rest/webhook', { //https://trust-ai-lab.eu/
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => console.log('Rasa response:', data))
-            .catch(error => console.error('Error talking to Rasa:', error));
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             const iframe = document.querySelector('.chatbot-container iframe');
         

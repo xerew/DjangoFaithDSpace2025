@@ -49,8 +49,9 @@ class FeedbackQuestion(models.Model):
 
 class FeedbackResponse(models.Model):
     form = models.ForeignKey(FeedbackForm, on_delete=models.CASCADE, related_name='responses')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='feedback_responses')
-    scenario = models.ForeignKey('authoringtool.Scenario', on_delete=models.CASCADE, related_name='feedback_responses')
+    # PROTECT: responses are research data, never deleted with the user or scenario.
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='feedback_responses')
+    scenario = models.ForeignKey('authoringtool.Scenario', on_delete=models.PROTECT, related_name='feedback_responses')
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

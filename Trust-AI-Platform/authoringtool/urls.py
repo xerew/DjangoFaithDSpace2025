@@ -21,6 +21,8 @@ urlpatterns = [
         name='publish_scenario_revision',
     ),
     path('scenarios/deleteScenario/<int:id>', views.deleteScenario, name='deleteScenario'),
+    path('scenarios/archived/', views.archived_scenarios, name='archived_scenarios'),
+    path('scenarios/<int:scenario_id>/restore/', views.restore_scenario, name='restore_scenario'),
     path('scenarios/viewScenario/<int:id>', views.viewScenario, name='viewScenario'),
     path('scenarios/<int:id>/createPhase/', views.createPhase, name='createPhase'),
     path('scenarios/<int:id>/createPhaseData/', views.createPhaseData, name='createPhaseData'),

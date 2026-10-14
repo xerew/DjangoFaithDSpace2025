@@ -26,15 +26,17 @@ action_endpoint:
 #    password: <password used for authentication>
 #    use_ssl: <whether or not the communication is encrypted, default false>
 
+# Credentials come from the environment (.env via docker-compose); never
+# commit them here.
 tracker_store:
   type: SQL
   dialect: "postgresql"  # the dialect used to interact with the database
   url: "db"  # Docker service name for postgres
   port: 5432
-  username: "faithuser"
-  password: "faithpass"
-  db: "faithdb"
-  login_db: "faithdb"
+  username: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+  db: ${POSTGRES_DB}
+  login_db: ${POSTGRES_DB}
 
 #tracker_store:
 #    type: mongod

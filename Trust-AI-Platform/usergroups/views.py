@@ -20,6 +20,12 @@ from django.http import HttpResponse
 from django.conf import settings
 import re
 import csv
+from django.db import transaction
+from django.http import Http404
+from django.urls import reverse
+from django.utils.timezone import now as django_now
+from django.views.decorators.http import require_POST
+from accounts.student_accounts import remove_student_account
 
 def group_required(group_name):
     def decorator(view_func):
@@ -81,7 +87,7 @@ def create_user_group(request):
     user = request.user
     org_ids = user.member_of_organizations.values_list('id', flat=True)
 
-    all_scenarios = Scenario.objects.filter(
+    all_scenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
         Q(created_by=user) |  # Private scenarios created by the user
         Q(visibility_status='public') |  # Public scenarios
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))  # Org-only scenarios where user belongs to the org
@@ -105,8 +111,13 @@ def list_groups(request):
 
     groups = (
         UserGroup.objects
-        .filter(created_by=request.user)
+        .filter(created_by=request.user, archived_at__isnull=True)
         .annotate(scenario_count=Count('assigned_scenarios', distinct=True))
+    )
+    archived_groups = (
+        UserGroup.objects
+        .filter(created_by=request.user, archived_at__isnull=False)
+        .order_by('-archived_at')
     )
 
     if q:
@@ -135,6 +146,7 @@ def list_groups(request):
 
     return render(request, 'usergroups/list_groups.html', {
         'groups':           groups,
+        'archived_groups':  archived_groups,
         'is_dspace_partner': is_dspace_partner,
         'filter_scenarios': filter_scenarios,
         'q':                q,
@@ -178,23 +190,53 @@ def download_credentials(request, group_id):
 
 @group_required('teachers')
 def delete_group(request, group_id):
-    group = get_object_or_404(UserGroup, id=group_id, created_by=request.user)
-    
+    """Archive a group: hide it and block its students' logins, keep all data."""
+    group = get_object_or_404(
+        UserGroup, id=group_id, created_by=request.user, archived_at__isnull=True,
+    )
     if request.method == "POST":
-        # Fetch all memberships of the group
-        memberships = UserGroupMembership.objects.filter(group=group)
-
-        # Delete associated users
-        for membership in memberships:
-            membership.user.delete()  # Delete the actual user object
-
-        # Now delete the group itself
-        group_name = group.name
-        group.delete()
-        messages.success(request, f"Group '{group_name}' and all its users have been deleted.")
+        with transaction.atomic():
+            group.archived_at = django_now()
+            group.archived_by = request.user
+            group.save(update_fields=['archived_at', 'archived_by'])
+            User.objects.filter(usergroupmembership__group=group).update(is_active=False)
+        messages.success(
+            request,
+            f"Group '{group.name}' was archived. Its students can no longer log in, "
+            "but all their work is kept. You can restore it from Archived groups.",
+        )
         return redirect('list_groups')
-    
-    return render(request, 'usergroups/confirm_delete.html', {'group': group})
+
+    student_count = group.members.count()
+    return render(request, 'confirm_removal.html', {
+        'title': f"Archive group “{group.name}”?",
+        'message': (
+            f"The group is hidden from your list and its {student_count} student "
+            "account(s) can no longer log in. Their answers and results are kept, "
+            "and you can restore the group at any time."
+        ),
+        'warning': '',
+        'confirm_label': 'Archive group',
+        'danger': False,
+        'cancel_url': reverse('view_group', args=[group.id]),
+    })
+
+
+@require_POST
+@group_required('teachers')
+def restore_group(request, group_id):
+    """Bring an archived group back and let its students log in again."""
+    group = get_object_or_404(UserGroup, id=group_id, archived_at__isnull=False)
+    is_admin = request.user.is_staff or request.user.is_superuser
+    if group.created_by_id != request.user.id and not is_admin:
+        raise Http404('No such group.')
+    with transaction.atomic():
+        group.archived_at = None
+        group.archived_by = None
+        group.save(update_fields=['archived_at', 'archived_by'])
+        User.objects.filter(usergroupmembership__group=group).update(is_active=True)
+    messages.success(request, f"Group '{group.name}' was restored.")
+    return redirect('list_groups')
 
 @group_required('teachers')
 def edit_group(request, group_id):
@@ -229,10 +271,18 @@ def edit_group(request, group_id):
                 # Removing extra users
                 diff = current_number_of_users - new_number_of_users
                 memberships_to_delete = UserGroupMembership.objects.filter(group=group).order_by('-id')[:diff]
+                deactivated = 0
                 for membership in memberships_to_delete:
-                    membership.user.delete()  # Deletes the user and their membership
-                    membership.delete()
+                    if remove_student_account(membership.user) == 'deactivated':
+                        deactivated += 1
                 messages.success(request, f"Removed {diff} users from the group.")
+                if deactivated:
+                    messages.info(
+                        request,
+                        f"{deactivated} of them had already worked on scenarios, so "
+                        "their accounts were deactivated instead of deleted to keep "
+                        "their work.",
+                    )
 
             # Update the group model with the new number of users
             group.number_of_users = new_number_of_users
@@ -249,7 +299,7 @@ def edit_group(request, group_id):
     # Pass scenarios based on the user's access rights
     user = request.user
     org_ids = user.member_of_organizations.values_list('id', flat=True)
-    all_scenarios = Scenario.objects.filter(
+    all_scenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
         Q(created_by=user) |
         Q(visibility_status='public') |
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))

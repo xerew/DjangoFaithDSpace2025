@@ -26,6 +26,7 @@ from authoringtool.models import (
     rebuild_q_values_for_context,
 )
 from authoringtool.tasks import compute_category_metrics_per_phase_activity
+from usergroups.models import UserGroup, UserGroupMembership
 from authoringtool.utils import get_scenario_evidence_cache_paths
 
 
@@ -69,6 +70,13 @@ class PhaseCompletionBase(TestCase):
             created_by=self.owner,
             updated_by=self.owner,
         )
+        # Students only reach scenarios assigned to their group.
+        student_group = UserGroup.objects.create(
+            name='Phase class', prefix='phc', number_of_users=1,
+            created_by=self.owner,
+        )
+        UserGroupMembership.objects.create(group=student_group, user=self.student)
+        student_group.assigned_scenarios.add(self.scenario)
         self.scenario.refresh_from_db()
 
 

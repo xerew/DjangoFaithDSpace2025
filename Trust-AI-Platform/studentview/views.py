@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.core.paginator import Paginator
 from studentview.help_labels import help_labels
 from authoringtool.models import (
@@ -24,9 +24,14 @@ from authoringtool.models import (
 )
 from django.views.decorators.http import require_POST
 from authoringtool.models import Subject
+from authoringtool.html_safety import sanitize_html
+from authoringtool.views import user_can_view_scenario
 from usergroups.models import UserGroupMembership
 import json
 import logging
+import re
+import requests
+from django.conf import settings
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
@@ -39,6 +44,7 @@ logger = logging.getLogger(__name__)
 def scenario_viewer(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
     user = request.user
+    check_scenario_access(user, scenario)
     is_teacher = user.groups.filter(name="teachers").exists()
     if not is_teacher and hasattr(scenario, 'revision_draft'):
         return HttpResponse(
@@ -121,11 +127,28 @@ def _is_teacher(user):
     return user.groups.filter(name="teachers").exists()
 
 
+def check_scenario_access(user, scenario):
+    """Raise unless the user may open this scenario.
+
+    Students may only open scenarios assigned to one of their groups (exactly
+    what their scenario list shows); teachers may preview any scenario they
+    can view.
+    """
+    if _is_teacher(user) or user.is_staff or user.is_superuser:
+        if not user_can_view_scenario(user, scenario):
+            raise PermissionDenied
+    elif scenario.archived_at or not Scenario.objects.filter(
+        pk=scenario.pk, assigned_groups__members=user,
+    ).exists():
+        raise Http404('This scenario is not available.')
+
+
 @login_required
 @require_POST
 def help_start(request, scenario_id):
     """Pause the scenario: the student asks for help on the current activity."""
     scenario = get_object_or_404(Scenario, pk=scenario_id)
+    check_scenario_access(request.user, scenario)
     if _is_teacher(request.user):
         return JsonResponse({'error': 'Only students can ask for help.'}, status=403)
     activity = Activity.objects.filter(
@@ -161,6 +184,7 @@ def help_start(request, scenario_id):
 def help_end(request, scenario_id):
     """Resume the scenario and store how long the help pause lasted."""
     scenario = get_object_or_404(Scenario, pk=scenario_id)
+    check_scenario_access(request.user, scenario)
     seconds = 0
     for open_request in HelpRequest.objects.filter(
         user=request.user,
@@ -242,7 +266,8 @@ def scenario_form(request, scenario_id):
 def submit_answers(request, scenario_id):
     if request.method == 'POST':
         scenario = get_object_or_404(Scenario, pk=scenario_id)
-        
+        check_scenario_access(request.user, scenario)
+
         for question in MultilingualQuestion.objects.all():
             # Get the answer text, even if it's empty
             answer_text = request.POST.get(f'question_{question.id}', '')
@@ -270,6 +295,9 @@ def submit_answers(request, scenario_id):
 
 def get_activity(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
+    if activity.scenario is None:
+        raise Http404('This activity is not available.')
+    check_scenario_access(request.user, activity.scenario)
     is_teacher = (
         request.user.is_authenticated
         and request.user.groups.filter(name="teachers").exists()
@@ -323,7 +351,7 @@ def get_activity(request, activity_id):
             'activity_id': activity.id,
             'activity_type_name': activity.activity_type.name,
             'name': activity.name,
-            'content': activity.text,
+            'content': sanitize_html(activity.text),
             'simulation': simulation_data,
             #'simulation_iframe_url': simulation.iframe_url,
             'experimentLL': experimentLL_data,
@@ -339,8 +367,65 @@ def get_activity(request, activity_id):
             'error': 'Linked simulation not found',
             'activity_type_name': activity.activity_type.name,
             'name': activity.name,
-            'content': activity.text
+            'content': sanitize_html(activity.text)
         }, status=404)
+
+
+RASA_CLIENT_IDENTITY_KEYS = ('user_id', 'userId', 'scenarioId')
+
+
+@require_POST
+def rasa_chat(request):
+    """Forward a chat message to Rasa as the logged-in user.
+
+    Rasa is only reachable on the internal network, so this is the only way
+    in. The user id comes from the session, never from the browser, and the
+    conversation id is namespaced by it, so nobody can answer or reset a
+    scenario on another student's behalf.
+    """
+    try:
+        payload = json.loads(request.body)
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({'error': 'Invalid payload.'}, status=400)
+
+    message = payload.get('message')
+    if not isinstance(message, str) or not message.strip():
+        return JsonResponse({'error': 'Missing message.'}, status=400)
+
+    metadata = payload.get('metadata') or {}
+    if not isinstance(metadata, dict):
+        return JsonResponse({'error': 'Invalid metadata.'}, status=400)
+    metadata = {
+        key: value for key, value in metadata.items()
+        if key not in RASA_CLIENT_IDENTITY_KEYS
+    }
+    scenario_id = str(metadata.get('scenario_id') or '').strip()
+    if scenario_id:
+        if not scenario_id.isdigit():
+            return JsonResponse({'error': 'Invalid scenario.'}, status=400)
+        metadata['scenario_id'] = scenario_id
+    metadata['user_id'] = str(request.user.id)
+
+    client_sender = re.sub(r'[^A-Za-z0-9-]', '', str(payload.get('sender') or ''))
+    sender = f"user-{request.user.id}-{client_sender[:64] or 'chat'}"
+
+    try:
+        response = requests.post(
+            settings.RASA_WEBHOOK_URL,
+            json={'sender': sender, 'message': message, 'metadata': metadata},
+            timeout=settings.RASA_TIMEOUT_SECONDS,
+        )
+        replies = response.json()
+    except (requests.RequestException, ValueError):
+        logger.exception('Rasa did not answer the chat proxy')
+        return JsonResponse([], safe=False, status=502)
+    if response.status_code != 200 or not isinstance(replies, list):
+        logger.error('Rasa returned HTTP %s to the chat proxy', response.status_code)
+        return JsonResponse([], safe=False, status=502)
+    return JsonResponse(replies, safe=False)
+
 
 @login_required
 def chatbot_interaction(request):
@@ -376,9 +461,10 @@ def scenarios_view(request):
         user_memberships = UserGroupMembership.objects.filter(user=user)
         group_ids = user_memberships.values_list('group_id', flat=True)
         base_qs = Scenario.objects.filter(
-            assigned_groups__id__in=group_ids
+            assigned_groups__id__in=group_ids, archived_at__isnull=True,
         ).distinct()
 
+    base_qs = base_qs.filter(archived_at__isnull=True)
     if query:
         base_qs = base_qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
     if selected_subject_ids:

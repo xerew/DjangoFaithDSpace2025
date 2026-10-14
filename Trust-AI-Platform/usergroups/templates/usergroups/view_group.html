@@ -103,7 +103,7 @@
           <i class="bi bi-download"></i> Download Credentials
         </a>
         <button type="button" class="hero-btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-          <i class="bi bi-trash"></i> Delete Group
+          <i class="bi bi-archive"></i> Archive Group
         </button>
       </div>
     </div>
@@ -258,20 +258,20 @@
       <div class="modal-content" style="border-radius:12px;overflow:hidden;">
         <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
           <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
-            <i class="bi bi-exclamation-triangle me-2"></i>Delete Group
+            <i class="bi bi-archive me-2"></i>Archive Group
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-          Are you sure you want to delete <strong>{{ group.name }}</strong>?
-          This will permanently remove the group and all <strong>{{ memberships|length }} student account(s)</strong>. This cannot be undone.
+          Archive <strong>{{ group.name }}</strong>?
+          Its <strong>{{ memberships|length }} student account(s)</strong> will no longer be able to log in. All their answers and results are kept, and you can restore the group from the groups list.
         </div>
         <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
           <form method="post" action="{% url 'delete_group' group.id %}" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger btn-sm">
-              <i class="bi bi-trash me-1"></i> Yes, Delete
+              <i class="bi bi-archive me-1"></i> Archive
             </button>
           </form>
         </div>

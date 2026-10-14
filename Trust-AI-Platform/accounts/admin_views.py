@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login as auth_login
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
-from django.db.models import Count, Q
+from django.db import transaction
+from django.db.models import Count, ProtectedError, Q
 from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils import timezone
@@ -240,7 +241,17 @@ def admin_delete_user(request, user_id):
         return JsonResponse({'success': False, 'error': 'Cannot delete your own account.'})
     if user.is_superuser and not request.user.is_superuser:
         return JsonResponse({'success': False, 'error': 'Cannot delete a superuser.'})
-    user.delete()
+    try:
+        with transaction.atomic():
+            user.delete()
+    except ProtectedError:
+        return JsonResponse({
+            'success': False,
+            'error': (
+                'This account has student work (answers, scores or feedback) that '
+                'must be kept. Use Suspend to block the login instead.'
+            ),
+        })
     return JsonResponse({'success': True})
 
 

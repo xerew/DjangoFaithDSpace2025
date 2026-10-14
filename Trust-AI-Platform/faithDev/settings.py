@@ -32,11 +32,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-jg#w2d@#dd9#(cdt@@lm27&g612)iw5othvy+pdlyf(&m7-e_(r')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# Only local DEBUG runs may fall back to a throwaway key.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set when DEBUG is off.')
+    SECRET_KEY = 'django-insecure-local-development-only'
 
 _allowed = os.environ.get('ALLOWED_HOSTS', '13.51.155.65,trust-ai-lab.eu,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
@@ -101,6 +107,7 @@ TEMPLATES = [
             ],
             'libraries': {
                 'group_tags': 'templatetags.group_tags',
+                'html_tags': 'templatetags.html_tags',
                 'profile_tags': 'templatetags.profile_tags',
             }
         },
@@ -204,6 +211,11 @@ LOGOUT_REDIRECT_URL = '/login/'
 RAG_PDFS_ROOT = os.getenv("RAG_PDFS_DIR", str(BASE_DIR / "rag_pdfs"))
 RAG_INDEX_ROOT = os.getenv("RAG_INDEXES_DIR", str(BASE_DIR / "rag_indexes"))
 RAG_PDFS_URL = os.getenv("RAG_PDFS_URL", "/rag_pdfs/")
+
+# Rasa is only reachable on the internal network; the student chat posts to
+# Django (studentview.views.rasa_chat), which forwards here as the logged-in user.
+RASA_WEBHOOK_URL = os.getenv("RASA_WEBHOOK_URL", "http://rasa:5005/webhooks/rest/webhook")
+RASA_TIMEOUT_SECONDS = int(os.getenv("RASA_TIMEOUT_SECONDS", "60"))
 
 AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
 AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")

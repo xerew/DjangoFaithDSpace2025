@@ -67,7 +67,7 @@ services:
       sh -c "
       python manage.py migrate &&
       python manage.py collectstatic --noinput &&
-      gunicorn faithDev.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+      gunicorn faithDev.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 4 --timeout 120
       "
     volumes:
       - ./data/static:/app/staticfiles
@@ -121,7 +121,15 @@ services:
     working_dir: /app
     volumes:
       - ./RasaFaith/RasaFaith:/app
-    command: run --enable-api --cors "*" --debug
+    # Only the REST channel is served, and only on the internal network:
+    # browsers reach Rasa through Django's /studentview/chat/send/ proxy,
+    # which attaches the logged-in user. Do not add --enable-api here.
+    command: run
+    environment:
+      # Read by the tracker_store section of endpoints.yml.
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     expose:
       - "5005"
     depends_on:
@@ -136,8 +144,8 @@ services:
     working_dir: /app
     volumes:
       - ./RasaFaith/RasaFaith/actions:/app/actions
-    ports:
-      - "5055:5055"
+    expose:
+      - "5055"
     environment:
       DB_HOST: db
       DB_NAME: ${POSTGRES_DB}
@@ -157,7 +165,6 @@ services:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./data/static:/static:ro
       - ./data/media:/media:ro
-      - ./data/rag/rag_pdfs:/rag_pdfs:ro
       - ./data/certbot/www:/var/www/certbot:ro
       - ./data/certbot/conf:/etc/letsencrypt:ro
     depends_on:

@@ -442,6 +442,11 @@ class StudentFeedbackTriggerTests(TestCase):
                                 activity_type=atype, created_by=self.teacher, updated_by=self.teacher)
         self.form = FeedbackForm.objects.create(title='Post-scenario form', audience='student', created_by=self.teacher)
         FeedbackQuestion.objects.create(form=self.form, text='Fun?', question_type='choice', options=['Yes', 'No'], order=1)
+        # Students only reach scenarios assigned to their group.
+        from usergroups.models import UserGroup, UserGroupMembership
+        group = UserGroup.objects.create(name='FB class', prefix='fbc', number_of_users=1, created_by=self.teacher)
+        UserGroupMembership.objects.create(group=group, user=self.student)
+        group.assigned_scenarios.add(self.scenario)
 
     def test_student_gets_feedback_form_in_context(self):
         self.client.login(username='fb_sv_student', password='pass')

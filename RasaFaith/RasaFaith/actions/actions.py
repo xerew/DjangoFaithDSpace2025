@@ -58,21 +58,58 @@ def _end_message(dispatcher, locale):
         dispatcher.utter_message(text="This is the end of the scenario!")
 
 
-def _active_implementation(cursor, user_id, scenario_id):
-    """Return the exact active implementation selected by Django student view."""
+def _current_implementation(cursor, user_id, scenario_id):
+    """Return the student's single attempt selected by the Django student view.
+
+    Students cannot restart, so the newest non-abandoned attempt (active,
+    completed, or legacy) is the one every answer belongs to. Returns
+    (id, scenario_version_id, status, version_confidence) or None.
+    """
     cursor.execute(
         """
-        SELECT id, scenario_version_id
+        SELECT id, scenario_version_id, status, version_confidence
         FROM authoringtool_scenarioimplementation
         WHERE user_id = %s
           AND scenario_id = %s
-          AND status = 'active'
+          AND status <> 'abandoned'
         ORDER BY started_at DESC, id DESC
         LIMIT 1
         """,
         (user_id, scenario_id),
     )
     return cursor.fetchone()
+
+
+def _answer_provenance(cursor, implementation, scenario_id):
+    """Return (implementation_id, version_id, version_confidence) for answers.
+
+    Teacher previews have no implementation, and attempts without a recorded
+    version, fall back to the current published version.
+    """
+    if implementation and implementation[1]:
+        return implementation[0], implementation[1], implementation[3] or 'exact'
+    cursor.execute(
+        "SELECT current_version_id FROM authoringtool_scenario WHERE id = %s",
+        (scenario_id,),
+    )
+    row = cursor.fetchone()
+    implementation_id = implementation[0] if implementation else None
+    return implementation_id, (row[0] if row else None), 'exact'
+
+
+def _is_completed(implementation):
+    return bool(implementation) and implementation[2] == 'completed'
+
+
+def _completed_message(dispatcher, locale):
+    if _is_greek(locale):
+        dispatcher.utter_message(
+            text="Έχεις ήδη ολοκληρώσει αυτό το σενάριο."
+        )
+    else:
+        dispatcher.utter_message(
+            text="You have already completed this scenario."
+        )
 
 
 def _complete_implementation(cursor, implementation_id):
@@ -82,10 +119,47 @@ def _complete_implementation(cursor, implementation_id):
         """
         UPDATE authoringtool_scenarioimplementation
         SET status = 'completed', completed_at = NOW()
-        WHERE id = %s AND status = 'active'
+        WHERE id = %s AND status IN ('active', 'legacy')
         """,
         (implementation_id,),
     )
+
+
+def _can_reset_progress(cursor, user_id):
+    """Only teachers and staff may wipe progress; students cannot restart."""
+    cursor.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1 FROM auth_user
+            WHERE id = %s AND (is_superuser OR is_staff)
+        ) OR EXISTS (
+            SELECT 1
+            FROM auth_user_groups ug
+            JOIN auth_group g ON g.id = ug.group_id
+            WHERE ug.user_id = %s AND g.name = 'teachers'
+        )
+        """,
+        (user_id, user_id),
+    )
+    row = cursor.fetchone()
+    return bool(row and row[0])
+
+
+def _restart_not_allowed_message(dispatcher, locale):
+    if _is_greek(locale):
+        dispatcher.utter_message(
+            text=(
+                "Η επανεκκίνηση του σεναρίου δεν είναι διαθέσιμη. "
+                "Η πρόοδός σου έχει αποθηκευτεί."
+            )
+        )
+    else:
+        dispatcher.utter_message(
+            text=(
+                "Restarting the scenario is not available. "
+                "Your progress has been kept."
+            )
+        )
 
 
 def _scenario_has_open_revision(cursor, scenario_id):
@@ -186,14 +260,17 @@ class AskQuestionAction(Action):
             if _scenario_has_open_revision(cursor, scenario_id):
                 _revision_paused_message(dispatcher, user_locale)
                 return []
+            implementation = _current_implementation(
+                cursor,
+                user_id,
+                scenario_id,
+            )
+            if _is_completed(implementation):
+                _completed_message(dispatcher, user_locale)
+                return []
 
             # Determine starting activity if no question_id yet
             if not question_id:
-                implementation = _active_implementation(
-                    cursor,
-                    user_id,
-                    scenario_id,
-                )
                 cursor.execute(
                     "SELECT COALESCE(si.last_activity_id, uss.last_activity_id) "
                     "FROM authoringtool_scenarioimplementation si "
@@ -334,25 +411,19 @@ class HandleAnswerAction(Action):
             if _scenario_has_open_revision(cursor, scenario_id):
                 _revision_paused_message(dispatcher, user_locale)
                 return []
-            implementation = _active_implementation(
+            implementation = _current_implementation(
                 cursor,
                 user_id,
                 scenario_id,
             )
-            implementation_id = implementation[0] if implementation else None
-            implementation_version_id = (
-                implementation[1] if implementation else None
-            )
-            if not implementation_version_id:
-                cursor.execute(
-                    "SELECT current_version_id "
-                    "FROM authoringtool_scenario WHERE id = %s",
-                    (scenario_id,),
-                )
-                version_row = cursor.fetchone()
-                implementation_version_id = (
-                    version_row[0] if version_row else None
-                )
+            if _is_completed(implementation):
+                _completed_message(dispatcher, user_locale)
+                return []
+            (
+                implementation_id,
+                implementation_version_id,
+                version_confidence,
+            ) = _answer_provenance(cursor, implementation, scenario_id)
 
             # Resolve question_id from DB if slot is missing
             if not question_id:
@@ -386,7 +457,7 @@ class HandleAnswerAction(Action):
                 "(user_id, activity_id, answer_id, timing, created_on, "
                 "scenario_version_id, version_confidence, implementation_id, "
                 "activity_revision_id) "
-                "VALUES (%s, %s, %s, %s, %s, %s, 'exact', %s, "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, "
                 "(SELECT id FROM authoringtool_activityrevision "
                 " WHERE scenario_version_id = %s AND activity_id = %s "
                 " ORDER BY id DESC LIMIT 1))",
@@ -397,6 +468,7 @@ class HandleAnswerAction(Action):
                     seconds_taken,
                     datetime.now(),
                     implementation_version_id,
+                    version_confidence,
                     implementation_id,
                     implementation_version_id,
                     question_id,
@@ -466,7 +538,7 @@ class HandleAnswerAction(Action):
                     "(user_id, last_activity_id, scenario_id, user_score, "
                     "scenario_version_id, version_confidence, "
                     "data_quality_status, implementation_id) "
-                    "VALUES (%s, %s, %s, %s, %s, 'exact', "
+                    "VALUES (%s, %s, %s, %s, %s, %s, "
                     "'unreviewed', %s)",
                     (
                         user_id,
@@ -474,6 +546,7 @@ class HandleAnswerAction(Action):
                         scenario_id,
                         score_for_current_answer,
                         implementation_version_id,
+                        version_confidence,
                         implementation_id,
                     )
                 )
@@ -671,9 +744,14 @@ class DeleteDatabaseData(Action):
             dispatcher.utter_message(text="Could not identify user to delete data for.")
             return []
 
+        locale = tracker.get_slot("locale") or \
+                 tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
         conn = get_database_connection()
         try:
             cursor = conn.cursor()
+            if not _can_reset_progress(cursor, user_id):
+                _restart_not_allowed_message(dispatcher, locale)
+                return []
             cursor.execute(
                 """
                 DELETE FROM authoringtool_useranswer
@@ -704,8 +782,6 @@ class DeleteDatabaseData(Action):
             cursor.close()
             release_connection(conn)
 
-        locale = tracker.get_slot("locale") or \
-                 tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
         if _is_greek(locale):
             dispatcher.utter_message(
                 text="Έγινε! Η πρόοδός σου έχει διαγραφεί. "
@@ -727,6 +803,18 @@ class ActionConfirm(Action):
     def run(self, dispatcher, tracker, domain):
         locale = tracker.get_slot("locale") or \
                  tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
+        user_id = tracker.get_slot("user_id") or \
+                  tracker.latest_message.get('metadata', {}).get('user_id', '')
+        conn = get_database_connection()
+        try:
+            cursor = conn.cursor()
+            allowed = bool(user_id) and _can_reset_progress(cursor, user_id)
+        finally:
+            cursor.close()
+            release_connection(conn)
+        if not allowed:
+            _restart_not_allowed_message(dispatcher, locale)
+            return []
         if _is_greek(locale):
             dispatcher.utter_message(
                 text="Αυτό θα διαγράψει όλες τις απαντήσεις σου για αυτό το σενάριο. "
@@ -793,31 +881,25 @@ class ActionConfirmRead(Action):
             if _scenario_has_open_revision(cursor, scenario_id):
                 _revision_paused_message(dispatcher, user_locale)
                 return []
-            implementation = _active_implementation(
+            implementation = _current_implementation(
                 cursor,
                 user_id,
                 scenario_id,
             )
-            implementation_id = implementation[0] if implementation else None
-            implementation_version_id = (
-                implementation[1] if implementation else None
-            )
-            if not implementation_version_id:
-                cursor.execute(
-                    "SELECT current_version_id "
-                    "FROM authoringtool_scenario WHERE id = %s",
-                    (scenario_id,),
-                )
-                version_row = cursor.fetchone()
-                implementation_version_id = (
-                    version_row[0] if version_row else None
-                )
+            if _is_completed(implementation):
+                _completed_message(dispatcher, user_locale)
+                return []
+            (
+                implementation_id,
+                implementation_version_id,
+                version_confidence,
+            ) = _answer_provenance(cursor, implementation, scenario_id)
             cursor.execute(
                 "INSERT INTO authoringtool_useranswer "
                 "(user_id, activity_id, timing, created_on, "
                 "scenario_version_id, version_confidence, implementation_id, "
                 "activity_revision_id) "
-                "VALUES (%s, %s, %s, %s, %s, 'exact', %s, "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, "
                 "(SELECT id FROM authoringtool_activityrevision "
                 " WHERE scenario_version_id = %s AND activity_id = %s "
                 " ORDER BY id DESC LIMIT 1))",
@@ -827,6 +909,7 @@ class ActionConfirmRead(Action):
                     seconds_taken,
                     datetime.now(),
                     implementation_version_id,
+                    version_confidence,
                     implementation_id,
                     implementation_version_id,
                     question_id,
@@ -887,13 +970,14 @@ class ActionConfirmRead(Action):
                     "(user_id, scenario_id, last_activity_id, user_score, "
                     "scenario_version_id, version_confidence, "
                     "data_quality_status, implementation_id) "
-                    "VALUES (%s, %s, %s, 0, %s, 'exact', "
+                    "VALUES (%s, %s, %s, 0, %s, %s, "
                     "'unreviewed', %s)",
                     (
                         user_id,
                         scenario_id,
                         next_question_id,
                         implementation_version_id,
+                        version_confidence,
                         implementation_id,
                     )
                 )

@@ -1,0 +1,56 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — {{ title }}</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .rm-card {
+    max-width: 640px; margin: 24px auto; background: #fff;
+    border: 1px solid #e8edf5; border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .rm-head {
+    padding: 18px 24px; display: flex; align-items: center; gap: 12px;
+    background: #f8faff; border-bottom: 1px solid #eef1f6;
+  }
+  .rm-head i { font-size: 22px; color: #1a56db; }
+  .rm-head.warn { background: #fff8eb; border-bottom-color: #fde7b0; }
+  .rm-head.warn i { color: #b45309; }
+  .rm-head h2 { font-size: 17px; font-weight: 700; margin: 0; color: #1e293b; }
+  .rm-body { padding: 20px 24px; font-size: 14px; color: #334155; line-height: 1.6; }
+  .rm-impact {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 10px;
+    background: #fff8eb; border: 1px solid #fde7b0; color: #78350f;
+  }
+  .rm-actions {
+    padding: 14px 24px 18px; display: flex; gap: 10px;
+    justify-content: flex-end; flex-wrap: wrap;
+  }
+  @media (max-width: 575.98px) {
+    .rm-card { margin: 12px 0; }
+    .rm-actions .btn { flex: 1 1 100%; }
+  }
+</style>
+
+<div class="rm-card">
+  <div class="rm-head{% if warning %} warn{% endif %}">
+    <i class="bi {% if warning %}bi-exclamation-triangle{% else %}bi-trash{% endif %}"></i>
+    <h2>{{ title }}</h2>
+  </div>
+  <div class="rm-body">
+    <p class="mb-0">{{ message }}</p>
+    {% if warning %}
+      <div class="rm-impact">{{ warning }}</div>
+    {% endif %}
+  </div>
+  <div class="rm-actions">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ cancel_url }}">Cancel</a>
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm {% if danger %}btn-danger{% else %}btn-warning{% endif %}">
+        {{ confirm_label }}
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

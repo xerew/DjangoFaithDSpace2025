@@ -1,0 +1,63 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Archived Scenarios</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .ar-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 22px 28px 18px; color: #fff; margin-bottom: 22px;
+    box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .ar-hero h2 { font-size: 18px; font-weight: 700; margin: 0; }
+  .ar-hero p { font-size: 12.5px; opacity: 0.8; margin: 4px 0 0; }
+  .ar-hero a { color: rgba(255,255,255,0.8); font-size: 12.5px; }
+  .ar-card {
+    background: #fff; border: 1px solid #e8edf5; border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .ar-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 20px;
+    border-bottom: 1px solid #f1f4f9;
+  }
+  .ar-row:last-child { border-bottom: 0; }
+  .ar-name { font-weight: 600; color: #1e293b; }
+  .ar-meta { font-size: 12.5px; color: #64748b; }
+  .ar-empty { padding: 28px 20px; text-align: center; color: #64748b; font-size: 14px; }
+  @media (max-width: 575.98px) {
+    .ar-hero { padding: 14px 16px 12px; }
+    .ar-row { flex-wrap: wrap; padding: 12px 14px; }
+    .ar-row form { width: 100%; }
+    .ar-row .btn { width: 100%; }
+  }
+</style>
+
+<div class="ar-hero">
+  <h2><i class="bi bi-archive me-2"></i>Archived scenarios</h2>
+  <p>Scenarios that students had used are archived instead of deleted. They are hidden from every list, and all student work is kept. Restore one to use it again.</p>
+  <a href="{% url 'scenarios' %}"><i class="bi bi-arrow-left"></i> Back to scenarios</a>
+</div>
+
+<div class="ar-card">
+  {% for scenario in scenarios %}
+    <div class="ar-row">
+      <div class="flex-grow-1">
+        <div class="ar-name">{{ scenario.name }}</div>
+        <div class="ar-meta">
+          Archived {{ scenario.archived_at|date:"j M Y, H:i" }}
+          {% if scenario.archived_by %}by {{ scenario.archived_by.get_full_name|default:scenario.archived_by.username }}{% endif %}
+          {% if scenario.created_by_id != request.user.id %} · owner {{ scenario.created_by.username }}{% endif %}
+        </div>
+      </div>
+      <form method="post" action="{% url 'restore_scenario' scenario.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
+        </button>
+      </form>
+    </div>
+  {% empty %}
+    <div class="ar-empty">No archived scenarios.</div>
+  {% endfor %}
+</div>
+
+{% endblock %}

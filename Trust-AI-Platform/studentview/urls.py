@@ -11,6 +11,7 @@ urlpatterns = [
     path('chatbot/', views.chatbot_interaction, name='chatbot_interaction'),
     path('get_activity/<int:activity_id>/', views.get_activity, name='get_activity'),
     path('chat/', views.chat_interface, name='chat_interface'),
+    path('chat/send/', views.rasa_chat, name='rasa_chat'),
     path('scenarios', views.scenarios_view, name='studentScenarios'),
     path('pendulum-lab/', views.pendulum_lab_view, name='pendulum_lab'),
     path('ltiintegration/<int:experiment_id>/', authoring_views.lms_lti_launch, name='lti_integration_in_student'),

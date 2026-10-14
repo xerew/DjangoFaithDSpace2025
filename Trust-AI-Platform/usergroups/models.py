@@ -9,7 +9,15 @@ class UserGroup(models.Model):
     number_of_users = models.IntegerField()
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_groups")
     created_on = models.DateTimeField(auto_now_add=True)
-    
+
+    # "Deleting" a group archives it: hidden from the teacher's list and its
+    # students cannot log in, but every account and answer is kept.
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='archived_groups',
+    )
+
     # Many-to-Many relationship with Scenario
     assigned_scenarios = models.ManyToManyField(Scenario, related_name="assigned_groups", blank=True)
 

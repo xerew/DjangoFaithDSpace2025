@@ -71,7 +71,7 @@ class ProtectionSwitchedOffTests(RevisionProtectionBase):
         self.assertEqual(self.first_phase.name, 'Explore renamed')
 
     def test_phase_can_be_deleted_without_a_draft(self):
-        self.client.get(
+        self.client.post(
             reverse('deletePhase', args=[self.scenario.id, self.second_phase.id]),
         )
 
