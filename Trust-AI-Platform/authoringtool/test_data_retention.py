@@ -4,17 +4,23 @@ Scenarios with student data are archived; phases, activities and answer
 options can be removed after a warning, but the students' answers are kept,
 detached, with a snapshot of what was removed.
 """
+from datetime import timedelta
+
 from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from authoringtool.models import (
     Activity,
+    ActivityProposal,
     ActivityType,
     Answer,
     Phase,
+    RemoteLabSession,
     Scenario,
     UserAnswer,
+    UserProposalReview,
     UserScenarioScore,
 )
 from usergroups.models import UserGroup, UserGroupMembership
@@ -193,3 +199,74 @@ class ActivityDeleteTests(RetentionBase):
         self.client.get(self.url('deleteAnswer'))
         self.assertTrue(Activity.objects.filter(pk=self.activity.pk).exists())
         self.assertTrue(Answer.objects.filter(pk=self.wrong.pk).exists())
+
+
+class TeacherResearchDataRetentionTests(RetentionBase):
+    """AI proposals, teacher reviews and lab sessions survive content removal."""
+
+    def setUp(self):
+        super().setUp()
+        Phase.objects.create(
+            name='Explain', scenario=self.scenario,
+            created_by=self.owner, updated_by=self.owner,
+        )
+        self.proposal = ActivityProposal.objects.create(
+            scenario=self.scenario, phase=self.phase, activity=self.activity,
+            proposal_type='revise', suggested_action='{}', translated_action='{}',
+            json_action='{}', json_translated_action='{}',
+        )
+        self.review = UserProposalReview.objects.create(
+            proposal=self.proposal, user=self.owner, status='accepted',
+        )
+        self.lab = RemoteLabSession.objects.create(
+            activity=self.activity, phase=self.phase, scenario=self.scenario,
+            user=self.students[0], start=timezone.now(), end=timezone.now(),
+            lab_name='Pendulum', pre_duration=timedelta(seconds=5),
+            exec_duration=timedelta(seconds=30), mass='light', angle=20, iteration=1,
+        )
+
+    def test_activity_delete_keeps_proposals_reviews_and_lab_sessions(self):
+        self.client.post(reverse(
+            'deleteActivity', args=[self.scenario.id, self.phase.id, self.activity.id],
+        ))
+        self.proposal.refresh_from_db()
+        self.assertIsNone(self.proposal.activity_id)
+        self.assertEqual(self.proposal.detached_from['activity']['name'], 'Pendulum question')
+        self.assertTrue(UserProposalReview.objects.filter(pk=self.review.pk).exists())
+        self.lab.refresh_from_db()
+        self.assertIsNone(self.lab.activity_id)
+        self.assertEqual(self.lab.detached_from['activity']['name'], 'Pendulum question')
+
+    def test_phase_delete_keeps_proposals(self):
+        self.client.post(reverse('deletePhase', args=[self.scenario.id, self.phase.id]))
+        self.proposal.refresh_from_db()
+        self.assertIsNone(self.proposal.phase_id)
+        self.assertEqual(self.proposal.detached_from['activity']['phase'], 'Explore')
+
+    def test_detached_proposals_leave_the_review_list(self):
+        self.client.post(reverse(
+            'deleteActivity', args=[self.scenario.id, self.phase.id, self.activity.id],
+        ))
+        response = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_scenario_with_proposals_but_no_students_is_archived(self):
+        quiet = Scenario.objects.create(
+            name='Pooled only', created_by=self.owner, updated_by=self.owner,
+        )
+        quiet_phase = Phase.objects.create(
+            name='P', scenario=quiet, created_by=self.owner, updated_by=self.owner,
+        )
+        quiet_activity = Activity.objects.create(
+            name='Q', text='q', phase=quiet_phase, scenario=quiet,
+            activity_type=self.activity.activity_type,
+            created_by=self.owner, updated_by=self.owner,
+        )
+        ActivityProposal.objects.create(
+            scenario=quiet, phase=quiet_phase, activity=quiet_activity,
+            proposal_type='skip', suggested_action='{}', translated_action='{}',
+            json_action='{}', json_translated_action='{}',
+        )
+        self.client.post(reverse('deleteScenario', kwargs={'id': quiet.id}))
+        quiet.refresh_from_db()
+        self.assertIsNotNone(quiet.archived_at)

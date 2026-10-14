@@ -156,7 +156,7 @@ def help_time_chart(
         items = [
             (activity.id, activity.name)
             for activity in Activity.objects.filter(scenario=scenario)
-            .order_by('phase__created_on', 'phase_id', 'created_on', 'id')
+            .order_by('phase__order', 'phase_id', 'order', 'created_on', 'id')
         ]
         stats = totals['by_activity']
         participants = {

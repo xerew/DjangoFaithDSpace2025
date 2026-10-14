@@ -117,7 +117,7 @@ class Scenario(models.Model):
         ('translation', 'Official translation'),
         ('adaptation', 'Teacher adaptation'),
     ]
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     learning_goals = models.TextField(blank=True)
     description = models.TextField(blank=True)
     age_of_students = IntegerRangeField(blank=True, null=True)
@@ -219,6 +219,13 @@ class Scenario(models.Model):
         verbose_name = 'Scenario'
         verbose_name_plural = 'Scenarios'
         ordering = ['created_on']
+        constraints = [
+            # Two teachers may both have a "Pendulum"; one teacher may not.
+            models.UniqueConstraint(
+                fields=['created_by', 'name'],
+                name='unique_scenario_name_per_teacher',
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -273,7 +280,7 @@ class Scenario(models.Model):
                 'vr_ar_experiment',
             )
             .prefetch_related('answers')
-            .order_by('phase__created_on', 'phase_id', 'created_on', 'id')
+            .order_by('phase__order', 'phase_id', 'order', 'created_on', 'id')
         )
         activity_keys = {
             activity.id: str(activity.lineage_key)
@@ -284,7 +291,7 @@ class Scenario(models.Model):
             if activity.phase_id not in phase_ids:
                 phase_ids.append(activity.phase_id)
         for phase_id in (
-            self.phases.order_by('created_on', 'id')
+            self.phases.order_by('order', 'created_on', 'id')
             .values_list('id', flat=True)
         ):
             if phase_id not in phase_ids:
@@ -1377,6 +1384,12 @@ class ScenarioHealthProxy(Scenario):
         verbose_name_plural = 'Scenario Health Check'
 
 
+def next_order(siblings):
+    """Position after the last of the given siblings."""
+    last = siblings.aggregate(models.Max('order'))['order__max']
+    return 1 if last is None else last + 1
+
+
 class Phase(models.Model):
     name = models.CharField(max_length=255, null=False)
     description = models.TextField(blank=True, null=True)
@@ -1387,14 +1400,21 @@ class Phase(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     updated_by = models.ForeignKey('auth.User', on_delete=models.SET_DEFAULT, default=1, related_name='updated_phases')
     updated_on = models.DateTimeField(auto_now=True)
+    # Position chosen by the teacher; new phases go last.
+    order = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Phase'
         verbose_name_plural = 'Phases'
-        ordering = ['created_on']
+        ordering = ['order', 'created_on', 'id']
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.order is None:
+            self.order = next_order(Phase.objects.filter(scenario_id=self.scenario_id))
+        super().save(*args, **kwargs)
 
 class ActivityType(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
@@ -1575,11 +1595,23 @@ class Activity(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     updated_by = models.ForeignKey('auth.User', on_delete=models.SET_DEFAULT, default=1, related_name='updated_activities')
     updated_on = models.DateTimeField(auto_now=True)
+    # Position within the phase chosen by the teacher; new activities go last.
+    order = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Activity"
         verbose_name_plural = "Activities"
-        ordering = ['created_on']
+        ordering = ['order', 'created_on', 'id']
+
+    def save(self, *args, **kwargs):
+        if self.order is None:
+            siblings = (
+                Activity.objects.filter(phase_id=self.phase_id)
+                if self.phase_id
+                else Activity.objects.filter(scenario_id=self.scenario_id, phase__isnull=True)
+            )
+            self.order = next_order(siblings)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} Scenario {self.scenario.id}"
@@ -2129,7 +2161,8 @@ class UserAnswer(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True)
     answer = models.ForeignKey(Answer, on_delete=models.SET_NULL, null=True, blank=True)
-    detached_from = models.JSONField(default=dict, blank=True)
+    # Nullable: Rasa inserts answers with raw SQL that does not set it.
+    detached_from = models.JSONField(default=dict, null=True, blank=True)
     implementation = models.ForeignKey(
         ScenarioImplementation,
         null=True,
@@ -2339,6 +2372,7 @@ class PhetLabSessions(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False, default='Phet Default')
     user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True)
+    detached_from = models.JSONField(default=dict, null=True, blank=True)
     mass_1 = models.FloatField(null=True, blank=True)
     mass_2 = models.FloatField(null=True, blank=True)
     length_1 = models.FloatField(null=True, blank=True)
@@ -2364,6 +2398,7 @@ class RemoteLabSession(models.Model):
     phase = models.ForeignKey(Phase, on_delete=models.SET_NULL, null=True, blank=True, related_name='lab_sessions')
     scenario = models.ForeignKey(Scenario, on_delete=models.PROTECT, related_name='lab_sessions')
     user = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    detached_from = models.JSONField(default=dict, null=True, blank=True)
     start = models.DateTimeField()
     end = models.DateTimeField()
     lab_name = models.CharField(max_length=255)
@@ -2601,7 +2636,7 @@ def rebuild_q_values_for_context(flag_type, category, ALPHA=0.2):
             qv.save()
 
 class ProposalGenerationRun(models.Model):
-    scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposal_generation_runs')
+    scenario = models.ForeignKey('Scenario', on_delete=models.PROTECT, related_name='proposal_generation_runs')
     scenario_version = models.ForeignKey(
         'ScenarioVersion',
         null=True,
@@ -2679,12 +2714,23 @@ class ActivityProposal(models.Model):
         ('skip', 'Skip Activity'),
     ]
 
-    scenario = models.ForeignKey('Scenario', on_delete=models.CASCADE, related_name='proposals', db_index=True)
+    # Proposals and their teacher reviews are research data: they survive the
+    # removal of their activity or phase (detached, with a snapshot) and keep
+    # their scenario from being deleted (it is archived instead).
+    scenario = models.ForeignKey('Scenario', on_delete=models.PROTECT, related_name='proposals', db_index=True)
     generation_run = models.ForeignKey(
         'ProposalGenerationRun', on_delete=models.CASCADE, null=True, blank=True, related_name='proposals',
     )
-    phase = models.ForeignKey('Phase', on_delete=models.CASCADE, related_name='proposals')
-    activity = models.ForeignKey('Activity', on_delete=models.CASCADE, related_name='proposals')
+    phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='proposals')
+    activity = models.ForeignKey('Activity', on_delete=models.SET_NULL, null=True, blank=True, related_name='proposals')
+    detached_from = models.JSONField(default=dict, null=True, blank=True)
+    # How the proposal was produced (needed to reproduce and evaluate it).
+    llm_model = models.CharField(max_length=255, blank=True)
+    prompt_version = models.CharField(max_length=64, blank=True)
+    selection_policy = models.CharField(max_length=32, blank=True)
+    selection_probability = models.FloatField(null=True, blank=True)
+    action_probabilities = models.JSONField(default=dict, null=True, blank=True)
+    selection_contexts = models.JSONField(default=list, null=True, blank=True)
     flag = models.ManyToManyField('ActivityFlag', blank=True, related_name='proposals')
     categories_in_risk = models.ManyToManyField("CategoryTag", related_name='proposals')
     proposal_type = models.CharField(max_length=32, choices=PROPOSAL_TYPE_CHOICES)
@@ -2969,7 +3015,7 @@ class ProposalStructuralFailure(models.Model):
 
     scenario = models.ForeignKey(
         'Scenario',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='proposal_structural_failures',
     )
     generation_run = models.ForeignKey(

@@ -125,6 +125,40 @@ def _complete_implementation(cursor, implementation_id):
     )
 
 
+def _seconds_between(question_time, answered_at):
+    """Seconds since the question was shown, or None when unknown.
+
+    None (stored as NULL) keeps a missing timer out of time statistics,
+    where 0 would look like an instant answer.
+    """
+    if not question_time:
+        return None
+    try:
+        asked = datetime.strptime(question_time, "%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError):
+        return None
+    return max(int((answered_at - asked).total_seconds()), 0)
+
+
+def _answer_belongs_to_question(cursor, answer_id, question_id):
+    cursor.execute(
+        "SELECT 1 FROM authoringtool_answer WHERE id = %s AND activity_id = %s",
+        (answer_id, question_id),
+    )
+    return cursor.fetchone() is not None
+
+
+def _choose_an_option_message(dispatcher, locale):
+    if _is_greek(locale):
+        dispatcher.utter_message(
+            text="Διάλεξε μία από τις επιλογές αυτής της ερώτησης."
+        )
+    else:
+        dispatcher.utter_message(
+            text="Please choose one of the options for this question."
+        )
+
+
 def _can_reset_progress(cursor, user_id):
     """Only teachers and staff may wipe progress; students cannot restart."""
     cursor.execute(
@@ -394,16 +428,9 @@ class HandleAnswerAction(Action):
         question_id = tracker.get_slot("last_question_id")
         answer_id   = next(tracker.get_latest_entity_values("answer_id"), None)
 
-        # Timing — guard against missing slot
-        answer_time   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        question_time = tracker.get_slot("question_asked_time")
-        if question_time:
-            fmt = "%Y-%m-%d %H:%M:%S"
-            seconds_taken = (
-                datetime.strptime(answer_time, fmt) - datetime.strptime(question_time, fmt)
-            ).total_seconds()
-        else:
-            seconds_taken = 0
+        seconds_taken = _seconds_between(
+            tracker.get_slot("question_asked_time"), datetime.now(),
+        )
 
         conn = get_database_connection()
         try:
@@ -450,6 +477,11 @@ class HandleAnswerAction(Action):
                 if not question_id:
                     dispatcher.utter_message(text="Could not find current activity.")
                     return []
+
+            # Only an option of the current question may be recorded for it.
+            if answer_id and not _answer_belongs_to_question(cursor, answer_id, question_id):
+                _choose_an_option_message(dispatcher, user_locale)
+                return []
 
             # Record user answer
             cursor.execute(
@@ -864,16 +896,9 @@ class ActionConfirmRead(Action):
         user_locale = tracker.get_slot("locale") or \
                       tracker.latest_message.get('metadata', {}).get('scenario_lang', '')
 
-        # Timing — guard against missing slot
-        answer_time   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        question_time = tracker.get_slot("question_asked_time")
-        if question_time:
-            fmt = "%Y-%m-%d %H:%M:%S"
-            seconds_taken = (
-                datetime.strptime(answer_time, fmt) - datetime.strptime(question_time, fmt)
-            ).total_seconds()
-        else:
-            seconds_taken = 0
+        seconds_taken = _seconds_between(
+            tracker.get_slot("question_asked_time"), datetime.now(),
+        )
 
         conn = get_database_connection()
         try:

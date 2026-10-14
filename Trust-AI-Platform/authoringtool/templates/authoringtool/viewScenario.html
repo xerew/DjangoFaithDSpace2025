@@ -554,6 +554,18 @@
                       <i class="bi bi-eye"></i> View
                     </a>
                     {% if can_edit %}
+                    <form method="post" action="{% url 'move_phase' myScenario.id phase.id 'up' %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="ph-btn ph-btn-view" title="Move up" aria-label="Move {{ phase.name }} up"{% if forloop.first %} disabled{% endif %}>
+                        <i class="bi bi-arrow-up"></i>
+                      </button>
+                    </form>
+                    <form method="post" action="{% url 'move_phase' myScenario.id phase.id 'down' %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="ph-btn ph-btn-view" title="Move down" aria-label="Move {{ phase.name }} down"{% if forloop.last %} disabled{% endif %}>
+                        <i class="bi bi-arrow-down"></i>
+                      </button>
+                    </form>
                     <a href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=phase.id %}" class="ph-btn ph-btn-edit">
                       <i class="bi bi-pencil"></i> Edit
                     </a>

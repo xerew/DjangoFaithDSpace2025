@@ -146,7 +146,7 @@ class ScenarioExporter:
         # ── Phases ─────────────────────────────────────────────────────────
         ws_ph = wb['Phases']
         cols_ph = _col_map(ws_ph)
-        phases = list(s.phases.order_by('created_on'))
+        phases = list(s.phases.order_by('order', 'created_on', 'id'))
         for row_num, ph in enumerate(phases, start=2):
             _write_row(ws_ph, cols_ph, row_num, {
                 'Phase Name': ph.name,
@@ -167,7 +167,7 @@ class ScenarioExporter:
         cols_acts['Text HTML'] = html_col_idx
 
         activities = list(
-            s.activities.order_by('phase__created_on', 'created_on')
+            s.activities.order_by('phase__order', 'phase_id', 'order', 'created_on', 'id')
             .select_related('phase', 'activity_type', 'simulation', 'experiment_ll', 'vr_ar_experiment')
         )
 

@@ -15,6 +15,7 @@ from django.db.models import ProtectedError, Q
 from django.utils import timezone
 
 from .models import (
+    ActivityProposal,
     HelpRequest,
     PhetLabSessions,
     RemoteLabSession,
@@ -78,10 +79,11 @@ def _activity_snapshot(activity):
 
 
 def detach_student_evidence(activities=(), answers=(), removed_by=None):
-    """Snapshot what is about to be removed onto the answers that use it.
+    """Snapshot what is about to be removed onto the evidence that uses it.
 
-    Call just before deleting. The delete then sets the answers' foreign keys
-    to NULL and the answers themselves are kept.
+    Covers students' answers and lab sessions, and teachers' AI proposals
+    (with their reviews). Call just before deleting: the delete then sets the
+    foreign keys to NULL and the records themselves are kept.
     """
     stamp = {
         'detached_at': timezone.now().isoformat(),
@@ -89,6 +91,9 @@ def detach_student_evidence(activities=(), answers=(), removed_by=None):
     }
     for activity in activities:
         info = {**stamp, 'activity': _activity_snapshot(activity)}
+        ActivityProposal.objects.filter(activity=activity).update(detached_from=info)
+        RemoteLabSession.objects.filter(activity=activity).update(detached_from=info)
+        PhetLabSessions.objects.filter(activity=activity).update(detached_from=info)
         chosen = {a.id: _answer_snapshot(a) for a in activity.answers.all()}
         rows = UserAnswer.objects.filter(activity=activity)
         for answer_id in set(rows.values_list('answer_id', flat=True)):

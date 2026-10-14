@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load html_tags %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -26,7 +26,7 @@
               <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1a1a2e;">Hello {{ recipient.first_name|default:recipient.get_username }},</p>
               <h1 style="margin:22px 0 18px;font-size:22px;line-height:1.35;color:#012970;">{{ campaign.subject }}</h1>
               <div class="message-content" style="font-size:15px;color:#555;line-height:1.7;word-break:break-word;">
-                {{ campaign.body_html|safe }}
+                {{ campaign.body_html|clean_html }}
               </div>
             </td>
           </tr>

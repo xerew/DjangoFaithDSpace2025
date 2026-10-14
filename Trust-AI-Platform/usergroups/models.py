@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from authoringtool.models import Scenario
 from django.utils.crypto import get_random_string
 
+from .credentials import encrypt_initial_password, reveal_initial_password
+
 class UserGroup(models.Model):
     name = models.CharField(max_length=255)
     prefix = models.CharField(max_length=50)
@@ -31,7 +33,7 @@ class UserGroup(models.Model):
             password = self.generate_password()
             # Create the user and assign them to the group
             user = User.objects.create_user(username=username, password=password)
-            UserGroupMembership.objects.create(group=self, user=user, initial_password=password)  # Store initial password for Excel
+            UserGroupMembership.objects.create(group=self, user=user, initial_password=encrypt_initial_password(password))
 
     def generate_password(self):
         return get_random_string(8)  # Generates a random password of length 8
@@ -43,7 +45,12 @@ class UserGroup(models.Model):
 class UserGroupMembership(models.Model):
     group = models.ForeignKey(UserGroup, on_delete=models.CASCADE)
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Ensures a user can belong to one group only once
-    initial_password = models.CharField(max_length=128, blank=True, help_text="Initial assigned password for teacher export. Not updated when student changes password.")
+    # Encrypted (see usergroups.credentials); read it with reveal_initial_password().
+    initial_password = models.CharField(max_length=255, blank=True, help_text="Initial assigned password for teacher export, stored encrypted. Not updated when student changes password.")
+
+    @property
+    def password_plain(self):
+        return reveal_initial_password(self.initial_password)
 
     def __str__(self):
         return f"{self.user.username} in {self.group.name}"

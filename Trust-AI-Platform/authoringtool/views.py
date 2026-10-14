@@ -179,6 +179,26 @@ def analytics_task_status(request, task_id):
     return JsonResponse({'status': 'pending'})
 
 
+def user_can_edit_scenario(user, scenario):
+    """Owners and admins may edit a scenario; so may members of a sharing
+    organization when the owner allowed organization editing."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if is_admin_user(user) or scenario.created_by_id == user.id:
+        return True
+    return (
+        scenario.archived_at is None
+        and scenario.visibility_status == 'org'
+        and scenario.is_editable_by_org
+        and scenario.organizations.filter(members=user).exists()
+    )
+
+
+def user_manages_scenario(user, scenario):
+    """Sharing, deleting and restoring stay with the owner and admins."""
+    return is_admin_user(user) or scenario.created_by_id == user.id
+
+
 def user_can_generate_proposals(user, scenario):
     """Only the original creator and platform admins may generate proposals."""
     return (
@@ -610,17 +630,7 @@ def scenarios(request):
     # Process only the current page's scenarios for can_edit
     user_org_ids = set(request.user.member_of_organizations.values_list('id', flat=True))
     for scenario in page_obj:
-        scenario.can_edit = False
-        if is_admin_user(request.user):
-            scenario.can_edit = True
-        if scenario.visibility_status == 'private' and scenario.created_by == request.user:
-            scenario.can_edit = True
-        elif scenario.visibility_status == 'org':
-            scenario_org_ids = set(scenario.organizations.values_list('id', flat=True))
-            if user_org_ids & scenario_org_ids and scenario.is_editable_by_org:
-                scenario.can_edit = True
-        elif scenario.visibility_status == 'public' and scenario.created_by == request.user:
-            scenario.can_edit = True
+        scenario.can_edit = user_can_edit_scenario(request.user, scenario)
 
     # Get distinct languages for the filter dropdown
     languages = Scenario.objects.values_list('language', flat=True).distinct().order_by('language')
@@ -663,8 +673,8 @@ def createScenario(request):
 def createScenarioData(request):
     name = request.POST.get('name')
     # Check if a scenario with the same name already exists
-    if Scenario.objects.filter(name=name).exists():
-        messages.error(request, 'A scenario with this name already exists.')
+    if Scenario.objects.filter(name=name, created_by=request.user).exists():
+        messages.error(request, 'A scenario with this name already exists among your scenarios.')
         return HttpResponseRedirect(reverse('createScenario'))  
 
     learning_goals = request.POST.get('learning_goals')
@@ -685,7 +695,8 @@ def createScenarioData(request):
                            age_of_students=age_of_students_range, subject_domains=subject_domains,
                            language=language, suggested_learning_time=suggested_learning_time,
                            image=image, visibility_status='private',
-                           is_editable_by_org=False, created_by=created_by)
+                           is_editable_by_org=False, created_by=created_by,
+                           updated_by=created_by)
     newScenario.save()
     selected_subject_ids = request.POST.getlist('subjects')
     newScenario.subjects.set(selected_subject_ids)
@@ -697,8 +708,8 @@ def createScenarioData(request):
 @group_required('teachers')
 def updateScenario(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
-    if updateScenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, updateScenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     scenario_min_age = updateScenario.age_of_students.lower if updateScenario.age_of_students else None
     scenario_max_age = updateScenario.age_of_students.upper if updateScenario.age_of_students else None
     # Get the organizations the user is a member of
@@ -706,6 +717,7 @@ def updateScenario(request, id):
     template = loader.get_template('authoringtool/updateScenario.html')
     context = {
         'Scenario': updateScenario,
+        'can_manage_sharing': user_manages_scenario(request.user, updateScenario),
         'min_age': scenario_min_age,
         'max_age': scenario_max_age,
         'user_organizations': user_organizations,
@@ -726,11 +738,8 @@ def updateScenario(request, id):
 @group_required('teachers')
 def begin_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if (
-        scenario.created_by != request.user
-        and not is_admin_user(request.user)
-    ):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     if not getattr(settings, 'SCENARIO_REVISION_PROTECTION', False):
         messages.info(
             request,
@@ -757,11 +766,8 @@ def begin_scenario_revision(request, scenario_id):
 @group_required('teachers')
 def publish_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if (
-        scenario.created_by != request.user
-        and not is_admin_user(request.user)
-    ):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     if not hasattr(scenario, 'revision_draft'):
         messages.error(request, 'This scenario has no revision draft.')
         return HttpResponseRedirect(
@@ -797,26 +803,35 @@ def publish_scenario_revision(request, scenario_id):
 @group_required('teachers')
 def updateScenarioData(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
-    if updateScenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, updateScenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, updateScenario)
     if blocked:
         return blocked
-    visibility = request.POST.get('visibility')
+    manages_sharing = user_manages_scenario(request.user, updateScenario)
+    visibility = (
+        request.POST.get('visibility') if manages_sharing
+        else updateScenario.visibility_status
+    )
     
     # Check if the visibility is 'org' and no organizations are selected
     selected_org_ids = request.POST.getlist('organizations')
-    if visibility == 'org' and not selected_org_ids:
+    if manages_sharing and visibility == 'org' and not selected_org_ids:
         messages.error(request, 'You must select at least one organization if the visibility is set to Organization.')
         return HttpResponseRedirect(reverse('updateScenario', args=[id]))
     
     name = request.POST.get('name')
-    if Scenario.objects.filter(name=name).exclude(pk=id).exists():
+    if Scenario.objects.filter(
+        name=name, created_by=updateScenario.created_by,
+    ).exclude(pk=id).exists():
         messages.error(request, 'A scenario with this name already exists.')
         return HttpResponseRedirect(reverse('updateScenario', args=[id])) 
     learning_goals = request.POST.get('learning_goals')
     # visibility = request.POST.get('visibility')
-    editable = request.POST.get('is_editable_by_org') == 'on'
+    editable = (
+        request.POST.get('is_editable_by_org') == 'on' if manages_sharing
+        else updateScenario.is_editable_by_org
+    )
     description = request.POST.get('description')
     age_of_students_start = request.POST.get('min_age')
     print(age_of_students_start)
@@ -849,8 +864,10 @@ def updateScenarioData(request, id):
         and updateScenario.family.canonical_scenario_id == updateScenario.id
     ):
         updateScenario.family.subjects.set(updateScenario.subjects.all())
-    # Handle organization visibility
-    if visibility == 'org':
+    # Handle organization visibility (owner and admins only)
+    if not manages_sharing:
+        pass
+    elif visibility == 'org':
         selected_organizations = request.POST.getlist('organizations')
         updateScenario.organizations.set(selected_organizations)
     else:
@@ -861,8 +878,8 @@ def updateScenarioData(request, id):
 @group_required('teachers')
 def deleteScenario(request, id):
     scenario = get_object_or_404(Scenario, id=id, archived_at__isnull=True)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_manages_scenario(request.user, scenario):
+        return HttpResponseForbidden("Only the scenario owner can do this.")
     if request.method != 'POST':
         impact = scenario_impact(scenario)
         warning = ''
@@ -907,8 +924,8 @@ def archived_scenarios(request):
 @group_required('teachers')
 def restore_scenario(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id, archived_at__isnull=False)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_manages_scenario(request.user, scenario):
+        return HttpResponseForbidden("Only the scenario owner can do this.")
     restore_scenario_record(scenario)
     messages.success(request, f'“{scenario.name}” was restored.')
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario.id]))
@@ -935,15 +952,20 @@ def viewScenario(request, id):
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
-    can_edit = False
-    if is_admin_user(request.user) or myScenario.created_by == request.user:
-        can_edit = True
-    elif myScenario.visibility_status == 'org' and myScenario.is_editable_by_org:
-        if myScenario.organizations.filter(members=request.user).exists():
-            can_edit = True
+    can_edit = user_can_edit_scenario(request.user, myScenario)
 
     # ⬇️ Handle PDF upload for RAG
     if request.method == "POST" and request.FILES.get('rag_pdf'): # 2026
+        if not can_edit:
+            return HttpResponseForbidden("You cannot edit this scenario.")
+        uploaded_pdf = request.FILES['rag_pdf']
+        if (
+            not uploaded_pdf.name.lower().endswith('.pdf')
+            or uploaded_pdf.read(5) != b'%PDF-'
+        ):
+            messages.error(request, 'Only PDF files can be uploaded.')
+            return HttpResponseRedirect(reverse('viewScenario', args=[id]))
+        uploaded_pdf.seek(0)
         rag_folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
         os.makedirs(rag_folder, exist_ok=True)
         uploaded_file = request.FILES['rag_pdf']
@@ -1151,6 +1173,8 @@ def delete_rag_pdf(request, scenario_id, filename):
 @group_required('teachers')
 def createPhase(request, id):
     scenario = get_object_or_404(Scenario, id=id)
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     context = {'scenario_id': id, 'myScenario': scenario}
     return render(request, 'authoringtool/createPhase.html', context)
 
@@ -1159,10 +1183,11 @@ def createPhaseData(request, id):
     name = request.POST.get('name')
     description = request.POST.get('description')
     image = request.FILES.get('image_upload')
-    scenario = request.POST.get('scenario_id')
     created_by = request.user
 
-    scenario_instance = get_object_or_404(Scenario, id=scenario)
+    scenario_instance = get_object_or_404(Scenario, id=id)
+    if not user_can_edit_scenario(request.user, scenario_instance):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1182,8 +1207,8 @@ def createPhaseData(request, id):
 def updatePhase(request, scenario_id, phase_id):
     updatePhase = get_object_or_404(Phase, id=phase_id)
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     template = loader.get_template('authoringtool/updatePhase.html')
     context = {
         'Phase': updatePhase,
@@ -1195,8 +1220,8 @@ def updatePhase(request, scenario_id, phase_id):
 @group_required('teachers')
 def updatePhaseData(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1216,8 +1241,8 @@ def updatePhaseData(request, scenario_id, phase_id):
 @group_required('teachers')
 def deletePhase(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1257,13 +1282,8 @@ def viewPhase(request, scenario_id, phase_id):
         return HttpResponseForbidden("You cannot view this scenario.")
     myPhase = get_object_or_404(Phase, id=phase_id, scenario=myScenario)
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
-    can_edit = False
-    if is_admin_user(request.user) or myScenario.created_by == request.user:
-        can_edit = True
-    elif myScenario.visibility_status == 'org' and myScenario.is_editable_by_org:
-        if myScenario.organizations.filter(members=request.user).exists():
-            can_edit = True
-    activities = Activity.objects.filter(phase=phase_id).order_by('id')
+    can_edit = user_can_edit_scenario(request.user, myScenario)
+    activities = Activity.objects.filter(phase=phase_id).order_by('order', 'id')
     # scenarioPhases = Phase.objects.filter(scenario=id) # Me
     template = loader.get_template('authoringtool/viewPhase.html')
     context = {
@@ -1278,7 +1298,9 @@ def viewPhase(request, scenario_id, phase_id):
 @group_required('teachers')
 def createActivity(request, scenario_id, phase_id):
     activityTypes = ActivityType.objects.all()
-    scenario = Scenario.objects.get(id=scenario_id)
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     phase = Phase.objects.get(id=phase_id)
     simulations = Simulation.objects.all()
     # Fetch LabsLand experiments from the ExperimentLL model
@@ -1288,12 +1310,12 @@ def createActivity(request, scenario_id, phase_id):
     # linked_activities = NextQuestionLogic.objects.values_list('next_activity', flat=True)
     eligible_activities = Activity.objects.select_related('phase').filter(
         scenario=scenario_id
-    ).order_by('phase__created_on', 'created_on')
+    ).order_by('phase__order', 'phase_id', 'order', 'id')
     # eval_activities: current phase + later phases only (for evaluation multi-picker)
     eval_activities = Activity.objects.select_related('phase').filter(
         scenario=scenario_id,
         phase__created_on__gte=phase.created_on
-    ).order_by('phase__created_on', 'created_on')
+    ).order_by('phase__order', 'phase_id', 'order', 'id')
     context = {
         'activityTypes': activityTypes,
         'myScenario': scenario,
@@ -1323,11 +1345,8 @@ def createActivityData(request, scenario_id, phase_id):
     experiment_type = request.POST.get('experiment_type')  # Get the experiment type
     
     scenario_instance = get_object_or_404(Scenario, id=scenario_id)
-    if (
-        scenario_instance.created_by != request.user
-        and not is_admin_user(request.user)
-    ):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario_instance):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1412,8 +1431,8 @@ def createActivityData(request, scenario_id, phase_id):
 @group_required('teachers')
 def updateActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     updateActivity = Activity.objects.get(id=activity_id)
     scenario = Scenario.objects.get(id=scenario_id)
     phase = Phase.objects.get(id=phase_id)
@@ -1455,12 +1474,12 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
         next_activity_data = None
     eligible_activities = Activity.objects.select_related('phase').filter(
         scenario=scenario_id
-    ).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
+    ).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
     # eval_activities: current phase + later phases only (for evaluation multi-picker)
     eval_activities = Activity.objects.select_related('phase').filter(
         scenario=scenario_id,
         phase__created_on__gte=phase.created_on
-    ).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
+    ).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
     template = loader.get_template('authoringtool/updateActivity.html')
     context = {
         'Activity': updateActivity,
@@ -1486,8 +1505,8 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def updateActivityData(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1630,8 +1649,8 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def deleteActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1661,13 +1680,48 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
 
+def _swap_with_neighbour(item, siblings, direction):
+    """Move item one place up or down among its ordered siblings."""
+    ordered = list(siblings.order_by('order', 'created_on', 'id'))
+    index = next(i for i, sibling in enumerate(ordered) if sibling.pk == item.pk)
+    target = index - 1 if direction == 'up' else index + 1
+    if 0 <= target < len(ordered):
+        ordered[index], ordered[target] = ordered[target], ordered[index]
+        with transaction.atomic():
+            for position, sibling in enumerate(ordered, start=1):
+                if sibling.order != position:
+                    type(sibling).objects.filter(pk=sibling.pk).update(order=position)
+
+
+@require_POST
+@group_required('teachers')
+def move_phase(request, scenario_id, phase_id, direction):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
+    phase = get_object_or_404(Phase, id=phase_id, scenario=scenario)
+    _swap_with_neighbour(phase, Phase.objects.filter(scenario=scenario), direction)
+    return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
+
+
+@require_POST
+@group_required('teachers')
+def move_activity(request, scenario_id, phase_id, activity_id, direction):
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
+    activity = get_object_or_404(Activity, id=activity_id, scenario=scenario, phase_id=phase_id)
+    _swap_with_neighbour(activity, Activity.objects.filter(phase_id=phase_id), direction)
+    return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
+
+
 @require_POST
 @group_required('teachers')
 def set_start_activity(request, scenario_id, activity_id):
     """Make an activity the one new students begin the scenario with."""
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     activity = get_object_or_404(Activity, id=activity_id, scenario=scenario)
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
@@ -1713,12 +1767,7 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
     myActivity = get_object_or_404(Activity, id=activity_id, scenario=myScenario)
     next_activity_logic = NextQuestionLogic.objects.filter(activity=activity_id).first()
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
-    can_edit = False
-    if is_admin_user(request.user) or myScenario.created_by == request.user:
-        can_edit = True
-    elif myScenario.visibility_status == 'org' and myScenario.is_editable_by_org:
-        if myScenario.organizations.filter(members=request.user).exists():
-            can_edit = True
+    can_edit = user_can_edit_scenario(request.user, myScenario)
     myPhase = Phase.objects.get(id=phase_id)
     
     # Initialize experiment instances as None
@@ -1794,11 +1843,8 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
     if request.method == 'POST':
         activity = Activity.objects.get(id=activity_id)
         scenario = activity.scenario
-        if (
-            scenario.created_by != request.user
-            and not is_admin_user(request.user)
-        ):
-            return HttpResponseForbidden("You don't own this scenario.")
+        if not user_can_edit_scenario(request.user, scenario):
+            return HttpResponseForbidden("You cannot edit this scenario.")
         blocked = authoring_revision_guard(request, scenario)
         if blocked:
             return blocked
@@ -1866,8 +1912,8 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1904,8 +1950,8 @@ def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
 def updateAnswers(request, scenario_id, phase_id, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
     scenario = activity.scenario
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     all_activities_in_scenario = Activity.objects.filter(scenario=scenario_id) # ME
     # current_next_activity = NextQuestionLogic.objects.filter(activity=activity).values_list('next_activity', flat=True) # ME
     # ineligible_activity_ids = NextQuestionLogic.objects.exclude(next_activity__in=current_next_activity).values_list('next_activity', flat=True) # ME
@@ -2014,12 +2060,14 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
 
 @group_required('teachers')
 def createCriterion(request, scenario_id, phase_id, activity_id):
-    activityPrimary = Activity.objects.get(id=activity_id)
+    if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
+        return HttpResponseForbidden("You cannot edit this scenario.")
+    activityPrimary = get_object_or_404(Activity, id=activity_id, scenario_id=scenario_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activity_id).first()
     myScenario = Scenario.objects.get(id=scenario_id)
     myPhase = Phase.objects.get(id=phase_id)
 
-    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
+    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
     
     context = {
         'myScenario': myScenario,
@@ -2034,8 +2082,8 @@ def createCriterion(request, scenario_id, phase_id, activity_id):
 def createCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     scenario = activityPrimary.scenario
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -2095,11 +2143,13 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
 
 @group_required('teachers')
 def updateCriterion(request, scenario_id, phase_id, activity_id):
-    activityPrimary = Activity.objects.get(id=activity_id)
+    if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
+        return HttpResponseForbidden("You cannot edit this scenario.")
+    activityPrimary = get_object_or_404(Activity, id=activity_id, scenario_id=scenario_id)
     myScenario = Scenario.objects.get(id=scenario_id)
     myPhase = Phase.objects.get(id=phase_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activityPrimary.id).first()
-    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__created_on', 'created_on')
+    eligible_activities = Activity.objects.select_related('phase').filter(scenario=scenario_id).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
     context_creation = {
         'myScenario': myScenario,
         'myPhase': myPhase, 
@@ -2133,8 +2183,8 @@ def updateCriterion(request, scenario_id, phase_id, activity_id):
 def updateCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     scenario = activityPrimary.scenario
-    if scenario.created_by != request.user and not is_admin_user(request.user):
-        return HttpResponseForbidden("You don't own this scenario.")
+    if not user_can_edit_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot edit this scenario.")
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -2487,7 +2537,7 @@ def duplicate_scenario(request, scenario_id):
         
         # Check if scenario with the new name already exists and modify the name if needed
         counter = 1
-        while Scenario.objects.filter(name=new_scenario_name).exists():
+        while Scenario.objects.filter(name=new_scenario_name, created_by=user).exists():
             new_scenario_name = f"{new_scenario_name_base} {counter}"
             counter += 1
         
@@ -2522,6 +2572,7 @@ def duplicate_scenario(request, scenario_id):
                 name=phase.name,
                 description=phase.description,
                 image=phase.image,
+                order=phase.order,
                 scenario=new_scenario,
                 created_by=user,
                 updated_by=user
@@ -2537,6 +2588,7 @@ def duplicate_scenario(request, scenario_id):
                 incorrect_count=activity.incorrect_count,
                 is_evaluatable=activity.is_evaluatable,
                 is_primary_ev=activity.is_primary_ev,
+                order=activity.order,
                 must_wait=activity.must_wait,
                 score_limit=activity.score_limit,
                 scenario=new_scenario,
@@ -2883,19 +2935,14 @@ def ai_metrics(request, scenario_id):
     if not user_can_view_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot view this scenario.")
 
-    can_edit = False
-    if is_admin_user(request.user) or scenario.created_by == request.user:
-        can_edit = True
-    elif getattr(scenario, 'visibility_status', None) == 'org' and getattr(scenario, 'is_editable_by_org', False):
-        if scenario.organizations.filter(members=request.user).exists():
-            can_edit = True
+    can_edit = user_can_edit_scenario(request.user, scenario)
     can_generate_proposals = user_can_generate_proposals(
         request.user,
         scenario,
     )
 
     phases_data = []
-    for phase in Phase.objects.filter(scenario=scenario).order_by('id'):
+    for phase in Phase.objects.filter(scenario=scenario).order_by('order', 'id'):
         primaries = Activity.objects.filter(
             phase=phase,
             is_evaluatable=True,
@@ -3339,7 +3386,8 @@ def proposal_list_view(request, scenario_id):
 
     # Scenario-only mode includes every saved proposal for this scenario,
     # including older versions, archived runs, and proposals without a run.
-    proposals = ActivityProposal.objects.filter(scenario=myScenario)
+    # Proposals whose activity was removed are kept for research, not review.
+    proposals = ActivityProposal.objects.filter(scenario=myScenario, activity__isnull=False)
     if myScenario.family_pooling_enabled:
         proposals = proposals.filter(
             generation_run=current_generation_run,
@@ -3458,6 +3506,7 @@ def accept_proposal(request, pk, scenario_id):
         ActivityProposal,
         pk=pk,
         scenario_id=scenario_id,
+        activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
         return HttpResponseForbidden("You cannot review this scenario.")
@@ -3515,6 +3564,7 @@ def reject_proposal(request, pk, scenario_id):
         ActivityProposal,
         pk=pk,
         scenario_id=scenario_id,
+        activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
         return HttpResponseForbidden("You cannot review this scenario.")
@@ -3545,6 +3595,7 @@ def reset_proposal_review(request, pk, scenario_id):
         ActivityProposal,
         pk=pk,
         scenario_id=scenario_id,
+        activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
         return HttpResponseForbidden("You cannot review this scenario.")
@@ -3595,6 +3646,7 @@ def edit_proposal_json(request, scenario_id, pk):
         ActivityProposal,
         pk=pk,
         scenario_id=scenario_id,
+        activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
         return HttpResponseForbidden("You cannot review this scenario.")

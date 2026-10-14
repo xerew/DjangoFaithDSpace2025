@@ -271,6 +271,14 @@ class StudentMetricsPseudonymisationTests(TestCase):
         self.assertNotIn(self.other_student.username, content)
         self.assertEqual(len(rows), 2)
 
+    def test_pseudonymised_rows_show_only_the_start_date(self):
+        _, rows = self.rows([self.own_student.id])
+        by_name = {row['Username']: row for row in rows}
+        named_start = by_name[self.own_student.username]['Phase 1 Start Time']
+        hidden_start = by_name['Student 1']['Phase 1 Start Time']
+        self.assertRegex(named_start, r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
+        self.assertRegex(hidden_start, r'^\d{4}-\d{2}-\d{2}$')
+
     def test_everyone_is_named_when_no_restriction_is_given(self):
         content, rows = self.rows(None)
         self.assertEqual(

@@ -217,6 +217,17 @@ RAG_PDFS_URL = os.getenv("RAG_PDFS_URL", "/rag_pdfs/")
 RASA_WEBHOOK_URL = os.getenv("RASA_WEBHOOK_URL", "http://rasa:5005/webhooks/rest/webhook")
 RASA_TIMEOUT_SECONDS = int(os.getenv("RASA_TIMEOUT_SECONDS", "60"))
 
+# Fernet key for the initial student passwords teachers download (see
+# usergroups/credentials.py). Generate one with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+STUDENT_CREDENTIALS_KEY = os.getenv("STUDENT_CREDENTIALS_KEY", "")
+
+# LLMs used to generate AI proposals. Recorded on every proposal, so a change
+# here (or a prompt change, see PROPOSAL_PROMPT_VERSION in tasks.py) is traceable.
+LLM_PROPOSAL_MODEL = os.getenv("LLM_PROPOSAL_MODEL", "qwen3.6:35b")
+LLM_IMAGE_DESCRIPTION_MODEL = os.getenv("LLM_IMAGE_DESCRIPTION_MODEL", "gemma3:4b")
+LLM_TRANSLATION_MODEL = os.getenv("LLM_TRANSLATION_MODEL", "aya-expanse:32b")
+
 AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
 AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")
 

@@ -68,6 +68,7 @@ from langchain.chains import RetrievalQA
 import chromadb
 import glob
 import random
+from dataclasses import dataclass, field
 import math
 from django.db import transaction
 import shutil, errno, stat
@@ -175,7 +176,7 @@ def compute_sankey_data(scenario_id, group_ids, start_date, end_date):
     start_date = start_date
     end_date = end_date
 
-    phases = Phase.objects.filter(scenario=scenario).order_by('id')
+    phases = Phase.objects.filter(scenario=scenario).order_by('order', 'id')
     
     nodes = []
     links = []
@@ -366,7 +367,7 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     start_date = start_date
     end_date = end_date
 
-    phases = Phase.objects.filter(scenario=scenario).order_by('id')
+    phases = Phase.objects.filter(scenario=scenario).order_by('order', 'id')
     
     # Define the weights for each phase in the order they come
     phase_weights = [0.2, 0.2, 0.45, 0.15]
@@ -600,7 +601,7 @@ def compute_activity_answers_data(scenario_id, group_ids, start_date, end_date, 
             
     else:
         # Now we're focusing on phases
-        phases = Phase.objects.filter(scenario=scenario).order_by('id')
+        phases = Phase.objects.filter(scenario=scenario).order_by('order', 'id')
 
         for phase in phases:
             data['categories'].append(phase.name)
@@ -1184,7 +1185,7 @@ def compute_time_spent_by_performer_type(scenario_id, group_ids, start_date, end
     start_dt = _date_to_aware(_sd) if _sd else None
     end_dt = _date_to_aware(_ed) if _ed else None
 
-    phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('order', 'id'))
 
     # ── 1. Build student user ID set (same logic as before) ────────────────
     if group_ids:
@@ -1547,13 +1548,13 @@ def _compute_compatible_category_metrics_data(
 ):
     """Aggregate structurally compatible evidence by activity lineage."""
     target_phases = list(
-        Phase.objects.filter(scenario=scenario).order_by('created_on', 'id')
+        Phase.objects.filter(scenario=scenario).order_by('order', 'created_on', 'id')
     )
     target_activities = list(
         Activity.objects
         .filter(scenario=scenario, phase__isnull=False)
         .select_related('phase', 'activity_type')
-        .order_by('phase__created_on', 'phase_id', 'created_on', 'id')
+        .order_by('phase__order', 'phase_id', 'order', 'created_on', 'id')
     )
     target_by_lineage = {
         activity.lineage_key: activity
@@ -1862,7 +1863,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     """Per-student CSV. When named_user_ids is given, every other student is
     listed without an ID under a pseudonym ("Student 1", "Student 2", ...)."""
     scenario = get_object_or_404(Scenario, id=scenario_id)
-    phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('order', 'id'))
 
     phase_weights = [0.2, 0.2, 0.45, 0.15]
     if len(phases) > 4:
@@ -1967,11 +1968,12 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     named_ids = None if named_user_ids is None else set(named_user_ids)
     pseudonym_count = 0
     for user in valid_users:
-        if named_ids is None or user.id in named_ids:
-            row = [user.id, user.username, scenario.name]
-        else:
+        pseudonymised = named_ids is not None and user.id not in named_ids
+        if pseudonymised:
             pseudonym_count += 1
             row = ['', f'Student {pseudonym_count}', scenario.name]
+        else:
+            row = [user.id, user.username, scenario.name]
         total_weighted_score = 0
         total_max_weighted_score = 0
 
@@ -2019,7 +2021,11 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
 
             row.extend([
                 phase_categorization,
-                phase_start_time.strftime('%Y-%m-%d %H:%M:%S') if phase_start_time else '',
+                phase_start_time.strftime(
+                    # only the day for pseudonymised students: exact times
+                    # could identify them
+                    '%Y-%m-%d' if pseudonymised else '%Y-%m-%d %H:%M:%S'
+                ) if phase_start_time else '',
                 phase_total_time,
                 phase_total_score,
                 help['by_user_phase'].get((user.id, phase.id), 0),
@@ -2167,7 +2173,7 @@ def compute_category_metrics_per_phase_activity(
             "evidence_language": evidence_language,
         }
 
-    phases = list(Phase.objects.filter(scenario=scenario).order_by('id'))
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('order', 'id'))
     last_answers = get_last_answers(
         scenario_id,
         evidence_scope,
@@ -3004,16 +3010,19 @@ def get_phase_based_prior_summary(activity):
     """
     scenario = activity.phase.scenario
     # 1. Get all phases in order
-    phases = Phase.objects.filter(scenario=scenario).order_by('id')  # or 'order' if you have one
+    phases = list(Phase.objects.filter(scenario=scenario).order_by('order', 'id'))
+    phase_ids = [phase.id for phase in phases]
     summary_lines = []
 
     for phase in phases:
         # If we haven't reached this activity's phase yet, dump whole phase
-        if phase.id < activity.phase.id:
-            acts = Activity.objects.filter(phase=phase).order_by('created_on', 'id')
+        if phase_ids.index(phase.id) < phase_ids.index(activity.phase_id):
+            acts = Activity.objects.filter(phase=phase).order_by('order', 'id')
         # If this is the same phase, only include those before the activity
-        elif phase.id == activity.phase.id:
-            acts = Activity.objects.filter(phase=phase, id__lt=activity.id).order_by('created_on', 'id')
+        elif phase.id == activity.phase_id:
+            acts = Activity.objects.filter(phase=phase).filter(
+                Q(order__lt=activity.order) | Q(order=activity.order, id__lt=activity.id)
+            ).order_by('order', 'id')
         else:
             break
 
@@ -3293,6 +3302,115 @@ def _select_contextual_bandit_action(contexts):
     if configuration.policy == "ucb":
         return _select_ucb_action(contexts, rows, configuration)
     return _select_thompson_action(contexts, rows, configuration)
+
+# Bump when the proposal prompt or schema changes, so analyses can tell
+# proposals produced by different prompts apart.
+PROPOSAL_PROMPT_VERSION = '2026-10-14'
+PROPOSAL_TEMPERATURE = 0.2
+_THOMPSON_PROBABILITY_DRAWS = 2000
+
+
+@dataclass
+class BanditDecision:
+    """The chosen action and the probability the policy gave it.
+
+    The probability (propensity) is what makes logged proposals usable for
+    off-policy evaluation of other bandit policies.
+    """
+    action: str
+    policy: str
+    probabilities: dict
+    contexts: list = field(default_factory=list)
+
+    @property
+    def probability(self):
+        return self.probabilities.get(self.action)
+
+
+def _weighted_probabilities(configuration=None, allowed_actions=None):
+    weights = _configured_action_weights(configuration)
+    if allowed_actions is not None:
+        weights = tuple((a, w) for a, w in weights if a in set(allowed_actions))
+    total = sum(w for _, w in weights)
+    if total <= 0:
+        actions = [a for a, _ in weights] or list(ACTIONS)
+        return {a: 1 / len(actions) for a in actions}
+    return {a: w / total for a, w in weights}
+
+
+def _thompson_probabilities(contexts, rows, configuration):
+    """Monte Carlo estimate of how often each action wins a Thompson draw.
+
+    Uses its own random generator so it never disturbs the draw that
+    actually chose the action.
+    """
+    rng = random.Random()
+    prior_alpha = max(0.0001, configuration.thompson_prior_alpha)
+    prior_beta = max(0.0001, configuration.thompson_prior_beta)
+    params = {}
+    for action in ACTIONS:
+        params[action] = []
+        for flag_type, category in contexts:
+            row = rows.get((flag_type, category, action))
+            params[action].append((
+                prior_alpha + (row.positive_reward_count if row else 0),
+                prior_beta + (row.negative_reward_count if row else 0),
+            ))
+    wins = {action: 0 for action in ACTIONS}
+    for _ in range(_THOMPSON_PROBABILITY_DRAWS):
+        scores = {
+            action: sum(rng.betavariate(a, b) for a, b in params[action])
+            for action in ACTIONS
+        }
+        wins[max(scores, key=scores.get)] += 1
+    return {action: wins[action] / _THOMPSON_PROBABILITY_DRAWS for action in ACTIONS}
+
+
+def choose_proposal_action(flag_list):
+    """Pick create/revise/skip for a flagged activity and log the propensity."""
+    contexts = {(flag.flag_type, flag.category) for flag in flag_list}
+    logged_contexts = sorted([list(context) for context in contexts])
+    configuration = _get_bandit_policy_configuration()
+    action = _select_contextual_bandit_action(list(contexts))
+    if not contexts:
+        return BanditDecision(action, 'weighted_exploration',
+                              _weighted_probabilities(configuration), logged_contexts)
+    rows = _context_rows(contexts)
+    rewards = {
+        context: sum(
+            row.reward_count for (f, c, _), row in rows.items() if (f, c) == context
+        )
+        for context in contexts
+    }
+    if any(count < configuration.minimum_context_rewards for count in rewards.values()):
+        return BanditDecision(action, 'weighted_exploration',
+                              _weighted_probabilities(configuration), logged_contexts)
+    if configuration.policy == 'ucb':
+        untried = {
+            a for (f, c) in contexts for a in ACTIONS
+            if not rows.get((f, c, a)) or rows[(f, c, a)].reward_count == 0
+        }
+        if untried:
+            return BanditDecision(action, 'ucb_untried_exploration',
+                                  _weighted_probabilities(configuration, untried),
+                                  logged_contexts)
+        return BanditDecision(action, 'ucb', {action: 1.0}, logged_contexts)
+    return BanditDecision(action, 'thompson',
+                          _thompson_probabilities(contexts, rows, configuration),
+                          logged_contexts)
+
+
+def proposal_provenance(decision):
+    """Fields stored on ActivityProposal describing how it was produced."""
+    return {
+        'llm_model': settings.LLM_PROPOSAL_MODEL,
+        'prompt_version': PROPOSAL_PROMPT_VERSION,
+        'selection_policy': decision.policy,
+        'selection_probability': decision.probability,
+        'action_probabilities': decision.probabilities,
+        'selection_contexts': decision.contexts,
+    }
+
 
 def select_action(flag_type, category):
     return _select_contextual_bandit_action([(flag_type, category)])
@@ -3632,14 +3750,14 @@ def request_validated_proposal(
             response = requests.post(
                 f"{OLLAMA_URL}/api/generate",
                 json={
-                    "model": "qwen3.6:35b",
+                    "model": settings.LLM_PROPOSAL_MODEL,
                     "prompt": prompt + correction,
                     "format": schema,
                     # qwen3.6 otherwise places schema-constrained JSON in the
                     # Ollama envelope's `thinking` field and leaves `response`
                     # empty. Disabling thinking returns the JSON as response.
                     "think": False,
-                    "options": {"temperature": 0.2},
+                    "options": {"temperature": PROPOSAL_TEMPERATURE},
                     "stream": False,
                 },
             )
@@ -3735,7 +3853,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         if m:
             try:
                 payload = {
-                    "model":  "gemma3:4b",
+                    "model":  settings.LLM_IMAGE_DESCRIPTION_MODEL,
                     "prompt": "Describe this image as a teacher would, focusing on what students should notice.",
                     "images": [m.group(1)],
                     "stream": False
@@ -3758,7 +3876,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen3.6:35b",
+                "model":  settings.LLM_PROPOSAL_MODEL,
                 "prompt": prompt,
                 "stream": False
             })
@@ -3775,7 +3893,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen3.6:35b",
+                "model":  settings.LLM_PROPOSAL_MODEL,
                 "prompt": sum_prompt,
                 "stream": False
             })
@@ -3802,7 +3920,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen3.6:35b",
+                "model":  settings.LLM_PROPOSAL_MODEL,
                 "prompt": big_prompt,
                 "stream": False
             })
@@ -3828,7 +3946,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         )
         try:
             resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  "qwen3.6:35b",
+                "model":  settings.LLM_PROPOSAL_MODEL,
                 "prompt": prompt,
                 "stream": False
             })
@@ -3857,7 +3975,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             )
             try:
                 resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                    "model":  "qwen3.6:35b",
+                    "model":  settings.LLM_PROPOSAL_MODEL,
                     "prompt": prompt,
                     "stream": False
                 })
@@ -3940,7 +4058,8 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 lines.append(f"{idx}. ({tag}) {ans.text} — weight {ans.answer_weight}")
             answers = "Answers:\n" + "\n".join(lines)
 
-        selected_action = get_best_q_action(flag_list)
+        decision = choose_proposal_action(flag_list)
+        selected_action = decision.action
         expected_activity_type = (
             activity.activity_type.name if selected_action == "revise" else None
         )
@@ -4091,6 +4210,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             json_action=json.dumps(structured, ensure_ascii=False),
             json_translated_action=translated_structured_json,
             status='new',
+            **proposal_provenance(decision),
         )
         prop.flag.set(flag_list)
         for cat in {f.category for f in flag_list}:
@@ -4258,7 +4378,7 @@ def translate_text(text, target_language):
     )
     try:
         translation_response = requests.post(f"{OLLAMA_URL}/api/generate", json={ # localhost
-                "model": "aya-expanse:32b",
+                "model": settings.LLM_TRANSLATION_MODEL,
                 "prompt": prompt,
                 "stream": False
             })
@@ -4330,7 +4450,7 @@ def _build_personal_scenario(scenario_id, user_id):
         
         # Check if scenario with the new name already exists and modify the name if needed
         counter = 1
-        while Scenario.objects.filter(name=new_scenario_name).exists():
+        while Scenario.objects.filter(name=new_scenario_name, created_by=user).exists():
             new_scenario_name = f"{new_scenario_name_base} {counter}"
             counter += 1
         
@@ -4366,6 +4486,7 @@ def _build_personal_scenario(scenario_id, user_id):
                 name=phase.name,
                 description=phase.description,
                 image=phase.image,
+                order=phase.order,
                 scenario=new_scenario,
                 created_by=user,
                 updated_by=user
@@ -4381,6 +4502,7 @@ def _build_personal_scenario(scenario_id, user_id):
                 incorrect_count=activity.incorrect_count,
                 is_evaluatable=activity.is_evaluatable,
                 is_primary_ev=activity.is_primary_ev,
+                order=activity.order,
                 must_wait=activity.must_wait,
                 score_limit=activity.score_limit,
                 scenario=new_scenario,
@@ -4495,6 +4617,7 @@ def get_accepted_reviews_for_personal_scenario(original_scenario, user):
         return UserProposalReview.objects.filter(
             user=user,
             proposal__scenario=original_scenario,
+            proposal__activity__isnull=False,
             status='accepted',
         ).select_related('proposal', 'proposal__activity', 'proposal__phase')
 
@@ -4531,6 +4654,7 @@ def get_accepted_reviews_for_personal_scenario(original_scenario, user):
         user=user,
         proposal__scenario=original_scenario,
         proposal__generation_run=current_run,
+        proposal__activity__isnull=False,
         status='accepted'
     ).select_related('proposal', 'proposal__activity', 'proposal__phase')
 
@@ -4824,7 +4948,25 @@ def create_activity_from_json_action(data, phase, scenario, user,
 
     return new_activity
 
+def place_next_to(new_activity, anchor, before):
+    """Give new_activity the position just before or after anchor in its phase."""
+    if not anchor.phase_id or new_activity.phase_id != anchor.phase_id:
+        return
+    siblings = list(
+        Activity.objects.filter(phase_id=anchor.phase_id)
+        .exclude(pk=new_activity.pk)
+        .order_by('order', 'created_on', 'id')
+    )
+    index = next(i for i, sibling in enumerate(siblings) if sibling.pk == anchor.pk)
+    siblings.insert(index if before else index + 1, new_activity)
+    for position, sibling in enumerate(siblings, start=1):
+        if sibling.order != position:
+            Activity.objects.filter(pk=sibling.pk).update(order=position)
+            sibling.order = position
+
+
 def connect_created_activity(flagged_activity, new_activity, insert_location, target_category):
+    place_next_to(new_activity, flagged_activity, before=(insert_location == 'before'))
     is_eval = flagged_activity.is_evaluatable and hasattr(flagged_activity, "branching")
 
     if isinstance(target_category, str):

@@ -277,8 +277,8 @@ class ScenarioImporter:
         name = self.scenario_data.get('Name', '').strip()
         if not name:
             self._add_error('Scenario', 2, 'Name', 'Scenario Name is required.')
-        elif Scenario.objects.filter(name=name).exists():
-            self._add_error('Scenario', 2, 'Name', f'A scenario named "{name}" already exists.')
+        elif Scenario.objects.filter(name=name, created_by=self.user).exists():
+            self._add_error('Scenario', 2, 'Name', f'A scenario named "{name}" already exists among your scenarios.')
         vis = self.scenario_data.get('Visibility', '').strip().lower()
         if vis and vis not in ('private', 'org', 'public'):
             self._add_error('Scenario', 2, 'Visibility', 'Visibility must be "private", "org", or "public".')

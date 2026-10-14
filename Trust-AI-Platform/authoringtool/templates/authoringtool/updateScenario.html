@@ -337,6 +337,7 @@
             </div>
           </div>
 
+          {% if can_manage_sharing %}
           <!-- ── Card 4: Visibility & Sharing ── -->
           <div class="sc-card">
             <div class="sc-card-header">
@@ -389,6 +390,16 @@
 
             </div>
           </div>
+          {% else %}
+          <div class="sc-card">
+            <div class="sc-card-header">
+              <i class="bi bi-shield-lock"></i> Visibility &amp; Sharing
+            </div>
+            <div class="sc-card-body">
+              <div class="sc-hint">Only the scenario owner can change who can see and edit this scenario.</div>
+            </div>
+          </div>
+          {% endif %}
 
           <!-- ── Action Buttons ── -->
           <div class="sc-actions">
@@ -439,6 +450,7 @@
   });
 
   function toggleOrganizations() {
+    if (!document.getElementById('visibility')) return;  // sharing is owner-only
     var visibility = document.getElementById('visibility').value;
     var orgSelection = document.getElementById('org-selection');
     var orgEdit = document.getElementById('org-edit');

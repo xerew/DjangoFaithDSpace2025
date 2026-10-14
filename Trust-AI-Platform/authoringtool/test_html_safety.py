@@ -122,3 +122,21 @@ class RenderedHtmlTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         self.assertNotIn('onerror=alert("phase")', body)
+
+
+class BulkEmailHtmlTests(SimpleTestCase):
+    def test_campaign_body_is_sanitised(self):
+        from types import SimpleNamespace
+
+        from django.template.loader import render_to_string
+
+        campaign = SimpleNamespace(
+            subject='News', body_html='<p style="color:red">Hi</p>' + ATTACK, site_url='',
+        )
+        html = render_to_string('email/admin_bulk_email.html', {
+            'campaign': campaign, 'recipient': User(username='a', first_name='A'),
+            'site_url': '',
+        })
+        self.assertIn('<p style="color:red">Hi</p>', html)
+        self.assertNotIn('<script>alert', html)
+        self.assertNotIn('onerror', html)

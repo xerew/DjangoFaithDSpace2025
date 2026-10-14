@@ -26,6 +26,7 @@ from django.urls import reverse
 from django.utils.timezone import now as django_now
 from django.views.decorators.http import require_POST
 from accounts.student_accounts import remove_student_account
+from .credentials import encrypt_initial_password
 
 def group_required(group_name):
     def decorator(view_func):
@@ -77,7 +78,7 @@ def create_user_group(request):
                 username = f"{prefix}{i}"
                 password = group.generate_password()
                 user = User.objects.create_user(username=username, password=password)
-                UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
+                UserGroupMembership.objects.create(group=group, user=user, initial_password=encrypt_initial_password(password))
             messages.success(request, f"Group '{group.name}' created successfully with {group.number_of_users} users.")
             return redirect('list_groups')
     else:
@@ -179,7 +180,7 @@ def download_credentials(request, group_id):
 
     # Add member data
     for membership in memberships:
-        ws.append([membership.user.username, membership.initial_password])
+        ws.append([membership.user.username, membership.password_plain])
 
     # Prepare the Excel response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -264,7 +265,7 @@ def edit_group(request, group_id):
                     username = f"{prefix}{i}"
                     password = group.generate_password()
                     user = User.objects.create_user(username=username, password=password)
-                    UserGroupMembership.objects.create(group=group, user=user, initial_password=password)
+                    UserGroupMembership.objects.create(group=group, user=user, initial_password=encrypt_initial_password(password))
                 messages.success(request, f"Added {diff} new users to the group.")
 
             elif new_number_of_users < current_number_of_users:

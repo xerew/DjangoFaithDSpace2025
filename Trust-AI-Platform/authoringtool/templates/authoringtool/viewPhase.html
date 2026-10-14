@@ -290,6 +290,14 @@
                   <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
                      class="act-btn act-btn-view" title="View"><i class="bi bi-eye"></i></a>
                   {% if can_edit %}
+                  <form method="post" action="{% url 'move_activity' myScenario.id myPhase.id activity.id 'up' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="act-btn act-btn-view" title="Move up" aria-label="Move {{ activity.name }} up"{% if forloop.first %} disabled{% endif %}><i class="bi bi-arrow-up"></i></button>
+                  </form>
+                  <form method="post" action="{% url 'move_activity' myScenario.id myPhase.id activity.id 'down' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="act-btn act-btn-view" title="Move down" aria-label="Move {{ activity.name }} down"{% if forloop.last %} disabled{% endif %}><i class="bi bi-arrow-down"></i></button>
+                  </form>
                   <a href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
                      class="act-btn act-btn-edit" title="Edit"><i class="bi bi-pencil"></i></a>
                   <button type="button" class="act-btn act-btn-delete" title="Delete"
