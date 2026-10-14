@@ -318,6 +318,13 @@
                 <div class="meta-lbl"><i class="bi bi-person"></i> Created By</div>
                 <div class="meta-val">{{ myScenario.created_by.get_full_name|default:myScenario.created_by }}</div>
               </div>
+              <div class="meta-row">
+                <div class="meta-lbl"><i class="bi bi-clock-history"></i> Last updated</div>
+                <div class="meta-val">
+                  {{ myScenario.updated_on|date:"d M Y, H:i" }}
+                  {% if myScenario.updated_by %}· {{ myScenario.updated_by.get_full_name|default:myScenario.updated_by }}{% endif %}
+                </div>
+              </div>
               {% if myScenario.origin_scenario %}
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-diagram-2"></i> Origin</div>

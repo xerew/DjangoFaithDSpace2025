@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum, Count, Q, Max, Min, F, Avg
 from django.core.cache import cache
 from django.db import transaction
+from django.utils import timezone
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -197,6 +198,20 @@ def user_can_edit_scenario(user, scenario):
 def user_manages_scenario(user, scenario):
     """Sharing, deleting and restoring stay with the owner and admins."""
     return is_admin_user(user) or scenario.created_by_id == user.id
+
+
+def record_edit(user, scenario, phase_id=None, activity_id=None):
+    """Stamp an edited item and what contains it as last updated by user.
+
+    Editing answers updates the activity, its phase and its scenario, so
+    "Last updated" on each page reflects changes made inside it.
+    """
+    now = timezone.now()
+    if activity_id:
+        Activity.objects.filter(pk=activity_id).update(updated_on=now, updated_by=user)
+    if phase_id:
+        Phase.objects.filter(pk=phase_id).update(updated_on=now, updated_by=user)
+    Scenario.objects.filter(pk=scenario.pk).update(updated_on=now, updated_by=user)
 
 
 def user_can_generate_proposals(user, scenario):
@@ -872,6 +887,7 @@ def updateScenarioData(request, id):
         updateScenario.organizations.set(selected_organizations)
     else:
         updateScenario.organizations.clear()
+    record_edit(request.user, updateScenario)
     updateScenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('scenarios'))
 
@@ -1198,6 +1214,7 @@ def createPhaseData(request, id):
 
     newPhase = Phase(name=name, description=description, image=image, scenario=scenario_instance, created_by=created_by)
     newPhase.save()
+    record_edit(request.user, scenario_instance)
     scenario_instance.refresh_version_if_initialized(
         created_by=request.user
     )
@@ -1235,6 +1252,7 @@ def updatePhaseData(request, scenario_id, phase_id):
         updatePhase.image = image
     updatePhase.updated_by = request.user
     updatePhase.save()
+    record_edit(request.user, scenario, phase_id=phase_id)
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
@@ -1272,6 +1290,7 @@ def deletePhase(request, scenario_id, phase_id):
     with transaction.atomic():
         detach_student_evidence(activities=activities, removed_by=request.user)
         phase.delete()
+    record_edit(request.user, scenario)
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
@@ -1423,6 +1442,7 @@ def createActivityData(request, scenario_id, phase_id):
         return HttpResponseRedirect(reverse('updateAnswers', args=[scenario_id, phase_id, newActivity.id]))
     else:
         print('I GOT HERE 3')
+        record_edit(request.user, scenario_instance, phase_id=phase_id)
         scenario_instance.refresh_version_if_initialized(
             created_by=request.user
         )
@@ -1628,6 +1648,7 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
                 next_activity_instance = get_object_or_404(Activity, id=next_activity_id)
             newNextQuestionLogic = NextQuestionLogic(activity=updateActivity, next_activity=next_activity_instance)
             newNextQuestionLogic.save()
+            record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
             scenario.refresh_version_if_initialized(created_by=request.user)
             return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
         elif not formerActivity.is_evaluatable and updateActivity.is_evaluatable:
@@ -1635,6 +1656,7 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
             NextQuestionLogic.objects.filter(activity=updateActivity).delete()
             return HttpResponseRedirect(reverse('createCriterion', args=[scenario_id, phase_id, updateActivity.id]))
         else:
+            record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
             scenario.refresh_version_if_initialized(created_by=request.user)
             return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
     elif not formerActivity.is_evaluatable and updateActivity.is_evaluatable:
@@ -1643,6 +1665,7 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
         NextQuestionLogic.objects.filter(activity=updateActivity).delete()
         return HttpResponseRedirect(reverse('updateCriterion', args=[scenario_id, phase_id, updateActivity.id]))
     else:
+        record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
         scenario.refresh_version_if_initialized(created_by=request.user)
         return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
@@ -1676,6 +1699,7 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     with transaction.atomic():
         detach_student_evidence(activities=[activity], removed_by=request.user)
         activity.delete()
+    record_edit(request.user, scenario, phase_id=phase_id)
     scenario.refresh_version_if_initialized(created_by=request.user)
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
@@ -1701,6 +1725,7 @@ def move_phase(request, scenario_id, phase_id, direction):
         return HttpResponseForbidden("You cannot edit this scenario.")
     phase = get_object_or_404(Phase, id=phase_id, scenario=scenario)
     _swap_with_neighbour(phase, Phase.objects.filter(scenario=scenario), direction)
+    record_edit(request.user, scenario)
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
 
@@ -1712,6 +1737,7 @@ def move_activity(request, scenario_id, phase_id, activity_id, direction):
         return HttpResponseForbidden("You cannot edit this scenario.")
     activity = get_object_or_404(Activity, id=activity_id, scenario=scenario, phase_id=phase_id)
     _swap_with_neighbour(activity, Activity.objects.filter(phase_id=phase_id), direction)
+    record_edit(request.user, scenario, phase_id=phase_id)
     return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
 
 
@@ -1729,6 +1755,7 @@ def set_start_activity(request, scenario_id, activity_id):
 
     Scenario.objects.filter(pk=scenario.pk).update(start_activity=activity)
     scenario.start_activity = activity
+    record_edit(request.user, scenario)
     scenario.refresh_version_if_initialized(created_by=request.user)
     messages.success(
         request,
@@ -1902,6 +1929,7 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
                 )
                 answer.save()
 
+        record_edit(request.user, activity.scenario, phase_id=phase_id, activity_id=activity_id)
         activity.scenario.refresh_version_if_initialized(
             created_by=request.user
         )
@@ -1941,6 +1969,7 @@ def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     with transaction.atomic():
         detach_student_evidence(answers=[answer], removed_by=request.user)
         answer.delete()
+    record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
     scenario.refresh_version_if_initialized(
         created_by=request.user
     )
@@ -2038,6 +2067,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
                 detach_student_evidence(answers=[removed_answer], removed_by=request.user)
                 removed_answer.delete()
 
+        record_edit(request.user, activity.scenario, phase_id=phase_id, activity_id=activity_id)
         activity.scenario.refresh_version_if_initialized(
             created_by=request.user
         )
@@ -2136,6 +2166,7 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
             low_performers_activity.score_limit = low_performers_score_limit
             low_performers_activity.save()
 
+        record_edit(request.user, activityPrimary.scenario, phase_id=phase_id, activity_id=activity_id)
         activityPrimary.scenario.refresh_version_if_initialized(
             created_by=request.user
         )
@@ -2231,6 +2262,7 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
         low_performers_activity.score_limit = low_performers_score_limit
         low_performers_activity.save()
 
+        record_edit(request.user, activityPrimary.scenario, phase_id=phase_id, activity_id=activity_id)
         activityPrimary.scenario.refresh_version_if_initialized(
             created_by=request.user
         )

@@ -3884,7 +3884,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         except Exception as e:
             activity.llm_context = f"[LLM error: {e}]"
             print(f"  Ollama error (activity context): {e}")
-        activity.save()
+        activity.save(update_fields=['llm_context', 'llm_image_description'])
 
         # — Short summary for indexing & RAG queries —
         sum_prompt = (
@@ -3901,7 +3901,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         except Exception as e:
             activity.short_llm_summary = activity.name
             print(f"  Ollama error (activity summary): {e}")
-        activity.save()
+        activity.save(update_fields=['short_llm_summary'])
         print("  Activity context + summary saved.")
 
     # 2️⃣ SCENARIO-LEVEL CONTEXT
@@ -3928,7 +3928,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         except Exception as e:
             scenario.llm_context = f"[LLM error: {e}]"
             print(f"  Ollama error (scenario context): {e}")
-        scenario.save()
+        scenario.save(update_fields=['llm_context'])
         print("  Scenario context saved.")
 
     # 3️⃣ PHASE-LEVEL CONTEXT
@@ -3954,7 +3954,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         except Exception as e:
             phase.llm_context = f"[LLM error: {e}]"
             print(f"  Ollama error (phase context): {e}")
-        phase.save()
+        phase.save(update_fields=['llm_context'])
         print(f"  Phase '{phase.name}' context saved.")
 
     # 4️⃣ FLOW ANALYSIS BY CATEGORY
@@ -3984,7 +3984,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 flow[cat] = f"[LLM error: {e}]"
                 print(f"  Ollama error (flow {cat}): {e}")
         activity.related_act_llm_context = flow
-        activity.save()
+        activity.save(update_fields=['related_act_llm_context'])
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
     # — archive the previous run (if any) and start a fresh current one —

@@ -269,6 +269,13 @@
             <div class="info-label"><i class="bi bi-clock"></i> Created On</div>
             <div class="info-value">{{ activity.created_on }}</div>
           </div>
+          <div class="info-row">
+            <div class="info-label"><i class="bi bi-clock-history"></i> Last updated</div>
+            <div class="info-value">
+              {{ activity.updated_on }}
+              {% if activity.updated_by %}· {{ activity.updated_by.get_full_name|default:activity.updated_by }}{% endif %}
+            </div>
+          </div>
           {% if activity.activity_type.name != 'Question' and not activity.is_evaluatable %}
           <div class="info-row">
             <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Next Activity</div>
