@@ -159,6 +159,24 @@ def tos_view(request):
     else:
         return render(request, 'accounts/tos_public.html')
 
+def _picture_error(picture):
+    """Why an uploaded profile picture is refused, or '' when it is fine."""
+    allowed_extensions = ('jpg', 'jpeg', 'png', 'webp', 'gif')
+    ext = picture.name.rsplit('.', 1)[-1].lower() if '.' in picture.name else ''
+    if ext not in allowed_extensions:
+        return 'Unsupported file type. Use JPG, PNG, WEBP, or GIF.'
+    if picture.size > 5 * 1024 * 1024:
+        return 'Image must be 5MB or smaller.'
+    from PIL import Image
+    try:
+        Image.open(picture).verify()
+    except Exception:
+        return 'Uploaded file is not a valid image.'
+    finally:
+        picture.seek(0)
+    return ''
+
+
 @group_required('teachers')
 def profile_view(request):
     from organization.models import Organization
@@ -190,20 +208,9 @@ def profile_view(request):
             if len(bio) > 500:
                 errors['bio'] = 'Bio must be 500 characters or fewer.'
             if picture:
-                allowed_extensions = ('jpg', 'jpeg', 'png', 'webp', 'gif')
-                ext = picture.name.rsplit('.', 1)[-1].lower() if '.' in picture.name else ''
-                if ext not in allowed_extensions:
-                    errors['picture'] = 'Unsupported file type. Use JPG, PNG, WEBP, or GIF.'
-                elif picture.size > 5 * 1024 * 1024:
-                    errors['picture'] = 'Image must be 5MB or smaller.'
-                else:
-                    from PIL import Image
-                    try:
-                        Image.open(picture).verify()
-                    except Exception:
-                        errors['picture'] = 'Uploaded file is not a valid image.'
-                    finally:
-                        picture.seek(0)
+                picture_error = _picture_error(picture)
+                if picture_error:
+                    errors['picture'] = picture_error
 
             if errors:
                 return JsonResponse({'success': False, 'errors': errors})
@@ -226,6 +233,18 @@ def profile_view(request):
 
             return JsonResponse({'success': True, 'message': 'Profile updated successfully.',
                                  'country': country, 'institution': institution})
+
+        elif action == 'update_picture':
+            # From the avatar modal: change only the picture.
+            picture = request.FILES.get('picture')
+            error = _picture_error(picture) if picture else 'Choose an image to upload.'
+            if error:
+                return JsonResponse({'success': False, 'errors': {'picture': error}})
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.picture = picture
+            profile.save(update_fields=['picture'])
+            return JsonResponse({'success': True, 'message': 'Profile picture updated.',
+                                 'picture_url': profile.picture.url})
 
         elif action == 'change_password':
             current_password = request.POST.get('current_password', '')

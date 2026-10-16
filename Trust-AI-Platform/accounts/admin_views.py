@@ -36,9 +36,22 @@ def staff_required(view_func):
 @staff_required
 def admin_dashboard(request):
     now = timezone.now()
-    users = User.objects.filter(
+    users = list(User.objects.filter(
         Q(groups__isnull=False) | Q(is_staff=True) | Q(is_superuser=True)
-    ).distinct().prefetch_related('groups').order_by('username')
+    ).distinct().prefetch_related(
+        'groups', 'admin_of_organizations', 'member_of_organizations',
+    ).order_by('username'))
+    for user in users:
+        # Organizations the user administers or belongs to, for the user table.
+        admin_ids = {org.id for org in user.admin_of_organizations.all()}
+        orgs = {
+            org.id: org
+            for org in [*user.admin_of_organizations.all(), *user.member_of_organizations.all()]
+        }
+        user.organization_rows = [
+            {'org': org, 'is_admin': org.id in admin_ids}
+            for org in sorted(orgs.values(), key=lambda org: org.short_name.casefold())
+        ]
     groups = Group.objects.annotate(member_count=Count('user')).order_by('name')
     agg = User.objects.aggregate(
         total=Count('id'),

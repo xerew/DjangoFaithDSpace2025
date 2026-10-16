@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — Pilot Implementations</title>{% endblock %}
 {% block atcontent %}
 
@@ -174,7 +175,7 @@
                       data-teacher="{{ data.teacher.get_full_name|default:data.teacher.username|lower }}"
                       data-scenario="{% for scenario, count in data.scenario_implementations.items %}{{ scenario|lower }} {% endfor %}">
                     <td class="ps-4 fw-semibold">{{ data.group.name }}</td>
-                    <td class="text-muted small">{{ data.teacher.get_full_name|default:data.teacher.username }}</td>
+                    <td class="text-muted small">{% user_link data.teacher %}</td>
                     <td class="text-center">
                       <span class="badge bg-primary rounded-pill">{{ data.num_students }}</span>
                     </td>

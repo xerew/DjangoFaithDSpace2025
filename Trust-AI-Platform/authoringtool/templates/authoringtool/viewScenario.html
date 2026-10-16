@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ myScenario.name }}</title>{% endblock %}
 {% block atcontent %}
 
@@ -316,13 +317,13 @@
               </div>
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-person"></i> Created By</div>
-                <div class="meta-val">{{ myScenario.created_by.get_full_name|default:myScenario.created_by }}</div>
+                <div class="meta-val">{% user_link myScenario.created_by %}</div>
               </div>
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-clock-history"></i> Last updated</div>
                 <div class="meta-val">
                   {{ myScenario.updated_on|date:"d M Y, H:i" }}
-                  {% if myScenario.updated_by %}· {{ myScenario.updated_by.get_full_name|default:myScenario.updated_by }}{% endif %}
+                  {% if myScenario.updated_by %}· {% user_link myScenario.updated_by %}{% endif %}
                 </div>
               </div>
               {% if myScenario.origin_scenario %}
@@ -332,7 +333,7 @@
               </div>
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-person-check"></i> Original Creator</div>
-                <div class="meta-val">{{ myScenario.origin_scenario.created_by.get_full_name }}</div>
+                <div class="meta-val">{% user_link myScenario.origin_scenario.created_by %}</div>
               </div>
               {% endif %}
             </div>
@@ -722,7 +723,7 @@
                 <td style="font-weight:600;">{{ translation.name }}</td>
                 <td>{{ translation.language|default:"Not set" }}</td>
                 <td>{{ translation.get_visibility_status_display }}</td>
-                <td>{{ translation.created_by.get_full_name|default:translation.created_by }}</td>
+                <td>{% user_link translation.created_by %}</td>
                 <td class="text-end">{{ translation.student_count }}</td>
                 <td class="text-end" style="white-space:nowrap;">
                   <a href="{% url 'viewScenario' id=translation.id %}" class="btn btn-sm btn-outline-primary">View</a>

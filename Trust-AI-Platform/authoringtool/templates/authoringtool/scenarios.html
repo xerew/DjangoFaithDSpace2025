@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — Authoring Tool</title>{% endblock %}
 {% block atcontent %}
 
@@ -322,7 +323,7 @@
                         <td style="font-weight:600;">{{ version.name }}</td>
                         <td>{{ version.language|default:"Not set" }}</td>
                         <td>{{ version.get_visibility_status_display }}</td>
-                        <td>{{ version.created_by.get_full_name|default:version.created_by }}</td>
+                        <td>{% user_link version.created_by %}</td>
                         <td class="text-end">{{ version.student_count }}</td>
                         <td class="text-end" style="white-space:nowrap;">
                           <a href="{% url 'viewScenario' id=version.id %}" class="btn btn-sm btn-outline-primary">View</a>

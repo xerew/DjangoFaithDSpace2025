@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% load html_tags %}
 {% block page_title %}<title>Trust AI Lab — Activity Details</title>{% endblock %}
 {% block atcontent %}
@@ -281,7 +282,7 @@
             <div class="info-label"><i class="bi bi-clock-history"></i> Last updated</div>
             <div class="info-value">
               {{ activity.updated_on }}
-              {% if activity.updated_by %}· {{ activity.updated_by.get_full_name|default:activity.updated_by }}{% endif %}
+              {% if activity.updated_by %}· {% user_link activity.updated_by %}{% endif %}
             </div>
           </div>
           {% if activity.activity_type.name != 'Question' and not activity.is_evaluatable %}

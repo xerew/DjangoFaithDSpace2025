@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% load html_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ announcement.title }}</title>{% endblock %}
 {% block atcontent %}
@@ -70,7 +71,7 @@
       <div class="card-body p-4">
         <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap mb-2">
           <div class="member-meta">
-            {{ announcement.created_by.get_full_name|default:announcement.created_by.username|default:"Unknown" }}
+            {% if announcement.created_by %}{% user_link announcement.created_by %}{% else %}Unknown{% endif %}
             · {{ announcement.created_on|date:"d M Y, H:i" }}
           </div>
           {% if is_admin %}

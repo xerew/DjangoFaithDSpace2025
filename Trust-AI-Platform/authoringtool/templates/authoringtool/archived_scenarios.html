@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — Archived Scenarios</title>{% endblock %}
 {% block atcontent %}
 
@@ -44,7 +45,7 @@
         <div class="ar-name">{{ scenario.name }}</div>
         <div class="ar-meta">
           Archived {{ scenario.archived_at|date:"j M Y, H:i" }}
-          {% if scenario.archived_by %}by {{ scenario.archived_by.get_full_name|default:scenario.archived_by.username }}{% endif %}
+          {% if scenario.archived_by %}by {% user_link scenario.archived_by %}{% endif %}
           {% if scenario.created_by_id != request.user.id %} · owner {{ scenario.created_by.username }}{% endif %}
         </div>
       </div>

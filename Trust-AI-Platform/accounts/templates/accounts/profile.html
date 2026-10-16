@@ -19,6 +19,26 @@
   .profile-hero .breadcrumb-item a { color: rgba(255,255,255,0.72); text-decoration: none; }
   .profile-hero .breadcrumb-item a:hover { color: #fff; }
   .profile-hero .breadcrumb-item.active { color: rgba(255,255,255,0.92); }
+
+  /* ── Avatar: click to enlarge (and change your own) ── */
+  .profile-avatar-btn {
+    position: relative; padding: 0; border: 0; background: none;
+    border-radius: 50%; cursor: zoom-in; line-height: 0;
+  }
+  .profile-avatar-btn:focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
+  .profile-avatar-btn img { width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; }
+  .profile-avatar-btn .bi-person-circle { font-size: 5rem; color: #012970; line-height: 1; }
+  .avatar-edit-badge {
+    position: absolute; right: 0; bottom: 2px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #1a56db; color: #fff; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
+  }
+  .avatar-large {
+    width: 100%; max-width: 360px; aspect-ratio: 1 / 1;
+    border-radius: 50%; object-fit: cover; box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  }
+  .avatar-large-placeholder { font-size: 12rem; color: #012970; line-height: 1; }
 </style>
 
 <main id="main" class="main">
@@ -47,11 +67,12 @@
             {% load profile_tags %}
             <div class="profile-avatar mb-3">
               {% with avatar=profile_user|avatar_url %}
-              {% if avatar %}
-              <img src="{{ avatar }}" alt="" style="width:5rem;height:5rem;border-radius:50%;object-fit:cover;">
-              {% else %}
-              <i class="bi bi-person-circle" style="font-size: 5rem; color: #012970;"></i>
-              {% endif %}
+              <button type="button" class="profile-avatar-btn" data-bs-toggle="modal" data-bs-target="#avatarModal"
+                      title="{% if is_own_profile %}View or change your profile picture{% else %}View profile picture{% endif %}">
+                <img src="{{ avatar }}" alt="Profile picture" id="profileAvatarImg"{% if not avatar %} hidden{% endif %}>
+                <i class="bi bi-person-circle" id="profileAvatarIcon"{% if avatar %} hidden{% endif %}></i>
+                {% if is_own_profile %}<span class="avatar-edit-badge"><i class="bi bi-camera-fill"></i></span>{% endif %}
+              </button>
               {% endwith %}
             </div>
             <h5 class="card-title">{{ profile_user.first_name }} {{ profile_user.last_name }}</h5>
@@ -358,6 +379,39 @@
       </div><!-- End Right Column -->
     </div>
   </section>
+
+  <!-- Avatar modal: the picture enlarged; on your own profile, change it -->
+  <div class="modal fade" id="avatarModal" tabindex="-1" aria-labelledby="avatarModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="avatarModalTitle">{{ profile_user.get_full_name|default:profile_user.username }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          {% with avatar=profile_user|avatar_url %}
+          <img src="{{ avatar }}" alt="Profile picture" class="avatar-large" id="avatarModalImg"{% if not avatar %} hidden{% endif %}>
+          <i class="bi bi-person-circle avatar-large-placeholder" id="avatarModalIcon"{% if avatar %} hidden{% endif %}></i>
+          {% endwith %}
+          <div id="avatar-alert" class="alert d-none mt-3 mb-0" role="alert"></div>
+        </div>
+        {% if is_own_profile %}
+        <div class="modal-footer flex-column">
+          <form id="avatarForm" class="d-flex flex-column align-items-center gap-1 w-100" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_picture">
+            <input type="file" name="picture" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+            <button type="button" class="btn btn-primary" id="avatarChangeBtn">
+              <span id="avatarSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+              <i class="bi bi-camera me-1"></i>Change profile picture
+            </button>
+            <div class="form-text">JPG, PNG, WEBP or GIF, up to 5 MB.</div>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </main>
 
 {% if is_own_profile %}
@@ -487,6 +541,61 @@ document.getElementById('infoForm').addEventListener('submit', function (e) {
     showAlert('info-alert', false, 'Network error. Please try again.');
   });
 });
+
+// --- Avatar modal: change profile picture ---
+(function () {
+  const form = document.getElementById('avatarForm');
+  const fileInput = document.getElementById('avatarFileInput');
+  const btn = document.getElementById('avatarChangeBtn');
+  const spinner = document.getElementById('avatarSpinner');
+
+  function showPicture(url) {
+    [['avatarModalImg', 'avatarModalIcon'], ['profileAvatarImg', 'profileAvatarIcon']].forEach(([imgId, iconId]) => {
+      const img = document.getElementById(imgId);
+      img.src = url;
+      img.hidden = false;
+      document.getElementById(iconId).hidden = true;
+    });
+    // Top bar: swap the picture (or the initial shown instead of one).
+    document.querySelectorAll('.nav-profile img, .nav-profile .nav-profile-avatar, .dropdown-header img, .dropdown-header .profile-avatar-initial')
+      .forEach(el => {
+        const size = el.closest('.dropdown-header') ? '48px' : '36px';
+        const img = el.tagName === 'IMG' ? el : document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        img.style.cssText = `width:${size};height:${size};border-radius:50%;object-fit:cover;`;
+        if (img !== el) el.replaceWith(img);
+      });
+  }
+
+  btn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', function () {
+    if (!this.files.length) return;
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    const data = new FormData(form);
+    fetch('{% url "profile" %}', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': data.get('csrfmiddlewaretoken') },
+      body: data,
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showPicture(res.picture_url);
+        showAlert('avatar-alert', true, res.message);
+      } else {
+        showAlert('avatar-alert', false, (res.errors && res.errors.picture) || 'The picture could not be saved.');
+      }
+    })
+    .catch(() => showAlert('avatar-alert', false, 'Network error. Please try again.'))
+    .finally(() => {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      fileInput.value = '';
+    });
+  });
+})();
 
 // --- Change password form ---
 document.getElementById('passwordForm').addEventListener('submit', function (e) {

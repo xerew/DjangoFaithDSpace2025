@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — Proposal History — {{ myScenario.name }}</title>{% endblock %}
 {% block atcontent %}
 
@@ -95,7 +96,7 @@
           {% endif %}
         </div>
         <div class="run-card-meta">
-          Triggered by {% if summary.run.created_by %}{{ summary.run.created_by.get_full_name|default:summary.run.created_by.username }}{% else %}Unknown{% endif %}
+          Triggered by {% if summary.run.created_by %}{% user_link summary.run.created_by %}{% else %}Unknown{% endif %}
           · {{ summary.total }} proposal{{ summary.total|pluralize }}
           {% if summary.evidence_context %}
             · {{ summary.evidence_context.implementation_count }} eligible implementation{{ summary.evidence_context.implementation_count|pluralize }}

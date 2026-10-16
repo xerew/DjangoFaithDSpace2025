@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ organization.name }} Team Chat</title>{% endblock %}
 {% block atcontent %}
 
@@ -41,7 +42,7 @@
       <div class="chat-body" id="chatBody">
         {% for m in chat_messages %}
         <div class="chat-msg {% if m.sender_id == request.user.id %}mine{% else %}theirs{% endif %}" data-msg-id="{{ m.id }}">
-          <div class="chat-msg-sender">{{ m.sender.get_full_name|default:m.sender.username }}</div>
+          <div class="chat-msg-sender">{% user_link m.sender %}</div>
           <div class="chat-bubble">
             {{ m.body }}
             <span class="chat-time">{{ m.created_at|date:"d M, H:i" }}</span>

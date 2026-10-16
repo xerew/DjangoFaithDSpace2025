@@ -246,6 +246,7 @@
                 <tr>
                   <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">User</th>
                   <th style="font-size:12px;font-weight:600;color:#888;">Email</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">Organization</th>
                   <th style="font-size:12px;font-weight:600;color:#888;">Roles</th>
                   <th style="font-size:12px;font-weight:600;color:#888;">Last Login</th>
                   <th style="font-size:12px;font-weight:600;color:#888;">Status</th>
@@ -256,7 +257,8 @@
                 {% for u in all_users %}
                 <tr class="user-row {% if not u.is_active %}inactive-row{% endif %}"
                     data-user-id="{{ u.id }}"
-                    data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }}"
+                    data-orgs="{% for row in u.organization_rows %}{{ row.org.short_name|lower }} {{ row.org.name|lower }} {% endfor %}"
+                    data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }} {% for row in u.organization_rows %}{{ row.org.short_name|lower }} {{ row.org.name|lower }} {% endfor %}"
                     data-username="{{ u.username }}"
                     data-groups="{% for g in u.groups.all %}{{ g.name|lower }} {% endfor %}{% if u.is_staff %}__staff__ {% endif %}{% if u.is_superuser %}__superuser__ {% endif %}"
                     data-has-role="{% if u.groups.exists or u.is_staff or u.is_superuser %}yes{% else %}no{% endif %}"
@@ -283,7 +285,15 @@
                       </div>
                     </div>
                   </td>
-                  <td>{{ u.email|default:"—" }}</td>
+                  <td class="user-email-cell">{{ u.email|default:"—" }}</td>
+                  <td>
+                    {% for row in u.organization_rows %}
+                      <span class="badge bg-light text-dark border me-1"
+                            title="{{ row.org.name }}{% if row.is_admin %} (admin){% endif %}">{% if row.is_admin %}<i class="bi bi-shield-fill-check text-primary me-1"></i>{% endif %}{{ row.org.short_name }}</span>
+                    {% empty %}
+                      <span class="no-org" style="font-size:12px;color:#aaa;">—</span>
+                    {% endfor %}
+                  </td>
                   <td>
                     {% if u.is_superuser %}<span class="badge bg-danger me-1">Superuser</span>{% endif %}
                     {% if u.is_staff and not u.is_superuser %}<span class="badge bg-warning text-dark me-1">Staff</span>{% endif %}
@@ -291,7 +301,7 @@
                     {% if not u.groups.exists and not u.is_staff and not u.is_superuser %}<span style="font-size:12px;color:#aaa;">—</span>{% endif %}
                   </td>
                   <td>{% if u.last_login %}{{ u.last_login|date:"d M Y" }}{% else %}<span style="color:#aaa;">Never</span>{% endif %}</td>
-                  <td>
+                  <td class="user-status-cell">
                     {% if u.is_active %}
                     <span class="badge bg-success">Active</span>
                     {% else %}
@@ -1065,11 +1075,11 @@ function saveUser() {
         row.dataset.first = fn;
         row.dataset.last = ln;
         row.dataset.email = em;
-        row.dataset.search = (row.dataset.username + ' ' + fn + ' ' + ln + ' ' + em).toLowerCase();
+        row.dataset.search = (row.dataset.username + ' ' + fn + ' ' + ln + ' ' + em + ' ' + (row.dataset.orgs || '')).toLowerCase();
         const nameDiv = row.querySelector('.user-display-name');
         if (nameDiv) nameDiv.textContent = (fn + ' ' + ln).trim() || nameDiv.textContent;
-        const cells = row.querySelectorAll('td');
-        if (cells[1]) cells[1].textContent = em || '—';
+        const emailCell = row.querySelector('.user-email-cell');
+        if (emailCell) emailCell.textContent = em || '—';
       }
     } else {
       const el = document.getElementById('editPanelError');
@@ -1089,8 +1099,8 @@ function toggleUser(id) {
       if (row) {
         row.dataset.isActive = data.is_active ? 'true' : 'false';
         row.classList.toggle('inactive-row', !data.is_active);
-        const cells = row.querySelectorAll('td');
-        if (cells[4]) cells[4].innerHTML = data.is_active
+        const statusCell = row.querySelector('.user-status-cell');
+        if (statusCell) statusCell.innerHTML = data.is_active
           ? '<span class="badge bg-success">Active</span>'
           : '<span class="badge bg-secondary">Inactive</span>';
         const btn = document.getElementById('toggle-btn-' + id);

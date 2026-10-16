@@ -1578,3 +1578,14 @@ h6 {
 .sidebar-nav .nav-link span {
   font-size: 15px !important;
 }
+
+/* ── People's names linking to their profile ({% user_link %}) ── */
+a.user-link {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+a.user-link:hover,
+a.user-link:focus-visible {
+  text-decoration-style: solid;
+}
