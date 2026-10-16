@@ -38,6 +38,8 @@
   .hero-btn-solid:hover  { background: #e8f0fe; color: #1a56db; }
   .hero-btn-outline { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
   .hero-btn-outline:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  .hero-btn-danger  { background: rgba(220,38,38,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  .hero-btn-danger:hover  { background: #b91c1c; color: #fff; }
   @media (max-width: 575.98px) {
     .act-hero { padding: 14px 16px 12px; }
     .act-hero > .d-flex { flex-wrap: wrap; }
@@ -244,6 +246,12 @@
                 <i class="bi bi-flag me-1"></i>Make this the first activity
               </button>
             </form>
+          {% endif %}
+          {% if can_edit %}
+            {# Opens the confirmation page, which shows how many students answered it. #}
+            <a class="btn btn-sm hero-btn-danger" href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
+              <i class="bi bi-trash me-1"></i>Delete
+            </a>
           {% endif %}
         </div>
       </div>
