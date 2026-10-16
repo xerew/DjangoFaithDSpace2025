@@ -33,6 +33,10 @@ MIN_CONFIDENCE = 50
 MIN_ACTIVITIES = 10
 # Aligned activities sharing this much wording are a same-language copy.
 SAME_LANGUAGE_WORD_OVERLAP = 0.5
+# Pairs further apart than this are not scored at all.
+MAX_ACTIVITY_GAP = 2
+MAX_QUESTION_GAP = 1
+MIN_SEQUENCE_SIMILARITY = 0.9
 BRANCH_LABELS = ['High branch', 'Moderate branch', 'Low branch']
 
 _NUMBER = re.compile(r'\d+(?:[.,]\d+)?')
@@ -503,19 +507,25 @@ def compare_flows(profile_a, profile_b):
     }
 
 
-def _could_match(profile_a, profile_b):
-    if not profile_a['reachable'] or not profile_b['reachable']:
-        return False
-    if abs(len(profile_a['tokens']) - len(profile_b['tokens'])) > 2:
-        return False
-    if abs(profile_a['question_count'] - profile_b['question_count']) > 1:
-        return False
+def _sequence_similarity(profile_a, profile_b):
     return SequenceMatcher(
         None,
         profile_a['tokens'],
         profile_b['tokens'],
         autojunk=False,
-    ).quick_ratio() >= 0.9
+    ).quick_ratio()
+
+
+def _could_match(profile_a, profile_b):
+    if not profile_a['reachable'] or not profile_b['reachable']:
+        return False
+    gap = abs(len(profile_a['tokens']) - len(profile_b['tokens']))
+    if gap > MAX_ACTIVITY_GAP:
+        return False
+    gap = abs(profile_a['question_count'] - profile_b['question_count'])
+    if gap > MAX_QUESTION_GAP:
+        return False
+    return _sequence_similarity(profile_a, profile_b) >= MIN_SEQUENCE_SIMILARITY
 
 
 def find_translation_candidates(scenarios=None):
@@ -539,6 +549,183 @@ def find_translation_candidates(scenarios=None):
             if result['lexical'] >= SAME_LANGUAGE_WORD_OVERLAP:
                 continue
             yield profile_a, profile_b, result
+
+
+CHECK_LABELS = {
+    'activities': 'Enough activities',
+    'start': 'Flow from the first activity',
+    'size': 'Same number of activities',
+    'questions': 'Same number of questions',
+    'sequence': 'Same activity sequence',
+    'confidence': 'Confidence',
+    'wording': 'Different wording',
+    'listed': 'In the review list',
+}
+
+
+def _describe(activity):
+    kind = activity.activity_type.name if activity.activity_type else 'Activity'
+    return f'activity {activity.id} ({kind} "{_short(activity)}")'
+
+
+def _start_detail(profile):
+    scenario = profile['scenario']
+    if not profile['reachable']:
+        return 'fail', f'{scenario.id} has no activities to walk from a first activity.'
+    linked = len(profile['order'])
+    detail = (
+        f'{scenario.id}: {profile["reachable"]} of {linked} linked activities '
+        f'are reachable from its first activity, {_describe(profile["order"][0])}.'
+    )
+    if profile['reachable'] == linked:
+        return 'pass', detail
+    # Unreachable activities that nothing routes to are where the rest of
+    # the flow starts; one of them is often the real first activity.
+    targets = {
+        target for edges in profile['edges'] for target in edges
+        if target is not None
+    }
+    entries = [
+        _describe(profile['order'][index])
+        for index in range(profile['reachable'], linked)
+        if index not in targets
+    ]
+    if entries:
+        detail += (
+            ' Nothing routes to ' + ', '.join(entries[:3])
+            + ('…' if len(entries) > 3 else '')
+            + '. If one of these is the real start, open it and use '
+            '"Make this the first activity".'
+        )
+    return 'warn', detail
+
+
+def explain_translation_pair(first, second):
+    """Run the scan's checks on one pair and say which one, if any, stops it.
+
+    Every check is run, so all reasons show at once; ``stopped_by`` names
+    the first failing one. ``result`` is the comparison the scan would
+    store, or None when a scenario has no flow to compare.
+    """
+    scenario_a, scenario_b = sorted((first, second), key=lambda s: s.id)
+    profile_a = build_flow_profile(scenario_a)
+    profile_b = build_flow_profile(scenario_b)
+    checks = []
+
+    def check(key, state, detail):
+        checks.append({
+            'key': key,
+            'label': CHECK_LABELS[key],
+            'state': state,
+            'detail': detail,
+        })
+
+    counts = [
+        Activity.objects.filter(scenario=scenario, phase__isnull=False).count()
+        for scenario in (scenario_a, scenario_b)
+    ]
+    check(
+        'activities',
+        'pass' if min(counts) >= MIN_ACTIVITIES else 'fail',
+        f'{scenario_a.id} has {counts[0]} activities in phases and '
+        f'{scenario_b.id} has {counts[1]}; each needs at least {MIN_ACTIVITIES}.',
+    )
+
+    starts = [_start_detail(profile_a), _start_detail(profile_b)]
+    states = {state for state, _ in starts}
+    check(
+        'start',
+        'fail' if 'fail' in states else 'warn' if 'warn' in states else 'pass',
+        ' '.join(detail for _, detail in starts),
+    )
+
+    sizes = [len(profile_a['tokens']), len(profile_b['tokens'])]
+    check(
+        'size',
+        'pass' if abs(sizes[0] - sizes[1]) <= MAX_ACTIVITY_GAP else 'fail',
+        f'{scenario_a.id} has {sizes[0]} linked activities and '
+        f'{scenario_b.id} has {sizes[1]}; at most {MAX_ACTIVITY_GAP} apart.',
+    )
+
+    questions = [profile_a['question_count'], profile_b['question_count']]
+    check(
+        'questions',
+        'pass' if abs(questions[0] - questions[1]) <= MAX_QUESTION_GAP else 'fail',
+        f'{scenario_a.id} has {questions[0]} questions and '
+        f'{scenario_b.id} has {questions[1]}; at most {MAX_QUESTION_GAP} apart.',
+    )
+
+    similarity = _sequence_similarity(profile_a, profile_b)
+    check(
+        'sequence',
+        'pass' if similarity >= MIN_SEQUENCE_SIMILARITY else 'fail',
+        f'The activities agree {similarity:.0%} on type, answers, correct '
+        f'options and settings, in flow order; at least '
+        f'{MIN_SEQUENCE_SIMILARITY:.0%} is needed.',
+    )
+
+    result = None
+    if profile_a['tokens'] and profile_b['tokens']:
+        result = compare_flows(profile_a, profile_b)
+        check(
+            'confidence',
+            'pass' if result['confidence'] >= MIN_CONFIDENCE else 'fail',
+            f'Confidence {result["confidence"]}%; at least {MIN_CONFIDENCE}% '
+            'is needed to be listed.',
+        )
+        check(
+            'wording',
+            'pass' if result['lexical'] < SAME_LANGUAGE_WORD_OVERLAP else 'fail',
+            f'Matching activities share {result["lexical"]:.0%} of their '
+            f'words; a translation must share less than '
+            f'{SAME_LANGUAGE_WORD_OVERLAP:.0%}, or it is taken for a '
+            'same-language copy.',
+        )
+    else:
+        for key in ('confidence', 'wording'):
+            check(key, 'skip', 'Not scored: a scenario has no activities to compare.')
+
+    stopped_by = next(
+        (item['key'] for item in checks if item['state'] == 'fail'),
+        None,
+    )
+    match = TranslationMatch.objects.filter(
+        scenario_a=scenario_a,
+        scenario_b=scenario_b,
+    ).first()
+    if match is not None:
+        check(
+            'listed',
+            'pass',
+            f'Listed as {match.get_status_display()} with '
+            f'{match.confidence}% confidence. The list\'s visibility filter '
+            f'shows it only when both {scenario_a.visibility_status} and '
+            f'{scenario_b.visibility_status} are ticked (or none).',
+        )
+    elif stopped_by is None:
+        check(
+            'listed',
+            'warn',
+            'Not listed yet: the scenarios changed after the last scan, or '
+            'no scan has run since. Press "Scan for translations".',
+        )
+    else:
+        check(
+            'listed',
+            'skip',
+            f'Not listed: stopped by "{CHECK_LABELS[stopped_by]}".',
+        )
+
+    return {
+        'scenario_a': scenario_a,
+        'scenario_b': scenario_b,
+        'profile_a': profile_a,
+        'profile_b': profile_b,
+        'checks': checks,
+        'stopped_by': stopped_by,
+        'result': result,
+        'match': match,
+    }
 
 
 ENGLISH_LANGUAGE_NAMES = {

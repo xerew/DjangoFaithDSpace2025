@@ -11,7 +11,7 @@ from django.forms import formset_factory
 from django.contrib import messages
 import re
 from django.contrib.auth.models import User
-from django.db.models import Sum, Count, Q, Max, Min, F, Avg
+from django.db.models import Sum, Count, Q, Max, Min, F, Avg, Case, When, Value, IntegerField
 from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
@@ -598,6 +598,14 @@ def scenarios(request):
             hidden_ids.update(m['id'] for m in members if m['id'] != shown['id'])
         if hidden_ids:
             visible_scenarios = visible_scenarios.exclude(id__in=hidden_ids)
+        # Scenarios with confirmed translations come first.
+        visible_scenarios = visible_scenarios.annotate(
+            has_translations=Case(
+                When(id__in=list(groups), then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+        ).order_by('-has_translations', '-created_on')
 
     # Paginate before the can_edit loop (15 per page)
     paginator = Paginator(visible_scenarios, 15)

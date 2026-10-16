@@ -18,6 +18,7 @@ from authoringtool.models import (
 from authoringtool.translation_matching import (
     build_flow_profile,
     compare_flows,
+    explain_translation_pair,
     scan_translation_matches,
 )
 
@@ -895,3 +896,166 @@ class TranslationMatchAdminTests(TranslationMatchingBase):
             response,
             reverse('admin:authoringtool_translationmatch_changelist'),
         )
+
+
+class TranslationPairExplanationTests(TranslationMatchingBase):
+    """Say which scan check, if any, keeps a pair out of the review list."""
+
+    def states(self, explanation):
+        return {check['key']: check['state'] for check in explanation['checks']}
+
+    def detail(self, explanation, key):
+        return next(
+            check['detail'] for check in explanation['checks']
+            if check['key'] == key
+        )
+
+    def test_translation_pair_passes_every_check(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        greek, _ = self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+        scan_translation_matches()
+
+        explanation = explain_translation_pair(english, greek)
+
+        self.assertIsNone(explanation['stopped_by'])
+        self.assertEqual(set(self.states(explanation).values()), {'pass'})
+        self.assertEqual(explanation['result']['confidence'], 100)
+        self.assertEqual(explanation['match'], TranslationMatch.objects.get())
+
+    def test_order_of_the_two_scenarios_does_not_matter(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        greek, _ = self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+        scan_translation_matches()
+
+        explanation = explain_translation_pair(greek, english)
+
+        self.assertEqual(explanation['scenario_a'], english)
+        self.assertEqual(explanation['match'], TranslationMatch.objects.get())
+
+    def test_pair_that_was_not_scanned_yet_says_to_scan(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        greek, _ = self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+
+        explanation = explain_translation_pair(english, greek)
+
+        self.assertIsNone(explanation['stopped_by'])
+        self.assertEqual(self.states(explanation)['listed'], 'warn')
+        self.assertIn('Scan for translations', self.detail(explanation, 'listed'))
+
+    def test_same_language_copy_is_stopped_by_shared_wording(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        copy, _ = self.build('Pendulum copy', 'English', ENGLISH_STEPS)
+
+        explanation = explain_translation_pair(english, copy)
+
+        self.assertEqual(explanation['stopped_by'], 'wording')
+        self.assertIn('100%', self.detail(explanation, 'wording'))
+
+    def test_small_scenario_is_stopped_by_activity_count(self):
+        english, _ = self.build('Pendulum', 'English', SHORT_ENGLISH_STEPS)
+        greek, _ = self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS)
+
+        explanation = explain_translation_pair(english, greek)
+
+        self.assertEqual(explanation['stopped_by'], 'activities')
+        self.assertIn('4', self.detail(explanation, 'activities'))
+
+    def test_extra_activities_are_stopped_by_size(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        greek, _ = self.build('Εκκρεμές', 'Ελληνικά', GREEK_STEPS + [
+            ('Explanation', f'Επιπλέον βήμα {n}.', []) for n in range(3)
+        ])
+
+        explanation = explain_translation_pair(english, greek)
+
+        self.assertEqual(explanation['stopped_by'], 'size')
+        self.assertIn('10', self.detail(explanation, 'size'))
+        self.assertIn('13', self.detail(explanation, 'size'))
+
+    def test_wrong_start_warns_and_names_the_other_entry_point(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        greek, greek_activities = self.build(
+            'Εκκρεμές', 'Ελληνικά', GREEK_STEPS,
+        )
+        Scenario.objects.filter(pk=greek.pk).update(
+            start_activity=greek_activities[4],
+        )
+        greek.refresh_from_db()
+
+        explanation = explain_translation_pair(english, greek)
+
+        self.assertEqual(self.states(explanation)['start'], 'warn')
+        detail = self.detail(explanation, 'start')
+        self.assertIn('6 of 10', detail)
+        self.assertIn(f'activity {greek_activities[0].id}', detail)
+
+    def test_scenario_without_reachable_activities_fails_start(self):
+        english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        empty = Scenario.objects.create(
+            name='Empty', language='Ελληνικά',
+            created_by=self.owner, updated_by=self.owner,
+        )
+
+        explanation = explain_translation_pair(english, empty)
+
+        self.assertEqual(explanation['stopped_by'], 'activities')
+        self.assertEqual(self.states(explanation)['start'], 'fail')
+        self.assertIsNone(explanation['result'])
+
+
+class TranslationPairExplanationAdminTests(TranslationMatchingBase):
+    def setUp(self):
+        super().setUp()
+        self.admin_user = User.objects.create_superuser(
+            'explain_admin', password='pass',
+        )
+        self.english, _ = self.build('Pendulum', 'English', ENGLISH_STEPS)
+        self.copy, _ = self.build('Pendulum copy', 'English', ENGLISH_STEPS)
+        self.client.force_login(self.admin_user)
+        self.url = reverse('admin:authoringtool_translationmatch_explain')
+
+    def test_changelist_links_to_the_check(self):
+        response = self.client.get(
+            reverse('admin:authoringtool_translationmatch_changelist'),
+        )
+
+        self.assertContains(response, self.url)
+        self.assertContains(response, 'Why not matched?')
+
+    def test_page_without_scenarios_shows_the_form(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'name="a"')
+        self.assertContains(response, 'name="b"')
+        self.assertNotContains(response, 'class="explain-checks"')
+
+    def test_page_names_the_check_that_stopped_the_pair(self):
+        response = self.client.get(
+            self.url, {'a': self.english.id, 'b': self.copy.id},
+        )
+
+        self.assertContains(response, 'class="explain-checks"')
+        self.assertContains(response, 'Stopped by: Different wording')
+        self.assertContains(response, 'Pendulum copy')
+        self.assertContains(response, 'class="flow-phase"')
+
+    def test_unknown_scenario_is_reported(self):
+        response = self.client.get(self.url, {'a': self.english.id, 'b': 999999})
+
+        self.assertContains(response, 'Scenario 999999 does not exist.')
+        self.assertNotContains(response, 'class="explain-checks"')
+
+    def test_same_scenario_twice_is_reported(self):
+        response = self.client.get(
+            self.url, {'a': self.english.id, 'b': self.english.id},
+        )
+
+        self.assertContains(response, 'Pick two different scenarios.')
+
+    def test_staff_without_permission_is_refused(self):
+        staff = User.objects.create_user('staff', password='pass', is_staff=True)
+        self.client.force_login(staff)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)

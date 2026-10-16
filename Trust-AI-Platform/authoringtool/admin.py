@@ -39,9 +39,11 @@ from .scenario_matching import (
     create_manual_family_candidate,
 )
 from .translation_matching import (
+    CHECK_LABELS,
     activity_text,
     align_flows,
     build_flow_profile,
+    explain_translation_pair,
 )
 from .evidence import get_evidence_implementation_count
 from usergroups.models import UserGroupMembership
@@ -1970,6 +1972,11 @@ class TranslationMatchAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.scan_view),
                 name='authoringtool_translationmatch_scan',
             ),
+            path(
+                'explain/',
+                self.admin_site.admin_view(self.explain_view),
+                name='authoringtool_translationmatch_explain',
+            ),
         ] + super().get_urls()
 
     def has_add_permission(self, request):
@@ -1993,6 +2000,55 @@ class TranslationMatchAdmin(admin.ModelAdmin):
             level=messages.INFO,
         )
         return HttpResponseRedirect(changelist)
+
+    def explain_view(self, request):
+        """Why not matched? Run the scan's checks on two chosen scenarios."""
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        raw_ids = [request.GET.get(key, '').strip() for key in ('a', 'b')]
+        errors = []
+        explanation = None
+        if any(raw_ids):
+            scenarios = []
+            for raw in raw_ids:
+                if not raw.isdigit():
+                    errors.append('Enter two scenario IDs.')
+                    break
+                scenario = Scenario.objects.filter(pk=int(raw)).first()
+                if scenario is None:
+                    errors.append(f'Scenario {raw} does not exist.')
+                scenarios.append(scenario)
+            if not errors and scenarios[0] == scenarios[1]:
+                errors.append('Pick two different scenarios.')
+            if not errors:
+                explanation = explain_translation_pair(*scenarios)
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta,
+            'title': 'Why not matched?',
+            'scenario_ids': raw_ids,
+            'errors': errors,
+            'explanation': explanation,
+        }
+        if explanation is not None:
+            context['stopped_label'] = (
+                CHECK_LABELS[explanation['stopped_by']]
+                if explanation['stopped_by'] else None
+            )
+            context['flow_table'] = self.flow_table(
+                explanation['profile_a'],
+                explanation['profile_b'],
+            )
+            if explanation['match'] is not None:
+                context['match_url'] = reverse(
+                    'admin:authoringtool_translationmatch_change',
+                    args=[explanation['match'].pk],
+                )
+        return TemplateResponse(
+            request,
+            'admin/authoringtool/translationmatch/explain.html',
+            context,
+        )
 
     @admin.display(description='Confidence', ordering='confidence')
     def confidence_display(self, obj):
@@ -2070,8 +2126,15 @@ class TranslationMatchAdmin(admin.ModelAdmin):
     def flow_comparison(self, obj):
         if not obj.pk:
             return '—'
-        profile_a = build_flow_profile(obj.scenario_a)
-        profile_b = build_flow_profile(obj.scenario_b)
+        return self.flow_table(
+            build_flow_profile(obj.scenario_a),
+            build_flow_profile(obj.scenario_b),
+        )
+
+    @staticmethod
+    def flow_table(profile_a, profile_b):
+        scenario_a = profile_a['scenario']
+        scenario_b = profile_b['scenario']
         marks = {
             'same': '✓',
             'route differs': '✓ activity · ✗ route',
@@ -2128,10 +2191,10 @@ class TranslationMatchAdmin(admin.ModelAdmin):
             '<th>#</th><th>Type</th><th>{} · {}</th>'
             '<th>#</th><th>Type</th><th>{} · {}</th><th>Match</th>'
             '</tr></thead><tbody>{}</tbody></table>',
-            obj.scenario_a.id,
-            obj.scenario_a.name,
-            obj.scenario_b.id,
-            obj.scenario_b.name,
+            scenario_a.id,
+            scenario_a.name,
+            scenario_b.id,
+            scenario_b.name,
             format_html_join('', '{}', ((fragment,) for fragment in fragments)),
         )
 

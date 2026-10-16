@@ -283,3 +283,13 @@ class ScenarioListTests(PoolingBase):
 
         self.assertIn(english[0].id, ids)
         self.assertIn(greek[0].id, ids)
+
+    def test_scenarios_with_translations_are_listed_first(self):
+        greek = self.build('Εκκρεμές', 'Ελληνικά')
+        english = self.build('Pendulum', 'English')
+        self.confirm(english, greek)
+        newer = self.build('Optics', 'English')
+
+        _, ids = self.listed()
+
+        self.assertEqual(ids, [english[0].id, newer[0].id])
