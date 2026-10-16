@@ -1,0 +1,39 @@
+{# Searchable "Next Activity" picker, as on the activity page. Takes field_name, selected_id, selected_name and eligible_activities. #}
+<div class="next-picker-wrap">
+  <button type="button" class="next-picker-btn{% if selected_id %} filled{% endif %}">
+    <i class="bi bi-box-arrow-right" style="color:#10b981; flex-shrink:0;"></i>
+    <span class="np-label">{% if selected_id %}{{ selected_name }}{% else %}Select Next Activity (Optional)…{% endif %}</span>
+    <i class="bi bi-chevron-down np-arrow"></i>
+  </button>
+
+  <div class="next-picker-dropdown">
+    <div class="np-search-wrap">
+      <input type="text" class="np-search" placeholder="Search activities…">
+    </div>
+    <div class="np-items">
+      {% regroup eligible_activities by phase as next_phase_groups %}
+      {% for pg in next_phase_groups %}
+      <div class="np-group-hdr">
+        {% if pg.grouper.id == myPhase.id %}<i class="bi bi-geo-alt-fill me-1" style="color:#1a56db;font-size:9px;"></i>{% endif %}
+        {{ pg.grouper.name }}{% if pg.grouper.id == myPhase.id %} (Current){% endif %}
+      </div>
+      {% for act in pg.list %}
+      <div class="np-item{% if act.id == selected_id %} selected{% endif %}"
+           data-val="{{ act.id }}" data-name="{{ act.name }}">
+        <i class="bi bi-activity" style="color:#9ca3af; font-size:11px;"></i>
+        <span>{{ act.name }}</span>
+        <i class="bi bi-check-circle-fill ms-auto np-check" style="color:#10b981;"></i>
+      </div>
+      {% endfor %}
+      {% endfor %}
+      <div class="np-item create-new" data-val="create_new" data-name="+ Create New Activity">
+        <i class="bi bi-plus-circle-fill"></i> Create New Activity
+      </div>
+    </div>
+    <div class="np-clear"{% if selected_id %} style="display:block;"{% endif %}>
+      <i class="bi bi-x-circle me-1"></i> Clear — no next activity
+    </div>
+  </div>
+
+  <input type="hidden" name="{{ field_name }}" class="np-value" value="{{ selected_id|default:'' }}">
+</div>

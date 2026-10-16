@@ -37,13 +37,13 @@
     border: 1px solid #e8edf5;
     border-radius: 12px;
     margin-bottom: 14px;
-    overflow: hidden;
     transition: box-shadow 0.18s;
   }
   .answer-card:hover { box-shadow: 0 4px 16px rgba(1,41,112,0.07); }
 
   .answer-card-header {
     background: #f8faff;
+    border-radius: 12px 12px 0 0;
     border-bottom: 1px solid #e8edf5;
     padding: 11px 18px;
     display: flex;
@@ -89,6 +89,56 @@
     margin-top: 14px;
   }
   .next-activity-section label { font-size: 12.5px; font-weight: 700; color: #4154f1; margin-bottom: 6px; display: block; }
+
+  /* ── Next activity single-picker (as on the activity page) ── */
+  .next-picker-wrap { position: relative; }
+  .next-picker-btn {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 10px 13px; background: #fff;
+    border: 2px solid #d1d9e0; border-radius: 8px;
+    font-size: 13.5px; color: #9ca3af; cursor: pointer; text-align: left;
+    transition: border-color 0.15s;
+  }
+  .next-picker-btn:hover { border-color: #10b981; }
+  .next-picker-btn.filled { color: #374151; border-color: #10b981; background: #f0fdf4; }
+  .next-picker-btn .np-arrow { margin-left: auto; transition: transform 0.15s; color: #6b7280; }
+  .next-picker-btn.open .np-arrow { transform: rotate(180deg); }
+  .next-picker-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 9999; background: #fff; border: 1px solid #cdd5e0;
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  }
+  .np-search-wrap {
+    padding: 9px 11px; border-bottom: 1px solid #eef0f4;
+    position: sticky; top: 0; background: #fff; z-index: 1;
+    border-radius: 10px 10px 0 0;
+  }
+  .np-search {
+    width: 100%; border: 1px solid #d1d9e0; border-radius: 6px;
+    padding: 6px 10px; font-size: 13px; outline: none;
+  }
+  .np-search:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+  .np-items { overflow-y: auto; max-height: 290px; padding: 4px 0; }
+  .np-group-hdr {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+    font-weight: 700; color: #9ca3af; padding: 8px 13px 3px;
+  }
+  .np-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 13px; cursor: pointer; transition: background 0.1s;
+    font-size: 13px; color: #374151;
+  }
+  .np-item:hover { background: #f0fdf4; }
+  .np-item.selected { background: #ecfdf5; color: #065f46; font-weight: 600; }
+  .np-item .np-check { display: none; }
+  .np-item.selected .np-check { display: inline-block; }
+  .np-item.create-new { color: #16a34a; font-weight: 600; border-top: 1px solid #e8edf5; }
+  .np-item.create-new:hover { background: #f0fdf4; }
+  .np-clear {
+    display: none; padding: 8px 13px; border-top: 1px solid #e8edf5;
+    color: #ef4444; font-size: 12px; cursor: pointer; border-radius: 0 0 10px 10px;
+  }
+  .np-clear:hover { background: #fef2f2; }
 </style>
 
 <main id="main" class="main">
@@ -160,13 +210,7 @@
                   {% if not activity.is_evaluatable %}
                   <div class="next-activity-section">
                     <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
-                    <select name="next_activity_{{ forloop.counter0 }}" class="form-select form-select-sm">
-                      <option value="">Select Next Activity (Optional)</option>
-                      {% for act in eligible_activities %}
-                        <option value="{{ act.id }}" {% if answer.next_activity_id == act.id %}selected{% endif %}>{{ act.name }}</option>
-                      {% endfor %}
-                      <option value="create_new">Create New Activity</option>
-                    </select>
+                    {% include "authoringtool/includes/next_activity_picker.html" with field_name=answer.next_field_name selected_id=answer.next_activity_id selected_name=answer.next_activity_name %}
                   </div>
                   {% endif %}
                   <input type="hidden" name="answers[{{ forloop.counter0 }}][id]" value="{{ answer.id }}">
@@ -196,6 +240,12 @@
           </div>
         </form>
 
+        {% if not activity.is_evaluatable %}
+        <template id="nextPickerTemplate">
+          {% include "authoringtool/includes/next_activity_picker.html" with field_name="__NAME__" selected_id=None selected_name="" %}
+        </template>
+        {% endif %}
+
       </div>
     </div>
   </section>
@@ -205,11 +255,68 @@
 document.addEventListener('DOMContentLoaded', function () {
   let answerCount = {{ answers|length }};
   var isEvaluatable = {% if activity.is_evaluatable %}true{% else %}false{% endif %};
-  let eligibleActivities = [
-    {% for act in eligible_activities %}
-      { id: "{{ act.id }}", name: "{{ act.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-  ];
+
+  // ── Next Activity pickers (one per answer, as on the activity page) ──
+  var EMPTY_LABEL = 'Select Next Activity (Optional)…';
+
+  function filterPicker(wrap, q) {
+    var ql = q.toLowerCase();
+    wrap.querySelectorAll('.np-item:not(.create-new)').forEach(function (item) {
+      item.style.display = item.textContent.trim().toLowerCase().includes(ql) ? '' : 'none';
+    });
+    wrap.querySelectorAll('.np-group-hdr').forEach(function (hdr) {
+      var sib = hdr.nextElementSibling, vis = false;
+      while (sib && !sib.classList.contains('np-group-hdr') && !sib.classList.contains('create-new')) {
+        if (sib.style.display !== 'none') vis = true;
+        sib = sib.nextElementSibling;
+      }
+      hdr.style.display = vis ? '' : 'none';
+    });
+  }
+  function openPicker(wrap) {
+    wrap.querySelector('.next-picker-dropdown').style.display = 'block';
+    wrap.querySelector('.next-picker-btn').classList.add('open');
+    wrap.querySelector('.np-search').focus();
+  }
+  function closePicker(wrap) {
+    var dropdown = wrap.querySelector('.next-picker-dropdown');
+    if (dropdown.style.display !== 'block') return;
+    dropdown.style.display = 'none';
+    wrap.querySelector('.next-picker-btn').classList.remove('open');
+    wrap.querySelector('.np-search').value = '';
+    filterPicker(wrap, '');
+  }
+  function setPicker(wrap, value, name) {
+    wrap.querySelector('.np-value').value = value;
+    wrap.querySelector('.np-label').textContent = value ? name : EMPTY_LABEL;
+    wrap.querySelector('.next-picker-btn').classList.toggle('filled', !!value);
+    wrap.querySelector('.np-clear').style.display = value ? 'block' : 'none';
+    wrap.querySelectorAll('.np-item').forEach(function (item) {
+      item.classList.toggle('selected', !!value && item.dataset.val === value);
+    });
+    closePicker(wrap);
+  }
+
+  document.addEventListener('click', function (e) {
+    var wrap = e.target.closest('.next-picker-wrap');
+    document.querySelectorAll('.next-picker-wrap').forEach(function (other) {
+      if (other !== wrap) closePicker(other);
+    });
+    if (!wrap) return;
+    if (e.target.closest('.next-picker-btn')) {
+      var isOpen = wrap.querySelector('.next-picker-dropdown').style.display === 'block';
+      isOpen ? closePicker(wrap) : openPicker(wrap);
+      return;
+    }
+    var item = e.target.closest('.np-item');
+    if (item) { setPicker(wrap, item.dataset.val, item.dataset.name); return; }
+    if (e.target.closest('.np-clear')) setPicker(wrap, '', '');
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.classList.contains('np-search')) {
+      filterPicker(e.target.closest('.next-picker-wrap'), e.target.value);
+    }
+  });
 
   function renumber() {
     document.querySelectorAll('#answerFieldsList .answerFields').forEach(function (el, i) {
@@ -229,18 +336,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('addMoreAnswers').addEventListener('click', function () {
-    var nextActOptions = eligibleActivities.map(a =>
-      `<option value="${a.id}">${a.name}</option>`
-    ).join('');
-
-    var nextActHTML = isEvaluatable ? '' : `
+    var pickerTemplate = document.getElementById('nextPickerTemplate');
+    var nextActHTML = (isEvaluatable || !pickerTemplate) ? '' : `
       <div class="next-activity-section">
         <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
-        <select class="form-select form-select-sm" name="next_activity_${answerCount}">
-          <option value="">Select Next Activity (Optional)</option>
-          ${nextActOptions}
-          <option value="create_new">Create New Activity</option>
-        </select>
+        ${pickerTemplate.innerHTML.replace('__NAME__', 'next_activity_' + answerCount)}
       </div>`;
 
     var div = document.createElement('div');

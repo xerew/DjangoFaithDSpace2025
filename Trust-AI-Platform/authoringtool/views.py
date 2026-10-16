@@ -2084,16 +2084,29 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
 
     answers = activity.answers.all()
 
-    for answer in answers:
-        next_question_logic = NextQuestionLogic.objects.filter(answer=answer).first()
-        answer.next_activity_id = next_question_logic.next_activity.id if next_question_logic else None
+    for index, answer in enumerate(answers):
+        # Matches answers[<index>] in the form, as the POST handler expects.
+        answer.next_field_name = f'next_activity_{index}'
+        next_question_logic = (
+            NextQuestionLogic.objects.filter(answer=answer)
+            .select_related('next_activity').first()
+        )
+        next_activity = next_question_logic.next_activity if next_question_logic else None
+        answer.next_activity_id = next_activity.id if next_activity else None
+        answer.next_activity_name = next_activity.name if next_activity else ''
+
+    # Same list as the activity page's Next Activity picker.
+    eligible_activities = Activity.objects.select_related('phase').filter(
+        scenario=scenario_id
+    ).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
 
     return render(request, 'authoringtool/updateAnswers.html', {
         'activity': activity,
         'answers': answers,
         'scenario': scenario_id,
         'phase': phase_id,
-        'eligible_activities': all_activities_in_scenario,
+        'myPhase': activity.phase,
+        'eligible_activities': eligible_activities,
     })
 
 @group_required('teachers')
