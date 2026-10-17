@@ -243,7 +243,8 @@
         position: sticky;
         top: 80px;
       }
-      .chatbot-container iframe { height: max(420px, calc(100vh - 110px)); }
+      /* A compact box: about half the window, never taller than 520px. */
+      .chatbot-container iframe { height: clamp(380px, 55vh, 520px); }
       /* On phones/tablets: don't stick the chatbot — it stacks below */
       @media (max-width: 767.98px) {
         .chatbot-card { position: relative; top: auto; }
