@@ -770,6 +770,38 @@ def translation_groups():
     return groups
 
 
+def representative(versions):
+    """The version that stands for a translation group: English, else the oldest."""
+    oldest_first = sorted(versions, key=lambda s: (s.created_on, s.id))
+    return next((s for s in oldest_first if is_english(s.language)), oldest_first[0])
+
+
+def language_order(versions):
+    """English first, then by language and name."""
+    return sorted(
+        versions,
+        key=lambda s: (not is_english(s.language), (s.language or '').casefold(), s.name),
+    )
+
+
+def bundle_translations(scenarios, groups=None):
+    """Bundle the given scenarios that are confirmed translations of each other.
+
+    Returns one list per bundle, in the order bundles first appear; each list
+    starts with its representative, then the other languages.
+    """
+    groups = translation_groups() if groups is None else groups
+    scenarios = list(scenarios)
+    members = defaultdict(list)
+    for scenario in scenarios:
+        members[groups.get(scenario.id, scenario.id)].append(scenario)
+    bundles = []
+    for key, versions in members.items():
+        first = representative(versions)
+        bundles.append([first] + language_order(s for s in versions if s is not first))
+    return bundles
+
+
 def translation_group_ids(scenario):
     """Ids of scenarios joined to this one by confirmed translations.
 

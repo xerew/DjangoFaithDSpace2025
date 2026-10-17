@@ -1,0 +1,27 @@
+{# One scenario picker row. Confirmed translations share a row: tick it, then pick the language. #}
+{% with selected=row.selected %}
+<label class="scenario-item" data-name="{% for version in row.versions %}{{ version.name|lower }} {{ version.language|lower }} {% endfor %}">
+  {% if row.versions|length > 1 %}
+  <input type="checkbox" class="bundle-check" {% if row.assigned %}checked{% endif %}
+         onchange="toggleBundle(this)" aria-label="Assign {{ selected.name }}">
+  {% else %}
+  <input type="checkbox" name="assigned_scenarios" value="{{ selected.id }}"
+         {% if row.assigned %}checked{% endif %} onchange="updateCount()">
+  {% endif %}
+  <span class="scenario-name">{{ selected.name }} <span class="scenario-lang">({{ selected.language|default:"No language" }})</span></span>
+  {% if row.versions|length > 1 %}
+  <select name="assigned_scenarios" class="form-select form-select-sm scenario-lang-select" aria-label="Language"{% if not row.assigned %} disabled{% endif %} onchange="updateBundleTitle(this)">
+    {% for version in row.versions %}
+    <option value="{{ version.id }}"{% if version.id == selected.id %} selected{% endif %} data-name="{{ version.name }}" data-language="{{ version.language|default:'No language' }}">{{ version.language|default:"No language" }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  {% if selected.visibility_status == 'public' %}
+    <span class="vis-badge vis-public">Public</span>
+  {% elif selected.visibility_status == 'org' %}
+    <span class="vis-badge vis-org">Org-Only</span>
+  {% else %}
+    <span class="vis-badge vis-private">Private</span>
+  {% endif %}
+</label>
+{% endwith %}

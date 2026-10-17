@@ -6,6 +6,7 @@ import openpyxl
 from django.http import HttpResponse
 from .forms import UserGroupForm
 from authoringtool.models import Scenario, UserAnswer, MultilingualAnswer, MultilingualQuestion
+from authoringtool.translation_matching import bundle_translations
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from functools import wraps
@@ -58,6 +59,24 @@ def get_next_suffix(prefix):
     return 1  # Start at 1 if no users with this prefix exist
 
 
+def _scenario_choices(user, scenarios, assigned_ids=()):
+    """Rows for the scenario picker: (mine, others).
+
+    Confirmed translations share one row with a language choice. If a group
+    already has several languages of one scenario, each keeps its own row so
+    none is dropped on save.
+    """
+    mine, others = [], []
+    for bundle in bundle_translations(scenarios):
+        rows = [
+            {'versions': bundle, 'selected': version, 'assigned': True}
+            for version in bundle if version.id in assigned_ids
+        ] or [{'versions': bundle, 'selected': bundle[0], 'assigned': False}]
+        owned = any(version.created_by_id == user.id for version in bundle)
+        (mine if owned else others).extend(rows)
+    return mine, others
+
+
 @group_required('teachers')
 def create_user_group(request):
     if request.method == "POST":
@@ -94,8 +113,7 @@ def create_user_group(request):
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))  # Org-only scenarios where user belongs to the org
     ).distinct()
 
-    my_scenarios = [s for s in all_scenarios if s.created_by_id == user.id]
-    other_scenarios = [s for s in all_scenarios if s.created_by_id != user.id]
+    my_scenarios, other_scenarios = _scenario_choices(user, all_scenarios)
 
     return render(request, 'usergroups/create_group.html', {
         'form': form,
@@ -306,9 +324,8 @@ def edit_group(request, group_id):
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))
     ).distinct()
 
-    my_scenarios = [s for s in all_scenarios if s.created_by_id == user.id]
-    other_scenarios = [s for s in all_scenarios if s.created_by_id != user.id]
     assigned_scenario_ids = set(group.assigned_scenarios.values_list('id', flat=True))
+    my_scenarios, other_scenarios = _scenario_choices(user, all_scenarios, assigned_scenario_ids)
     current_member_count = group.members.count()
 
     return render(request, 'usergroups/edit_group.html', {

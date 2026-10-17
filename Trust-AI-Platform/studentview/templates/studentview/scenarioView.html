@@ -233,7 +233,9 @@
         background: #16a34a; color: #fff; font-weight: 700; font-size: 15px;
       }
       #resumeHelpButton:disabled, #askHelpButton:disabled { opacity: 0.6; cursor: wait; }
-.chatbot-card {
+      /* Plato follows the page while scrolling, just below the fixed top bar.
+         Sticky also anchors the "ask for help" overlay inside the card. */
+      .chatbot-card {
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #dee2e6;
@@ -241,9 +243,10 @@
         position: sticky;
         top: 80px;
       }
+      .chatbot-container iframe { height: max(420px, calc(100vh - 110px)); }
       /* On phones/tablets: don't stick the chatbot — it stacks below */
       @media (max-width: 767.98px) {
-        .chatbot-card { position: static; }
+        .chatbot-card { position: relative; top: auto; }
         .chatbot-container iframe { height: 75vw !important; min-height: 300px; max-height: 480px; }
         #simulationPreview { height: min(400px, 80vw) !important; }
       }
@@ -364,9 +367,9 @@
 
                 <!-- Chatbot -->
                 <div class="col-12 col-md-4">
-                  <div class="chatbot-card" style="position:relative;">
+                  <div class="chatbot-card">
                     <div class="chatbot-container">
-                      <iframe src="{% url 'chat_interface' %}" style="width:100%; height:60vh; border:none;"></iframe>
+                      <iframe src="{% url 'chat_interface' %}" title="Plato, AI learning companion" style="width:100%; border:none;"></iframe>
                     </div>
                     {% if not is_teacher %}
                     <div id="helpPauseOverlay" class="help-pause-overlay" role="dialog" aria-modal="true" aria-labelledby="helpPauseTitle"{% if not help_paused %} hidden{% endif %}>

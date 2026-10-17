@@ -25,7 +25,12 @@ from authoringtool.models import (
 from django.views.decorators.http import require_POST
 from authoringtool.models import Subject
 from authoringtool.html_safety import sanitize_html
-from authoringtool.views import user_can_view_scenario
+from authoringtool.translation_matching import (
+    bundle_translations,
+    language_order,
+    translation_groups,
+)
+from authoringtool.views import scenarios_visible_to_user, user_can_view_scenario
 from usergroups.models import UserGroupMembership
 import json
 import logging
@@ -494,9 +499,33 @@ def scenarios_view(request):
             total_questions > 0 and answered_for_scenario >= all_question_ids
         )
 
+    # Teachers: one card per confirmed translation group, as in the authoring
+    # list (English, else the oldest), with translated scenarios first.
+    groups = translation_groups() if is_teacher else {}
+    if groups:
+        scenario_list = [bundle[0] for bundle in bundle_translations(scenario_list, groups)]
+        scenario_list.sort(key=lambda scenario: scenario.created_on, reverse=True)
+        scenario_list.sort(key=lambda scenario: scenario.id not in groups)
+
     paginator = Paginator(scenario_list, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    if groups:
+        member_ids = set().union(*(groups.get(s.id, frozenset()) for s in page_obj))
+        viewable = {
+            scenario.id: scenario
+            for scenario in scenarios_visible_to_user(
+                user,
+                Scenario.objects.filter(id__in=member_ids, archived_at__isnull=True),
+            )
+        }
+        for scenario in page_obj:
+            group = groups.get(scenario.id, frozenset())
+            scenario.translation_versions = language_order(
+                viewable[member_id] for member_id in group if member_id in viewable
+            )
+            scenario.translation_count = max(len(group) - 1, 0)
 
     get_params = request.GET.copy()
     get_params.pop('page', None)

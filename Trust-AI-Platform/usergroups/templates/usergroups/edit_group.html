@@ -12,6 +12,8 @@
   .scenario-item:hover { background: #f0f4ff; }
   .scenario-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
   .scenario-item .scenario-name { font-size: 14px; color: #333; flex: 1; }
+  .scenario-item .scenario-lang { font-size: 12.5px; color: #888; }
+  .scenario-item .scenario-lang-select { width: auto; min-width: 130px; flex-shrink: 0; }
   .scenario-item .vis-badge { font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
   .vis-public  { background: #d1fae5; color: #065f46; }
   .vis-org     { background: #fef3c7; color: #92400e; }
@@ -168,40 +170,16 @@
 
                   {% if my_scenarios %}
                   <div class="scenario-section-label" data-section>My Scenarios</div>
-                  {% for scenario in my_scenarios %}
-                  <label class="scenario-item" data-name="{{ scenario.name|lower }}">
-                    <input type="checkbox" name="assigned_scenarios" value="{{ scenario.id }}"
-                           {% if scenario.id in assigned_scenario_ids %}checked{% endif %}
-                           onchange="updateCount()">
-                    <span class="scenario-name">{{ scenario.name }}</span>
-                    {% if scenario.visibility_status == 'public' %}
-                      <span class="vis-badge vis-public">Public</span>
-                    {% elif scenario.visibility_status == 'org' %}
-                      <span class="vis-badge vis-org">Org-Only</span>
-                    {% else %}
-                      <span class="vis-badge vis-private">Private</span>
-                    {% endif %}
-                  </label>
+                  {% for row in my_scenarios %}
+                  {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
                   {% endif %}
 
                   {% if other_scenarios %}
                   {% if my_scenarios %}<hr class="scenario-divider">{% endif %}
                   <div class="scenario-section-label" data-section>Other Accessible Scenarios</div>
-                  {% for scenario in other_scenarios %}
-                  <label class="scenario-item" data-name="{{ scenario.name|lower }}">
-                    <input type="checkbox" name="assigned_scenarios" value="{{ scenario.id }}"
-                           {% if scenario.id in assigned_scenario_ids %}checked{% endif %}
-                           onchange="updateCount()">
-                    <span class="scenario-name">{{ scenario.name }}</span>
-                    {% if scenario.visibility_status == 'public' %}
-                      <span class="vis-badge vis-public">Public</span>
-                    {% elif scenario.visibility_status == 'org' %}
-                      <span class="vis-badge vis-org">Org-Only</span>
-                    {% else %}
-                      <span class="vis-badge vis-private">Private</span>
-                    {% endif %}
-                  </label>
+                  {% for row in other_scenarios %}
+                  {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
                   {% endif %}
 
@@ -243,6 +221,20 @@
       }
       label.style.display = hasVisible ? '' : 'none';
     });
+  }
+
+  // A row of translations: ticking it enables its language choice.
+  function toggleBundle(checkbox) {
+    checkbox.closest('.scenario-item').querySelector('.scenario-lang-select').disabled = !checkbox.checked;
+    updateCount();
+  }
+
+  // Show the chosen language's own name and language in the row title.
+  function updateBundleTitle(select) {
+    const option = select.selectedOptions[0];
+    const title = select.closest('.scenario-item').querySelector('.scenario-name');
+    title.firstChild.nodeValue = option.dataset.name + ' ';
+    title.querySelector('.scenario-lang').textContent = '(' + option.dataset.language + ')';
   }
 
   function updateCount() {

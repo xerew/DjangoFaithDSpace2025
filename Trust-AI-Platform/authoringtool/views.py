@@ -51,11 +51,11 @@ from .evidence import (
     normalize_evidence_language,
     normalize_evidence_scope,
 )
-from collections import defaultdict
 
 from .help_time import help_time_chart
 from .translation_matching import (
-    is_english,
+    bundle_translations,
+    language_order,
     pooled_implementation_count,
     translation_group_ids,
     translation_groups,
@@ -575,27 +575,18 @@ def scenarios(request):
     # the oldest; the other versions open from that card's Translations modal.
     groups = translation_groups()
     if groups:
-        grouped = defaultdict(list)
-        for row in (
-            Scenario.objects
-            .filter(id__in=[
-                scenario_id
-                for scenario_id in visible_scenarios.values_list('id', flat=True)
-                if scenario_id in groups
-            ])
-            .values('id', 'language', 'created_on')
-        ):
-            grouped[groups[row['id']]].append(row)
-        hidden_ids = set()
-        for members in grouped.values():
-            if len(members) < 2:
-                continue
-            oldest_first = sorted(members, key=lambda m: (m['created_on'], m['id']))
-            shown = next(
-                (m for m in oldest_first if is_english(m['language'])),
-                oldest_first[0],
+        hidden_ids = {
+            version.id
+            for bundle in bundle_translations(
+                Scenario.objects.filter(id__in=[
+                    scenario_id
+                    for scenario_id in visible_scenarios.values_list('id', flat=True)
+                    if scenario_id in groups
+                ]).only('id', 'name', 'language', 'created_on'),
+                groups,
             )
-            hidden_ids.update(m['id'] for m in members if m['id'] != shown['id'])
+            for version in bundle[1:]
+        }
         if hidden_ids:
             visible_scenarios = visible_scenarios.exclude(id__in=hidden_ids)
         # Scenarios with confirmed translations come first.
@@ -636,13 +627,8 @@ def scenarios(request):
     }
     for scenario in page_obj:
         group = page_groups.get(scenario.id, frozenset())
-        versions = sorted(
-            (viewable[member_id] for member_id in group if member_id in viewable),
-            key=lambda version: (
-                not is_english(version.language),
-                (version.language or '').casefold(),
-                version.name,
-            ),
+        versions = language_order(
+            viewable[member_id] for member_id in group if member_id in viewable
         )
         for version in versions:
             version.student_count = students.get(version.id, 0)
