@@ -226,15 +226,6 @@
           <span>Student View</span>
         </a>
       </li>
-
-      {% if request.user.is_staff or request.user.is_superuser %}
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="{% url 'admin_dashboard' %}">
-          <i class="bi bi-shield-lock-fill"></i>
-          <span>Platform Administration</span>
-        </a>
-      </li>
-      {% endif %}
     </ul>
 	{% if request.user|has_group:"teachers" %}
       <hr>

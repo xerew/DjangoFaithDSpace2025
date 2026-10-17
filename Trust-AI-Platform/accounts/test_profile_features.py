@@ -224,3 +224,18 @@ class AdminUserTableOrganizationTests(ProfileBase):
         response = self.client.get(reverse('admin_dashboard'))
 
         self.assertIn('ntua', self.row(response, self.teacher).split('data-search="')[1].split('"')[0])
+
+
+class PlatformAdministrationMenuTests(ProfileBase):
+    def test_link_is_under_the_name_and_not_in_the_side_menu(self):
+        admin = User.objects.create_superuser('pf_menu_admin', password='pass')
+        admin.groups.add(self.teachers)
+        self.client.force_login(admin)
+
+        html = self.client.get(reverse('profile')).content.decode()
+
+        link = f'href="{reverse("admin_dashboard")}"'
+        sidebar = html[html.index('<aside id="sidebar"'):html.index('</aside>')]
+        name_menu = html[html.index('dropdown-menu-end'):html.index('<aside id="sidebar"')]
+        self.assertNotIn(link, sidebar)
+        self.assertIn(link, name_menu)
