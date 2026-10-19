@@ -33,6 +33,13 @@
   }
   .user-row td { vertical-align: middle; font-size: 13px; }
   .user-row.inactive-row { opacity: 0.5; }
+  .user-sort-btn {
+    background: none; border: 0; padding: 0; font: inherit; color: inherit;
+    display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  }
+  .user-sort-btn:hover, .user-sort-btn.active { color: #1a56db; }
+  .user-sort-icon { font-size: 12px; opacity: .55; }
+  .user-sort-btn.active .user-sort-icon { opacity: 1; }
 
   /* Edit slide panel */
   .edit-panel {
@@ -244,12 +251,12 @@
             <table class="table table-hover mb-0" id="userTable">
               <thead style="background:#f8faff;">
                 <tr>
-                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">User</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Email</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Organization</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;" aria-sort="ascending"><button type="button" class="user-sort-btn" data-sort="name">User <i class="bi bi-sort-alpha-down user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="email">Email <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="org">Organization <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
                   <th style="font-size:12px;font-weight:600;color:#888;">Roles</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Last Login</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Status</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="login">Last Login <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="status">Status <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
                   <th></th>
                 </tr>
               </thead>
@@ -257,6 +264,11 @@
                 {% for u in all_users %}
                 <tr class="user-row {% if not u.is_active %}inactive-row{% endif %}"
                     data-user-id="{{ u.id }}"
+                    data-sort-name="{{ u.get_full_name|default:u.username|lower }}"
+                    data-sort-email="{{ u.email|lower }}"
+                    data-sort-org="{% with first=u.organization_rows|first %}{{ first.org.short_name|lower }}{% endwith %}"
+                    data-sort-login="{% if u.last_login %}{{ u.last_login|date:'U' }}{% endif %}"
+                    data-sort-status="{{ u.is_active|yesno:'1,0' }}"
                     data-orgs="{% for row in u.organization_rows %}{{ row.org.short_name|lower }} {{ row.org.name|lower }} {% endfor %}"
                     data-search="{{ u.username|lower }} {{ u.get_full_name|lower }} {{ u.email|lower }} {% for row in u.organization_rows %}{{ row.org.short_name|lower }} {{ row.org.name|lower }} {% endfor %}"
                     data-username="{{ u.username }}"
@@ -959,7 +971,44 @@ function clearRoleFilter() {
   filterUsers();
 }
 
+// ── Sorting: click a column header; click again to reverse ──────────────────
+// Empty values (no email, no organization, never logged in) always go last.
+let _userSort = { key: 'name', dir: 1 };
+const USER_SORT_FIRST_DIR = { name: 1, email: 1, org: 1, login: -1, status: -1 };
+
+function sortUserRows() {
+  const tbody = document.querySelector('#userTable tbody');
+  const field = 'sort' + _userSort.key.charAt(0).toUpperCase() + _userSort.key.slice(1);
+  const rows = [...tbody.querySelectorAll('.user-row')];
+  rows.sort(function (a, b) {
+    const x = a.dataset[field] || '', y = b.dataset[field] || '';
+    if (!x !== !y) return x ? -1 : 1;
+    const order = x.localeCompare(y, undefined, { numeric: true });
+    return order * _userSort.dir || (a.dataset.sortName || '').localeCompare(b.dataset.sortName || '');
+  });
+  rows.forEach(function (row) { tbody.appendChild(row); });
+
+  document.querySelectorAll('.user-sort-btn').forEach(function (btn) {
+    const active = btn.dataset.sort === _userSort.key;
+    btn.classList.toggle('active', active);
+    btn.closest('th').setAttribute('aria-sort', active ? (_userSort.dir === 1 ? 'ascending' : 'descending') : 'none');
+    const icon = btn.querySelector('.user-sort-icon');
+    icon.className = 'bi user-sort-icon ' + (active ? (_userSort.dir === 1 ? 'bi-sort-down-alt' : 'bi-sort-down') : 'bi-arrow-down-up');
+  });
+}
+
+document.querySelectorAll('.user-sort-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    const key = this.dataset.sort;
+    _userSort = _userSort.key === key
+      ? { key: key, dir: -_userSort.dir }
+      : { key: key, dir: USER_SORT_FIRST_DIR[key] || 1 };
+    filterUsers();
+  });
+});
+
 function filterUsers() {
+  sortUserRows();
   const q = document.getElementById('userSearch').value.toLowerCase();
   const checkedRoles = [...document.querySelectorAll('.role-filter-check:checked')].map(function(c) { return c.value; });
   const showInactive = document.getElementById('showInactive').checked;

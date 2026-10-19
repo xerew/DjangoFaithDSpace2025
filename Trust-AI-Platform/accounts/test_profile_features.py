@@ -205,7 +205,7 @@ class AdminUserTableOrganizationTests(ProfileBase):
     def test_user_table_has_an_organization_column(self):
         response = self.client.get(reverse('admin_dashboard'))
 
-        self.assertContains(response, '>Organization</th>')
+        self.assertContains(response, 'data-sort="org">Organization')
 
     def test_member_and_admin_organizations_are_listed(self):
         response = self.client.get(reverse('admin_dashboard'))
@@ -219,6 +219,26 @@ class AdminUserTableOrganizationTests(ProfileBase):
         response = self.client.get(reverse('admin_dashboard'))
 
         self.assertIn('no-org', self.row(response, self.other))
+
+    def test_columns_have_sort_buttons(self):
+        response = self.client.get(reverse('admin_dashboard'))
+
+        for key in ('name', 'email', 'org', 'login', 'status'):
+            self.assertContains(response, f'data-sort="{key}"')
+
+    def test_rows_carry_sort_values(self):
+        from datetime import datetime, timezone
+        User.objects.filter(pk=self.teacher.pk).update(
+            last_login=datetime(2026, 10, 1, 9, 30, tzinfo=timezone.utc),
+        )
+
+        response = self.client.get(reverse('admin_dashboard'))
+
+        row = self.row(response, self.teacher)
+        self.assertIn('data-sort-name="tina teacher"', row)
+        self.assertIn('data-sort-login="1790847000"', row)
+        self.assertIn('data-sort-org="iccs"', row)
+        self.assertIn('data-sort-login=""', self.row(response, self.other))
 
     def test_organization_is_searchable(self):
         response = self.client.get(reverse('admin_dashboard'))
