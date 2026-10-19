@@ -31,7 +31,7 @@ import time
 from hashlib import sha1
 import urllib.parse
 # Celery & Redis
-from .tasks import compute_sankey_data, compute_time_spent_by_performer_type, compute_final_performance, compute_performance_data, compute_detailed_phase_scores_data, compute_performers_data, compute_activity_answers_data, compute_time_spent_data, compute_scenario_paths, compute_student_performance_metrics, compute_category_metrics_per_phase_activity, generate_llm_context_for_scenario, calculate_activities_in_risk, apply_user_proposals_to_new_scenario
+from .tasks import compute_sankey_data, compute_time_spent_by_performer_type, compute_final_performance, compute_performance_data, compute_detailed_phase_scores_data, compute_performers_data, compute_activity_answers_data, compute_time_spent_data, compute_scenario_paths, compute_student_performance_metrics, compute_category_metrics_per_phase_activity, generate_llm_context_for_scenario, calculate_activities_in_risk, apply_user_proposals_to_new_scenario, proposals_for_review
 from .tasks import (
     ProposalValidationError,
     format_proposal_answer_text,
@@ -3426,15 +3426,17 @@ def proposal_list_view(request, scenario_id):
             'were archived; the scenario owner can generate a current set.',
         )
 
-    # Scenario-only mode includes every saved proposal for this scenario,
-    # including older versions, archived runs, and proposals without a run.
-    # Proposals whose activity was removed are kept for research, not review.
-    proposals = ActivityProposal.objects.filter(scenario=myScenario, activity__isnull=False)
+    # Only the latest generation is reviewed; earlier runs stay in Proposal
+    # History. Proposals whose activity was removed are kept for research.
     if myScenario.family_pooling_enabled:
-        proposals = proposals.filter(
+        proposals = ActivityProposal.objects.filter(
+            scenario=myScenario,
+            activity__isnull=False,
             generation_run=current_generation_run,
             generation_run__scenario_version=current_version,
         )
+    else:
+        current_generation_run, proposals = proposals_for_review(myScenario)
     proposals = proposals\
         .select_related('activity', 'phase', 'scenario')\
         .prefetch_related('flag', 'categories_in_risk')\

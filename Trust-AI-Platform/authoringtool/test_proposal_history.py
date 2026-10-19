@@ -142,7 +142,7 @@ class ProposalHistoryVisibilityTests(TestCase):
         scenario_page = self.client.get(reverse('viewScenario', args=[self.scenario.id]))
         self.assertNotContains(scenario_page, history_url)
 
-    def test_disabled_policy_shows_all_scenario_proposals_and_keeps_decisions(self):
+    def test_disabled_policy_shows_only_the_latest_run(self):
         old_run = ProposalGenerationRun.objects.create(
             scenario=self.scenario, scenario_version=self.version, is_current=False,
         )
@@ -168,19 +168,28 @@ class ProposalHistoryVisibilityTests(TestCase):
 
         response = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
 
-        self.assertContains(response, 'Showing all saved proposals for this scenario')
+        self.assertContains(response, 'Showing the proposals from the latest generation')
+        self.assertContains(response, reverse('proposal_history', args=[self.scenario.id]))
         self.assertEqual(
             {p.id for p in response.context['proposals']},
-            {legacy.id, old.id, unversioned.id},
+            {unversioned.id},
         )
-        self.assertEqual(response.context['accepted_count'], 1)
-        self.assertEqual(response.context['pending_count'], 2)
+        self.assertEqual(response.context['accepted_count'], 0)
+        self.assertEqual(response.context['pending_count'], 1)
+        # Earlier decisions are kept, just not listed here.
         review.refresh_from_db()
         self.assertEqual(review.status, 'accepted')
         unversioned_run.refresh_from_db()
         self.assertTrue(unversioned_run.is_current)
         for proposal in [legacy, old, unversioned]:
             self.assertTrue(proposal.is_bandit_reward_eligible())
+
+    def test_disabled_policy_without_runs_shows_earlier_proposals(self):
+        legacy = self.proposal()
+
+        response = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
+
+        self.assertEqual({p.id for p in response.context['proposals']}, {legacy.id})
 
     def test_enabled_policy_keeps_current_version_filter_for_list_and_application(self):
         self.scenario.use_family_evidence_pooling = True
@@ -214,14 +223,18 @@ class ProposalHistoryVisibilityTests(TestCase):
         self.assertFalse(archived.is_bandit_reward_eligible())
         self.assertTrue(current.is_bandit_reward_eligible())
 
-    def test_disabled_policy_applies_accepted_reviews_across_runs_for_this_user_only(self):
-        run = ProposalGenerationRun.objects.create(
+    def test_disabled_policy_applies_only_the_latest_runs_accepted_reviews_for_this_user(self):
+        archived_run = ProposalGenerationRun.objects.create(
             scenario=self.scenario, is_current=False,
         )
-        legacy, archived, rejected, other_teacher = (
-            self.proposal(), self.proposal(run), self.proposal(), self.proposal(),
+        current_run = ProposalGenerationRun.objects.create(
+            scenario=self.scenario, is_current=True,
         )
-        for proposal in [legacy, archived]:
+        legacy, archived, current, rejected, other_teacher = (
+            self.proposal(), self.proposal(archived_run), self.proposal(current_run),
+            self.proposal(current_run), self.proposal(current_run),
+        )
+        for proposal in [legacy, archived, current]:
             UserProposalReview.objects.create(proposal=proposal, user=self.owner, status='accepted')
         UserProposalReview.objects.create(proposal=rejected, user=self.owner, status='rejected')
         UserProposalReview.objects.create(proposal=other_teacher, user=self.other_teacher, status='accepted')
@@ -234,7 +247,7 @@ class ProposalHistoryVisibilityTests(TestCase):
         )
         UserProposalReview.objects.create(proposal=other_proposal, user=self.owner, status='accepted')
         reviews = get_accepted_reviews_for_personal_scenario(self.scenario, self.owner)
-        self.assertEqual(set(reviews.values_list('proposal_id', flat=True)), {legacy.id, archived.id})
+        self.assertEqual(set(reviews.values_list('proposal_id', flat=True)), {current.id})
 
     def test_disabled_policy_legacy_proposal_can_be_accepted_and_applied(self):
         proposal = self.proposal()

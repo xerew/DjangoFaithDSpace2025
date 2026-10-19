@@ -286,8 +286,14 @@
 
   {% if not myScenario.family_pooling_enabled %}
   <div class="alert alert-info" role="status">
-    Showing all saved proposals for this scenario, including earlier generations.
-    Your previous review decisions are preserved. Review the proposed content before applying it to a new copy.
+    {% if generation_run %}
+    Showing the proposals from the latest generation ({{ generation_run.created_at|date:"d M Y, H:i" }}).
+    {% else %}
+    Showing the proposals saved before generations were tracked.
+    {% endif %}
+    Earlier proposals and your decisions on them are kept in
+    <a href="{% url 'proposal_history' myScenario.id %}">Proposal History</a>.
+    Review the proposed content before applying it to a new copy.
   </div>
   {% elif generation_run %}
   <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
