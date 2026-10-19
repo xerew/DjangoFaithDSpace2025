@@ -198,7 +198,10 @@ def download_credentials(request, group_id):
 
     # Add member data
     for membership in memberships:
-        ws.append([membership.user.username, membership.password_plain])
+        password = membership.password_plain
+        if not password and membership.initial_password:
+            password = "(can't be read — ask an administrator)"
+        ws.append([membership.user.username, password])
 
     # Prepare the Excel response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

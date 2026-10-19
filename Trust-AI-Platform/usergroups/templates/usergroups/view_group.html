@@ -232,9 +232,17 @@
                     <td class="text-muted">{{ forloop.counter }}</td>
                     <td><code>{{ m.user.username }}</code></td>
                     <td>
-                      <span class="password-text" style="display:none;">{{ m.password_plain }}</span>
+                      {% with password=m.password_plain %}
+                      {% if password or not m.initial_password %}
+                      <span class="password-text" style="display:none;">{{ password }}</span>
                       <span class="password-mask">••••••••</span>
                       <button type="button" class="btn btn-link btn-sm p-0 ms-2 toggle-pw" style="font-size:12px;">Show</button>
+                      {% else %}
+                      <span class="text-danger small" title="It was encrypted with a key that has changed. An administrator can recover it.">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Can't be read — ask an administrator
+                      </span>
+                      {% endif %}
+                      {% endwith %}
                     </td>
                   </tr>
                   {% endfor %}

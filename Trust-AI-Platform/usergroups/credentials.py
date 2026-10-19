@@ -21,9 +21,9 @@ ENCRYPTED_PREFIX = 'fernet:'
 logger = logging.getLogger(__name__)
 
 
-def _derived_key():
+def _derived_key(secret_key=None):
     digest = hashlib.sha256(
-        ('student-credentials:' + settings.SECRET_KEY).encode()
+        ('student-credentials:' + (secret_key or settings.SECRET_KEY)).encode()
     ).digest()
     return base64.urlsafe_b64encode(digest)
 
@@ -66,3 +66,37 @@ def reencrypt(stored):
         return encrypt_initial_password(stored)
     token = stored[len(ENCRYPTED_PREFIX):].encode()
     return ENCRYPTED_PREFIX + _fernet().rotate(token).decode()
+
+
+def old_key_fernet(secret_keys=(), credential_keys=()):
+    """Decrypt with keys that are no longer configured, to recover old values.
+
+    credential_keys are former STUDENT_CREDENTIALS_KEY values; secret_keys are
+    former SECRET_KEY values, used when no credentials key was set. A malformed
+    credentials key raises ValueError.
+    """
+    keys = [Fernet(key) for key in credential_keys]
+    keys += [Fernet(_derived_key(secret)) for secret in secret_keys]
+    return MultiFernet(keys)
+
+
+def recover(stored, old_fernet):
+    """Return (state, value) for one stored password.
+
+    state is 'readable' (the current keys read it; value unchanged),
+    'recovered' (only an old key reads it; value re-encrypted with the current
+    key) or 'unreadable' (no key reads it; value unchanged).
+    """
+    if not stored or not stored.startswith(ENCRYPTED_PREFIX):
+        return 'readable', stored
+    token = stored[len(ENCRYPTED_PREFIX):].encode()
+    try:
+        _fernet().decrypt(token)
+        return 'readable', stored
+    except InvalidToken:
+        pass
+    try:
+        plain = old_fernet.decrypt(token).decode()
+    except InvalidToken:
+        return 'unreadable', stored
+    return 'recovered', encrypt_initial_password(plain)
