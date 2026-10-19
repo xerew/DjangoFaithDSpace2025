@@ -33,7 +33,11 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
-from .translation_matching import translation_activity_maps
+from .translation_matching import (
+    pooled_implementation_count,
+    translation_activity_maps,
+    translation_group_ids,
+)
 from django.core.cache import cache
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
@@ -3802,6 +3806,20 @@ def request_validated_proposal(
 # OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
 
+def proposal_evidence_summary(scenario, evidence_context):
+    """The evidence a proposal run records, with confirmed translations.
+
+    Proposals pool the students of all confirmed translations, so the run
+    keeps that combined count next to this scenario's own.
+    """
+    summary = dict(evidence_context)
+    translation_count = len(translation_group_ids(scenario))
+    if translation_count:
+        summary['translation_count'] = translation_count
+        summary['pooled_implementation_count'] = pooled_implementation_count(scenario)
+    return summary
+
+
 @shared_task
 def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggered_by_id=None):
     scenario = Scenario.objects.get(id=scenario_id)
@@ -3994,7 +4012,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         scenario_version=scenario_version,
         evidence_scope=evidence_scope,
         evidence_version_ids=evidence_context['version_ids'],
-        evidence_summary=evidence_context,
+        evidence_summary=proposal_evidence_summary(scenario, evidence_context),
     )
     print(f"Started new ProposalGenerationRun {generation_run.id} for scenario {scenario_id}")
 

@@ -30,14 +30,34 @@
 
   .run-card {
     border-radius:12px; border:1px solid #e8edf5; background:#fff;
-    box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:12px;
-    padding:16px 20px; display:flex; align-items:center; justify-content:space-between;
-    gap:14px; flex-wrap:wrap; text-decoration:none; color:inherit; transition:box-shadow .15s;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:14px; overflow:hidden;
+    transition:box-shadow .15s, border-color .15s;
   }
   .run-card:hover { box-shadow:0 4px 16px rgba(26,86,219,0.09); border-color:#c5d0f0; }
-  .run-card-date { font-weight:700; color:#012970; font-size:14px; }
-  .run-card-meta { font-size:12px; color:#888; margin-top:2px; }
-  .run-stats { display:flex; gap:8px; flex-wrap:wrap; }
+  .run-card.is-current { border-left:4px solid #1a56db; }
+  .run-head {
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:14px 20px; background:#f8faff; border-bottom:1px solid #eef1f6;
+  }
+  .run-card-date { font-weight:700; color:#012970; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .run-card-date i { color:#1a56db; }
+  .run-badge {
+    display:inline-block; margin-top:4px; font-size:11.5px; font-weight:600;
+    padding:2px 10px; border-radius:20px; background:#eef2ff; color:#3730a3;
+  }
+  .run-badge.current { background:#dbeafe; color:#1d4ed8; }
+  .run-badge.older { background:#f3f4f6; color:#4b5563; }
+  .run-body {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:16px 24px; padding:16px 20px;
+  }
+  .run-fact-label {
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    color:#9ca3af; margin-bottom:4px;
+  }
+  .run-fact-value { font-size:14px; font-weight:600; color:#1e293b; }
+  .run-fact-sub { font-size:12px; font-weight:400; color:#6b7280; margin-top:2px; }
+  .run-stats { display:flex; gap:6px; flex-wrap:wrap; }
   .run-stat { font-size:12px; font-weight:600; padding:3px 10px; border-radius:12px; }
   .run-stat.accepted { background:#dcfce7; color:#166534; }
   .run-stat.rejected { background:#fee2e2; color:#991b1b; }
@@ -68,55 +88,90 @@
   <section class="section">
     <p class="text-muted">All saved recommendation runs for this scenario are available here for reference, including earlier versions. Review decisions shown are yours.</p>
     {% if legacy_summary.total %}
-    <a href="{% url 'proposal_history_legacy' myScenario.id %}" class="run-card">
-      <div>
-        <div class="run-card-date">Earlier proposals</div>
-        <div class="run-card-meta">{{ legacy_summary.total }} proposal{{ legacy_summary.total|pluralize }} saved without a generation run. Available for reference.</div>
+    <div class="run-card">
+      <div class="run-head">
+        <div>
+          <div class="run-card-date"><i class="bi bi-archive"></i> Earlier proposals</div>
+          <span class="run-badge older">Saved without a generation run</span>
+        </div>
+        <div class="run-actions">
+          <a href="{% url 'proposal_history_legacy' myScenario.id %}" class="btn btn-sm btn-outline-primary">
+            View proposals <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
       </div>
-      <div class="run-stats">
-        <span class="run-stat accepted">{{ legacy_summary.accepted }} accepted</span>
-        <span class="run-stat rejected">{{ legacy_summary.rejected }} rejected</span>
-        <span class="run-stat pending">{{ legacy_summary.never_decided }} never decided</span>
+      <div class="run-body">
+        <div>
+          <div class="run-fact-label">Proposals</div>
+          <div class="run-fact-value">{{ legacy_summary.total }}</div>
+        </div>
+        <div>
+          <div class="run-fact-label">Your decisions</div>
+          <div class="run-stats">
+            <span class="run-stat accepted">{{ legacy_summary.accepted }} accepted</span>
+            <span class="run-stat rejected">{{ legacy_summary.rejected }} rejected</span>
+            <span class="run-stat pending">{{ legacy_summary.never_decided }} never decided</span>
+          </div>
+        </div>
       </div>
-    </a>
+    </div>
     {% endif %}
     {% for summary in run_summaries %}
-    <a href="{% url 'proposal_history_run_detail' myScenario.id summary.run.id %}" class="run-card">
-      <div>
-        <div class="run-card-date">{{ summary.run.created_at|date:"d M Y, H:i" }}</div>
-        <div class="run-card-meta">
-          {% if not summary.run.scenario_version_id %}
-            Earlier run — scenario version not recorded
-          {% elif summary.run.scenario_version_id != myScenario.current_version_id %}
-            Earlier scenario version (v{{ summary.run.scenario_version.version_number }})
-          {% elif summary.run.is_current %}
-            Latest run for this scenario version
+    {% with run=summary.run evidence=summary.evidence_context %}
+    <div class="run-card{% if run.is_current and run.scenario_version_id == myScenario.current_version_id %} is-current{% endif %}">
+      <div class="run-head">
+        <div>
+          <div class="run-card-date"><i class="bi bi-calendar-event"></i> {{ run.created_at|date:"d M Y, H:i" }}</div>
+          {% if not run.scenario_version_id %}
+            <span class="run-badge older">Earlier run — scenario version not recorded</span>
+          {% elif run.scenario_version_id != myScenario.current_version_id %}
+            <span class="run-badge older">Earlier scenario version (v{{ run.scenario_version.version_number }})</span>
+          {% elif run.is_current %}
+            <span class="run-badge current">Latest run</span>
           {% else %}
-            Archived run (v{{ summary.run.scenario_version.version_number }})
+            <span class="run-badge older">Archived run (v{{ run.scenario_version.version_number }})</span>
           {% endif %}
         </div>
-        <div class="run-card-meta">
-          Triggered by {% if summary.run.created_by %}{% user_link summary.run.created_by %}{% else %}Unknown{% endif %}
-          · {{ summary.total }} proposal{{ summary.total|pluralize }}
-          {% if summary.evidence_context %}
-            · {{ summary.evidence_context.implementation_count }} eligible implementation{{ summary.evidence_context.implementation_count|pluralize }}
-            {% if summary.evidence_context.scope == 'compatible' %}
-              from {{ summary.evidence_context.scenario_count }} compatible variant{{ summary.evidence_context.scenario_count|pluralize }}
-            {% else %}
-              from this scenario
-            {% endif %}
-            {% if summary.evidence_context.restricted_source_count %}
-              (including {{ summary.evidence_context.restricted_source_count }} restricted source{{ summary.evidence_context.restricted_source_count|pluralize }})
-            {% endif %}
-          {% endif %}
+        <div class="run-actions">
+          <a href="{% url 'proposal_history_run_detail' myScenario.id run.id %}" class="btn btn-sm btn-outline-primary">
+            View proposals <i class="bi bi-arrow-right ms-1"></i>
+          </a>
         </div>
       </div>
-      <div class="run-stats">
-        <span class="run-stat accepted">{{ summary.accepted }} accepted</span>
-        <span class="run-stat rejected">{{ summary.rejected }} rejected</span>
-        <span class="run-stat pending">{{ summary.never_decided }} never decided</span>
+      <div class="run-body">
+        <div>
+          <div class="run-fact-label">Triggered by</div>
+          <div class="run-fact-value run-person">{% if run.created_by %}{% user_link run.created_by %}{% else %}Unknown{% endif %}</div>
+        </div>
+        <div>
+          <div class="run-fact-label">Proposals</div>
+          <div class="run-fact-value">{{ summary.total }}</div>
+        </div>
+        <div>
+          <div class="run-fact-label">Student data used</div>
+          {% if evidence.pooled_implementation_count %}
+            <div class="run-fact-value">{{ evidence.pooled_implementation_count }} implementation{{ evidence.pooled_implementation_count|pluralize }}</div>
+            <div class="run-fact-sub">from this scenario and its {{ evidence.translation_count }} confirmed translation{{ evidence.translation_count|pluralize }}</div>
+          {% elif evidence %}
+            <div class="run-fact-value">{{ evidence.implementation_count }} implementation{{ evidence.implementation_count|pluralize }}</div>
+            <div class="run-fact-sub">
+              {% if evidence.scope == 'compatible' %}from {{ evidence.scenario_count }} compatible variant{{ evidence.scenario_count|pluralize }}{% else %}from this scenario{% endif %}{% if evidence.restricted_source_count %}, including {{ evidence.restricted_source_count }} restricted source{{ evidence.restricted_source_count|pluralize }}{% endif %}
+            </div>
+          {% else %}
+            <div class="run-fact-value text-muted">Not recorded</div>
+          {% endif %}
+        </div>
+        <div>
+          <div class="run-fact-label">Your decisions</div>
+          <div class="run-stats">
+            <span class="run-stat accepted">{{ summary.accepted }} accepted</span>
+            <span class="run-stat rejected">{{ summary.rejected }} rejected</span>
+            <span class="run-stat pending">{{ summary.never_decided }} never decided</span>
+          </div>
+        </div>
       </div>
-    </a>
+    </div>
+    {% endwith %}
     {% empty %}
     {% if not legacy_summary.total %}
     <div class="text-center text-muted py-5">
