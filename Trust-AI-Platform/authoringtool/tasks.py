@@ -3806,6 +3806,31 @@ def request_validated_proposal(
 # OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434").rstrip("/")
 
+def ollama_text(prompt, model=None, images=None, think=False):
+    """Plain-text answer from Ollama; raises on HTTP or model errors.
+
+    qwen3.6 leaves `response` empty and answers in `thinking` unless thinking
+    is turned off, so the proposal model is asked with think=False and the
+    thinking text is used as a fallback. Pass think=None for models without
+    a thinking mode (no flag is sent).
+    """
+    payload = {
+        "model": model or settings.LLM_PROPOSAL_MODEL,
+        "prompt": prompt,
+        "stream": False,
+    }
+    if think is not None:
+        payload["think"] = think
+    if images:
+        payload["images"] = images
+    response = requests.post(f"{OLLAMA_URL}/api/generate", json=payload)
+    response.raise_for_status()
+    envelope = response.json()
+    if envelope.get("error"):
+        raise RuntimeError(envelope["error"])
+    return (envelope.get("response") or envelope.get("thinking") or "").strip()
+
+
 def proposal_evidence_summary(scenario, evidence_context):
     """The evidence a proposal run records, with confirmed translations.
 
@@ -3870,16 +3895,14 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         m = re.search(r'data:image/png;base64,([^"]+)', activity.text or "")
         if m:
             try:
-                payload = {
-                    "model":  settings.LLM_IMAGE_DESCRIPTION_MODEL,
-                    "prompt": "Describe this image as a teacher would, focusing on what students should notice.",
-                    "images": [m.group(1)],
-                    "stream": False
-                }
-                resp = requests.post(f"{OLLAMA_URL}/api/generate", json=payload) # localhost
-                image_llm = resp.json().get("response","").strip()
+                image_llm = ollama_text(
+                    "Describe this image as a teacher would, focusing on what students should notice.",
+                    model=settings.LLM_IMAGE_DESCRIPTION_MODEL,
+                    images=[m.group(1)],
+                    think=None,
+                )
             except Exception as e:
-                image_llm = f"[Gemma error: {e}]"
+                # Left empty so the next run tries again.
                 print("  Gemma error:", e)
         activity.llm_image_description = image_llm
 
@@ -3893,14 +3916,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             "1) A one-sentence summary of the activity's goal.\n"
         )
         try:
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  settings.LLM_PROPOSAL_MODEL,
-                "prompt": prompt,
-                "stream": False
-            })
-            activity.llm_context = resp.json().get("response", "").strip()
+            activity.llm_context = ollama_text(prompt)
         except Exception as e:
-            activity.llm_context = f"[LLM error: {e}]"
+            activity.llm_context = ''  # retried on the next run
             print(f"  Ollama error (activity context): {e}")
         activity.save(update_fields=['llm_context', 'llm_image_description'])
 
@@ -3910,14 +3928,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             f"{activity.llm_context}"
         )
         try:
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  settings.LLM_PROPOSAL_MODEL,
-                "prompt": sum_prompt,
-                "stream": False
-            })
-            activity.short_llm_summary = resp.json().get("response", "").strip()
+            activity.short_llm_summary = ollama_text(sum_prompt)
         except Exception as e:
-            activity.short_llm_summary = activity.name
+            activity.short_llm_summary = ''  # retried on the next run
             print(f"  Ollama error (activity summary): {e}")
         activity.save(update_fields=['short_llm_summary'])
         print("  Activity context + summary saved.")
@@ -3937,14 +3950,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             "Please give a 2-sentence summary of what this scenario teaches and how it progresses."
         )
         try:
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  settings.LLM_PROPOSAL_MODEL,
-                "prompt": big_prompt,
-                "stream": False
-            })
-            scenario.llm_context = resp.json().get("response", "").strip()
+            scenario.llm_context = ollama_text(big_prompt)
         except Exception as e:
-            scenario.llm_context = f"[LLM error: {e}]"
+            scenario.llm_context = ''  # retried on the next run
             print(f"  Ollama error (scenario context): {e}")
         scenario.save(update_fields=['llm_context'])
         print("  Scenario context saved.")
@@ -3963,14 +3971,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             "2) A one-sentence note on the sequence's coherence."
         )
         try:
-            resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                "model":  settings.LLM_PROPOSAL_MODEL,
-                "prompt": prompt,
-                "stream": False
-            })
-            phase.llm_context = resp.json().get("response", "").strip()
+            phase.llm_context = ollama_text(prompt)
         except Exception as e:
-            phase.llm_context = f"[LLM error: {e}]"
+            phase.llm_context = ''  # retried on the next run
             print(f"  Ollama error (phase context): {e}")
         phase.save(update_fields=['llm_context'])
         print(f"  Phase '{phase.name}' context saved.")
@@ -3992,16 +3995,12 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 "Summarize what students learn in this path."
             )
             try:
-                resp = requests.post(f"{OLLAMA_URL}/api/generate", json={
-                    "model":  settings.LLM_PROPOSAL_MODEL,
-                    "prompt": prompt,
-                    "stream": False
-                })
-                flow[cat] = resp.json().get("response", "").strip()
+                flow[cat] = ollama_text(prompt)
             except Exception as e:
-                flow[cat] = f"[LLM error: {e}]"
+                flow[cat] = ''
                 print(f"  Ollama error (flow {cat}): {e}")
-        activity.related_act_llm_context = flow
+        # Saved only when every path got an answer, so failures are retried.
+        activity.related_act_llm_context = flow if all(flow.values()) else ''
         activity.save(update_fields=['related_act_llm_context'])
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
@@ -4630,12 +4629,31 @@ def _build_personal_scenario(scenario_id, user_id):
         print(traceback.format_exc())
         raise
     
+def proposals_for_review(scenario):
+    """(run, proposals) teachers review when family pooling is off.
+
+    The scenario's current run, i.e. the latest generation, whatever the
+    scenario version; earlier runs stay in Proposal History. Without any run,
+    the proposals saved before generation runs existed.
+    """
+    run = (
+        ProposalGenerationRun.objects
+        .filter(scenario=scenario, is_current=True)
+        .order_by('-created_at', '-id')
+        .first()
+    )
+    proposals = ActivityProposal.objects.filter(scenario=scenario, activity__isnull=False)
+    if run is not None:
+        return run, proposals.filter(generation_run=run)
+    return None, proposals.filter(generation_run__isnull=True)
+
+
 def get_accepted_reviews_for_personal_scenario(original_scenario, user):
     if not original_scenario.family_pooling_enabled:
+        _, proposals = proposals_for_review(original_scenario)
         return UserProposalReview.objects.filter(
             user=user,
-            proposal__scenario=original_scenario,
-            proposal__activity__isnull=False,
+            proposal__in=proposals,
             status='accepted',
         ).select_related('proposal', 'proposal__activity', 'proposal__phase')
 
