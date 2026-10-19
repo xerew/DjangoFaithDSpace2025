@@ -1,10 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.template import loader
-from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, ScenarioImplementation, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, UserProposalReview, Language, Subject
+from .models import Scenario, Phase, ActivityType, Activity, Answer, AnswerFeedback, NextQuestionLogic, QuestionBunch, EvQuestionBranching, Simulation, UserAnswer, UserScenarioScore, ScenarioImplementation, SchoolDepartment, ExperimentLL, RemoteLabSession, VRARExperiment, ActivityProposal, ActivityProposalEditEvent, ProposalGenerationRun, UserProposalReview, ProposalStructuralFailure, Language, Subject
 from psycopg2.extras import NumericRange
 from django.urls import reverse
-from django.utils.html import strip_tags
+from django.utils.html import format_html, strip_tags
 from html import unescape
 from .forms import AnswerForm
 from django.forms import formset_factory
@@ -3382,6 +3382,40 @@ def _proposal_insertion_preview(proposal, data):
     }
 
 
+def _report_personal_scenario_outcome(request, scenario):
+    """Once the personal-scenario task has finished, say how it went (once)."""
+    pending = request.session.get('personal_scenario_task')
+    if not pending or pending.get('scenario') != scenario.id:
+        return
+    outcome = AsyncResult(pending['id'])
+    if not outcome.ready():
+        return
+    request.session.pop('personal_scenario_task', None)
+    if isinstance(outcome.result, int):
+        created = Scenario.objects.filter(pk=outcome.result).first()
+        if created:
+            messages.success(request, format_html(
+                'Your personalised scenario <a href="{}">{}</a> is ready.',
+                reverse('viewScenario', args=[created.id]), created.name,
+            ))
+            return
+    failure = (
+        ProposalStructuralFailure.objects
+        .filter(scenario=scenario, stage__in=['graph_integrity', 'application'])
+        .order_by('-id').first()
+    )
+    reasons = [
+        error.get('message', str(error)) if isinstance(error, dict) else str(error)
+        for error in (failure.errors if failure else [])
+    ]
+    messages.error(
+        request,
+        'Your personalised scenario could not be created'
+        + (': ' + '; '.join(reasons[:5]) if reasons else '.')
+        + ' No changes were made.',
+    )
+
+
 @group_required('teachers')
 def proposal_list_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
@@ -3501,6 +3535,8 @@ def proposal_list_view(request, scenario_id):
             proposal,
             effective,
         )
+
+    _report_personal_scenario_outcome(request, myScenario)
 
     feedback_form_json = None
     if request.session.pop('feedback_prompt_scenario_id', None) == myScenario.id:
@@ -3658,9 +3694,11 @@ def create_personal_scenario(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot use this scenario.")
-    print(f"SCENARIO IS : {scenario_id}")
-    apply_user_proposals_to_new_scenario.delay(scenario_id, request.user.id)
-    messages.success(request, "Your personalized scenario is being created. It will appear in your scenarios shortly.")
+    task = apply_user_proposals_to_new_scenario.delay(scenario_id, request.user.id)
+    # The proposals page reports how it went once the task has finished.
+    if isinstance(getattr(task, 'id', None), str):
+        request.session['personal_scenario_task'] = {'id': task.id, 'scenario': scenario_id}
+    messages.success(request, "Your personalized scenario is being created. Reload this page in a moment to see the result.")
     request.session['feedback_prompt_scenario_id'] = scenario_id
     return redirect('proposal_list', scenario_id=scenario_id)
 

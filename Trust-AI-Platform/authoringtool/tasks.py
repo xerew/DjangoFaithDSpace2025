@@ -46,7 +46,7 @@ from django.contrib.auth.models import User
 from usergroups.models import UserGroupMembership
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, Count, Q, Max, Min, Avg, F, FloatField, ExpressionWrapper, Prefetch
-from collections import defaultdict
+from collections import Counter, defaultdict
 from .utils import (
     get_eligible_user_answers,
     get_first_answers,
@@ -4870,76 +4870,66 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
                 )
 
         elif action == "skip":
-            # 1. Track where the skipped activity was pointing
-            outgoing_targets = {
-                logic.answer.id if logic.answer else None: logic.next_activity
-                for logic in flagged_new.next_logic.all()
-                if logic.next_activity
-            }
+            skip_activity_in_flow(new_scenario, flagged_new)
 
-            # 2. If evaluatable, get branching targets
-            if flagged_new.is_evaluatable and hasattr(flagged_new, 'branching'):
-                branching = flagged_new.branching
-                branch_targets = {
-                    'low': branching.next_question_on_low,
-                    'mid': branching.next_question_on_mid,
-                    'high': branching.next_question_on_high
-                }
-            else:
-                branch_targets = {}
+BRANCH_FIELDS = {
+    'high': 'next_question_on_high',
+    'mid': 'next_question_on_mid',
+    'low': 'next_question_on_low',
+}
 
-            if new_scenario.start_activity_id == flagged_new.id:
-                successor_ids = {
-                    target.id
-                    for target in list(outgoing_targets.values())
-                    + list(branch_targets.values())
-                    if target
-                }
-                if len(successor_ids) != 1:
-                    raise ScenarioGraphValidationError([
-                        {
-                            "code": "ambiguous_start_replacement",
-                            "activity_id": flagged_new.id,
-                            "message": (
-                                f"Skipping start activity '{flagged_new.name}' "
-                                "does not leave exactly one replacement entry "
-                                "activity."
-                            ),
-                        }
-                    ])
-                new_scenario.start_activity_id = successor_ids.pop()
-                new_scenario.save(update_fields=["start_activity"])
 
-            # 3. Reconnect logic pointing to the flagged activity
-            for in_logic in NextQuestionLogic.objects.filter(next_activity=flagged_new):
-                replacement = outgoing_targets.get(
-                    in_logic.answer.id if in_logic.answer else None
-                )
-                if replacement:
-                    in_logic.next_activity = replacement
-                    in_logic.save()
+def skip_activity_in_flow(scenario, activity):
+    """Remove an activity and send everything that led to it onward.
 
-            # 4. Rewire branching from other activities
-            for b in EvQuestionBranching.objects.filter(
-                next_question_on_low=flagged_new
-            ) | EvQuestionBranching.objects.filter(
-                next_question_on_mid=flagged_new
-            ) | EvQuestionBranching.objects.filter(
-                next_question_on_high=flagged_new
-            ):
-                if b.next_question_on_low == flagged_new:
-                    b.next_question_on_low = branch_targets.get('low')
-                if b.next_question_on_mid == flagged_new:
-                    b.next_question_on_mid = branch_targets.get('mid')
-                if b.next_question_on_high == flagged_new:
-                    b.next_question_on_high = branch_targets.get('high')
-                b.save()
+    A High/Moderate/Low branch into the activity follows the activity's own
+    branch for the same level when it has one; every other route goes to its
+    main successor: the activity most of its routes lead to (its only one,
+    in a straight line). If it leads nowhere, those routes end there too.
+    """
+    branching = getattr(activity, 'branching', None) if activity.is_evaluatable else None
+    own_branches = {
+        level: getattr(branching, field) for level, field in BRANCH_FIELDS.items()
+    } if branching else {}
+    targets = [logic.next_activity for logic in activity.next_logic.all() if logic.next_activity]
+    targets += [target for target in own_branches.values() if target]
+    targets = [target for target in targets if target.id != activity.id]
+    counts = Counter(target.id for target in targets)
+    successor = (
+        max(targets, key=lambda target: (counts[target.id], -targets.index(target)))
+        if targets else None
+    )
 
-            # 5. Clean up outbound logic
-            flagged_new.next_logic.all().delete()
+    if scenario.start_activity_id == activity.id:
+        if len(counts) != 1:
+            raise ScenarioGraphValidationError([{
+                "code": "ambiguous_start_replacement",
+                "activity_id": activity.id,
+                "message": (
+                    f"Skipping start activity '{activity.name}' does not leave "
+                    "exactly one replacement entry activity."
+                ),
+            }])
+        scenario.start_activity = successor
+        scenario.save(update_fields=["start_activity"])
 
-            # 6. Remove activity
-            flagged_new.delete()
+    # Answer and plain routes into the activity.
+    incoming = NextQuestionLogic.objects.filter(next_activity=activity).exclude(activity=activity)
+    if successor is None:
+        incoming.delete()
+    else:
+        incoming.update(next_activity=successor)
+
+    # High / Moderate / Low branches into the activity.
+    for level, field in BRANCH_FIELDS.items():
+        replacement = own_branches.get(level) or successor
+        EvQuestionBranching.objects.filter(**{field: activity}).exclude(
+            activity=activity,
+        ).update(**{field: replacement})
+
+    activity.next_logic.all().delete()
+    activity.delete()
+
 
 @transaction.atomic
 def create_activity_from_json_action(data, phase, scenario, user,
