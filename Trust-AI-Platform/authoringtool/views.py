@@ -53,6 +53,7 @@ from .evidence import (
 )
 
 from .help_time import help_time_chart
+from .proposal_diff import revision_changes
 from .translation_matching import (
     bundle_translations,
     language_order,
@@ -3531,6 +3532,10 @@ def proposal_list_view(request, scenario_id):
             )
         except (json.JSONDecodeError, TypeError, ProposalValidationError):
             effective = {}
+        proposal.revision_changes = (
+            revision_changes(proposal.activity, effective)
+            if proposal.proposal_type == 'revise' and effective else None
+        )
         proposal.insertion_preview = _proposal_insertion_preview(
             proposal,
             effective,

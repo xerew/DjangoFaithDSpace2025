@@ -236,6 +236,22 @@
   /* ── Empty state ── */
   .pr-empty { text-align:center; padding:60px 20px; color:#9ca3af; }
   .pr-empty i { font-size:40px; display:block; margin-bottom:12px; }
+
+  /* ── Revise proposals: current activity vs proposal ── */
+  .rev-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px; margin-top:4px; }
+  .rev-table thead th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#9ca3af; font-weight:700; padding:6px 10px; text-align:left; }
+  .rev-table tbody th { width:110px; vertical-align:top; padding:10px; color:#374151; font-weight:600; white-space:nowrap; }
+  .rev-table tbody td { width:45%; vertical-align:top; padding:10px; line-height:1.55; color:#1e293b; border-top:1px solid #eef1f6; }
+  .rev-table tbody th { border-top:1px solid #eef1f6; }
+  .rev-table tr.rev-changed td:last-child { background:#f0fdf4; }
+  .rev-table tr.rev-same td { color:#6b7280; }
+  .rev-note { display:block; font-size:11px; font-weight:500; color:#9ca3af; }
+  .diff-add { background:#bbf7d0; color:#14532d; text-decoration:none; border-radius:3px; padding:0 2px; }
+  .diff-del { background:#fecaca; color:#7f1d1d; border-radius:3px; padding:0 2px; }
+  .rev-answer { padding:3px 0; }
+  .rev-answer.changed { font-weight:600; }
+  .rev-correct { font-size:11.5px; color:#15803d; font-weight:600; white-space:nowrap; }
+  .rev-empty { color:#9ca3af; font-style:italic; }
 </style>
 
 <main id="main" class="main">
@@ -460,6 +476,42 @@
             </div>
             {% endif %}
 
+            {% if proposal.revision_changes %}
+            <div class="view-field">
+              <div class="view-field-label">What changes</div>
+              <table class="rev-table">
+                <thead>
+                  <tr><th></th><th>Current activity</th><th>Proposed</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in proposal.revision_changes %}
+                  {% if row.label == 'Answers' %}
+                  <tr class="{% if row.changed %}rev-changed{% else %}rev-same{% endif %}">
+                    <th>Answers{% if not row.changed %}<span class="rev-note">unchanged</span>{% endif %}</th>
+                    <td>
+                      {% for answer in row.answers %}
+                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.current %}{{ answer.current }}{% if answer.current_correct %} <span class="rev-correct">✓ correct</span>{% endif %}{% else %}<span class="rev-empty">—</span>{% endif %}</div>
+                      {% endfor %}
+                    </td>
+                    <td>
+                      {% for answer in row.answers %}
+                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.proposed %}{{ answer.proposed }}{% if answer.proposed_correct %} <span class="rev-correct">✓ correct</span>{% endif %}{% else %}<span class="rev-empty">removed</span>{% endif %}</div>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr class="{% if row.changed %}rev-changed{% else %}rev-same{% endif %}">
+                    <th>{{ row.label }}{% if not row.changed %}<span class="rev-note">unchanged</span>{% endif %}</th>
+                    <td>{{ row.current|default:"—" }}</td>
+                    <td>{% if row.changed %}{% for op, text in row.diff %}{% if op == 'add' %}<ins class="diff-add">{{ text }}</ins>{% elif op == 'del' %}<del class="diff-del">{{ text }}</del>{% else %}{{ text }}{% endif %} {% endfor %}{% else %}{{ row.proposed|default:"—" }}{% endif %}</td>
+                  </tr>
+                  {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
+
             {% if proposal.insertion_preview %}
             <div class="view-field">
               <div class="view-field-label">Insertion Preview</div>
@@ -661,14 +713,24 @@ function initViewPanel(proposalId) {
     const answersEl = document.getElementById(`v-answers-${proposalId}`);
     if (answersWrapper) answersWrapper.style.display = isQuestion ? '' : 'none';
     if (answersEl && isQuestion && parsed.answers && parsed.answers.length > 0) {
-      answersEl.innerHTML = parsed.answers.map(a => {
+      // Built with text nodes: answers come from the model and are not trusted HTML.
+      answersEl.replaceChildren(...parsed.answers.map(a => {
         const text = typeof a === 'string' ? a : (a.text || '');
         const correct = typeof a === 'object' && a.is_correct;
-        return `<div class="answer-view-row">
-          <span style="${correct ? 'font-weight:600;color:#15803d;' : ''}">${text}</span>
-          ${correct ? '<span style="font-size:11px;color:#15803d;margin-left:6px;">✓</span>' : ''}
-        </div>`;
-      }).join('');
+        const row = document.createElement('div');
+        row.className = 'answer-view-row';
+        const label = document.createElement('span');
+        if (correct) label.style.cssText = 'font-weight:600;color:#15803d;';
+        label.textContent = text;
+        row.appendChild(label);
+        if (correct) {
+          const mark = document.createElement('span');
+          mark.style.cssText = 'font-size:11px;color:#15803d;margin-left:6px;';
+          mark.textContent = '✓';
+          row.appendChild(mark);
+        }
+        return row;
+      }));
     } else if (answersEl && isQuestion) {
       answersEl.innerHTML = '<span style="color:#9ca3af">—</span>';
     }
