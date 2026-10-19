@@ -182,7 +182,7 @@
 
     <!-- Brand at top of sidebar -->
     <div class="d-flex align-items-center px-3 border-bottom" style="height:72px;">
-      <a href="{% url 'teacher_home' %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
+      <a href="{% if request.user|has_group:'teachers' %}{% url 'teacher_home' %}{% else %}{% url 'studentScenarios' %}{% endif %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
         <img src="{% static 'img/logo.png' %}" alt="Trust AI Lab Logo" style="max-height:46px;">
         <span style="font-size:18px; font-weight:700; color:#012970;">Trust AI Lab</span>
       </a>

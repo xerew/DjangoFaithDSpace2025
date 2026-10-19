@@ -1,14 +1,17 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 from django.db.models import Count
 from datetime import date
 from authoringtool.models import Scenario
 from usergroups.models import UserGroup, UserGroupMembership
-from accounts.views import group_required
 
 
-@group_required('teachers')
+@login_required
 def teacher_home(request):
     user = request.user
+    # Students have no home page: send them to their scenarios, not a 403.
+    if not user.groups.filter(name='teachers').exists():
+        return redirect('studentScenarios')
     my_scenario_count = Scenario.objects.filter(created_by=user).count()
     my_group_count = UserGroup.objects.filter(created_by=user).count()
     total_students = UserGroupMembership.objects.filter(group__created_by=user).count()

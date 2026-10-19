@@ -23,10 +23,10 @@ class TeacherHomeAccessTest(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn('/login', r['Location'])
 
-    def test_non_teacher_forbidden(self):
+    def test_non_teacher_is_sent_to_student_view(self):
         self.client.login(username='regular', password='pass')
         r = self.client.get(reverse('teacher_home'))
-        self.assertEqual(r.status_code, 403)
+        self.assertRedirects(r, reverse('studentScenarios'))
 
     def test_teacher_gets_200(self):
         self.client.login(username='teacher1', password='pass')
