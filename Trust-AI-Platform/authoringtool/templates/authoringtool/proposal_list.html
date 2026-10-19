@@ -364,9 +364,10 @@
       {% with review=user_reviews|dict_get:proposal.id %}
       <div class="proposal-card" data-status="{{ review.status }}" id="accordion-{{ proposal.id }}">
 
-        <!-- Card header — click to view details -->
+        <!-- Card header — click to view details. Toggled by script, not by
+             data-bs-toggle: Bootstrap handles that in the capture phase, so a
+             click on Accept / Reject would also open the details. -->
         <div class="proposal-card-header"
-             data-bs-toggle="collapse"
              data-bs-target="#view-panel-{{ proposal.id }}"
              aria-expanded="false"
              aria-controls="view-panel-{{ proposal.id }}"
@@ -762,6 +763,15 @@ function openRejectModal(actionUrl) {
   const modal = new bootstrap.Modal(document.getElementById('rejectReasonModal'));
   modal.show();
 }
+
+// ── Card header opens the details, except for clicks on its buttons ─────────
+document.querySelectorAll('.proposal-card-header').forEach(header => {
+  header.addEventListener('click', function (event) {
+    if (event.target.closest('.prop-actions')) return;
+    const panel = document.querySelector(this.dataset.bsTarget);
+    if (panel) bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).toggle();
+  });
+});
 
 // ── Sync aria-expanded on header and Edit button ───────────────────────────────
 document.querySelectorAll('.collapse').forEach(el => {

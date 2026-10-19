@@ -274,3 +274,14 @@ class ProposalHistoryVisibilityTests(TestCase):
         self.assertEqual(clone.activities.get().plain_text, 'Approved older explanation')
         self.activity.refresh_from_db()
         self.assertEqual(self.activity.plain_text, 'Original content')
+
+
+    def test_accept_buttons_are_not_inside_a_bootstrap_toggle(self):
+        self.proposal(ProposalGenerationRun.objects.create(scenario=self.scenario, is_current=True))
+
+        html = self.client.get(reverse('proposal_list', args=[self.scenario.id])).content.decode()
+
+        header = html[html.index('<div class="proposal-card-header"'):]
+        header = header[:header.index('>')]
+        self.assertNotIn('data-bs-toggle', header)
+        self.assertIn('data-bs-target="#view-panel-', header)
