@@ -134,13 +134,13 @@ class ProposalHistoryVisibilityTests(TestCase):
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 403)
 
-    def test_scenario_and_metrics_link_history_with_no_implementations(self):
+    def test_metrics_links_history_but_scenario_page_does_not(self):
         history_url = reverse('proposal_history', args=[self.scenario.id])
-        for name in ['viewScenario', 'ai_metrics']:
-            with self.subTest(name=name):
-                response = self.client.get(reverse(name, args=[self.scenario.id]))
-                self.assertContains(response, history_url)
-                self.assertContains(response, 'Proposal History')
+        metrics = self.client.get(reverse('ai_metrics', args=[self.scenario.id]))
+        self.assertContains(metrics, history_url)
+        self.assertContains(metrics, 'Proposal History')
+        scenario_page = self.client.get(reverse('viewScenario', args=[self.scenario.id]))
+        self.assertNotContains(scenario_page, history_url)
 
     def test_disabled_policy_shows_all_scenario_proposals_and_keeps_decisions(self):
         old_run = ProposalGenerationRun.objects.create(

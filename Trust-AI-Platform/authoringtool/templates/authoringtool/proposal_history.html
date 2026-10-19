@@ -127,7 +127,7 @@
           {% elif run.scenario_version_id != myScenario.current_version_id %}
             <span class="run-badge older">Earlier scenario version (v{{ run.scenario_version.version_number }})</span>
           {% elif run.is_current %}
-            <span class="run-badge current">Latest run</span>
+            <span class="run-badge current">Latest run for this scenario version</span>
           {% else %}
             <span class="run-badge older">Archived run (v{{ run.scenario_version.version_number }})</span>
           {% endif %}
@@ -150,10 +150,10 @@
         <div>
           <div class="run-fact-label">Student data used</div>
           {% if evidence.pooled_implementation_count %}
-            <div class="run-fact-value">{{ evidence.pooled_implementation_count }} implementation{{ evidence.pooled_implementation_count|pluralize }}</div>
+            <div class="run-fact-value">{{ evidence.pooled_implementation_count }} eligible implementation{{ evidence.pooled_implementation_count|pluralize }}</div>
             <div class="run-fact-sub">from this scenario and its {{ evidence.translation_count }} confirmed translation{{ evidence.translation_count|pluralize }}</div>
           {% elif evidence %}
-            <div class="run-fact-value">{{ evidence.implementation_count }} implementation{{ evidence.implementation_count|pluralize }}</div>
+            <div class="run-fact-value">{{ evidence.implementation_count }} eligible implementation{{ evidence.implementation_count|pluralize }}</div>
             <div class="run-fact-sub">
               {% if evidence.scope == 'compatible' %}from {{ evidence.scenario_count }} compatible variant{{ evidence.scenario_count|pluralize }}{% else %}from this scenario{% endif %}{% if evidence.restricted_source_count %}, including {{ evidence.restricted_source_count }} restricted source{{ evidence.restricted_source_count|pluralize }}{% endif %}
             </div>
