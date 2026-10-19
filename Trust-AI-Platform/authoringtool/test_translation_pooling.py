@@ -232,6 +232,33 @@ class CombinedThresholdTests(PoolingBase):
         self.assertEqual(response.context['proposal_implementation_count'], 3)
         self.assertEqual(response.context['implementation_count'], 1)
 
+    def metrics_page(self):
+        return self.client.get(
+            reverse('ai_metrics', kwargs={'scenario_id': self.english[0].id}),
+        )
+
+    def test_metrics_page_states_the_combined_count(self):
+        self.confirm(self.english, self.greek)
+
+        response = self.metrics_page()
+
+        self.assertContains(response, '<strong>3</strong> implementations together')
+        self.assertContains(response, '1 from this scenario and 2 from 1 confirmed translation')
+        self.assertNotContains(response, 'Other scenarios and family variants are not included')
+
+    def test_metrics_page_has_no_low_data_warning_when_combined_is_enough(self):
+        self.confirm(self.english, self.greek)
+
+        response = self.metrics_page()
+
+        self.assertNotContains(response, 'Limited data:')
+
+    def test_metrics_page_without_translations_keeps_own_count(self):
+        response = self.metrics_page()
+
+        self.assertContains(response, 'Other scenarios and family variants are not included')
+        self.assertContains(response, 'Limited data:')
+
 
 class ScenarioListTests(PoolingBase):
     def setUp(self):

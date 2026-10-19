@@ -3099,6 +3099,7 @@ def ai_metrics(request, scenario_id):
         total_implementation_count - local_implementation_count,
         0,
     )
+    pooled_count = pooled_implementation_count(scenario)
 
     return render(request, 'authoringtool/ai_metrics_scenario.html', {
         'myScenario':           scenario,
@@ -3113,8 +3114,10 @@ def ai_metrics(request, scenario_id):
         'implementation_count': implementation_count,
         'local_implementation_count': local_implementation_count,
         'compatible_implementation_count': compatible_implementation_count,
-        # Proposals use the students of all confirmed translations together.
-        'proposal_implementation_count': pooled_implementation_count(scenario),
+        # Metrics and proposals use the students of all confirmed translations
+        # together; translation_implementation_count is the translations' part.
+        'proposal_implementation_count': pooled_count,
+        'translation_implementation_count': max(pooled_count - compatible_implementation_count, 0),
         'translation_count': len(translation_group_ids(scenario)),
         'total_implementation_count': total_implementation_count,
         'legacy_implementation_count': legacy_implementation_count,

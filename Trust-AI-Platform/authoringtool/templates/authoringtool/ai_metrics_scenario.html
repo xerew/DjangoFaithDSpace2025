@@ -173,7 +173,11 @@
             Evidence scope
           </div>
           <div style="font-size:12.5px;color:#6b7280;margin-top:3px;">
-            {% if not myScenario.family_pooling_enabled %}
+            {% if not myScenario.family_pooling_enabled and translation_count %}
+              <strong>{{ proposal_implementation_count }}</strong> implementation{{ proposal_implementation_count|pluralize }} together:
+              {{ compatible_implementation_count }} from this scenario and {{ translation_implementation_count }} from {{ translation_count }} confirmed translation{{ translation_count|pluralize }}, including historical data.
+              Metrics and AI proposals use them all; average time uses {{ myScenario.language|default:"this scenario's language" }} students only.
+            {% elif not myScenario.family_pooling_enabled %}
               {{ implementation_count }} implementation{{ implementation_count|pluralize }}
               from this scenario, including its historical data. Other scenarios and family variants are not included.
             {% elif evidence_scope == "compatible" %}
@@ -256,13 +260,13 @@
       reliability thresholds, and all AI proposal generation.
     </div>
   </div>
-  {% elif implementation_count < min_implementations %}
+  {% elif proposal_implementation_count < min_implementations %}
   <div style="margin:16px 0 0; padding:12px 18px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; display:flex; align-items:flex-start; gap:12px;">
     <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:18px;flex-shrink:0;margin-top:1px;"></i>
     <div style="font-size:13.5px; color:#92400e;">
       <strong>Limited data:</strong>
-      {% if myScenario.family_pooling_enabled %}Version {{ current_scenario_version.version_number }} has{% else %}This scenario has{% endif %}
-      <strong>{{ implementation_count }}</strong> eligible implementation{{ implementation_count|pluralize }}.
+      {% if myScenario.family_pooling_enabled %}Version {{ current_scenario_version.version_number }} has{% elif translation_count %}This scenario and its confirmed translations have{% else %}This scenario has{% endif %}
+      <strong>{{ proposal_implementation_count }}</strong> eligible implementation{{ proposal_implementation_count|pluralize }}{% if translation_count %} together{% endif %}.
       At least <strong>{{ min_implementations }}</strong> are needed for reliable metrics and AI proposals.
       Results shown below may not reflect real learning patterns.
     </div>
