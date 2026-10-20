@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from django.utils import timezone
 
-from .models import BulkEmailCampaign, MaintenanceNotice
+from .models import BulkEmailCampaign, BulkEmailDelivery, MaintenanceNotice
 
 # Register your models here.
 
@@ -20,6 +20,19 @@ class BulkEmailCampaignAdmin(admin.ModelAdmin):
         'sent_count', 'failed_count', 'error_summary', 'celery_task_id',
     )
     filter_horizontal = ('organizations', 'recipients')
+
+
+@admin.register(BulkEmailDelivery)
+class BulkEmailDeliveryAdmin(admin.ModelAdmin):
+    """Read-only view of the campaign outbox; resend from the Email tab."""
+    list_display = ('id', 'campaign', 'email', 'status', 'sent_at', 'attempts')
+    list_filter = ('status', 'reconstructed')
+    search_fields = ('email', 'recipient_name')
+    readonly_fields = (
+        'campaign', 'user', 'email', 'recipient_name', 'status', 'error',
+        'attempts', 'claimed_at', 'sent_at', 'reconstructed', 'created_at',
+        'updated_at',
+    )
 
 
 @admin.register(MaintenanceNotice)

@@ -209,3 +209,115 @@ class BulkEmailCampaign(models.Model):
         names = [organization.short_name for organization in organizations[:3]]
         suffix = '…' if len(organizations) > 3 else ''
         return f"Organizations: {', '.join(names)}{suffix}"
+
+    @property
+    def waiting_count(self):
+        """Recipients not yet sent to or failed (waiting or being sent now)."""
+        return self.deliveries.filter(status__in=BulkEmailDelivery.PENDING_STATUSES).count()
+
+    def refresh_counts(self):
+        """Recompute counts and status from the campaign's delivery rows."""
+        counts = dict(
+            self.deliveries.values_list('status').annotate(n=models.Count('id'))
+        )
+        total = sum(counts.values())
+        sent = counts.get(BulkEmailDelivery.STATUS_SENT, 0)
+        failed = counts.get(BulkEmailDelivery.STATUS_FAILED, 0)
+        pending = total - sent - failed
+
+        if pending == total:
+            self.status = self.STATUS_QUEUED
+        elif pending:
+            self.status = self.STATUS_SENDING
+        elif not failed:
+            self.status = self.STATUS_COMPLETED
+        elif sent:
+            self.status = self.STATUS_PARTIAL
+        else:
+            self.status = self.STATUS_FAILED
+
+        self.sent_count = sent
+        self.failed_count = failed
+        if sent and self.started_at is None:
+            self.started_at = timezone.now()
+        if pending:
+            self.completed_at = None
+        elif self.completed_at is None:
+            self.completed_at = timezone.now()
+        self.save(update_fields=[
+            'status', 'sent_count', 'failed_count', 'started_at', 'completed_at',
+        ])
+
+
+class BulkEmailDelivery(models.Model):
+    """One campaign email to one recipient, sent by the rate-limited outbox."""
+
+    STATUS_WAITING = 'waiting'
+    STATUS_SENDING = 'sending'
+    STATUS_SENT = 'sent'
+    STATUS_FAILED = 'failed'
+    STATUS_CHOICES = [
+        (STATUS_WAITING, 'Waiting'),
+        (STATUS_SENDING, 'Sending'),
+        (STATUS_SENT, 'Sent'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+    PENDING_STATUSES = (STATUS_WAITING, STATUS_SENDING)
+
+    campaign = models.ForeignKey(
+        BulkEmailCampaign,
+        on_delete=models.CASCADE,
+        related_name='deliveries',
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bulk_email_deliveries',
+    )
+    # Copied when queued: the address and name the admin confirmed.
+    email = models.EmailField()
+    recipient_name = models.CharField(max_length=150, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_WAITING)
+    error = models.TextField(blank=True)
+    attempts = models.PositiveIntegerField(default=0)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    # True for rows rebuilt from the totals of a campaign sent before the outbox.
+    reconstructed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['campaign', 'user'],
+                condition=models.Q(user__isnull=False),
+                name='bulk_email_delivery_unique_user',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['status', 'sent_at'], name='bulk_delivery_status_sent_idx'),
+            models.Index(fields=['campaign', 'status'], name='bulk_delivery_campaign_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.email} ({self.status})'
+
+
+class EmailOutboxState(models.Model):
+    """Singleton row: whether campaign sending is paused, and why."""
+
+    paused_until = models.DateTimeField(null=True, blank=True)
+    pause_reason = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def load(cls):
+        state, _ = cls.objects.get_or_create(pk=1)
+        return state
+
+    def is_paused(self, now):
+        return self.paused_until is not None and self.paused_until > now

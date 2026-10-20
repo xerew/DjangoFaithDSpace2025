@@ -1,7 +1,13 @@
 """Tests for the rate-limited email campaign outbox."""
 
-from django.test import SimpleTestCase
+from datetime import timedelta
 
+from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
+from accounts.models import BulkEmailCampaign, BulkEmailDelivery, EmailOutboxState
 from accounts.outbox_rules import (
     RATE_LIMIT_REASON,
     REBUILT_REASON,
@@ -45,3 +51,99 @@ class OutboxRulesTests(SimpleTestCase):
         rows = reconstruct_deliveries([1, 2, 3], 1, '', in_progress=True)
 
         self.assertEqual([rows[i][0] for i in (1, 2, 3)], ['sent', 'waiting', 'waiting'])
+
+
+def make_campaign(**fields):
+    defaults = {
+        'target_type': BulkEmailCampaign.TARGET_ALL_TEACHERS,
+        'subject': 'Platform news',
+        'body_html': '<p>Hello</p>',
+        'site_url': 'https://platform.test',
+    }
+    defaults.update(fields)
+    return BulkEmailCampaign.objects.create(**defaults)
+
+
+def make_users(count, prefix='teacher'):
+    return [
+        User.objects.create_user(f'{prefix}{i}', email=f'{prefix}{i}@example.com')
+        for i in range(count)
+    ]
+
+
+def queue(campaign, users):
+    """Create one waiting delivery per user, as sending a campaign does."""
+    campaign.recipients.add(*users)
+    campaign.recipient_count = campaign.recipients.count()
+    campaign.save(update_fields=['recipient_count'])
+    return [
+        BulkEmailDelivery.objects.create(
+            campaign=campaign,
+            user=user,
+            email=user.email,
+            recipient_name=user.get_full_name() or user.username,
+        )
+        for user in users
+    ]
+
+
+class CampaignCountsTests(TestCase):
+    def setUp(self):
+        self.campaign = make_campaign()
+        self.rows = queue(self.campaign, make_users(3))
+
+    def set_statuses(self, statuses):
+        for row, status in zip(self.rows, statuses):
+            BulkEmailDelivery.objects.filter(pk=row.pk).update(status=status)
+        self.campaign.refresh_counts()
+
+    def test_status_follows_rows(self):
+        self.set_statuses(['waiting', 'waiting', 'waiting'])
+        self.assertEqual(self.campaign.status, BulkEmailCampaign.STATUS_QUEUED)
+
+        self.set_statuses(['sent', 'waiting', 'sending'])
+        self.assertEqual(
+            (self.campaign.status, self.campaign.sent_count, self.campaign.waiting_count),
+            (BulkEmailCampaign.STATUS_SENDING, 1, 2),
+        )
+        self.assertIsNotNone(self.campaign.started_at)
+        self.assertIsNone(self.campaign.completed_at)
+
+        self.set_statuses(['sent', 'sent', 'sent'])
+        self.assertEqual(self.campaign.status, BulkEmailCampaign.STATUS_COMPLETED)
+        self.assertIsNotNone(self.campaign.completed_at)
+
+        self.set_statuses(['sent', 'failed', 'sent'])
+        self.assertEqual(
+            (self.campaign.status, self.campaign.failed_count),
+            (BulkEmailCampaign.STATUS_PARTIAL, 1),
+        )
+
+        self.set_statuses(['failed', 'failed', 'failed'])
+        self.assertEqual(self.campaign.status, BulkEmailCampaign.STATUS_FAILED)
+
+        self.campaign.refresh_from_db()
+        self.assertEqual(self.campaign.failed_count, 3)
+
+    def test_one_row_per_user_per_campaign(self):
+        user = self.rows[0].user
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            BulkEmailDelivery.objects.create(campaign=self.campaign, user=user, email=user.email)
+
+        # Rows whose user was deleted do not collide with each other.
+        BulkEmailDelivery.objects.create(campaign=self.campaign, user=None, email='a@example.com')
+        BulkEmailDelivery.objects.create(campaign=self.campaign, user=None, email='b@example.com')
+
+
+class OutboxStateTests(TestCase):
+    def test_outbox_state_singleton(self):
+        now = timezone.now()
+        self.assertEqual(EmailOutboxState.load().pk, EmailOutboxState.load().pk)
+        self.assertEqual(EmailOutboxState.objects.count(), 1)
+
+        state = EmailOutboxState.load()
+        state.paused_until = now + timedelta(minutes=5)
+        state.save()
+
+        self.assertTrue(EmailOutboxState.load().is_paused(now))
+        self.assertFalse(EmailOutboxState.load().is_paused(now + timedelta(minutes=6)))
