@@ -10,6 +10,7 @@ RATE_LIMIT_REASON = 'Not sent: hourly sending limit reached'
 REBUILT_REASON = "Not sent (rebuilt from the campaign's totals)"
 
 _NAMED_ERROR_RE = re.compile(r'^User (\d+): (.*)$', re.MULTILINE)
+_NOT_RATE_LIMIT_WORDS = ('size', 'quota', 'mailbox', '5.3.4', '5.2.2', '4.2.2')
 
 
 def is_rate_limit(text):
@@ -17,8 +18,12 @@ def is_rate_limit(text):
 
     Papaki answers "554 5.7.0 ... limit ... was exceeded", a code that
     normally means permanent failure, so only the text can be trusted.
+    Message-size and mailbox-quota refusals also say "limit exceeded" but
+    concern one message or recipient, so they are not rate limits.
     """
     text = (text or '').lower()
+    if any(word in text for word in _NOT_RATE_LIMIT_WORDS):
+        return False
     return 'limit' in text and 'exceed' in text
 
 
@@ -27,8 +32,10 @@ def reconstruct_deliveries(recipient_ids, sent_count, error_summary, in_progress
 
     The old task sent to recipients in id order and logged up to 20 errors as
     "User <id>: <error>". Named users failed; of the rest, the first
-    `sent_count` were sent, and the others failed (or still wait, when the
-    campaign was in progress). Returns {user_id: (status, error)}.
+    `sent_count` were sent, and the others failed. For a campaign still in
+    progress the old task saved its count only every 25 emails, so some of the
+    rest may have received it: they fail as uncertain and are never queued
+    automatically. Returns {user_id: (status, error)}.
     """
     named = {}
     for user_id, message in _NAMED_ERROR_RE.findall(error_summary or ''):
@@ -44,7 +51,7 @@ def reconstruct_deliveries(recipient_ids, sent_count, error_summary, in_progress
             rows[user_id] = ('sent', '')
             sent += 1
         elif in_progress:
-            rows[user_id] = ('waiting', '')
+            rows[user_id] = ('failed', INTERRUPTED_REASON)
         else:
             rows[user_id] = ('failed', REBUILT_REASON)
     return rows

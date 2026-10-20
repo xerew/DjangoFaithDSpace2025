@@ -56,10 +56,21 @@ class OutboxRulesTests(SimpleTestCase):
         self.assertEqual(rows[2], ('failed', line))
         self.assertEqual([rows[i][0] for i in (1, 3, 4)], ['sent', 'sent', 'sent'])
 
-    def test_reconstruct_in_progress_leaves_rest_waiting(self):
+    def test_reconstruct_in_progress_fails_rest_as_uncertain(self):
+        # The old task saved its count every 25 emails, so some of these may
+        # have received it: never queue them automatically.
         rows = reconstruct_deliveries([1, 2, 3], 1, '', in_progress=True)
 
-        self.assertEqual([rows[i][0] for i in (1, 2, 3)], ['sent', 'waiting', 'waiting'])
+        self.assertEqual(
+            [rows[i] for i in (1, 2, 3)],
+            [('sent', ''), ('failed', INTERRUPTED_REASON), ('failed', INTERRUPTED_REASON)],
+        )
+
+    def test_size_and_quota_errors_are_not_rate_limits(self):
+        self.assertFalse(is_rate_limit('552 5.3.4 Message size exceeds fixed limit'))
+        self.assertFalse(is_rate_limit('552 5.2.2 Mailbox size limit exceeded'))
+        self.assertFalse(is_rate_limit('452 4.2.2 Quota limit exceeded for user'))
+        self.assertTrue(is_rate_limit(PAPAKI))
 
 
 def make_campaign(**fields):
@@ -397,6 +408,49 @@ class DrainOutboxTests(TestCase):
 
         self.assertEqual(mail.outbox[0].to, ['teacher0@example.com'])
 
+    def test_provider_wide_4xx_streak_pauses_and_keeps_rows_waiting(self):
+        rows = queue(self.campaign, make_users(5))
+        rejected = {
+            row.email: smtplib.SMTPRecipientsRefused({row.email: (450, b'4.7.1 Client host rejected')})
+            for row in rows
+        }
+
+        with failing_send(rejected):
+            result = drain_outbox(self.now)
+
+        self.assertTrue(result['paused'])
+        self.assertTrue(self.paused())
+        self.assertEqual(statuses(rows), ['waiting'] * 5)
+        self.assertEqual([BulkEmailDelivery.objects.get(pk=r.pk).attempts for r in rows], [0] * 5)
+
+    @override_settings(EMAIL_CAMPAIGN_HOURLY_LIMIT=3)
+    def test_failed_attempts_count_against_hourly_allowance(self):
+        rows = queue(self.campaign, make_users(5))
+        unknown = {
+            row.email: smtplib.SMTPRecipientsRefused({row.email: (550, b'5.1.1 user unknown')})
+            for row in rows
+        }
+
+        with failing_send(unknown):
+            drain_outbox(self.now)
+            drain_outbox(self.now + timedelta(minutes=5))
+
+        self.assertEqual(statuses(rows), ['failed', 'failed', 'failed', 'waiting', 'waiting'])
+
+    def test_overlapping_run_does_nothing(self):
+        rows = queue(self.campaign, make_users(2))
+
+        with mock.patch('accounts.outbox.cache.add', return_value=False):
+            result = drain_outbox(self.now)
+
+        self.assertEqual(result['sent'], 0)
+        self.assertEqual(statuses(rows), ['waiting', 'waiting'])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_beat_entry_drops_backed_up_runs(self):
+        entry = settings.CELERY_BEAT_SCHEDULE['drain-email-outbox']
+        self.assertEqual(entry['options'], {'expires': 240})
+
     def test_beat_schedule_runs_drain_task(self):
         from celery import current_app
         import accounts.tasks  # noqa: F401  (registers the task)
@@ -511,7 +565,7 @@ class BackfillMigrationTests(TestCase):
             (BulkEmailCampaign.STATUS_PARTIAL, 300, 140),
         )
 
-    def test_rebuilds_in_progress_campaign_as_waiting(self):
+    def test_rebuilds_in_progress_campaign_without_queueing_anyone(self):
         users = make_users(3)
         campaign = make_campaign(
             status=BulkEmailCampaign.STATUS_SENDING, recipient_count=3, sent_count=1,
@@ -521,8 +575,8 @@ class BackfillMigrationTests(TestCase):
         self.run_backfill()
 
         self.assertEqual(
-            list(campaign.deliveries.order_by('user_id').values_list('status', flat=True)),
-            ['sent', 'waiting', 'waiting'],
+            list(campaign.deliveries.order_by('user_id').values_list('status', 'error')),
+            [('sent', ''), ('failed', INTERRUPTED_REASON), ('failed', INTERRUPTED_REASON)],
         )
 
     def test_backfill_skips_campaigns_that_already_have_rows(self):
@@ -668,3 +722,74 @@ class CampaignDetailsTests(TestCase):
         pause('Connection refused', timezone.now())
         response = self.client.get(reverse('admin_dashboard'))
         self.assertContains(response, 'Sending paused until')
+
+
+class FakeSMTP:
+    """Stands in for smtplib.SMTP under Django's real SMTP backend.
+
+    Like smtplib, a 421 reply closes the connection before raising, so the
+    next sendmail fails with SMTPServerDisconnected.
+    """
+
+    refuse = {}
+    delivered = []
+
+    def __init__(self, host, port, **kwargs):
+        self.sock = object()
+
+    def starttls(self, **kwargs):
+        pass
+
+    def login(self, user, password):
+        pass
+
+    def sendmail(self, from_addr, to_addrs, msg, *args, **kwargs):
+        if self.sock is None:
+            raise smtplib.SMTPServerDisconnected('please run connect() first')
+        to = to_addrs[0]
+        if to in self.refuse:
+            code, text = self.refuse[to]
+            if code == 421:
+                self.sock = None
+            raise smtplib.SMTPRecipientsRefused({to: (code, text)})
+        FakeSMTP.delivered.append(to)
+        return {}
+
+    def quit(self):
+        self.sock = None
+
+    def close(self):
+        self.sock = None
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',
+    EMAIL_HOST='smtp.test', EMAIL_PORT=587, EMAIL_USE_TLS=False,
+    EMAIL_HOST_USER='', EMAIL_HOST_PASSWORD='',
+    DEFAULT_FROM_EMAIL='Trust AI Lab <noreply@trust-ai.test>',
+)
+class RealSmtpBackendTests(TestCase):
+    def setUp(self):
+        FakeSMTP.refuse = {}
+        FakeSMTP.delivered = []
+        patcher = mock.patch('django.core.mail.backends.smtp.smtplib.SMTP', FakeSMTP)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.now = timezone.now()
+        self.rows = queue(make_campaign(), make_users(3))
+
+    def test_421_pauses_and_next_row_is_not_marked_uncertain(self):
+        FakeSMTP.refuse = {self.rows[0].email: (421, b'4.7.0 Too many messages, try later')}
+
+        result = drain_outbox(self.now)
+
+        self.assertTrue(result['paused'])
+        self.assertEqual(statuses(self.rows), ['waiting', 'waiting', 'waiting'])
+        self.assertEqual([BulkEmailDelivery.objects.get(pk=r.pk).attempts for r in self.rows], [0, 0, 0])
+        self.assertEqual(FakeSMTP.delivered, [])
+
+    def test_sends_through_real_backend(self):
+        drain_outbox(self.now)
+
+        self.assertEqual(FakeSMTP.delivered, [r.email for r in self.rows])
+        self.assertEqual(statuses(self.rows), ['sent', 'sent', 'sent'])

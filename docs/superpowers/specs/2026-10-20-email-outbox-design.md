@@ -269,6 +269,29 @@ start the worker again. Remove the `send_bulk_email_campaign` task, so a
 leftover message for it in Redis fails as an unregistered task instead of
 sending a whole campaign outside the queue.
 
+## Changes after the final code review
+
+The review found these gaps, and the build fixes them:
+
+- **Every attempt counts toward the hourly allowance, not just successful
+  sends.** Refused mail is never retried faster than the limit.
+- **Three temporary refusals in a row mean the server is refusing everyone.**
+  Those rows go back to waiting with their attempts uncounted, and sending
+  pauses.
+- **A `421` reply pauses sending.** smtplib has already closed the connection
+  when it raises. Before each send, the connection is checked, so a recipient
+  is never marked uncertain when nothing was transmitted.
+- **Only one run sends at a time.** A Redis lock enforces this, and backed-up
+  beat runs expire after 240 seconds. Overlapping runs can't go past the cap.
+- **Message-size and mailbox-quota refusals don't count as rate limits**,
+  even though they say "limit exceeded". They mention size, quota, mailbox, or
+  codes 5.3.4, 5.2.2 or 4.2.2.
+- **This replaces "Campaigns still in progress at deploy" above.** Recipients
+  of an old campaign still `queued` or `sending`, after the first
+  `sent_count`, become **failed** with the uncertain note, not waiting. The
+  old task saved its count only every 25 emails, so some may have received
+  it, and nothing is ever sent automatically. The admin resends from the list.
+
 ## Not in this version
 
 - **Cancel campaign** and **Try now** (end a pause early) buttons. The admin

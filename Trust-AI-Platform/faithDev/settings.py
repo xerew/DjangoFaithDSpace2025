@@ -278,6 +278,9 @@ CELERY_BEAT_SCHEDULE = {
     'drain-email-outbox': {
         'task': 'accounts.tasks.drain_email_outbox',
         'schedule': 300.0,
+        # Drop runs that backed up while the worker was down, so they
+        # can't run together and overshoot the hourly limit.
+        'options': {'expires': 240},
     },
 }
 

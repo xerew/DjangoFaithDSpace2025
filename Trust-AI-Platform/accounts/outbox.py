@@ -13,8 +13,9 @@ from datetime import timedelta
 from html import unescape
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives, get_connection
-from django.db.models import F
+from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -25,6 +26,10 @@ from .outbox_rules import INTERRUPTED_REASON, is_rate_limit
 PAUSE_FOR = timedelta(minutes=60)
 STUCK_AFTER = timedelta(minutes=30)
 MAX_TEMPORARY_ATTEMPTS = 3
+# This many temporary refusals in a row means the server, not the recipients.
+PROVIDER_WIDE_STREAK = 3
+LOCK_KEY = 'accounts:drain-email-outbox'
+LOCK_TIMEOUT = 25 * 60
 
 # Outcomes of one send attempt.
 _SENT = 'sent'
@@ -75,12 +80,14 @@ def claim(delivery_id, now):
 
 
 def remaining_allowance(now):
+    """Attempts left this rolling hour. Refused attempts count too, so a
+    server that refuses everything is not retried more than the limit."""
     limit = getattr(settings, 'EMAIL_CAMPAIGN_HOURLY_LIMIT', 200)
-    sent_last_hour = BulkEmailDelivery.objects.filter(
-        status=BulkEmailDelivery.STATUS_SENT,
-        sent_at__gte=now - timedelta(hours=1),
+    since = now - timedelta(hours=1)
+    attempted_last_hour = BulkEmailDelivery.objects.filter(
+        Q(sent_at__gte=since) | Q(claimed_at__gte=since),
     ).count()
-    return max(0, limit - sent_last_hour)
+    return max(0, limit - attempted_last_hour)
 
 
 def release_stuck(now):
@@ -118,7 +125,16 @@ def _classify(exc):
         return _INTERRUPTED
     else:
         return _FAILED
+    if code == 421:
+        # "Service not available": smtplib has already closed the connection.
+        return _PAUSE
     return _TEMPORARY if 400 <= code < 500 else _FAILED
+
+
+def _connection_lost(connection):
+    """True when the SMTP socket is already closed, so nothing can be sent."""
+    smtp = getattr(connection, 'connection', None)
+    return smtp is not None and getattr(smtp, 'sock', True) is None
 
 
 def _send_one(delivery, connection, now):
@@ -145,8 +161,13 @@ def _send_one(delivery, connection, now):
             )
         elif outcome == _INTERRUPTED:
             update(status=BulkEmailDelivery.STATUS_FAILED, error=INTERRUPTED_REASON)
-        elif outcome == _TEMPORARY and delivery.attempts < MAX_TEMPORARY_ATTEMPTS:
-            update(status=BulkEmailDelivery.STATUS_WAITING, error=str(exc))
+        elif outcome == _TEMPORARY:
+            # A provider-wide streak may still put it back (see drain_outbox).
+            give_up = delivery.attempts >= MAX_TEMPORARY_ATTEMPTS
+            update(
+                status=BulkEmailDelivery.STATUS_FAILED if give_up else BulkEmailDelivery.STATUS_WAITING,
+                error=str(exc),
+            )
         else:
             update(status=BulkEmailDelivery.STATUS_FAILED, error=str(exc))
             outcome = _FAILED
@@ -162,59 +183,91 @@ def _refresh_campaigns(campaign_ids):
 
 
 def drain_outbox(now=None):
-    """Send waiting campaign email within the hourly allowance."""
+    """Send waiting campaign email within the hourly allowance.
+
+    Only one run sends at a time; an overlapping run returns at once.
+    """
     now = now or timezone.now()
     result = {'sent': 0, 'failed': 0, 'deferred': 0, 'paused': False, 'reason': ''}
+    if not cache.add(LOCK_KEY, '1', LOCK_TIMEOUT):
+        result['reason'] = 'Another run is sending.'
+        return result
+    try:
+        _drain(now, result)
+    finally:
+        cache.delete(LOCK_KEY)
+    return result
 
+
+def _pause_run(result, reason, now):
+    pause(reason, now)
+    result.update(paused=True, reason=reason)
+
+
+def _drain(now, result):
     release_stuck(now)
     state = EmailOutboxState.load()
     if state.is_paused(now):
         result.update(paused=True, reason=state.pause_reason)
-        return result
+        return
 
     allowance = remaining_allowance(now)
     if not allowance:
-        return result
+        return
     waiting_ids = list(
         BulkEmailDelivery.objects.filter(status=BulkEmailDelivery.STATUS_WAITING)
         .order_by('campaign__created_at', 'campaign_id', 'id')
         .values_list('id', flat=True)
     )
     if not waiting_ids:
-        return result
+        return
 
     connection = get_connection()
     try:
         connection.open()
     except Exception as exc:
-        reason = f'Could not connect to the mail server: {exc}'
-        pause(reason, now)
-        result.update(paused=True, reason=reason)
-        return result
+        _pause_run(result, f'Could not connect to the mail server: {exc}', now)
+        return
 
     touched = set()
+    attempted = 0
+    streak = []  # consecutive temporary refusals in this run
     try:
         for delivery_id in waiting_ids:
-            if result['sent'] >= allowance:
+            if attempted >= allowance:
+                break
+            if _connection_lost(connection):
+                _pause_run(result, 'The mail server closed the connection.', now)
                 break
             if not claim(delivery_id, now):
                 continue
+            attempted += 1
             delivery = BulkEmailDelivery.objects.select_related('campaign', 'user').get(pk=delivery_id)
             touched.add(delivery.campaign_id)
 
             outcome, exc = _send_one(delivery, connection, now)
+            if outcome == _TEMPORARY:
+                streak.append(delivery_id)
+                result['deferred'] += 1
+                if len(streak) >= PROVIDER_WIDE_STREAK:
+                    # The server is refusing everyone: put the streak back
+                    # untouched, without using up anyone's attempts.
+                    BulkEmailDelivery.objects.filter(pk__in=streak).update(
+                        status=BulkEmailDelivery.STATUS_WAITING,
+                        attempts=F('attempts') - 1,
+                    )
+                    _pause_run(result, f'The mail server refused {len(streak)} messages in a row: {exc}', now)
+                    break
+                continue
+            streak = []
             if outcome == _SENT:
                 result['sent'] += 1
             elif outcome == _FAILED:
                 result['failed'] += 1
-            elif outcome == _TEMPORARY:
-                result['deferred'] += 1
             else:
                 if outcome == _INTERRUPTED:
                     result['failed'] += 1
-                reason = f'The mail server refused or dropped the connection: {exc}'
-                pause(reason, now)
-                result.update(paused=True, reason=reason)
+                _pause_run(result, f'The mail server refused or dropped the connection: {exc}', now)
                 break
     finally:
         try:
@@ -222,4 +275,3 @@ def drain_outbox(now=None):
         except Exception:
             pass
         _refresh_campaigns(touched)
-    return result
