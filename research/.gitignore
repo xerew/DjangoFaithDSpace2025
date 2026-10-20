@@ -1,0 +1,8 @@
+# Exports, results and reports contain study data: keep them out of the
+# (public) repository. They belong in data/research/ on the server.
+*.jsonl
+*.jsonl.manifest.json
+*.csv
+images/
+report/
+runs/
