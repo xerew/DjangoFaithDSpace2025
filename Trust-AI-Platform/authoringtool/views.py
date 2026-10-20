@@ -68,6 +68,7 @@ from .graph_validation import (
 from celery.result import AsyncResult
 from django.conf import settings
 import csv, os, json, uuid
+from urllib.parse import urlencode
 from pathlib import Path
 from django.views.decorators.http import require_POST
 import markdown
@@ -213,6 +214,67 @@ def record_edit(user, scenario, phase_id=None, activity_id=None):
     if phase_id:
         Phase.objects.filter(pk=phase_id).update(updated_on=now, updated_by=user)
     Scenario.objects.filter(pk=scenario.pk).update(updated_on=now, updated_by=user)
+
+
+# ── Filters kept in the session ────────────────────────────────────────────
+# Authoring tool filters survive a refresh and coming back to the page: they
+# live in the user's session (one browser login) and are cleared by Reset.
+
+SCENARIO_LIST_FILTER_KEYS = ('q', 'start_date', 'end_date', 'language', 'visibility', 'show_mine', 'subject')
+SCENARIO_LIST_FILTERS_SESSION_KEY = 'authoring_scenario_list_filters'
+DASHBOARD_FILTERS_SESSION_KEY = 'authoring_dashboard_filters'
+
+
+def remember_scenario_list_filters(request):
+    """Save the scenario list filters; restore them when the page opens bare.
+
+    Returns a redirect to the remembered filters, or None.
+    """
+    if any(key in request.GET for key in SCENARIO_LIST_FILTER_KEYS):
+        chosen = {}
+        for key in SCENARIO_LIST_FILTER_KEYS:
+            values = [v for v in request.GET.getlist(key) if v.strip()]
+            if key == 'visibility':
+                values = [v for v in values if v != 'all']
+            if values:
+                chosen[key] = values
+        if chosen:
+            request.session[SCENARIO_LIST_FILTERS_SESSION_KEY] = chosen
+        else:
+            request.session.pop(SCENARIO_LIST_FILTERS_SESSION_KEY, None)
+        return None
+    saved = request.session.get(SCENARIO_LIST_FILTERS_SESSION_KEY)
+    if not request.GET and saved:
+        return HttpResponseRedirect(f"{reverse('scenarios')}?{urlencode(saved, doseq=True)}")
+    return None
+
+
+def clean_dashboard_filters(user, data):
+    """Keep only dashboard filters this user may still use; {} when no scenario."""
+    data = data or {}
+    try:
+        scenario_id = int(data.get('scenario_id') or 0)
+    except (TypeError, ValueError):
+        return {}
+    scenario = Scenario.objects.filter(pk=scenario_id, archived_at__isnull=True).first()
+    if not scenario or not user_can_view_scenario(user, scenario):
+        return {}
+    cleaned = {'scenario_id': scenario.id}
+    for key in ('start_date', 'end_date'):
+        value = str(data.get(key) or '')
+        if value and parse_date(value):
+            cleaned[key] = value
+    requested = []
+    for group_id in data.get('group_ids') or []:
+        try:
+            requested.append(int(group_id))
+        except (TypeError, ValueError):
+            continue
+    own = set(UserGroup.objects.filter(created_by=user, id__in=requested).values_list('id', flat=True))
+    group_ids = [group_id for group_id in requested if group_id in own]
+    if group_ids:
+        cleaned['group_ids'] = group_ids
+    return cleaned
 
 
 def user_can_generate_proposals(user, scenario):
@@ -491,12 +553,34 @@ def index(request):
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios the user is part of
         ).distinct()
     
+    saved = clean_dashboard_filters(user, request.session.get(DASHBOARD_FILTERS_SESSION_KEY, {}))
     template = loader.get_template('authoringtool/index.html')
     context = {
         'scenarios': myScenarios,
-        'departments': departments
+        'departments': departments,
+        'saved_scenario_id': saved.get('scenario_id'),
+        'start_date': saved.get('start_date', ''),
+        'end_date': saved.get('end_date', ''),
+        'dashboard_filters_json': json.dumps(saved),
     }
     return HttpResponse(template.render(context, request))
+
+
+@require_POST
+@group_required('teachers')
+def save_dashboard_filters(request):
+    """Remember the dashboard filters the teacher applied (cleared by Reset)."""
+    saved = clean_dashboard_filters(request.user, {
+        'scenario_id': request.POST.get('scenario_id'),
+        'start_date': request.POST.get('start_date'),
+        'end_date': request.POST.get('end_date'),
+        'group_ids': request.POST.getlist('group_ids'),
+    })
+    if saved:
+        request.session[DASHBOARD_FILTERS_SESSION_KEY] = saved
+    else:
+        request.session.pop(DASHBOARD_FILTERS_SESSION_KEY, None)
+    return HttpResponse(status=204)
 
 def _smart_page_range(page_obj):
     """Returns a list of page numbers with None representing an ellipsis."""
@@ -519,6 +603,9 @@ def _smart_page_range(page_obj):
 
 @group_required('teachers')
 def scenarios(request):
+    restore = remember_scenario_list_filters(request)
+    if restore:
+        return restore
     query = request.GET.get('q', '').strip()  # Search query
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')

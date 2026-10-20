@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='index', permanent=False)),
     path('dashboard/', views.index, name='index'),
+    path('dashboard/filters/', views.save_dashboard_filters, name='save_dashboard_filters'),
     path('scenarios/', views.scenarios, name='scenarios'),
     path('scenarios/createScenario/', views.createScenario, name='createScenario'),
     path('scenarios/createScenario/createScenarioData/', views.createScenarioData, name='createScenarioData'),

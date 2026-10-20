@@ -106,7 +106,7 @@
                     <select id="scenarioSelect" name="scenario_id" style="display:none;">
                       <option value="">Select Scenario</option>
                       {% for scenario in scenarios %}
-                        <option value="{{ scenario.id }}" {% if scenario.name == "Photoelectric Effect" %}selected{% endif %}>{{ scenario.name }}</option>
+                        <option value="{{ scenario.id }}" {% if saved_scenario_id %}{% if scenario.id == saved_scenario_id %}selected{% endif %}{% elif scenario.name == "Photoelectric Effect" %}selected{% endif %}>{{ scenario.name }}</option>
                       {% endfor %}
                     </select>
           </div>
@@ -142,9 +142,10 @@
         groupSelect.innerHTML = '';
         groupSelect.style.display = 'none';
         groupMsg.style.display = 'none';
+        window.dashboardGroupsLoading = Promise.resolve();
         return;
       }
-                        (window.dashboardNativeFetch || fetch)(`/authoringtool/get_teacher_groups/${scenarioId}/`)
+                        window.dashboardGroupsLoading = (window.dashboardNativeFetch || fetch)(`/authoringtool/get_teacher_groups/${scenarioId}/`)
                           .then(r => r.json())
                           .then(data => {
                             if (!data.groups || data.groups.length === 0) {
@@ -2522,6 +2523,56 @@
 
       showEmptyState();
 	});
+  </script>
+
+  {{ dashboard_filters_json|json_script:"dashboard-saved-filters" }}
+  <script>
+  // Filters are kept in the session: saved when applied, cleared by Reset,
+  // and re-applied when the teacher comes back to the dashboard.
+  (function () {
+    var saved = JSON.parse(JSON.parse(document.getElementById('dashboard-saved-filters').textContent) || '{}');
+    var form = document.getElementById('filter-form');
+    var scenarioSelect = document.getElementById('scenarioSelect');
+    var groupSelect = document.getElementById('groupSelect');
+    var startInput = document.getElementById('start-date-input');
+    var endInput = document.getElementById('end-date-input');
+    var csrf = '{{ csrf_token }}';
+
+    function remember(values) {
+      var body = new FormData();
+      Object.keys(values).forEach(function (key) {
+        [].concat(values[key]).forEach(function (v) { body.append(key, v); });
+      });
+      (window.dashboardNativeFetch || fetch)('{% url "save_dashboard_filters" %}', {
+        method: 'POST', headers: {'X-CSRFToken': csrf}, body: body,
+      }).catch(function () {});
+    }
+
+    form.addEventListener('submit', function () {
+      remember({
+        scenario_id: scenarioSelect.value,
+        start_date: startInput.value,
+        end_date: endInput.value,
+        group_ids: Array.from(groupSelect.selectedOptions).map(function (o) { return o.value; }),
+      });
+    });
+    document.getElementById('reset-button').addEventListener('click', function () {
+      remember({scenario_id: ''});
+    });
+
+    // After every chart script is ready, run the saved analysis again.
+    window.addEventListener('load', function () {
+      if (!saved.scenario_id || scenarioSelect.value !== String(saved.scenario_id)) return;
+      (window.dashboardGroupsLoading || Promise.resolve()).then(function () {
+        var wanted = (saved.group_ids || []).map(String);
+        Array.from(groupSelect.options).forEach(function (option) {
+          option.selected = wanted.indexOf(option.value) !== -1;
+        });
+        if (form.requestSubmit) { form.requestSubmit(); }
+        else { form.dispatchEvent(new Event('submit', {cancelable: true})); }
+      });
+    });
+  })();
   </script>
   </main>
 {% endblock atcontent %}
