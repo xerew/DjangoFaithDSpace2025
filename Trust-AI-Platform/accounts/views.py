@@ -309,14 +309,18 @@ def _is_valid_target(user):
     return user.is_staff or user.is_superuser or user.groups.filter(name='teachers').exists()
 
 
-@group_required('teachers')
+@login_required
 def view_profile(request, user_id):
+    """Teachers may open teachers' and admins' profiles; admins may open anyone's."""
     from organization.models import Organization
 
+    viewer_is_admin = request.user.is_staff or request.user.is_superuser
+    if not viewer_is_admin and not request.user.groups.filter(name='teachers').exists():
+        raise PermissionDenied
     target = get_object_or_404(User, pk=user_id)
     if target == request.user:
         return redirect('profile')
-    if not _is_valid_target(target):
+    if not viewer_is_admin and not _is_valid_target(target):
         from django.http import Http404
         raise Http404("No such profile.")
 

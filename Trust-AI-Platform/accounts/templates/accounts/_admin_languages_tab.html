@@ -1,0 +1,118 @@
+<div class="tab-pane fade" id="tab-languages" role="tabpanel">
+  <div class="mb-3">
+    <h5 class="mb-1" style="color:#012970;font-size:16px;font-weight:700;">Languages</h5>
+    <p class="text-muted mb-0" style="font-size:13px;">
+      The languages teachers can choose for scenarios and organizations. Renaming a language
+      also renames it on every scenario and organization that uses it. Languages marked
+      <i class="bi bi-lock-fill"></i> have built-in chat and help texts tied to their name and
+      cannot be renamed. A language in use cannot be removed.
+    </p>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+    <input type="text" id="newLanguageName" class="form-control" placeholder="New language…"
+           maxlength="50" style="max-width:280px;" aria-label="New language name"
+           onkeydown="if(event.key==='Enter') createLanguage()">
+    <button class="btn btn-primary" onclick="createLanguage()">
+      <i class="bi bi-plus-lg me-1"></i>Add language
+    </button>
+  </div>
+
+  <div class="row g-3" id="languageCards">
+    {% for row in languages %}
+    {% with language=row.language in_use=row.scenario_count|add:row.organization_count %}
+    <div class="col-12 col-md-6 col-lg-4" id="language-card-{{ language.id }}">
+      <div class="card h-100" style="border-radius:12px;">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            {% if row.built_in %}
+            <span class="fw-bold" style="font-size:15px;" title="Has built-in chat and help texts">
+              {{ language.name }} <i class="bi bi-lock-fill text-muted" style="font-size:12px;"></i>
+            </span>
+            {% else %}
+            <span class="language-name-display fw-bold" style="cursor:pointer;font-size:15px;"
+                  title="Click to rename" onclick="startRenameLanguage({{ language.id }}, this)">{{ language.name }}</span>
+            {% endif %}
+            <button class="btn btn-sm btn-outline-danger" aria-label="Remove {{ language.name }}"
+                    {% if in_use %}disabled title="In use — change those scenarios and organizations first"{% else %}onclick="deleteLanguage({{ language.id }})"{% endif %}>
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div style="font-size:12px;color:#888;margin-top:6px;">
+            {{ row.scenario_count }} scenario{{ row.scenario_count|pluralize }} ·
+            {{ row.organization_count }} organization{{ row.organization_count|pluralize }}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <p class="text-muted" style="font-size:13px;">No languages yet.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function createLanguage() {
+  const input = document.getElementById('newLanguageName');
+  const name = input.value.trim();
+  if (!name) return;
+  postJSON('{% url "admin_create_language" %}', {name: name}).then(function(data) {
+    if (!data.success) { showToast(data.error, true); return; }
+    showToast('Language added.', false);
+    input.value = '';
+    const col = document.createElement('div');
+    col.className = 'col-12 col-md-6 col-lg-4';
+    col.id = 'language-card-' + data.id;
+    const label = data.built_in
+      ? '<span class="fw-bold" style="font-size:15px;">' + escHtml(data.name) + ' <i class="bi bi-lock-fill text-muted" style="font-size:12px;"></i></span>'
+      : '<span class="language-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="Click to rename" onclick="startRenameLanguage(' + data.id + ', this)">' + escHtml(data.name) + '</span>';
+    col.innerHTML = '<div class="card h-100" style="border-radius:12px;"><div class="card-body">' +
+      '<div class="d-flex align-items-start justify-content-between gap-2">' + label +
+      '<button class="btn btn-sm btn-outline-danger" aria-label="Remove ' + escHtml(data.name) + '" onclick="deleteLanguage(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
+      '</div><div style="font-size:12px;color:#888;margin-top:6px;">0 scenarios · 0 organizations</div></div></div>';
+    document.getElementById('languageCards').appendChild(col);
+  });
+}
+
+function deleteLanguage(id) {
+  if (!confirm('Remove this language?')) return;
+  postJSON('{% url "admin_delete_language" 0 %}'.replace('/0/', '/' + id + '/'), {}).then(function(data) {
+    if (!data.success) { showToast(data.error, true); return; }
+    showToast('Language removed.', false);
+    const card = document.getElementById('language-card-' + id);
+    if (card) card.remove();
+  });
+}
+
+function startRenameLanguage(id, el) {
+  const currentName = el.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.maxLength = 50;
+  input.className = 'form-control form-control-sm';
+  input.style.maxWidth = '200px';
+  el.replaceWith(input);
+  input.focus();
+
+  function finishRename() {
+    const newName = input.value.trim();
+    if (!newName || newName === currentName) { input.replaceWith(el); return; }
+    postJSON('{% url "admin_rename_language" 0 %}'.replace('/0/', '/' + id + '/'), {name: newName}).then(function(data) {
+      if (data.success) {
+        el.textContent = data.name;
+        showToast(data.message, false);
+      } else {
+        showToast(data.error, true);
+      }
+      input.replaceWith(el);
+    });
+  }
+  input.addEventListener('blur', finishRename, {once: true});
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+</script>

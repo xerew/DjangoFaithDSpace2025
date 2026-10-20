@@ -177,6 +177,12 @@
           {% if active_maintenance_count %}<span class="badge bg-warning text-dark ms-1" style="font-size:11px;">{{ active_maintenance_count }} active</span>{% endif %}
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-languages-btn" data-bs-toggle="tab" data-bs-target="#tab-languages" type="button" role="tab">
+          <i class="bi bi-translate me-1"></i> Languages
+          <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ languages|length }}</span>
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content pt-4">
@@ -292,7 +298,7 @@
                       {% endif %}
                       {% endwith %}
                       <div>
-                        <div class="user-display-name" style="font-weight:600;font-size:13px;color:#012970;">{{ u.get_full_name|default:u.username }}</div>
+                        <a href="{% url 'view_profile' u.pk %}" class="user-display-name d-block text-decoration-none" style="font-weight:600;font-size:13px;color:#012970;" title="Open profile">{{ u.get_full_name|default:u.username }}</a>
                         <div style="font-size:11px;color:#888;">@{{ u.username }}</div>
                       </div>
                     </div>
@@ -654,6 +660,7 @@
 
       {% include 'accounts/_admin_email_tab.html' %}
       {% include 'accounts/_admin_maintenance_tab.html' %}
+      {% include 'accounts/_admin_languages_tab.html' %}
 
     </div><!-- /tab-content -->
 

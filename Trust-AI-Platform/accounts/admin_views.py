@@ -10,8 +10,9 @@ from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils import timezone
 from functools import wraps
-from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
+from authoringtool.models import Language, Scenario, Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
+from studentview.help_labels import HELP_LABELS
 
 from .bulk_email import (
     absolutize_content_urls,
@@ -117,6 +118,7 @@ def admin_dashboard(request):
         'recent_email_campaigns': recent_email_campaigns,
         'maintenance_notices': maintenance_notices,
         'active_maintenance_count': MaintenanceNotice.objects.active(now).count(),
+        'languages': language_rows(),
     })
 
 
@@ -314,6 +316,111 @@ def admin_delete_role(request, role_id):
     if group.user_set.exists():
         return JsonResponse({'success': False, 'error': 'Remove all members before deleting this role.'})
     group.delete()
+    return JsonResponse({'success': True})
+
+
+# ── Languages ───────────────────────────────────────────────────────────────
+# Scenarios and organizations store a language by name, so renaming a
+# language also renames it there. Languages with built-in chat and help texts
+# (studentview/help_labels.py) are matched by name and cannot be renamed.
+
+LANGUAGE_NAME_MAX_LENGTH = 50  # Organization.language is the shortest column
+
+
+def _built_in(name):
+    return name.casefold() in {label.casefold() for label in HELP_LABELS}
+
+
+def _usage_counts(model):
+    counts = {}
+    for row in model.objects.exclude(language__isnull=True).values('language').annotate(n=Count('id')):
+        key = (row['language'] or '').strip().casefold()
+        counts[key] = counts.get(key, 0) + row['n']
+    return counts
+
+
+def language_rows():
+    scenarios = _usage_counts(Scenario)
+    organizations = _usage_counts(Organization)
+    return [
+        {
+            'language': language,
+            'scenario_count': scenarios.get(language.name.casefold(), 0),
+            'organization_count': organizations.get(language.name.casefold(), 0),
+            'built_in': _built_in(language.name),
+        }
+        for language in Language.objects.order_by('name')
+    ]
+
+
+def _clean_language_name(raw, exclude_id=None):
+    """Return (name, error)."""
+    name = ' '.join((raw or '').split())
+    if not name:
+        return None, 'Language name is required.'
+    if len(name) > LANGUAGE_NAME_MAX_LENGTH:
+        return None, f'Language name must be at most {LANGUAGE_NAME_MAX_LENGTH} characters.'
+    if Language.objects.filter(name__iexact=name).exclude(id=exclude_id).exists():
+        return None, f'A language called "{name}" already exists.'
+    return name, None
+
+
+def _count(number, noun):
+    return f"{number} {noun}{'' if number == 1 else 's'}"
+
+
+@require_POST
+@staff_required
+def admin_create_language(request):
+    name, error = _clean_language_name(request.POST.get('name'))
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    language = Language.objects.create(name=name)
+    return JsonResponse({
+        'success': True, 'id': language.id, 'name': language.name,
+        'built_in': _built_in(language.name),
+    })
+
+
+@require_POST
+@staff_required
+def admin_rename_language(request, language_id):
+    language = get_object_or_404(Language, id=language_id)
+    if _built_in(language.name):
+        return JsonResponse({'success': False, 'error': (
+            f'"{language.name}" has built-in chat and help texts tied to its name, '
+            'so it cannot be renamed.'
+        )})
+    name, error = _clean_language_name(request.POST.get('name'), exclude_id=language.id)
+    if error:
+        return JsonResponse({'success': False, 'error': error})
+    old_name = language.name
+    with transaction.atomic():
+        scenarios = Scenario.objects.filter(language__iexact=old_name).update(language=name)
+        organizations = Organization.objects.filter(language__iexact=old_name).update(language=name)
+        language.name = name
+        language.save(update_fields=['name'])
+    return JsonResponse({
+        'success': True, 'name': name,
+        'message': (
+            f'Renamed to "{name}" and updated {_count(scenarios, "scenario")} '
+            f'and {_count(organizations, "organization")}.'
+        ),
+    })
+
+
+@require_POST
+@staff_required
+def admin_delete_language(request, language_id):
+    language = get_object_or_404(Language, id=language_id)
+    scenarios = Scenario.objects.filter(language__iexact=language.name).count()
+    organizations = Organization.objects.filter(language__iexact=language.name).count()
+    if scenarios or organizations:
+        return JsonResponse({'success': False, 'error': (
+            f'"{language.name}" is used by {_count(scenarios, "scenario")} and '
+            f'{_count(organizations, "organization")}. Change their language first.'
+        )})
+    language.delete()
     return JsonResponse({'success': True})
 
 
