@@ -14,7 +14,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import BulkEmailCampaign, BulkEmailDelivery, EmailOutboxState
-from accounts.outbox import claim, drain_outbox, remaining_allowance
+from accounts.outbox import claim, drain_outbox, pause, remaining_allowance
 from accounts.outbox_rules import (
     INTERRUPTED_REASON,
     RATE_LIMIT_REASON,
@@ -405,3 +405,134 @@ class DrainOutboxTests(TestCase):
         self.assertEqual(entry['task'], 'accounts.tasks.drain_email_outbox')
         self.assertEqual(entry['schedule'], 300.0)
         self.assertIn('accounts.tasks.drain_email_outbox', current_app.tasks)
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    DEFAULT_FROM_EMAIL='Trust AI Lab <noreply@trust-ai.test>',
+    SITE_URL='https://platform.test',
+)
+class QueueOnSendTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        self.staff = User.objects.create_user(
+            'outbox_staff', password='pass', email='staff@example.com', is_staff=True,
+        )
+        self.teachers = make_users(2)
+        for teacher in self.teachers:
+            teacher.groups.add(teachers)
+        self.client.login(username='outbox_staff', password='pass')
+
+    def send(self):
+        from django.urls import reverse
+
+        return self.client.post(reverse('admin_send_bulk_email'), {
+            'target_type': 'all_teachers',
+            'subject': 'Platform news',
+            'body_html': '<p>Hello</p>',
+            'confirmed': 'true',
+        })
+
+    def test_send_creates_waiting_rows_and_sends_nothing(self):
+        response = self.send()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], BulkEmailCampaign.STATUS_QUEUED)
+        self.assertEqual(len(mail.outbox), 0)
+        campaign = BulkEmailCampaign.objects.get()
+        self.assertEqual(campaign.status, BulkEmailCampaign.STATUS_QUEUED)
+        rows = list(campaign.deliveries.order_by('email'))
+        self.assertEqual(
+            [(r.email, r.status, r.recipient_name) for r in rows],
+            [
+                ('teacher0@example.com', 'waiting', 'teacher0'),
+                ('teacher1@example.com', 'waiting', 'teacher1'),
+            ],
+        )
+
+    def test_password_reset_sends_immediately_while_campaign_waits(self):
+        from django.urls import reverse
+
+        self.send()
+        pause('Sending paused for the test', timezone.now())
+        # Django skips password resets for accounts without a usable password.
+        self.teachers[0].set_password('old-pass')
+        self.teachers[0].save()
+
+        response = self.client.post(reverse('password_reset'), {'email': 'teacher0@example.com'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['teacher0@example.com'])
+        self.assertEqual(
+            BulkEmailDelivery.objects.filter(status='waiting').count(), 2,
+        )
+
+
+def backfill_migration():
+    import importlib
+
+    return importlib.import_module('accounts.migrations.0007_backfill_bulk_email_deliveries')
+
+
+class BackfillMigrationTests(TestCase):
+    def run_backfill(self):
+        from django.apps import apps
+
+        backfill_migration().backfill(apps, None)
+
+    def test_rebuilds_partial_campaign(self):
+        finished = timezone.now() - timedelta(days=1)
+        users = make_users(440)
+        summary = '\n'.join(f'User {u.id}: {PAPAKI}' for u in users[300:320])
+        campaign = make_campaign(
+            status=BulkEmailCampaign.STATUS_PARTIAL,
+            recipient_count=440, sent_count=300, failed_count=140,
+            completed_at=finished, error_summary=summary,
+        )
+        campaign.recipients.set(users)
+
+        self.run_backfill()
+
+        rows = list(campaign.deliveries.order_by('user_id'))
+        self.assertEqual(len(rows), 440)
+        self.assertTrue(all(r.reconstructed for r in rows))
+        self.assertEqual({r.status for r in rows[:300]}, {'sent'})
+        self.assertEqual({r.sent_at for r in rows[:300]}, {finished})
+        self.assertEqual({r.status for r in rows[300:]}, {'failed'})
+        self.assertEqual(rows[300].error, RATE_LIMIT_REASON)
+        self.assertEqual(rows[439].error, REBUILT_REASON)
+        self.assertEqual(rows[0].email, users[0].email)
+        campaign.refresh_from_db()
+        self.assertEqual(
+            (campaign.status, campaign.sent_count, campaign.failed_count),
+            (BulkEmailCampaign.STATUS_PARTIAL, 300, 140),
+        )
+
+    def test_rebuilds_in_progress_campaign_as_waiting(self):
+        users = make_users(3)
+        campaign = make_campaign(
+            status=BulkEmailCampaign.STATUS_SENDING, recipient_count=3, sent_count=1,
+        )
+        campaign.recipients.set(users)
+
+        self.run_backfill()
+
+        self.assertEqual(
+            list(campaign.deliveries.order_by('user_id').values_list('status', flat=True)),
+            ['sent', 'waiting', 'waiting'],
+        )
+
+    def test_backfill_skips_campaigns_that_already_have_rows(self):
+        users = make_users(2)
+        campaign = make_campaign(
+            status=BulkEmailCampaign.STATUS_COMPLETED, recipient_count=2, sent_count=2,
+        )
+        campaign.recipients.set(users)
+
+        self.run_backfill()
+        self.run_backfill()
+
+        self.assertEqual(campaign.deliveries.count(), 2)

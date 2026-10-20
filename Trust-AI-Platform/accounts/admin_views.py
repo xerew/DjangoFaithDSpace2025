@@ -20,8 +20,7 @@ from .bulk_email import (
     resolve_campaign_recipients,
     unique_valid_email_users,
 )
-from .models import BulkEmailCampaign, MaintenanceNotice
-from .tasks import send_bulk_email_campaign
+from .models import BulkEmailCampaign, BulkEmailDelivery, MaintenanceNotice
 
 
 def staff_required(view_func):
@@ -183,31 +182,29 @@ def admin_send_bulk_email(request):
     configured_site_url = getattr(settings, 'SITE_URL', '').strip()
     site_url = configured_site_url or request.build_absolute_uri('/').rstrip('/')
     body_html = absolutize_content_urls(body_html, site_url)
-    campaign = BulkEmailCampaign.objects.create(
-        created_by=request.user,
-        target_type=target_type,
-        subject=subject,
-        body_html=body_html,
-        site_url=site_url,
-        recipient_count=len(recipients),
-    )
-    campaign.recipients.set(recipients)
-    campaign.organizations.set(organizations)
+    with transaction.atomic():
+        campaign = BulkEmailCampaign.objects.create(
+            created_by=request.user,
+            target_type=target_type,
+            subject=subject,
+            body_html=body_html,
+            site_url=site_url,
+            recipient_count=len(recipients),
+        )
+        campaign.recipients.set(recipients)
+        campaign.organizations.set(organizations)
+        # One outbox row per recipient; the beat task sends them within the
+        # hourly cap (accounts.outbox.drain_outbox).
+        BulkEmailDelivery.objects.bulk_create([
+            BulkEmailDelivery(
+                campaign=campaign,
+                user=user,
+                email=user.email.strip(),
+                recipient_name=user.get_full_name() or user.get_username(),
+            )
+            for user in recipients
+        ])
 
-    try:
-        async_result = send_bulk_email_campaign.delay(campaign.id)
-    except Exception as exc:
-        campaign.status = BulkEmailCampaign.STATUS_FAILED
-        campaign.error_summary = f'Could not queue campaign: {exc}'
-        campaign.save(update_fields=['status', 'error_summary'])
-        return JsonResponse({
-            'success': False,
-            'error': 'The campaign could not be queued. Check the Celery worker and broker.',
-        }, status=503)
-
-    campaign.celery_task_id = async_result.id or ''
-    campaign.save(update_fields=['celery_task_id'])
-    campaign.refresh_from_db(fields=['status', 'sent_count', 'failed_count'])
     return JsonResponse({
         'success': True,
         'campaign_id': campaign.id,

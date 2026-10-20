@@ -36,7 +36,7 @@ def unique_valid_email_users(queryset):
     """Return one user per case-insensitive valid email address."""
     recipients = []
     seen_emails = set()
-    for user in queryset.only('id', 'email').order_by('id'):
+    for user in queryset.only('id', 'email', 'username', 'first_name', 'last_name').order_by('id'):
         email = (user.email or '').strip()
         normalized = email.casefold()
         if not normalized or normalized in seen_emails:

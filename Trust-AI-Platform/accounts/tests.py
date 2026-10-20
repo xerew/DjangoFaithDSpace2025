@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
 from accounts.models import BulkEmailCampaign, MaintenanceNotice, UserProfile
+from accounts.outbox import drain_outbox
 from organization.models import Organization
 from templatetags.profile_tags import avatar_url as avatar_url_filter
 
@@ -652,8 +653,6 @@ class AdminDashboardUserListTests(TestCase):
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
     DEFAULT_FROM_EMAIL='Trust AI Lab <noreply@trust-ai.test>',
     SITE_URL='https://platform.test',
-    CELERY_TASK_ALWAYS_EAGER=True,
-    CELERY_TASK_EAGER_PROPAGATES=True,
 )
 class AdminBulkEmailTests(TestCase):
     def setUp(self):
@@ -744,6 +743,7 @@ class AdminBulkEmailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()['success'])
         self.assertEqual(response.json()['recipient_count'], 2)
+        drain_outbox()
 
         campaign = BulkEmailCampaign.objects.get()
         self.assertEqual(campaign.status, BulkEmailCampaign.STATUS_COMPLETED)
@@ -774,6 +774,7 @@ class AdminBulkEmailTests(TestCase):
             teacher_ids=[self.teacher_two.id],
         )
         self.assertEqual(response.status_code, 200)
+        drain_outbox()
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['second@example.com'])
 
@@ -783,6 +784,7 @@ class AdminBulkEmailTests(TestCase):
             organization_ids=[self.org_one.id],
         )
         self.assertEqual(response.status_code, 200)
+        drain_outbox()
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['teacher@example.com'])
         campaign = BulkEmailCampaign.objects.get()
