@@ -1,26 +1,19 @@
 """Asynchronous tasks owned by the accounts application."""
 
-from html import unescape
-
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.html import strip_tags
 
 from .models import BulkEmailCampaign
+from .outbox import drain_outbox, plain_text_message as _plain_text_message
 
 
-def _plain_text_message(campaign, user):
-    greeting_name = user.first_name or user.get_username()
-    content = unescape(strip_tags(campaign.body_html)).strip()
-    return (
-        f'Hello {greeting_name},\n\n'
-        f'{campaign.subject}\n\n'
-        f'{content}\n\n'
-        f'Trust AI Lab\n{campaign.site_url}'
-    )
+@shared_task
+def drain_email_outbox():
+    """Run by Celery beat every 5 minutes; sends within the hourly cap."""
+    return drain_outbox()
 
 
 @shared_task

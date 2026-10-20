@@ -257,6 +257,9 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'info@trust-ai-lab.eu')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'Trust AI Lab <{EMAIL_HOST_USER}>')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+# Campaign email per rolling hour. Papaki allows about 300; the rest is left
+# for password resets, which are sent immediately.
+EMAIL_CAMPAIGN_HOURLY_LIMIT = int(os.environ.get('EMAIL_CAMPAIGN_HOURLY_LIMIT', '200'))
 SITE_URL = os.environ.get('SITE_URL', 'https://trust-ai-lab.eu').rstrip('/')
 
 # Use SMTP when password is available, fall back to console in development
@@ -270,6 +273,13 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'  # Redis — faster than django-db
 CELERY_RESULT_EXPIRES = 3600  # Task results expire after 1 hour
+CELERY_BEAT_SCHEDULE = {
+    # Sends queued campaign email within EMAIL_CAMPAIGN_HOURLY_LIMIT.
+    'drain-email-outbox': {
+        'task': 'accounts.tasks.drain_email_outbox',
+        'schedule': 300.0,
+    },
+}
 
 # Scenario-family discovery. The multilingual model is loaded lazily by the
 # explicit admin scan, and deterministic structural scoring remains available
