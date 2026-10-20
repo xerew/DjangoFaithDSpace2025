@@ -73,3 +73,20 @@ def top_distractor(shares, correct_id):
     if not wrong:
         return None
     return max(sorted(wrong), key=lambda k: wrong[k])
+
+
+def wasserstein(a, b):
+    """Earth mover's distance between two histograms {value: count} (values as strings or numbers):
+    how far, on average, scores must move to turn one distribution into the other."""
+    total_a, total_b = sum(a.values()), sum(b.values())
+    if not total_a or not total_b:
+        return None
+    points = sorted({float(k) for k in a} | {float(k) for k in b})
+    pa = {float(k): v / total_a for k, v in a.items()}
+    pb = {float(k): v / total_b for k, v in b.items()}
+    distance = cdf_a = cdf_b = 0.0
+    for left, right in zip(points, points[1:]):
+        cdf_a += pa.get(left, 0.0)
+        cdf_b += pb.get(left, 0.0)
+        distance += abs(cdf_a - cdf_b) * (right - left)
+    return distance

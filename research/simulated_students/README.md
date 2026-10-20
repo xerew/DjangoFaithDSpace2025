@@ -84,6 +84,79 @@ dc run --rm --no-deps $R web python -m simulated_students.analyze \
 The runner reads `OLLAMA_URL` from the container (the NTUA tunnel). Results,
 logs and the report are under `data/research/` on the host.
 
+## Whole scenarios (walk-through)
+
+Single activities show whether simulated students find the same questions
+hard. The walk-through asks whether they also go through a **scenario** like
+real students: each simulated student starts at the first activity, reads the
+pages, answers the questions and is routed exactly as Plato routes students
+(by the chosen answer, or at evaluation points by the average answer weight
+of the bunch against the destination's score limit). The lesson is one
+conversation, so the student remembers what it read and answered.
+
+**Questions**
+
+1. At choice points, do simulated students go the same ways as real ones
+   (Jensen-Shannon divergence of the next activity)?
+2. Do they land in the same evaluation bands (high/mid/low)?
+3. Are their total scores distributed like the real ones (Wasserstein distance)?
+4. Do they find the same activities hard, and do the same activities separate
+   strong from weak students (difficulty and point-biserial rank correlation)?
+5. Do the personas order themselves low < mid < high over a whole scenario?
+
+| File | Purpose |
+|---|---|
+| `Trust-AI-Platform/authoringtool/management/commands/export_scenario_bank.py` | Export scenario graphs + real aggregate runs |
+| `walkthrough.py` | Simulated students go through scenarios (resumable) |
+| `analyze_walkthrough.py` | Compares with real runs, writes `report.md`, `summary.json`, `scenarios.csv` |
+
+Design notes:
+
+- The export repeats Plato's (Rasa's) routing: page → its route; question →
+  the chosen answer's route; evaluation point → high/mid/low destination by
+  the bunch's average weight. The branching feedback texts are not exported
+  because Plato does not show them to students.
+- A real student's run is their first implementation; consecutive repeated
+  answers to the same activity (double clicks) count once.
+- Teachers edit scenarios while classes use them, so some real runs no longer
+  match the current routes. The export counts them (`follows_routes`) but
+  summarises only the runs that match the current routes, the scenario the
+  simulated students walk. `--min-students` applies to those runs.
+- Whole paths rarely repeat (most scenarios have no path taken by 5
+  students), so the comparison is mostly per step: routes at choice points,
+  bands, item statistics, scores. Paths taken by fewer than
+  `--min-path-students` (default 5) real students are not exported.
+- Real students drop out (lesson time ends); simulated students do not.
+  Completion is reported for context, and score and path comparisons use
+  completed runs.
+- Pages with an interactive simulation are marked as explored; the model
+  cannot use the simulation itself.
+- Ollama's default context is too short for a whole scenario; `--num-ctx`
+  (default 16384) sets it. Images are attached when a question is asked;
+  later in the conversation the student remembers only the text.
+
+```sh
+# 1. Export (public scenarios, at least 30 students on the current routes)
+dc exec web python manage.py export_scenario_bank --output /data/research/scenario_bank.jsonl
+
+# 2. Pilot: two scenarios, 3 personas, 2 replicates
+dc run --rm --no-deps $R web python -m simulated_students.walkthrough \
+  --scenarios /data/research/scenario_bank.jsonl --out /data/research/runs/walk_pilot.jsonl \
+  --model gemma3:4b --scenario 97 --scenario 100 --replicates 2
+
+# 3. Full run (resumable)
+nohup docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps $R web \
+  python -m simulated_students.walkthrough \
+  --scenarios /data/research/scenario_bank.jsonl --out /data/research/runs/walk.jsonl \
+  --model gemma3:4b --model qwen3.6:35b --model aya-expanse:32b --replicates 10 --workers 2 \
+  > /data/research/runs/walk.log 2>&1 &
+
+# 4. Report
+dc run --rm --no-deps $R web python -m simulated_students.analyze_walkthrough \
+  --scenarios /data/research/scenario_bank.jsonl --results /data/research/runs/walk.jsonl \
+  --out /data/research/report_walk
+```
+
 ## Tests
 
 ```sh

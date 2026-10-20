@@ -33,6 +33,13 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(metrics.top_distractor(real, correct_id='1'), '2')
         self.assertIsNone(metrics.top_distractor({'1': 1.0}, correct_id='1'))
 
+    def test_wasserstein_between_score_histograms(self):
+        self.assertEqual(metrics.wasserstein({'2': 5}, {'2': 1}), 0)
+        self.assertAlmostEqual(metrics.wasserstein({'0': 1}, {'3': 4}), 3)
+        # Half the mass moves by 2.
+        self.assertAlmostEqual(metrics.wasserstein({'0': 1, '2': 1}, {'2': 2}), 1)
+        self.assertIsNone(metrics.wasserstein({}, {'1': 1}))
+
 
 if __name__ == '__main__':
     unittest.main()

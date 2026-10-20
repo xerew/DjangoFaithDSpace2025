@@ -1,6 +1,7 @@
 """Prompts that make an LLM answer an activity as a student of a given ability."""
 import json
 import random
+import re
 
 # Change whenever the wording or the reply format changes, so runs made with
 # different prompts are never mixed in one analysis.
@@ -96,12 +97,26 @@ def reply_schema(option_count):
     }
 
 
+def _salvage(text):
+    """Fields of a reply whose JSON is broken, e.g. a string closed with ” instead of "."""
+    choice = re.search(r'"choice"\s*:\s*"([A-Za-z])', text or '')
+    if not choice:
+        return None
+    confidence = re.search(r'"confidence"\s*:\s*(\d+)', text)
+    reason = re.search(r'"reason"\s*:\s*"(.*?)["”]?\s*}?\s*$', text, re.DOTALL)
+    return {
+        'choice': choice.group(1),
+        'confidence': int(confidence.group(1)) if confidence else None,
+        'reason': reason.group(1) if reason else '',
+    }
+
+
 def parse_reply(text, letters):
     """Return (option_id, letter, confidence, reason), or None if unusable."""
     try:
         data = json.loads(text)
     except (TypeError, ValueError):
-        return None
+        data = _salvage(text)
     if not isinstance(data, dict):
         return None
     letter = str(data.get('choice', '')).strip().upper()[:1]

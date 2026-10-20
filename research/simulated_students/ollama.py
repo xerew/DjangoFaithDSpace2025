@@ -43,3 +43,25 @@ class OllamaClient:
         envelope = response.json()
         text = (envelope.get('response') or envelope.get('thinking') or '').strip()
         return text, time.monotonic() - started
+
+    def chat(self, model, messages, schema, temperature, seed, think, num_ctx):
+        """One reply in a conversation; returns (reply text, seconds taken).
+
+        num_ctx is set explicitly because Ollama's default context is too short
+        for a whole scenario and it would silently drop the start of the conversation.
+        """
+        payload = {
+            'model': model,
+            'messages': messages,
+            'format': schema,
+            'stream': False,
+            'options': {'temperature': temperature, 'seed': seed, 'num_ctx': num_ctx},
+        }
+        if think is not None:
+            payload['think'] = think
+        started = time.monotonic()
+        response = requests.post(f'{self.base_url}/api/chat', json=payload, timeout=self.timeout)
+        response.raise_for_status()
+        message = response.json().get('message') or {}
+        text = (message.get('content') or message.get('thinking') or '').strip()
+        return text, time.monotonic() - started

@@ -5,33 +5,20 @@ of the output is one activity: its text, options and preceding material, and
 aggregate results of students' first attempts — overall, per option and per
 ability group. No data about individual students is written.
 """
-import base64
-import html
 import json
 import os
-import re
-import shutil
 from collections import defaultdict
 from datetime import datetime, timezone
 from statistics import median
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.models import Count, Min, Q
-from django.utils.html import strip_tags
 
 from authoringtool.models import Activity, Answer, UserAnswer
+from authoringtool.research_export import option_record, plain, text_with_images
 
-IMG_TAG = re.compile(r'<img\b[^>]*?\bsrc\s*=\s*["\']([^"\']+)["\'][^>]*>', re.IGNORECASE)
 MATERIAL_LIMIT = 3000
-# Teachers often type the option letter themselves ("A. ...", "b) ..."). The
-# study shuffles options and adds its own letters, so remove theirs.
-OPTION_LABEL = re.compile(r'^\(?[A-Za-zΑ-Ωα-ω][.)]\s+')
 ABILITY_GROUPS = ('low', 'mid', 'high')
-
-
-def plain(html_text):
-    return ' '.join(html.unescape(strip_tags(html_text or '')).split())
 
 
 class Command(BaseCommand):
@@ -134,27 +121,9 @@ class Command(BaseCommand):
 
     # ── one activity ──────────────────────────────────────────────────────
     def record(self, activity, rows, ability, out_dir):
-        options = list(Answer.objects.filter(activity=activity).order_by('id'))
-        images, skipped = [], 0
-        text = activity.text or ''
-        for index, match in enumerate(IMG_TAG.finditer(text), start=1):
-            path = self.copy_image(match.group(1), f'{activity.id}_{index}', out_dir)
-            if path:
-                images.append(path)
-            else:
-                skipped += 1
-        numbers = iter(range(1, 1000))
-        text = IMG_TAG.sub(lambda _match: f' [Image {next(numbers)}] ', text)
-
-        option_records = []
-        for option in options:
-            image = None
-            if option.image:
-                image = self.copy_file(option.image.path, f'{activity.id}_option{option.id}', out_dir)
-            option_records.append({
-                'id': option.id, 'text': OPTION_LABEL.sub('', plain(option.text)),
-                'is_correct': option.is_correct, 'image': image,
-            })
+        options = Answer.objects.filter(activity=activity).order_by('id')
+        text, images, skipped = text_with_images(activity, out_dir)
+        option_records = [option_record(activity, option, out_dir) for option in options]
 
         n = len(rows)
         correct = sum(1 for row in rows if row['answer__is_correct'])
@@ -181,7 +150,7 @@ class Command(BaseCommand):
             'age_min': getattr(ages, 'lower', None),
             'age_max': getattr(ages, 'upper', None),
             'learning_goals': plain(activity.scenario.learning_goals)[:MATERIAL_LIMIT],
-            'text': plain(text),
+            'text': text,
             'options': option_records,
             'images': images,
             'missing_images': skipped,
@@ -207,26 +176,3 @@ class Command(BaseCommand):
         )
         material = '\n\n'.join(filter(None, (a.plain_text or plain(a.text) for a in before)))
         return material[-MATERIAL_LIMIT:]
-
-    # ── images ────────────────────────────────────────────────────────────
-    def copy_image(self, src, stem, out_dir):
-        if src.startswith('data:image/'):
-            header, _, data = src.partition(',')
-            extension = header.split('/')[1].split(';')[0] or 'png'
-            relative = os.path.join('images', f'{stem}.{extension}')
-            with open(os.path.join(out_dir, relative), 'wb') as handle:
-                handle.write(base64.b64decode(data))
-            return relative.replace(os.sep, '/')
-        media_url = settings.MEDIA_URL
-        path = re.sub(r'^https?://[^/]+', '', src)
-        if path.startswith(media_url):
-            return self.copy_file(os.path.join(settings.MEDIA_ROOT, path[len(media_url):]), stem, out_dir)
-        return None  # external image: not copied, counted in the manifest
-
-    def copy_file(self, source, stem, out_dir):
-        if not os.path.exists(source):
-            return None
-        extension = os.path.splitext(source)[1] or '.png'
-        relative = os.path.join('images', f'{stem}{extension}')
-        shutil.copyfile(source, os.path.join(out_dir, relative))
-        return relative.replace(os.sep, '/')

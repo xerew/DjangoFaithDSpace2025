@@ -50,6 +50,14 @@ class PromptTests(unittest.TestCase):
         self.assertIsNone(prompts.parse_reply('not json', letters))
         self.assertIsNone(prompts.parse_reply(json.dumps({'choice': 'Z'}), letters))
 
+    def test_parse_reply_recovers_json_broken_by_a_typographic_quote(self):
+        # Seen with gemma3:4b: the reason string closed with ” instead of ".
+        letters = {'A': 103, 'B': 101, 'C': 102}
+        reply = '{"choice": "C", "confidence": 60, "reason": "Push harder, more charge goes through.”}'
+        self.assertEqual(prompts.parse_reply(reply, letters),
+                         (102, 'C', 60, 'Push harder, more charge goes through.'))
+        self.assertIsNone(prompts.parse_reply('{"confidence": 60, "reason": "no choice”}', letters))
+
     def test_schema_only_allows_the_offered_letters(self):
         schema = prompts.reply_schema(3)
         self.assertEqual(schema['properties']['choice']['enum'], ['A', 'B', 'C'])

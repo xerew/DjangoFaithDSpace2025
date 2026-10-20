@@ -4,5 +4,5 @@
 *.jsonl.manifest.json
 *.csv
 images/
-report/
+report*/
 runs/
