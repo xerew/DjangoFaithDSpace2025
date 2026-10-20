@@ -536,3 +536,135 @@ class BackfillMigrationTests(TestCase):
         self.run_backfill()
 
         self.assertEqual(campaign.deliveries.count(), 2)
+
+
+class CampaignDetailsTests(TestCase):
+    def setUp(self):
+        from django.urls import reverse
+
+        self.staff = User.objects.create_user(
+            'details_staff', password='pass', email='staff@example.com', is_staff=True,
+        )
+        self.regular = User.objects.create_user('details_regular', password='pass')
+        self.client.login(username='details_staff', password='pass')
+        self.campaign = make_campaign()
+        self.rows = queue(self.campaign, make_users(3))
+        self.details_url = reverse('admin_bulk_email_campaign', args=[self.campaign.id])
+        self.resend_url = reverse('admin_bulk_email_resend', args=[self.campaign.id])
+
+    def set_row(self, row, **fields):
+        BulkEmailDelivery.objects.filter(pk=row.pk).update(**fields)
+
+    def test_details_lists_recipients_with_status_and_reason(self):
+        self.set_row(self.rows[0], status='sent', sent_at=timezone.now())
+        self.set_row(self.rows[1], status='failed', error='550 user unknown')
+
+        response = self.client.get(self.details_url)
+
+        self.assertEqual(response.status_code, 200)
+        for row in self.rows:
+            self.assertContains(response, row.email)
+        self.assertContains(response, '550 user unknown')
+        self.assertEqual(response.context['counts'], {'all': 3, 'waiting': 1, 'sent': 1, 'failed': 1})
+
+    def test_details_filter_failed(self):
+        self.set_row(self.rows[1], status='failed', error='550 user unknown')
+
+        response = self.client.get(self.details_url, {'status': 'failed'})
+
+        self.assertContains(response, self.rows[1].email)
+        self.assertNotContains(response, self.rows[0].email)
+
+    def test_details_shows_reconstructed_note(self):
+        self.set_row(self.rows[0], reconstructed=True)
+
+        response = self.client.get(self.details_url)
+
+        self.assertContains(response, 'reconstructed')
+
+    def test_details_pages_and_keeps_filter(self):
+        failed = queue(self.campaign, make_users(250, prefix='bulk'))
+        BulkEmailDelivery.objects.filter(pk__in=[r.pk for r in failed]).update(status='failed')
+
+        response = self.client.get(self.details_url, {'status': 'failed', 'page': 3})
+
+        self.assertEqual(len(response.context['page_obj'].object_list), 50)
+        self.assertContains(response, '?status=failed&amp;page=2')
+
+    def test_details_shows_pause(self):
+        pause('Connection refused', timezone.now())
+
+        response = self.client.get(self.details_url)
+
+        self.assertContains(response, 'Sending paused until')
+        self.assertContains(response, 'Connection refused')
+
+    def test_resend_failed_requeues_only_failed_rows_with_users(self):
+        self.set_row(self.rows[0], status='failed', error='550 user unknown', attempts=1)
+        self.set_row(self.rows[1], status='sent')
+        orphan = BulkEmailDelivery.objects.create(
+            campaign=self.campaign, user=None, email='gone@example.com', status='failed',
+        )
+
+        response = self.client.post(self.resend_url, {'mode': 'failed'})
+
+        self.assertRedirects(response, f'{self.details_url}?resent=1')
+        row = BulkEmailDelivery.objects.get(pk=self.rows[0].pk)
+        self.assertEqual((row.status, row.error, row.attempts), ('waiting', '', 1))
+        self.assertEqual(statuses([self.rows[1], orphan]), ['sent', 'failed'])
+        self.campaign.refresh_from_db()
+        self.assertEqual(self.campaign.failed_count, 1)
+
+    def test_resend_selected_can_requeue_sent_rows(self):
+        self.set_row(self.rows[0], status='sent')
+
+        self.client.post(self.resend_url, {'mode': 'selected', 'delivery_ids': [self.rows[0].pk]})
+
+        self.assertEqual(statuses([self.rows[0]]), ['waiting'])
+
+    def test_resend_ignores_other_campaigns_rows(self):
+        other = queue(make_campaign(subject='Other'), make_users(1, prefix='other'))[0]
+        self.set_row(other, status='failed')
+
+        response = self.client.post(
+            self.resend_url, {'mode': 'selected', 'delivery_ids': [other.pk]},
+        )
+
+        self.assertRedirects(response, f'{self.details_url}?resent=0')
+        self.assertEqual(statuses([other]), ['failed'])
+
+    def test_resend_twice_is_harmless(self):
+        self.set_row(self.rows[0], status='failed')
+
+        self.client.post(self.resend_url, {'mode': 'failed'})
+        response = self.client.post(self.resend_url, {'mode': 'failed'})
+
+        self.assertRedirects(response, f'{self.details_url}?resent=0')
+        self.assertEqual(statuses(self.rows), ['waiting', 'waiting', 'waiting'])
+
+    def test_resent_banner(self):
+        response = self.client.get(self.details_url, {'resent': 4})
+
+        self.assertContains(response, 'Queued 4 emails again.')
+
+    def test_details_and_resend_are_staff_only(self):
+        self.client.logout()
+        self.client.login(username='details_regular', password='pass')
+
+        self.assertEqual(self.client.get(self.details_url).status_code, 403)
+        self.assertEqual(self.client.post(self.resend_url, {'mode': 'failed'}).status_code, 403)
+
+        self.client.login(username='details_staff', password='pass')
+        self.assertEqual(self.client.get(self.resend_url).status_code, 405)
+
+    def test_email_tab_shows_waiting_count_details_link_and_pause(self):
+        from django.urls import reverse
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(response, self.details_url)
+        self.assertContains(response, '3 waiting')
+        self.assertNotContains(response, 'Sending paused until')
+
+        pause('Connection refused', timezone.now())
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(response, 'Sending paused until')

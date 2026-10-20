@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login as auth_login
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.core.paginator import Paginator
 from django.db.models import Count, ProtectedError, Q
 from django.conf import settings
 from django.utils.html import strip_tags
@@ -20,7 +22,7 @@ from .bulk_email import (
     resolve_campaign_recipients,
     unique_valid_email_users,
 )
-from .models import BulkEmailCampaign, BulkEmailDelivery, MaintenanceNotice
+from .models import BulkEmailCampaign, BulkEmailDelivery, EmailOutboxState, MaintenanceNotice
 
 
 def staff_required(view_func):
@@ -97,6 +99,7 @@ def admin_dashboard(request):
         BulkEmailCampaign.objects.select_related('created_by')
         .prefetch_related('organizations')[:10]
     )
+    outbox_state = EmailOutboxState.load()
     maintenance_notices = list(
         MaintenanceNotice.objects.select_related('created_by')
         .order_by('-starts_at', '-id')[:10]
@@ -115,6 +118,9 @@ def admin_dashboard(request):
         'email_teacher_count': email_teacher_count,
         'email_organizations': email_organizations,
         'recent_email_campaigns': recent_email_campaigns,
+        'outbox_state': outbox_state,
+        'outbox_paused': outbox_state.is_paused(now),
+        'email_hourly_limit': settings.EMAIL_CAMPAIGN_HOURLY_LIMIT,
         'maintenance_notices': maintenance_notices,
         'active_maintenance_count': MaintenanceNotice.objects.active(now).count(),
         'languages': language_rows(),
@@ -213,6 +219,67 @@ def admin_send_bulk_email(request):
         'sent_count': campaign.sent_count,
         'failed_count': campaign.failed_count,
     })
+
+
+DELIVERY_FILTERS = {
+    'waiting': BulkEmailDelivery.PENDING_STATUSES,
+    'sent': (BulkEmailDelivery.STATUS_SENT,),
+    'failed': (BulkEmailDelivery.STATUS_FAILED,),
+}
+
+
+@staff_required
+def admin_bulk_email_campaign(request, campaign_id):
+    """Who received a campaign, who is waiting, and who failed (with why)."""
+    campaign = get_object_or_404(
+        BulkEmailCampaign.objects.select_related('created_by'), pk=campaign_id,
+    )
+    deliveries = campaign.deliveries.all()
+    counts = {'all': deliveries.count()}
+    for name, statuses in DELIVERY_FILTERS.items():
+        counts[name] = deliveries.filter(status__in=statuses).count()
+
+    status_filter = request.GET.get('status', 'all')
+    if status_filter in DELIVERY_FILTERS:
+        deliveries = deliveries.filter(status__in=DELIVERY_FILTERS[status_filter])
+    else:
+        status_filter = 'all'
+    page_obj = Paginator(deliveries.order_by('id'), 100).get_page(request.GET.get('page'))
+
+    try:
+        resent = max(0, int(request.GET.get('resent', 0)))
+    except ValueError:
+        resent = 0
+    outbox_state = EmailOutboxState.load()
+    return render(request, 'accounts/admin_email_campaign.html', {
+        'campaign': campaign,
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'counts': counts,
+        'outbox_state': outbox_state,
+        'outbox_paused': outbox_state.is_paused(timezone.now()),
+        'resent': resent,
+    })
+
+
+@require_POST
+@staff_required
+def admin_bulk_email_resend(request, campaign_id):
+    """Put chosen recipients back in the queue. Nothing is resent automatically."""
+    campaign = get_object_or_404(BulkEmailCampaign, pk=campaign_id)
+    rows = campaign.deliveries.filter(user__isnull=False)
+    if request.POST.get('mode') == 'selected':
+        rows = rows.filter(
+            pk__in=[value for value in request.POST.getlist('delivery_ids') if value.isdigit()],
+        ).exclude(status__in=BulkEmailDelivery.PENDING_STATUSES)
+    else:
+        rows = rows.filter(status=BulkEmailDelivery.STATUS_FAILED)
+
+    resent = rows.update(status=BulkEmailDelivery.STATUS_WAITING, error='')
+    if resent:
+        campaign.refresh_counts()
+    url = reverse('admin_bulk_email_campaign', args=[campaign.id])
+    return redirect(f'{url}?resent={resent}')
 
 
 @require_POST

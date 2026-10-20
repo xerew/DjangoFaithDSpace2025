@@ -1,0 +1,161 @@
+{% extends "main.html" %}
+{% block page_title %}<title>Trust AI Lab — Campaign recipients</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .campaign-card { border-radius: 12px; overflow: hidden; }
+  .campaign-title { font-size: 18px; font-weight: 700; color: #012970; margin: 0; }
+  .campaign-meta { color: #6c757d; font-size: 13px; }
+  .delivery-filters .btn { font-size: 13px; }
+  .delivery-table td, .delivery-table th { font-size: 13px; vertical-align: middle; }
+  .delivery-error { color: #b02a37; max-width: 420px; white-space: normal; word-break: break-word; }
+  .reconstructed-note { font-size: 11px; color: #6c757d; }
+</style>
+
+<div class="pagetitle mb-3">
+  <a href="{% url 'admin_dashboard' %}?tab=email" class="text-decoration-none" style="font-size:13px;">
+    <i class="bi bi-arrow-left me-1"></i>Back to Email
+  </a>
+</div>
+
+{% if outbox_paused %}
+<div class="alert alert-warning" role="alert">
+  <i class="bi bi-pause-circle me-1"></i>
+  Sending paused until {{ outbox_state.paused_until|date:"H:i" }}: {{ outbox_state.pause_reason }}
+</div>
+{% endif %}
+
+{% if resent %}
+<div class="alert alert-success" role="alert">
+  <i class="bi bi-check-circle me-1"></i>Queued {{ resent }} email{{ resent|pluralize }} again.
+</div>
+{% endif %}
+
+<div class="card campaign-card mb-3">
+  <div class="card-body p-4">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+      <div>
+        <h1 class="campaign-title">{{ campaign.subject }}</h1>
+        <div class="campaign-meta">
+          {{ campaign.target_summary }} ·
+          by {% if campaign.created_by %}{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}{% else %}Deleted admin{% endif %} ·
+          {{ campaign.created_at|date:"d M Y H:i" }}
+        </div>
+      </div>
+      <div class="text-end">
+        {% if campaign.status == 'completed' %}<span class="badge bg-success">Completed</span>
+        {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">With errors</span>
+        {% elif campaign.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+        {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
+        {% else %}<span class="badge bg-secondary">Queued</span>{% endif %}
+        <div class="campaign-meta mt-1">
+          <span class="text-success">{{ counts.sent }} sent</span> ·
+          {{ counts.waiting }} waiting ·
+          <span class="text-danger">{{ counts.failed }} failed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card campaign-card">
+  <div class="card-header bg-white px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="delivery-filters btn-group" role="group" aria-label="Filter recipients">
+      <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All ({{ counts.all }})</a>
+      <a href="?status=waiting" class="btn btn-sm {% if status_filter == 'waiting' %}btn-primary{% else %}btn-outline-primary{% endif %}">Waiting ({{ counts.waiting }})</a>
+      <a href="?status=sent" class="btn btn-sm {% if status_filter == 'sent' %}btn-primary{% else %}btn-outline-primary{% endif %}">Sent ({{ counts.sent }})</a>
+      <a href="?status=failed" class="btn btn-sm {% if status_filter == 'failed' %}btn-primary{% else %}btn-outline-primary{% endif %}">Failed ({{ counts.failed }})</a>
+    </div>
+    <div class="d-flex gap-2">
+      <form method="post" action="{% url 'admin_bulk_email_resend' campaign.id %}"
+            onsubmit="return confirm('Queue the email again for everyone who failed ({{ counts.failed }})?');">
+        {% csrf_token %}
+        <input type="hidden" name="mode" value="failed">
+        <button type="submit" class="btn btn-sm btn-outline-danger" {% if not counts.failed %}disabled{% endif %}>
+          <i class="bi bi-arrow-repeat me-1"></i>Resend to all failed ({{ counts.failed }})
+        </button>
+      </form>
+      <button type="submit" form="resendSelectedForm" class="btn btn-sm btn-primary">
+        <i class="bi bi-send me-1"></i>Resend to selected
+      </button>
+    </div>
+  </div>
+
+  <form id="resendSelectedForm" method="post" action="{% url 'admin_bulk_email_resend' campaign.id %}"
+        onsubmit="return confirmResendSelected(this);">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="selected">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 delivery-table">
+        <thead style="background:#f8faff;">
+          <tr>
+            <th class="ps-4" style="width:36px;"><input type="checkbox" class="form-check-input" aria-label="Select all on this page" onclick="toggleAllDeliveries(this)"></th>
+            <th>Name</th><th>Email</th><th>Status</th><th>Sent</th><th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for delivery in page_obj %}
+          <tr>
+            <td class="ps-4">
+              <input type="checkbox" class="form-check-input delivery-check" name="delivery_ids" value="{{ delivery.pk }}"
+                     data-status="{{ delivery.status }}" aria-label="Select {{ delivery.email }}"
+                     {% if not delivery.user_id %}disabled title="This account was deleted"{% endif %}>
+            </td>
+            <td>
+              {{ delivery.recipient_name|default:"—" }}
+              {% if delivery.reconstructed %}<div class="reconstructed-note" title="Rebuilt from the campaign's totals, not recorded at sending time">reconstructed</div>{% endif %}
+            </td>
+            <td>{{ delivery.email }}</td>
+            <td>
+              {% if delivery.status == 'sent' %}<span class="badge bg-success">Sent</span>
+              {% elif delivery.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+              {% elif delivery.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
+              {% else %}<span class="badge bg-secondary">Waiting</span>{% endif %}
+            </td>
+            <td>{{ delivery.sent_at|date:"d M Y H:i"|default:"—" }}</td>
+            <td class="delivery-error">{{ delivery.error }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No recipients match this filter.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center px-4 py-2" style="font-size:13px;">
+    <span class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="d-flex gap-2">
+      {% if page_obj.has_previous %}
+      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.next_page_number }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function toggleAllDeliveries(source) {
+    document.querySelectorAll('.delivery-check:not(:disabled)').forEach(function (box) { box.checked = source.checked; });
+  }
+
+  function confirmResendSelected(form) {
+    var ticked = Array.from(form.querySelectorAll('.delivery-check:checked'));
+    if (!ticked.length) {
+      alert('Tick the people to send the email to again.');
+      return false;
+    }
+    var alreadySent = ticked.filter(function (box) { return box.dataset.status === 'sent'; }).length;
+    var message = 'Queue the email again for ' + ticked.length + (ticked.length === 1 ? ' person?' : ' people?');
+    if (alreadySent) {
+      message += '\n' + alreadySent + ' of these people already received it.';
+    }
+    return confirm(message);
+  }
+</script>
+
+{% endblock atcontent %}

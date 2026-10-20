@@ -164,17 +164,23 @@
     <div class="card-header bg-white px-4 py-3">
       <h5 class="mb-0" style="font-size:15px;font-weight:700;color:#012970;"><i class="bi bi-clock-history me-2"></i>Recent campaigns</h5>
     </div>
+    {% if outbox_paused %}
+    <div class="alert alert-warning m-3 mb-0" role="alert" style="font-size:13px;">
+      <i class="bi bi-pause-circle me-1"></i>
+      Sending paused until {{ outbox_state.paused_until|date:"H:i" }}: {{ outbox_state.pause_reason }}
+    </div>
+    {% endif %}
     <div class="table-responsive">
       <table class="table table-hover mb-0 email-history">
         <thead style="background:#f8faff;">
-          <tr><th class="px-4">Subject</th><th>Audience</th><th>Delivery</th><th>Status</th><th>Created</th></tr>
+          <tr><th class="px-4">Subject</th><th>Audience</th><th>Delivery</th><th>Status</th><th>Created</th><th></th></tr>
         </thead>
         <tbody>
           {% for campaign in recent_email_campaigns %}
           <tr>
-            <td class="px-4"><strong style="color:#012970;">{{ campaign.subject }}</strong><br><span class="text-muted">by {{ campaign.created_by.get_full_name|default:campaign.created_by.username|default:"Deleted admin" }}</span></td>
+            <td class="px-4"><strong style="color:#012970;">{{ campaign.subject }}</strong><br><span class="text-muted">by {% if campaign.created_by %}{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}{% else %}Deleted admin{% endif %}</span></td>
             <td>{{ campaign.target_summary }}<br><span class="text-muted">{{ campaign.recipient_count }} recipient{{ campaign.recipient_count|pluralize }}</span></td>
-            <td><span class="text-success">{{ campaign.sent_count }} sent</span>{% if campaign.failed_count %}<br><span class="text-danger">{{ campaign.failed_count }} failed</span>{% endif %}</td>
+            <td><span class="text-success">{{ campaign.sent_count }} sent</span>{% with waiting=campaign.waiting_count %}{% if waiting %}<br><span class="text-muted">{{ waiting }} waiting</span>{% endif %}{% endwith %}{% if campaign.failed_count %}<br><span class="text-danger">{{ campaign.failed_count }} failed</span>{% endif %}</td>
             <td>
               {% if campaign.status == 'completed' %}<span class="badge bg-success">Completed</span>
               {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">With errors</span>
@@ -183,9 +189,10 @@
               {% else %}<span class="badge bg-secondary">Queued</span>{% endif %}
             </td>
             <td>{{ campaign.created_at|date:"d M Y H:i" }}</td>
+            <td class="text-end pe-4"><a href="{% url 'admin_bulk_email_campaign' campaign.id %}" class="btn btn-sm btn-outline-primary">Details</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-center text-muted py-4">No campaigns have been sent yet.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">No campaigns have been sent yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -207,6 +214,7 @@
           <span class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;">unique teacher recipients</span>
         </div>
         <p class="text-muted mt-3 mb-0" style="font-size:12px;">This action queues individual emails and cannot be undone.</p>
+        <p class="text-muted mt-1 mb-0" style="font-size:12px;">Up to {{ email_hourly_limit }} emails go out per hour; sending starts within 5 minutes.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
