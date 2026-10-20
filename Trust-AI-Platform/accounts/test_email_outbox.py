@@ -621,6 +621,12 @@ class CampaignDetailsTests(TestCase):
         self.assertContains(response, '550 user unknown')
         self.assertEqual(response.context['counts'], {'all': 3, 'waiting': 1, 'sent': 1, 'failed': 1})
 
+    def test_details_sits_in_the_main_layout(self):
+        # Without this wrapper the page slides under the sidebar and top bar.
+        response = self.client.get(self.details_url)
+
+        self.assertContains(response, '<main id="main" class="main">')
+
     def test_details_filter_failed(self):
         self.set_row(self.rows[1], status='failed', error='550 user unknown')
 
