@@ -227,6 +227,9 @@ STUDENT_CREDENTIALS_KEY = os.getenv("STUDENT_CREDENTIALS_KEY", "")
 LLM_PROPOSAL_MODEL = os.getenv("LLM_PROPOSAL_MODEL", "qwen3.6:35b")
 LLM_IMAGE_DESCRIPTION_MODEL = os.getenv("LLM_IMAGE_DESCRIPTION_MODEL", "gemma3:4b")
 LLM_TRANSLATION_MODEL = os.getenv("LLM_TRANSLATION_MODEL", "aya-expanse:32b")
+# Machine translation of whole scenarios (Translate button), on the NTUA machine.
+LLM_MACHINE_TRANSLATION_MODEL = os.getenv("LLM_MACHINE_TRANSLATION_MODEL", "gemma4:31b")
+MACHINE_TRANSLATION_TIMEOUT = int(os.getenv("MACHINE_TRANSLATION_TIMEOUT", "600"))
 
 AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
 AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")

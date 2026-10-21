@@ -1342,6 +1342,15 @@ class TranslationMatch(models.Model):
         default='pending',
         db_index=True,
     )
+    ORIGIN_CHOICES = [
+        ('scan', 'Found by the translation scan'),
+        ('machine_translation', 'Created by machine translation'),
+    ]
+    origin = models.CharField(max_length=32, choices=ORIGIN_CHOICES, default='scan')
+    # Flow signatures without simulations, labs and VR experiments, so a
+    # machine translation may swap those without breaking the pair.
+    structure_signature_a = models.CharField(max_length=64, blank=True)
+    structure_signature_b = models.CharField(max_length=64, blank=True)
     review_notes = models.TextField(blank=True)
     reviewed_by = models.ForeignKey(
         'auth.User',
@@ -1374,6 +1383,120 @@ class TranslationMatch(models.Model):
             f'{self.scenario_a.name} ↔ {self.scenario_b.name} '
             f'({self.confidence}%)'
         )
+
+
+class ScenarioTranslationJob(models.Model):
+    """A queued machine translation into a structurally identical copy."""
+
+    STATUS_WAITING = 'waiting'
+    STATUS_TRANSLATING = 'translating'
+    STATUS_DONE = 'done'
+    STATUS_FAILED = 'failed'
+    STATUS_CHOICES = [
+        (STATUS_WAITING, 'Waiting'),
+        (STATUS_TRANSLATING, 'Translating'),
+        (STATUS_DONE, 'Done'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+    PENDING_STATUSES = (STATUS_WAITING, STATUS_TRANSLATING)
+
+    source_scenario = models.ForeignKey(
+        Scenario,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='translation_jobs_as_source',
+    )
+    target_scenario = models.OneToOneField(
+        Scenario,
+        on_delete=models.CASCADE,
+        related_name='translation_job',
+    )
+    source_language = models.CharField(max_length=100)
+    target_language = models.CharField(max_length=100)
+    requested_by = models.ForeignKey(
+        'auth.User',
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='requested_translation_jobs',
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_WAITING, db_index=True,
+    )
+    # {"phases"|"activities"|"answers": {target id (str): source id}}
+    id_map = models.JSONField(default=dict, blank=True)
+    completed_units = models.JSONField(default=list, blank=True)
+    units_total = models.PositiveIntegerField(default=0)
+    error = models.TextField(blank=True)
+    attempts = models.PositiveIntegerField(default=0)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    notified_at = models.DateTimeField(null=True, blank=True)
+    model = models.CharField(max_length=255, blank=True)
+    verified_by = models.ForeignKey(
+        'auth.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='verified_translations',
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+        indexes = [
+            models.Index(
+                fields=['requested_by', 'notified_at'],
+                name='mt_job_notice_idx',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.target_language} translation of scenario {self.source_scenario_id}'
+
+    @property
+    def units_done(self):
+        return len(self.completed_units)
+
+
+class ScenarioCollaborator(models.Model):
+    """A user other than the owner who may edit a scenario."""
+
+    ROLE_TRANSLATION_REVIEWER = 'translation_reviewer'
+    ROLE_CO_AUTHOR = 'co_author'
+    ROLE_CHOICES = [
+        (ROLE_TRANSLATION_REVIEWER, 'Translation reviewer'),
+        (ROLE_CO_AUTHOR, 'Co-author'),
+    ]
+
+    scenario = models.ForeignKey(
+        Scenario, on_delete=models.CASCADE, related_name='collaborators',
+    )
+    user = models.ForeignKey(
+        'auth.User', on_delete=models.CASCADE, related_name='scenario_collaborations',
+    )
+    role = models.CharField(max_length=32, choices=ROLE_CHOICES)
+    added_by = models.ForeignKey(
+        'auth.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='added_scenario_collaborators',
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['added_at', 'id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['scenario', 'user'],
+                name='unique_scenario_collaborator',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} on {self.scenario} ({self.get_role_display()})'
 
 
 class ScenarioHealthProxy(Scenario):
