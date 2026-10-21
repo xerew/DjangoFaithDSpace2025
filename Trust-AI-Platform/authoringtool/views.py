@@ -54,6 +54,13 @@ from .evidence import (
 
 from .help_time import help_time_chart
 from .machine_translation.copying import copy_for_translation
+from .machine_translation.editing import (
+    machine_translation_job,
+    save_translation_activity_text,
+    save_translation_answer_text,
+    translation_pending_guard,
+    translation_structure_guard,
+)
 from .machine_translation.health import translation_service_available
 from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
@@ -813,6 +820,9 @@ def updateScenario(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, updateScenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, updateScenario)
+    if blocked:
+        return blocked
     scenario_min_age = updateScenario.age_of_students.lower if updateScenario.age_of_students else None
     scenario_max_age = updateScenario.age_of_students.upper if updateScenario.age_of_students else None
     # Get the organizations the user is a member of
@@ -843,6 +853,9 @@ def begin_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     if not getattr(settings, 'SCENARIO_REVISION_PROTECTION', False):
         messages.info(
             request,
@@ -871,6 +884,9 @@ def publish_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     if not hasattr(scenario, 'revision_draft'):
         messages.error(request, 'This scenario has no revision draft.')
         return HttpResponseRedirect(
@@ -908,6 +924,9 @@ def updateScenarioData(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, updateScenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, updateScenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, updateScenario)
     if blocked:
         return blocked
@@ -1055,6 +1074,9 @@ def viewScenario(request, id):
     myScenario = get_object_or_404(Scenario, id=id)
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
+    blocked = translation_pending_guard(request, myScenario)
+    if blocked:
+        return blocked
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
     can_edit = user_can_edit_scenario(request.user, myScenario)
 
@@ -1279,6 +1301,9 @@ def createPhase(request, id):
     scenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     context = {'scenario_id': id, 'myScenario': scenario}
     return render(request, 'authoringtool/createPhase.html', context)
 
@@ -1292,6 +1317,9 @@ def createPhaseData(request, id):
     scenario_instance = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, scenario_instance):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario_instance)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1314,6 +1342,9 @@ def updatePhase(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, scenario)
+    if blocked:
+        return blocked
     template = loader.get_template('authoringtool/updatePhase.html')
     context = {
         'Phase': updatePhase,
@@ -1327,6 +1358,9 @@ def updatePhaseData(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1349,6 +1383,9 @@ def deletePhase(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1387,6 +1424,9 @@ def viewPhase(request, scenario_id, phase_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
+    blocked = translation_pending_guard(request, myScenario)
+    if blocked:
+        return blocked
     myPhase = get_object_or_404(Phase, id=phase_id, scenario=myScenario)
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
     can_edit = user_can_edit_scenario(request.user, myScenario)
@@ -1408,6 +1448,9 @@ def createActivity(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     phase = Phase.objects.get(id=phase_id)
     simulations = Simulation.objects.all()
     # Fetch LabsLand experiments from the ExperimentLL model
@@ -1454,6 +1497,9 @@ def createActivityData(request, scenario_id, phase_id):
     scenario_instance = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario_instance):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario_instance)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1541,6 +1587,9 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, scenario)
+    if blocked:
+        return blocked
     updateActivity = Activity.objects.get(id=activity_id)
     scenario = Scenario.objects.get(id=scenario_id)
     phase = Phase.objects.get(id=phase_id)
@@ -1615,9 +1664,18 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
+    if machine_translation_job(scenario):
+        activity = get_object_or_404(Activity, id=activity_id, scenario=scenario)
+        save_translation_activity_text(request, activity)
+        record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
+        scenario.refresh_version_if_initialized(created_by=request.user)
+        return HttpResponseRedirect(reverse('phase', args=[scenario_id, phase_id]))
     formerActivity = Activity.objects.get(id = activity_id)
     activity_name = request.POST.get('activity_name')
     activity_text = request.POST.get('activity_text')
@@ -1762,6 +1820,9 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -1811,6 +1872,9 @@ def move_phase(request, scenario_id, phase_id, direction):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     phase = get_object_or_404(Phase, id=phase_id, scenario=scenario)
     _swap_with_neighbour(phase, Phase.objects.filter(scenario=scenario), direction)
     record_edit(request.user, scenario)
@@ -1823,6 +1887,9 @@ def move_activity(request, scenario_id, phase_id, activity_id, direction):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     activity = get_object_or_404(Activity, id=activity_id, scenario=scenario, phase_id=phase_id)
     _swap_with_neighbour(activity, Activity.objects.filter(phase_id=phase_id), direction)
     record_edit(request.user, scenario, phase_id=phase_id)
@@ -1836,6 +1903,9 @@ def set_start_activity(request, scenario_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     activity = get_object_or_404(Activity, id=activity_id, scenario=scenario)
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
@@ -1879,6 +1949,9 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
         return HttpResponseForbidden("You cannot view this scenario.")
+    blocked = translation_pending_guard(request, myScenario)
+    if blocked:
+        return blocked
     myActivity = get_object_or_404(Activity, id=activity_id, scenario=myScenario)
     next_activity_logic = NextQuestionLogic.objects.filter(activity=activity_id).first()
     # Check if the user is the creator, an admin, or if the scenario is editable by the org and the user belongs to the org
@@ -1960,6 +2033,9 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
         scenario = activity.scenario
         if not user_can_edit_scenario(request.user, scenario):
             return HttpResponseForbidden("You cannot edit this scenario.")
+        blocked = translation_structure_guard(request, scenario)
+        if blocked:
+            return blocked
         blocked = authoring_revision_guard(request, scenario)
         if blocked:
             return blocked
@@ -2030,6 +2106,9 @@ def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -2069,6 +2148,9 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
     scenario = activity.scenario
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_pending_guard(request, scenario)
+    if blocked:
+        return blocked
     all_activities_in_scenario = Activity.objects.filter(scenario=scenario_id) # ME
     # current_next_activity = NextQuestionLogic.objects.filter(activity=activity).values_list('next_activity', flat=True) # ME
     # ineligible_activity_ids = NextQuestionLogic.objects.exclude(next_activity__in=current_next_activity).values_list('next_activity', flat=True) # ME
@@ -2078,6 +2160,12 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         blocked = authoring_revision_guard(request, scenario)
         if blocked:
             return blocked
+        if machine_translation_job(scenario):
+            save_translation_answer_text(request, activity)
+            record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
+            scenario.refresh_version_if_initialized(created_by=request.user)
+            messages.success(request, 'Answers updated successfully!')
+            return redirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
         existing_answer_ids = [answer.id for answer in activity.answers.all()]
         submitted_answer_ids = []
 
@@ -2193,6 +2281,9 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
 def createCriterion(request, scenario_id, phase_id, activity_id):
     if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, get_object_or_404(Scenario, id=scenario_id))
+    if blocked:
+        return blocked
     activityPrimary = get_object_or_404(Activity, id=activity_id, scenario_id=scenario_id)
     activityQuestionBunch = QuestionBunch.objects.filter(activity_primary=activity_id).first()
     myScenario = Scenario.objects.get(id=scenario_id)
@@ -2215,6 +2306,9 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
     scenario = activityPrimary.scenario
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
@@ -2277,6 +2371,9 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
 def updateCriterion(request, scenario_id, phase_id, activity_id):
     if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, get_object_or_404(Scenario, id=scenario_id))
+    if blocked:
+        return blocked
     activityPrimary = get_object_or_404(Activity, id=activity_id, scenario_id=scenario_id)
     myScenario = Scenario.objects.get(id=scenario_id)
     myPhase = Phase.objects.get(id=phase_id)
@@ -2317,6 +2414,9 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
     scenario = activityPrimary.scenario
     if not user_can_edit_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot edit this scenario.")
+    blocked = translation_structure_guard(request, scenario)
+    if blocked:
+        return blocked
     blocked = authoring_revision_guard(request, scenario)
     if blocked:
         return blocked
