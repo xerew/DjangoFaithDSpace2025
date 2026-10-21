@@ -285,6 +285,12 @@ CELERY_BEAT_SCHEDULE = {
         # can't run together and overshoot the hourly limit.
         'options': {'expires': 240},
     },
+    # Caches whether Ollama (NTUA, via the tunnel) has the translation model.
+    'check-translation-service': {
+        'task': 'authoringtool.tasks.check_translation_service_task',
+        'schedule': 60.0,
+        'options': {'expires': 50},
+    },
 }
 
 # Scenario-family discovery. The multilingual model is loaded lazily by the

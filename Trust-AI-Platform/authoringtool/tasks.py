@@ -105,6 +105,14 @@ def scan_translation_matches_task(scenario_ids=None):
 
 
 @shared_task
+def check_translation_service_task():
+    """Run by Celery beat every minute; caches whether Ollama can translate."""
+    from .machine_translation.health import check_translation_service
+
+    return check_translation_service()
+
+
+@shared_task
 def review_scenario_family_candidate_with_llm_task(candidate_id):
     """Generate and persist one non-binding Ollama family review."""
     from .scenario_matching import review_candidate_with_llm
