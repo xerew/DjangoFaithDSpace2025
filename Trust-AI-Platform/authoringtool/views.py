@@ -53,6 +53,15 @@ from .evidence import (
 )
 
 from .help_time import help_time_chart
+from .machine_translation.collaborators import (
+    assign_reviewer,
+    can_remove_collaborators,
+    can_verify,
+    remove_collaborator,
+    reviewer_candidates,
+    unverify_translation,
+    verify_translation,
+)
 from .machine_translation.copying import copy_for_translation
 from .machine_translation.editing import (
     machine_translation_job,
@@ -118,6 +127,8 @@ def user_can_view_scenario(user, scenario):
         return True
     if scenario.archived_at:
         return False
+    if scenario.collaborators.filter(user=user).exists():
+        return True
     if scenario.visibility_status == "public":
         return True
     if scenario.visibility_status == "org":
@@ -202,6 +213,8 @@ def user_can_edit_scenario(user, scenario):
     if not getattr(user, "is_authenticated", False):
         return False
     if is_admin_user(user) or scenario.created_by_id == user.id:
+        return True
+    if scenario.archived_at is None and scenario.collaborators.filter(user=user).exists():
         return True
     return (
         scenario.archived_at is None
@@ -322,6 +335,7 @@ def scenarios_visible_to_user(user, queryset):
         return queryset
     return queryset.filter(
         Q(created_by=user)
+        | Q(collaborators__user=user)
         | Q(visibility_status='public')
         | Q(
             visibility_status='org',
@@ -670,6 +684,7 @@ def scenarios(request):
         visible_scenarios = Scenario.objects.filter(
             Q(visibility_status='public') |  # Public scenarios visible to everyone
             Q(visibility_status='private', created_by=request.user) |  # Private scenarios visible only to the creator
+            Q(collaborators__user=request.user) |  # ...and to the collaborators an admin added
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios visible to members of the org
         ).filter(filters).distinct().order_by('-created_on')
 
@@ -1256,6 +1271,9 @@ def viewScenario(request, id):
         'translation_total': len(translation_ids),
         'myScenario': myScenario,
         'mt_job': machine_translation_job(myScenario),
+        'collaborators': myScenario.collaborators.select_related('user').order_by('added_at'),
+        'can_verify_translation': can_verify(request.user, myScenario),
+        'can_remove_collaborators': can_remove_collaborators(request.user, myScenario),
         'min_age': scenario_min_age,
         'max_age': scenario_max_age,
         'Phases': scenarioPhases,
@@ -2986,6 +3004,74 @@ def retry_machine_translation(request, job_id):
     transaction.on_commit(drain_translation_queue_task.delay)
     messages.success(request, 'Translation queued again.')
     return redirect('scenarios')
+
+
+def _machine_translation(scenario_id):
+    """A machine-translated scenario, or 404 for any other scenario."""
+    return get_object_or_404(
+        Scenario.objects.select_related('translation_job'),
+        pk=scenario_id,
+        translation_job__isnull=False,
+    )
+
+
+@group_required('teachers')
+def translation_reviewer_candidates(request, scenario_id):
+    if not is_admin_user(request.user):
+        return HttpResponseForbidden("Only admins can assign reviewers.")
+    scenario = _machine_translation(scenario_id)
+    return JsonResponse({
+        'users': reviewer_candidates(scenario, request.GET.get('q', '').strip()),
+    })
+
+
+@require_POST
+@group_required('teachers')
+def assign_translation_reviewer(request, scenario_id):
+    scenario = _machine_translation(scenario_id)
+    reviewer = get_object_or_404(User, pk=request.POST.get('user_id') or 0)
+    try:
+        assign_reviewer(scenario, reviewer, request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden("Only admins can assign reviewers, and only to teachers.")
+    messages.success(request, f'{reviewer.username} can now review “{scenario.name}”.')
+    return redirect(request.POST.get('next') or reverse('viewScenario', args=[scenario.id]))
+
+
+@require_POST
+@group_required('teachers')
+def remove_scenario_collaborator(request, scenario_id, user_id):
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    try:
+        remove_collaborator(scenario, get_object_or_404(User, pk=user_id), request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden("Only the scenario's creator or an admin can do this.")
+    messages.success(request, 'Collaborator removed.')
+    return redirect('viewScenario', id=scenario.id)
+
+
+@require_POST
+@group_required('teachers')
+def verify_machine_translation(request, scenario_id):
+    scenario = _machine_translation(scenario_id)
+    try:
+        verify_translation(scenario, request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden("Only the assigned reviewer or an admin can verify this translation.")
+    messages.success(request, 'Translation marked as verified.')
+    return redirect('viewScenario', id=scenario.id)
+
+
+@require_POST
+@group_required('teachers')
+def unverify_machine_translation(request, scenario_id):
+    scenario = _machine_translation(scenario_id)
+    try:
+        unverify_translation(scenario, request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden("Only admins can undo a verification.")
+    messages.success(request, 'Verification removed.')
+    return redirect('viewScenario', id=scenario.id)
 
 
 @group_required('teachers')

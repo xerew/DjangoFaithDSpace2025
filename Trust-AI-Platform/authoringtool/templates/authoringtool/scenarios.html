@@ -293,6 +293,15 @@
                         data-language="{{ scenario.language }}">
                   <i class="bi bi-translate"></i> Translate
                 </button>
+                {% if scenario.mt_job and request.user.is_staff or scenario.mt_job and request.user.is_superuser %}
+                <button type="button" class="sc-btn sc-btn-view"
+                        data-bs-toggle="modal" data-bs-target="#assignReviewerModal"
+                        data-action="{% url 'assign_translation_reviewer' scenario_id=scenario.id %}"
+                        data-candidates="{% url 'translation_reviewer_candidates' scenario_id=scenario.id %}"
+                        data-name="{{ scenario.name }}">
+                  <i class="bi bi-person-plus"></i> Assign reviewer
+                </button>
+                {% endif %}
                 {% endif %}
                 {% if request.user == scenario.created_by or scenario.can_edit %}
                   {% if not scenario.mt_pending %}
@@ -908,4 +917,5 @@
 }());
 </script>
 
+{% if request.user.is_staff or request.user.is_superuser %}{% include 'authoringtool/_assign_reviewer_modal.html' %}{% endif %}
 {% endblock atcontent %}
