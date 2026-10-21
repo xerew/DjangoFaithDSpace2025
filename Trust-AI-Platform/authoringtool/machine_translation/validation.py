@@ -30,8 +30,21 @@ def _tags(value):
     return collector.tags
 
 
-def validate_unit(source, translated):
-    """Return readable problems with a translation; empty when it is valid."""
+_WORD = re.compile(r'[^\W\d_]{2,}')
+# A field of this many words that comes back unchanged was not translated.
+ECHO_MIN_WORDS = 4
+
+
+def _plain(value):
+    return re.sub(r'<[^>]+>', ' ', value)
+
+
+def validate_unit(source, translated, max_lengths=None):
+    """Return readable problems with a translation; empty when it is valid.
+
+    max_lengths caps fields stored in limited columns (names, hints).
+    """
+    max_lengths = max_lengths or {}
     if not isinstance(translated, dict):
         return ['the reply was not a set of fields']
     errors = []
@@ -49,6 +62,14 @@ def validate_unit(source, translated):
         if original.strip() and not result.strip():
             errors.append(f'{key} is empty')
             continue
+        limit = max_lengths.get(key)
+        if limit and len(result) > limit:
+            errors.append(f'{key} is too long ({len(result)} of {limit} characters)')
+        if (
+            result.strip() == original.strip()
+            and len(_WORD.findall(_plain(original))) >= ECHO_MIN_WORDS
+        ):
+            errors.append(f'{key} came back untranslated')
         if _tags(original) != _tags(result):
             errors.append(f'{key} changed the HTML tags or attributes')
         if Counter(_DIGITS.findall(original)) != Counter(_DIGITS.findall(result)):

@@ -79,7 +79,7 @@ class DrainTests(TestCase):
                 raise TranslationServiceUnavailable('tunnel down')
             return fake_translate(*args)
 
-        with patch(TRANSLATE, side_effect=flaky):
+        with patch(TRANSLATE, side_effect=flaky),                 patch(CHECK, return_value={'reachable': False, 'model_present': False}):
             drain_translation_queue()
         job = self.refresh()
         self.assertEqual(job.status, 'waiting')

@@ -12,9 +12,15 @@ from html import unescape
 from django.db import transaction
 from django.utils.html import strip_tags
 
-from authoringtool.models import Activity, Answer, Phase, Scenario
+from authoringtool.models import Activity, Answer, Phase, Scenario, ScenarioTranslationJob
 
 _LETTER = re.compile(r'[^\W\d_]')
+
+
+# Names and hints live in 255-character columns; a scenario name keeps room
+# for the " (n)" suffix added when it collides with another of the owner's.
+NAME_LIMIT = 255
+SCENARIO_NAME_LIMIT = 240
 
 
 @dataclass
@@ -22,6 +28,7 @@ class Unit:
     key: str
     label: str
     fields: dict = field(default_factory=dict)
+    max_lengths: dict = field(default_factory=dict)
 
 
 def strip_html(html):
@@ -52,12 +59,12 @@ def all_units(job):
         ('name', target.name),
         ('description', target.description),
         ('learning_goals', target.learning_goals),
-    ]))]
+    ]), {'name': SCENARIO_NAME_LIMIT})]
     for phase in target.phases.order_by('order', 'created_on', 'id'):
         units.append(Unit(f'phase:{phase.id}', f'Phase "{phase.name}"', _fields([
             ('name', phase.name),
             ('description', phase.description),
-        ])))
+        ]), {'name': NAME_LIMIT}))
     for activity in _ordered_activities(target):
         pairs = [
             ('name', activity.name),
@@ -70,6 +77,7 @@ def all_units(job):
         ]
         units.append(Unit(
             f'activity:{activity.id}', f'Activity "{activity.name}"', _fields(pairs),
+            {'name': NAME_LIMIT, 'helper': NAME_LIMIT},
         ))
     return units
 
@@ -119,5 +127,9 @@ def apply_unit(job, unit, translated):
                 Answer.objects.filter(
                     pk=int(key.split(':', 1)[1]), activity=activity,
                 ).update(text=value)
-    job.completed_units = list(job.completed_units) + [unit.key]
-    job.save(update_fields=['completed_units'])
+    # Read the list from the row, so two runs can never overwrite each other.
+    locked = ScenarioTranslationJob.objects.select_for_update().get(pk=job.pk)
+    if unit.key not in locked.completed_units:
+        locked.completed_units = list(locked.completed_units) + [unit.key]
+        locked.save(update_fields=['completed_units'])
+    job.completed_units = locked.completed_units

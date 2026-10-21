@@ -27,12 +27,18 @@ def _free_name(base, user):
     return name
 
 
+def _translated_name(name, language):
+    # Leave room in the 255-character column for " (n)" on a collision.
+    suffix = f' ({language})'
+    return name[:240 - len(suffix)].rstrip() + suffix
+
+
 @transaction.atomic
 def copy_for_translation(source, user, target_language, source_language):
     """Copy source's structure for user and queue its translation."""
     family = source.ensure_family()
     target = Scenario.objects.create(
-        name=_free_name(f'{source.name} ({target_language})', user),
+        name=_free_name(_translated_name(source.name, target_language), user),
         learning_goals=source.learning_goals,
         description=source.description,
         age_of_students=source.age_of_students,

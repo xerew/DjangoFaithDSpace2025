@@ -120,7 +120,8 @@ def save_translation_answer_text(request, activity):
         answer.text = post.get(key, answer.text).strip() or answer.text
         answer.vid_url = post.get(f'answers[{index}][vid_url]', answer.vid_url or '').strip()
         if post.get(f'clear_image_{index}') == 'on':
-            answer.image.delete(save=False)
+            # The file is shared with the source scenario, so only unlink it.
+            answer.image = None
         else:
             image = request.FILES.get(f'answers[{index}][image]')
             if image:

@@ -1,9 +1,13 @@
 """The machine-translation queue: one job at a time, oldest first.
 
 An outage puts the job back in the queue with its finished units kept; only
-output that keeps failing the checks fails a job, and then visibly.
+output that keeps failing the checks, or an unexpected error, fails a job,
+and then visibly. A running job renews its claim and the queue lock after
+every unit, so a worker that dies frees the queue within STUCK_AFTER.
 """
 
+import logging
+import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -26,9 +30,9 @@ from .health import check_translation_service, record_service_status
 from .units import apply_unit, pending_units
 from .validation import validate_unit
 
+logger = logging.getLogger(__name__)
+
 LOCK_KEY = 'authoringtool:drain-translation-queue'
-LOCK_TIMEOUT = 4 * 60 * 60
-STUCK_AFTER = timedelta(hours=3)
 MAX_UNIT_ATTEMPTS = 3
 
 Job = ScenarioTranslationJob
@@ -38,13 +42,23 @@ _DONE = 'done'
 _FAILED = 'failed'
 _REQUEUED = 'requeued'
 _GONE = 'gone'
+_LOST = 'lost'
+
+
+def stuck_after():
+    """Longest one unit may take (all its attempts) plus a margin."""
+    return timedelta(seconds=settings.MACHINE_TRANSLATION_TIMEOUT * MAX_UNIT_ATTEMPTS + 600)
+
+
+def _lock_timeout():
+    return int(stuck_after().total_seconds()) + 300
 
 
 def release_stuck(now):
     """Jobs whose worker died mid-run go back to the queue."""
     return Job.objects.filter(
         status=Job.STATUS_TRANSLATING,
-        claimed_at__lt=now - STUCK_AFTER,
+        claimed_at__lt=now - stuck_after(),
     ).update(status=Job.STATUS_WAITING, claimed_at=None)
 
 
@@ -57,6 +71,32 @@ def _claim(job_id, now):
     if claimed:
         Job.objects.filter(pk=job_id, started_at__isnull=True).update(started_at=now)
     return claimed
+
+
+class _Run:
+    """One drain run: owns the queue lock and the claim of the current job."""
+
+    def __init__(self):
+        self.token = uuid.uuid4().hex
+        self.claimed_at = None
+
+    def acquire(self):
+        return cache.add(LOCK_KEY, self.token, _lock_timeout())
+
+    def release(self):
+        if cache.get(LOCK_KEY) == self.token:
+            cache.delete(LOCK_KEY)
+
+    def heartbeat(self, job):
+        """Renew the claim and lock; False if another run took the job over."""
+        now = timezone.now()
+        renewed = Job.objects.filter(
+            pk=job.pk, status=Job.STATUS_TRANSLATING, claimed_at=self.claimed_at,
+        ).update(claimed_at=now) == 1
+        if renewed:
+            self.claimed_at = now
+            cache.touch(LOCK_KEY, _lock_timeout())
+        return renewed
 
 
 def _requeue(job):
@@ -85,6 +125,11 @@ def _context(job):
     return f'{target.name}: {target.learning_goals}'
 
 
+def _service_up():
+    status = check_translation_service()
+    return status['reachable'] and status['model_present']
+
+
 def _translate_unit(job, unit):
     if not unit.fields:
         apply_unit(job, unit, {})
@@ -95,21 +140,23 @@ def _translate_unit(job, unit):
             translated = translate_fields(
                 unit.fields, job.source_language, job.target_language, _context(job),
             )
-        except TranslationServiceUnavailable:
-            record_service_status(False, False)
-            _requeue(job)
-            return _REQUEUED
-        except TranslationTimeout:
-            status = check_translation_service()
-            if not (status['reachable'] and status['model_present']):
+        except (TranslationServiceUnavailable, TranslationTimeout) as exc:
+            # Only a real outage requeues; an error Ollama keeps returning for
+            # this unit while it is up counts as a failed attempt.
+            if not _service_up():
+                record_service_status(False, False)
                 _requeue(job)
                 return _REQUEUED
-            errors = ['the translation took too long']
+            errors = [
+                'the translation took too long'
+                if isinstance(exc, TranslationTimeout)
+                else f'the translation service refused it ({exc})'
+            ]
             continue
         except TranslationOutputInvalid as exc:
             errors = [str(exc)]
             continue
-        errors = validate_unit(unit.fields, translated)
+        errors = validate_unit(unit.fields, translated, unit.max_lengths)
         if not errors:
             apply_unit(job, unit, translated)
             return _OK
@@ -162,35 +209,46 @@ def finish_job(job):
     )
 
 
-def _run(job):
+def _run(job, run):
+    step = 'Preparing the translation'
     try:
         job.refresh_from_db()
         for unit in pending_units(job):
+            step = unit.label
             outcome = _translate_unit(job, unit)
             if outcome != _OK:
                 return outcome
+            if not run.heartbeat(job):
+                return _LOST
+        step = 'Finishing the translation'
         finish_job(job)
         return _DONE
     except ObjectDoesNotExist:
         return _GONE  # the translation was deleted while it ran
+    except Exception as exc:  # never leave a job stuck in "translating"
+        logger.exception('Machine translation job %s failed', job.pk)
+        _fail(job, f'{step}: {exc}')
+        return _FAILED
 
 
 def drain_translation_queue(now=None):
     """Translate waiting jobs one at a time until none is left."""
     result = {_DONE: 0, _FAILED: 0, _REQUEUED: 0}
-    if not cache.add(LOCK_KEY, '1', LOCK_TIMEOUT):
+    run = _Run()
+    if not run.acquire():
         return result
     try:
         release_stuck(now or timezone.now())
         while not Job.objects.filter(status=Job.STATUS_TRANSLATING).exists():
             job = Job.objects.filter(status=Job.STATUS_WAITING).order_by('created_at', 'id').first()
-            if job is None or not _claim(job.pk, timezone.now()):
+            run.claimed_at = timezone.now()
+            if job is None or not _claim(job.pk, run.claimed_at):
                 break
-            outcome = _run(job)
+            outcome = _run(job, run)
             if outcome in result:
                 result[outcome] += 1
-            if outcome == _REQUEUED:
+            if outcome in (_REQUEUED, _LOST):
                 break
     finally:
-        cache.delete(LOCK_KEY)
+        run.release()
     return result
