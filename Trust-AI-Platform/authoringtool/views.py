@@ -62,6 +62,7 @@ from .machine_translation.editing import (
     translation_structure_guard,
 )
 from .machine_translation.health import translation_service_available
+from .machine_translation.queue import retry_job
 from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
 from .tasks import drain_translation_queue_task
@@ -674,6 +675,7 @@ def scenarios(request):
     # the oldest; the other versions open from that card's Translations modal.
     groups = translation_groups()
     if groups:
+        # A machine translation keeps its own card while it is private.
         hidden_ids = {
             version.id
             for bundle in bundle_translations(
@@ -681,7 +683,9 @@ def scenarios(request):
                     scenario_id
                     for scenario_id in visible_scenarios.values_list('id', flat=True)
                     if scenario_id in groups
-                ]).only('id', 'name', 'language', 'created_on'),
+                ]).exclude(
+                    visibility_status='private', translation_job__isnull=False,
+                ).only('id', 'name', 'language', 'created_on'),
                 groups,
             )
             for version in bundle[1:]
@@ -739,6 +743,10 @@ def scenarios(request):
     user_org_ids = set(request.user.member_of_organizations.values_list('id', flat=True))
     for scenario in page_obj:
         scenario.can_edit = user_can_edit_scenario(request.user, scenario)
+    attach_translation_jobs(
+        request.user,
+        list(page_obj) + [v for s in page_obj for v in s.translation_versions],
+    )
 
     # Get distinct languages for the filter dropdown
     languages = Scenario.objects.values_list('language', flat=True).distinct().order_by('language')
@@ -768,6 +776,7 @@ def scenarios(request):
         'selected_subject_ids': selected_subject_ids,
         'translation_languages': Language.objects.values_list('name', flat=True),
         'translation_service_down': TRANSLATION_SERVICE_DOWN,
+        'service_down': not translation_service_available(),
     }
     return HttpResponse(template.render(context, request))
 
@@ -1243,6 +1252,7 @@ def viewScenario(request, id):
         'hidden_translation_count': len(translation_ids) - len(translations),
         'translation_total': len(translation_ids),
         'myScenario': myScenario,
+        'mt_job': machine_translation_job(myScenario),
         'min_age': scenario_min_age,
         'max_age': scenario_max_age,
         'Phases': scenarioPhases,
@@ -2912,6 +2922,54 @@ TRANSLATION_SERVICE_DOWN = (
     "The translation service can't be reached right now. Machine translation "
     "is paused. Please try again later."
 )
+
+
+def attach_translation_jobs(user, scenarios):
+    """Set mt_job (or None) and mt_can_retry on each scenario for the tags."""
+    jobs = {
+        job.target_scenario_id: job
+        for job in ScenarioTranslationJob.objects.filter(
+            target_scenario_id__in={scenario.id for scenario in scenarios},
+        ).select_related('verified_by')
+    }
+    for scenario in scenarios:
+        scenario.mt_job = jobs.get(scenario.id)
+        scenario.mt_pending = bool(
+            scenario.mt_job and scenario.mt_job.status != ScenarioTranslationJob.STATUS_DONE
+        )
+        scenario.mt_can_retry = bool(
+            scenario.mt_job
+            and scenario.mt_job.status == ScenarioTranslationJob.STATUS_FAILED
+            and (is_admin_user(user) or scenario.mt_job.requested_by_id == user.id)
+        )
+
+
+@group_required('teachers')
+def machine_translation_job_status(request):
+    """Progress of the given jobs, for the badges that poll while they run."""
+    ids = [int(part) for part in request.GET.get('ids', '').split(',') if part.strip().isdigit()]
+    jobs = ScenarioTranslationJob.objects.filter(pk__in=ids).select_related('target_scenario')
+    return JsonResponse({'jobs': {
+        str(job.id): {
+            'status': job.status,
+            'units_done': job.units_done,
+            'units_total': job.units_total,
+        }
+        for job in jobs
+        if user_can_view_scenario(request.user, job.target_scenario)
+    }})
+
+
+@require_POST
+@group_required('teachers')
+def retry_machine_translation(request, job_id):
+    job = get_object_or_404(ScenarioTranslationJob, pk=job_id)
+    if not (is_admin_user(request.user) or job.requested_by_id == request.user.id):
+        return HttpResponseForbidden("Only the teacher who asked for this translation can retry it.")
+    retry_job(job)
+    transaction.on_commit(drain_translation_queue_task.delay)
+    messages.success(request, 'Translation queued again.')
+    return redirect('scenarios')
 
 
 @group_required('teachers')

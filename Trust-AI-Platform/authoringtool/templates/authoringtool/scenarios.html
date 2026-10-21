@@ -260,8 +260,20 @@
             </div>
             <div class="card-body d-flex flex-column" style="padding:16px 18px 14px;">
               <div class="sc-card-title">{{ scenario.name }}</div>
+              {% if scenario.mt_job %}
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                {% include 'authoringtool/_translation_tag.html' with job=scenario.mt_job %}
+              </div>
+              {% endif %}
               <p class="sc-card-desc flex-grow-1">{{ scenario.description|truncatechars:110 }}</p>
               <div class="mt-auto pt-2 d-flex flex-wrap gap-2">
+                {% if scenario.mt_can_retry %}
+                <form method="post" action="{% url 'retry_machine_translation' job_id=scenario.mt_job.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="sc-btn sc-btn-edit"><i class="bi bi-arrow-clockwise"></i> Retry</button>
+                </form>
+                {% endif %}
+                {% if not scenario.mt_pending %}
                 <a class="sc-btn sc-btn-view" href="{% url 'viewScenario' id=scenario.id %}">
                   <i class="bi bi-eye"></i> View
                 </a>
@@ -281,10 +293,13 @@
                         data-language="{{ scenario.language }}">
                   <i class="bi bi-translate"></i> Translate
                 </button>
+                {% endif %}
                 {% if request.user == scenario.created_by or scenario.can_edit %}
+                  {% if not scenario.mt_pending %}
                   <a class="sc-btn sc-btn-edit" href="{% url 'updateScenario' id=scenario.id %}">
                     <i class="bi bi-pencil"></i> Edit
                   </a>
+                  {% endif %}
                   <button type="button" class="sc-btn sc-btn-delete"
                           data-bs-toggle="modal" data-bs-target="#delModal{{ scenario.id }}">
                     <i class="bi bi-trash"></i> Delete
@@ -324,7 +339,9 @@
                     <tbody>
                       {% for version in scenario.translation_versions %}
                       <tr>
-                        <td style="font-weight:600;">{{ version.name }}</td>
+                        <td style="font-weight:600;">{{ version.name }}
+                          {% if version.mt_job %}<div>{% include 'authoringtool/_translation_tag.html' with job=version.mt_job %}</div>{% endif %}
+                        </td>
                         <td>{{ version.language|default:"Not set" }}</td>
                         <td>{{ version.get_visibility_status_display }}</td>
                         <td>{% user_link version.created_by %}</td>
@@ -496,6 +513,36 @@
         .then(function (data) { setAvailable(Boolean(data.available)); })
         .catch(function () { setAvailable(false); });
     });
+  })();
+
+  // Badges of translations in progress update every 15 seconds; the page
+  // reloads when one finishes so its buttons and tag change.
+  (function () {
+    function pendingTags() {
+      return Array.from(document.querySelectorAll('[data-mt-job][data-mt-status]'));
+    }
+    function poll() {
+      const tags = pendingTags();
+      if (!tags.length) { return; }
+      const ids = tags.map(function (tag) { return tag.dataset.mtJob; }).join(',');
+      fetch("{% url 'machine_translation_job_status' %}?ids=" + ids, {credentials: 'same-origin'})
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          let finished = false;
+          tags.forEach(function (tag) {
+            const job = data.jobs[tag.dataset.mtJob];
+            if (!job) { return; }
+            if (job.status === 'done' || job.status === 'failed') { finished = true; return; }
+            if (job.status === 'translating') {
+              tag.querySelector('.mt-tag-text').textContent =
+                'Translating… ' + job.units_done + ' / ' + job.units_total;
+            }
+          });
+          if (finished) { window.location.reload(); }
+        })
+        .catch(function () {});
+    }
+    setInterval(poll, 15000);
   })();
 </script>
 

@@ -87,6 +87,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.LoginRequiredMiddleware',
+    'authoringtool.middleware.MachineTranslationNoticeMiddleware',
     "faithDev.middleware.ReferrerPolicyMiddleware",
 ]
 

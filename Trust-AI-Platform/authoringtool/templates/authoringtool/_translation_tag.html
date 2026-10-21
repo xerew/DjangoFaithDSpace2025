@@ -1,0 +1,15 @@
+{% comment %}Machine-translation tag for one scenario. Takes job (or None) and service_down.{% endcomment %}
+{% if job %}
+  {% if job.status == 'waiting' or job.status == 'translating' %}
+    <span class="badge rounded-pill text-bg-light border mt-tag" data-mt-job="{{ job.id }}" data-mt-status="{{ job.status }}">
+      <i class="bi bi-hourglass-split me-1"></i><span class="mt-tag-text">{% if job.status == 'translating' %}Translating… {{ job.units_done }} / {{ job.units_total }}{% elif service_down %}Waiting — translation service unavailable{% else %}Waiting in queue{% endif %}</span>
+    </span>
+  {% elif job.status == 'failed' %}
+    <span class="badge rounded-pill text-bg-danger mt-tag" title="{{ job.error }}"><i class="bi bi-exclamation-circle me-1"></i>Translation failed</span>
+  {% elif job.verified_by_id %}
+    <span class="badge rounded-pill text-bg-success mt-tag"><i class="bi bi-patch-check me-1"></i>Translation verified</span>
+    <span class="small text-muted">Verified by {{ job.verified_by.username }} on {{ job.verified_at|date:"j M Y" }}</span>
+  {% else %}
+    <span class="badge rounded-pill text-bg-warning mt-tag"><i class="bi bi-translate me-1"></i>Machine-translated</span>
+  {% endif %}
+{% endif %}
