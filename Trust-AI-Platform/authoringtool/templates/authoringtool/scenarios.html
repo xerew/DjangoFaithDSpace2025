@@ -274,9 +274,13 @@
                 <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=adaptation">
                   <i class="bi bi-copy"></i> Adapt
                 </a>
-                <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=translation">
+                <button type="button" class="sc-btn sc-btn-copy js-translate"
+                        data-bs-toggle="modal" data-bs-target="#translateModal"
+                        data-action="{% url 'start_machine_translation' scenario_id=scenario.id %}"
+                        data-name="{{ scenario.name }}"
+                        data-language="{{ scenario.language }}">
                   <i class="bi bi-translate"></i> Translate
-                </a>
+                </button>
                 {% if request.user == scenario.created_by or scenario.can_edit %}
                   <a class="sc-btn sc-btn-edit" href="{% url 'updateScenario' id=scenario.id %}">
                     <i class="bi bi-pencil"></i> Edit
@@ -421,6 +425,79 @@
     {% endif %}
   </section>
 </main>
+
+<!-- ── Machine translation ── -->
+<div class="modal fade" id="translateModal" tabindex="-1" aria-labelledby="translateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" class="modal-content" style="border-radius:12px;overflow:hidden;" id="translateForm">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title" id="translateModalLabel">
+          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>Translate <span id="translateName"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning d-none" id="translateDown" role="alert">
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ translation_service_down }}
+        </div>
+        <div class="mb-3 d-none" id="translateSourceGroup">
+          <label class="form-label fw-semibold" for="translateSource">Written in</label>
+          <select class="form-select" name="source_language" id="translateSource">
+            <option value="">Choose a language</option>
+            {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+          </select>
+        </div>
+        <label class="form-label fw-semibold" for="translateTarget">Translate into</label>
+        <select class="form-select" name="target_language" id="translateTarget" required>
+          <option value="">Choose a language</option>
+          {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+        </select>
+        <p class="small text-muted mt-2 mb-0">
+          The new scenario keeps exactly the same structure and starts private.
+          It is translated in the background, so you can leave this page.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="translateStart">Start translation</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    const modal = document.getElementById('translateModal');
+    const form = document.getElementById('translateForm');
+    const target = document.getElementById('translateTarget');
+    const sourceGroup = document.getElementById('translateSourceGroup');
+    const source = document.getElementById('translateSource');
+    const down = document.getElementById('translateDown');
+    const start = document.getElementById('translateStart');
+    function setAvailable(available) {
+      down.classList.toggle('d-none', available);
+      target.disabled = source.disabled = start.disabled = !available;
+    }
+    modal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const language = (button.dataset.language || '').toLowerCase();
+      form.action = button.dataset.action;
+      document.getElementById('translateName').textContent = button.dataset.name;
+      target.value = '';
+      source.value = '';
+      Array.from(target.options).forEach(function (option) {
+        option.hidden = option.value !== '' && option.value.toLowerCase() === language;
+      });
+      sourceGroup.classList.toggle('d-none', language !== '');
+      source.required = language === '';
+      setAvailable(false);
+      fetch("{% url 'machine_translation_status' %}", {credentials: 'same-origin'})
+        .then(function (response) { return response.json(); })
+        .then(function (data) { setAvailable(Boolean(data.available)); })
+        .catch(function () { setAvailable(false); });
+    });
+  })();
+</script>
 
 <script>
   (function () {

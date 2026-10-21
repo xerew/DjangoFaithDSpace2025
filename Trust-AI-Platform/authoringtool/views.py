@@ -53,7 +53,11 @@ from .evidence import (
 )
 
 from .help_time import help_time_chart
+from .machine_translation.copying import copy_for_translation
+from .machine_translation.health import translation_service_available
+from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
+from .tasks import drain_translation_queue_task
 from .translation_matching import (
     bundle_translations,
     language_order,
@@ -755,6 +759,8 @@ def scenarios(request):
         'visibility_filter': visibility_filter,
         'all_subjects': Subject.objects.all(),
         'selected_subject_ids': selected_subject_ids,
+        'translation_languages': Language.objects.values_list('name', flat=True),
+        'translation_service_down': TRANSLATION_SERVICE_DOWN,
     }
     return HttpResponse(template.render(context, request))
 
@@ -2800,7 +2806,53 @@ def duplicate_scenario(request, scenario_id):
     except Exception as e:
         messages.error(request, f'Failed to duplicate scenario: {str(e)}')
         return redirect('scenarios')  # Redirect to an appropriate error view or page
-    
+
+
+TRANSLATION_SERVICE_DOWN = (
+    "The translation service can't be reached right now. Machine translation "
+    "is paused. Please try again later."
+)
+
+
+@group_required('teachers')
+def machine_translation_status(request):
+    """Whether the Translate modal may start a job (read from Celery's check)."""
+    return JsonResponse({'available': translation_service_available()})
+
+
+@require_POST
+@group_required('teachers')
+def start_machine_translation(request, scenario_id):
+    """Queue a machine translation of a scenario into another language."""
+    scenario = get_object_or_404(Scenario, pk=scenario_id, archived_at__isnull=True)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot translate this scenario.")
+    if ScenarioTranslationJob.objects.filter(
+        target_scenario=scenario,
+        status__in=ScenarioTranslationJob.PENDING_STATUSES,
+    ).exists():
+        messages.error(request, 'This translation is still being prepared.')
+        return redirect('scenarios')
+
+    names = {language.name.casefold(): language.name for language in Language.objects.all()}
+    source = names.get((scenario.language or request.POST.get('source_language', '')).strip().casefold())
+    target = names.get(request.POST.get('target_language', '').strip().casefold())
+    if not source:
+        messages.error(request, 'Choose the language the scenario is written in.')
+        return redirect('scenarios')
+    if not target or target == source:
+        messages.error(request, 'Choose a language different from the scenario\'s own.')
+        return redirect('scenarios')
+    if not translation_service_available():
+        messages.error(request, TRANSLATION_SERVICE_DOWN)
+        return redirect('scenarios')
+
+    copy_for_translation(scenario, request.user, target, source)
+    transaction.on_commit(drain_translation_queue_task.delay)
+    messages.success(request, 'Translation queued. You can leave this page.')
+    return redirect('scenarios')
+
+
 # LTI Operations
 LTI_CONSUMER_KEY = os.environ.get('LTI_CONSUMER_KEY', 'dspace')
 LTI_SHARED_SECRET = os.environ.get('LTI_SHARED_SECRET', 'FUQYeguEf7WoIJ-f-_U_Eg')
