@@ -291,6 +291,12 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 60.0,
         'options': {'expires': 50},
     },
+    # Picks up queued machine translations missed by the on-queue start.
+    'drain-translation-queue': {
+        'task': 'authoringtool.tasks.drain_translation_queue_task',
+        'schedule': 60.0,
+        'options': {'expires': 50},
+    },
 }
 
 # Scenario-family discovery. The multilingual model is loaded lazily by the

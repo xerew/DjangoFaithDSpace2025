@@ -113,6 +113,14 @@ def check_translation_service_task():
 
 
 @shared_task
+def drain_translation_queue_task():
+    """Started when a translation is queued, and by beat every minute."""
+    from .machine_translation.queue import drain_translation_queue
+
+    return drain_translation_queue()
+
+
+@shared_task
 def review_scenario_family_candidate_with_llm_task(candidate_id):
     """Generate and persist one non-binding Ollama family review."""
     from .scenario_matching import review_candidate_with_llm
