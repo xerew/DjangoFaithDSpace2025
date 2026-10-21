@@ -130,6 +130,7 @@
                 <label class="ph-label"><i class="bi bi-fonts"></i>Phase Name</label>
                 <input type="text" class="ph-input" name="name"
                        value="{{ Phase.name }}" required autofocus>
+                {% include 'authoringtool/_original_text.html' with text=original.name %}
                 <div class="ph-hint">Give this phase a clear, descriptive name.</div>
               </div>
 
@@ -138,6 +139,7 @@
               <div class="ph-field">
                 <label class="ph-label"><i class="bi bi-card-text"></i>Description</label>
                 <textarea class="ph-input" name="description" required>{{ Phase.description }}</textarea>
+                {% include 'authoringtool/_original_text.html' with text=original.description %}
                 <div class="ph-hint">What should students learn or accomplish in this phase?</div>
               </div>
 

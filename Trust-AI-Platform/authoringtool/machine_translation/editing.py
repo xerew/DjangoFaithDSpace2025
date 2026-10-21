@@ -10,8 +10,11 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
 from authoringtool.models import (
+    Activity,
     Answer,
     ExperimentLL,
+    Phase,
+    Scenario,
     ScenarioTranslationJob,
     Simulation,
     VRARExperiment,
@@ -32,6 +35,29 @@ def machine_translation_job(scenario):
         return scenario.translation_job
     except ScenarioTranslationJob.DoesNotExist:
         return None
+
+
+def original_of(job, obj):
+    """The source row a translated scenario, phase, activity or answer came
+    from, or None when it no longer exists."""
+    if job is None:
+        return None
+    if isinstance(obj, Scenario):
+        return job.source_scenario
+    kind = {Phase: 'phases', Activity: 'activities', Answer: 'answers'}[type(obj)]
+    source_id = job.id_map.get(kind, {}).get(str(obj.id))
+    if source_id is None:
+        return None
+    return type(obj).objects.filter(pk=source_id).first()
+
+
+def mt_context(scenario, obj=None):
+    """Template context for the text-only editor of a machine translation."""
+    job = machine_translation_job(scenario)
+    return {
+        'is_machine_translation': job is not None,
+        'original': original_of(job, obj) if job is not None and obj is not None else None,
+    }
 
 
 def translation_pending_guard(request, scenario):

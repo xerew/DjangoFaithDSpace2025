@@ -151,10 +151,12 @@
            style="background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);">
           <i class="bi bi-pencil me-1"></i> Edit
         </a>
+        {% if not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-sm"
            style="background:#fff; color:#1a56db; font-weight:600; border:none;">
           <i class="bi bi-plus-circle me-1"></i> New Activity
         </a>
+        {% endif %}
         {% endif %}
       </div>
     </div>
@@ -219,7 +221,7 @@
           <i class="bi bi-list-task me-2" style="color:#1a56db;"></i>Activities
           <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{{ activities|length }} total</span>
         </span>
-        {% if can_edit %}
+        {% if can_edit and not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}"
            class="btn btn-sm btn-primary" style="font-size:12px; padding:4px 14px;">
           <i class="bi bi-plus-circle me-1"></i> New Activity
@@ -294,6 +296,7 @@
                   <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
                      class="act-btn act-btn-view" title="View"><i class="bi bi-eye"></i></a>
                   {% if can_edit %}
+                  {% if not is_machine_translation %}
                   <form method="post" action="{% url 'move_activity' myScenario.id myPhase.id activity.id 'up' %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="act-btn act-btn-view" title="Move up" aria-label="Move {{ activity.name }} up"{% if forloop.first %} disabled{% endif %}><i class="bi bi-arrow-up"></i></button>
@@ -302,12 +305,15 @@
                     {% csrf_token %}
                     <button type="submit" class="act-btn act-btn-view" title="Move down" aria-label="Move {{ activity.name }} down"{% if forloop.last %} disabled{% endif %}><i class="bi bi-arrow-down"></i></button>
                   </form>
+                  {% endif %}
                   <a href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
                      class="act-btn act-btn-edit" title="Edit"><i class="bi bi-pencil"></i></a>
+                  {% if not is_machine_translation %}
                   <button type="button" class="act-btn act-btn-delete" title="Delete"
                           data-bs-toggle="modal" data-bs-target="#delModal{{ activity.id }}">
                     <i class="bi bi-trash"></i>
                   </button>
+                  {% endif %}
                   {% endif %}
                 </div>
               </td>
@@ -322,7 +328,7 @@
         <i class="bi bi-clipboard-x text-muted"></i>
         <h5 class="text-muted">No activities yet</h5>
         <p class="text-muted small mb-3">Add the first activity to this phase to get started.</p>
-        {% if can_edit %}
+        {% if can_edit and not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-primary">
           <i class="bi bi-plus-circle me-1"></i> Create First Activity
         </a>
@@ -337,7 +343,7 @@
 
 <!-- ── Delete Modals ── -->
 {% if can_edit %}
-{% for activity in activities %}
+{% if not is_machine_translation %}{% for activity in activities %}
 <div class="modal fade" id="delModal{{ activity.id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -359,7 +365,7 @@
     </div>
   </div>
 </div>
-{% endfor %}
+{% endfor %}{% endif %}
 {% endif %}
 
 <script>

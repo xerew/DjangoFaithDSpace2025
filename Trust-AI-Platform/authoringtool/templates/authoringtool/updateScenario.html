@@ -214,6 +214,7 @@
                 <label class="sc-label"><i class="bi bi-fonts"></i>Scenario Name <span class="sc-required">*</span></label>
                 <input type="text" class="sc-input" name="name"
                        value="{{ Scenario.name }}" placeholder="e.g. Pendulum Physics, Climate Change…" required autofocus>
+                {% include 'authoringtool/_original_text.html' with text=original.name %}
               </div>
 
               <hr class="sc-divider">
@@ -222,6 +223,7 @@
                 <label class="sc-label"><i class="bi bi-card-text"></i>Description <span class="sc-required">*</span></label>
                 <textarea class="sc-input" name="description"
                           placeholder="A brief overview of this scenario and what it covers…" required>{{ Scenario.description }}</textarea>
+                {% include 'authoringtool/_original_text.html' with text=original.description %}
                 <div class="sc-hint">Summarise the scenario topic for teachers and students.</div>
               </div>
 
@@ -231,6 +233,7 @@
                 <label class="sc-label"><i class="bi bi-bullseye"></i>Learning Goals <span class="sc-required">*</span></label>
                 <textarea class="sc-input" name="learning_goals"
                           placeholder="What will students learn or be able to do after completing this scenario?" required>{{ Scenario.learning_goals }}</textarea>
+                {% include 'authoringtool/_original_text.html' with text=original.learning_goals %}
                 <div class="sc-hint">List the key competencies and outcomes.</div>
               </div>
 

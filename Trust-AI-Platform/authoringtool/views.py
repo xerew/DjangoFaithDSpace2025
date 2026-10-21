@@ -56,6 +56,8 @@ from .help_time import help_time_chart
 from .machine_translation.copying import copy_for_translation
 from .machine_translation.editing import (
     machine_translation_job,
+    mt_context,
+    original_of,
     save_translation_activity_text,
     save_translation_answer_text,
     translation_pending_guard,
@@ -853,6 +855,7 @@ def updateScenario(request, id):
             None,
         ),
     }
+    context.update(mt_context(updateScenario, updateScenario))
     return HttpResponse(template.render(context, request))
 
 
@@ -1285,6 +1288,7 @@ def viewScenario(request, id):
             or getattr(settings, 'SCENARIO_REVISION_PROTECTION', False)
         ),
     }
+    context.update(mt_context(myScenario, myScenario))
     return HttpResponse(template.render(context, request))
 
 def delete_rag_pdf(request, scenario_id, filename):
@@ -1361,6 +1365,7 @@ def updatePhase(request, scenario_id, phase_id):
         'scenario_id': scenario_id,
         'myScenario': scenario,
     }
+    context.update(mt_context(scenario, updatePhase))
     return render(request, 'authoringtool/updatePhase.html', context)
 
 @group_required('teachers')
@@ -1450,6 +1455,7 @@ def viewPhase(request, scenario_id, phase_id):
         'can_edit': can_edit,
         "llm_html": mark_safe(sanitize_html(markdown.markdown(myPhase.llm_context or ""))),
     }
+    context.update(mt_context(myScenario))
     return HttpResponse(template.render(context, request))
 
 @group_required('teachers')
@@ -1667,6 +1673,7 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
         'existingVR_AR': existing_vr_ar,
         'current_experiment_type': current_experiment_type,
     }
+    context.update(mt_context(scenario, updateActivity))
     return render(request, 'authoringtool/updateActivity.html', context)
 
 @group_required('teachers')
@@ -2034,6 +2041,7 @@ def viewActivity(request, scenario_id, phase_id, activity_id):
         ),
         "llm_html": mark_safe(sanitize_html(markdown.markdown(myActivity.llm_context or ""))),
     }
+    context.update(mt_context(myScenario))
     return HttpResponse(template.render(context, request))
 
 @group_required('teachers')
@@ -2278,6 +2286,13 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         scenario=scenario_id
     ).exclude(id=activity_id).order_by('phase__order', 'phase_id', 'order', 'id')
 
+    mt = mt_context(scenario)
+    if mt['is_machine_translation']:
+        job = machine_translation_job(scenario)
+        for answer in answers:
+            original = original_of(job, answer)
+            answer.original_text = original.text if original else ''
+
     return render(request, 'authoringtool/updateAnswers.html', {
         'activity': activity,
         'answers': answers,
@@ -2285,6 +2300,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         'phase': phase_id,
         'myPhase': activity.phase,
         'eligible_activities': eligible_activities,
+        **mt,
     })
 
 @group_required('teachers')

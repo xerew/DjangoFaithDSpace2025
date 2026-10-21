@@ -233,13 +233,13 @@
                 <i class="bi bi-list-check me-1"></i>Answers
               </a>
             {% endif %}
-            {% if activity.is_evaluatable %}
+            {% if activity.is_evaluatable and not is_machine_translation %}
               <a class="btn btn-sm hero-btn-outline" href="{% url 'updateCriterion' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
                 <i class="bi bi-sliders me-1"></i>Criterion
               </a>
             {% endif %}
           {% endif %}
-          {% if can_set_first and not is_first_activity %}
+          {% if can_set_first and not is_first_activity and not is_machine_translation %}
             <form method="post" action="{% url 'set_start_activity' scenario_id=myScenario.id activity_id=activity.id %}" class="d-inline"
                   onsubmit="return confirm('Make this the first activity? New students will begin the scenario here.');">
               {% csrf_token %}
@@ -248,7 +248,7 @@
               </button>
             </form>
           {% endif %}
-          {% if can_edit %}
+          {% if can_edit and not is_machine_translation %}
             {# Opens the confirmation page, which shows how many students answered it. #}
             <a class="btn btn-sm hero-btn-danger" href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
               <i class="bi bi-trash me-1"></i>Delete
@@ -439,7 +439,7 @@
                         <span class="answer-next text-muted"><i class="bi bi-dash-circle me-1"></i>No next activity</span>
                       {% endif %}
                     {% endif %}
-                    {% if can_edit %}
+                    {% if can_edit and not is_machine_translation %}
                     <button type="button" class="btn btn-sm btn-outline-danger ms-auto"
                       data-bs-toggle="modal" data-bs-target="#deleteModal{{ answer.id }}"
                       style="font-size:12px; padding:3px 10px;">
@@ -451,6 +451,7 @@
               </div>
 
               <!-- Delete modal -->
+              {% if not is_machine_translation %}
               <div class="modal fade" id="deleteModal{{ answer.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                   <div class="modal-content" style="border-radius:14px; overflow:hidden;">
@@ -472,13 +473,14 @@
                   </div>
                 </div>
               </div>
+              {% endif %}
               {% endfor %}
 
             {% else %}
               <div style="padding:24px; text-align:center; color:#888; font-size:13.5px;">
                 <i class="bi bi-inbox" style="font-size:32px; display:block; margin-bottom:10px; color:#ccc;"></i>
                 No answers found for this activity.
-                {% if can_edit %}
+                {% if can_edit and not is_machine_translation %}
                   <div style="margin-top:14px;">
                     <a class="btn btn-sm btn-primary" href="{% url 'createAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
                       <i class="bi bi-plus-circle me-1"></i>Create Answers

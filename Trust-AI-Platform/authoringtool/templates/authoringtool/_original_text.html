@@ -1,0 +1,1 @@
+{% load html_tags %}{% comment %}Read-only source wording under a field of a machine translation. Takes text and optional rich.{% endcomment %}{% if text %}<div class="text-muted small border rounded p-2 mt-1 mt-original">Original: {% if rich %}{{ text|clean_html }}{% else %}{{ text }}{% endif %}</div>{% endif %}

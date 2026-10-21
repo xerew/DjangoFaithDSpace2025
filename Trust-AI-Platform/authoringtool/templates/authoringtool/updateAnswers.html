@@ -168,6 +168,7 @@
     <div class="row">
       <div class="col-12 col-lg-9">
 
+        {% if is_machine_translation %}<style>.mt-structure{display:none !important;}</style>{% endif %}
         <form action="{% url 'updateAnswers' scenario_id=scenario phase_id=phase activity_id=activity.id %}" method="post" enctype="multipart/form-data">
           {% csrf_token %}
 
@@ -180,7 +181,7 @@
                     <div class="answer-num">{{ forloop.counter }}</div>
                     Answer {{ forloop.counter }}
                   </div>
-                  {% if not forloop.first %}
+                  {% if not forloop.first and not is_machine_translation %}
                   <button type="button" class="removeAnswer btn-remove-answer">
                     <i class="bi bi-trash3 me-1"></i>Remove
                   </button>
@@ -190,11 +191,12 @@
                   <div class="mb-3">
                     <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
                     <textarea class="form-control" name="answers[{{ forloop.counter0 }}][text]" rows="3" required>{{ answer.text }}</textarea>
+                    {% include 'authoringtool/_original_text.html' with text=answer.original_text %}
                   </div>
-                  <div class="row g-3">
+                  <div class="row g-3 mt-structure">
                     <div class="col-sm-5">
                       <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
-                      <select class="form-select" name="answers[{{ forloop.counter0 }}][answer_weight]" required>
+                      <select class="form-select" {% if not is_machine_translation %}name="answers[{{ forloop.counter0 }}][answer_weight]" required{% endif %}>
                         <option value="1" {% if answer.answer_weight == 1 %}selected{% endif %}>1</option>
                         <option value="2" {% if answer.answer_weight == 2 %}selected{% endif %}>2</option>
                         <option value="3" {% if answer.answer_weight == 3 %}selected{% endif %}>3</option>
@@ -202,12 +204,12 @@
                     </div>
                     <div class="col-sm-7 d-flex flex-column justify-content-end">
                       <label class="correct-row">
-                        <input type="checkbox" class="is-correct-check" name="answers[{{ forloop.counter0 }}][is_correct]" {% if answer.is_correct %}checked{% endif %}>
+                        <input type="checkbox" class="is-correct-check" {% if not is_machine_translation %}name="answers[{{ forloop.counter0 }}][is_correct]"{% endif %} {% if answer.is_correct %}checked{% endif %}>
                         <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
                       </label>
                     </div>
                   </div>
-                  {% if not activity.is_evaluatable %}
+                  {% if not activity.is_evaluatable and not is_machine_translation %}
                   <div class="next-activity-section">
                     <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
                     {% include "authoringtool/includes/next_activity_picker.html" with field_name=answer.next_field_name selected_id=answer.next_activity_id selected_name=answer.next_activity_name %}
@@ -220,7 +222,7 @@
             {% endfor %}
           </div>
 
-          <div class="mb-4">
+          <div class="mb-4 mt-structure">
             <button type="button" id="addMoreAnswers" class="btn btn-outline-primary">
               <i class="bi bi-plus-circle me-1"></i>Add Another Answer
             </button>
