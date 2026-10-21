@@ -93,6 +93,9 @@ def _fields(activity, answers, phase_rank):
     }
 
 
+MEDIA_FIELDS_BLANK = {'simulation': '', 'lab': '', 'vr': ''}
+
+
 def _token(fields):
     return '|'.join(fields[key] for key in FIELD_LABELS)
 
@@ -260,6 +263,18 @@ def build_flow_profile(scenario):
             separators=(',', ':'),
         ).encode('utf-8')
     ).hexdigest()
+    # The same flow without simulations, labs and VR experiments, which a
+    # machine translation may swap for versions in its own language.
+    structure_signature = hashlib.sha256(
+        json.dumps(
+            [
+                [_token({**f, **MEDIA_FIELDS_BLANK}) for f in fields],
+                edges,
+                bunches,
+            ],
+            separators=(',', ':'),
+        ).encode('utf-8')
+    ).hexdigest()
     phase_ids = {
         activities[activity_id].phase_id for activity_id in order[:reachable]
     }
@@ -278,6 +293,7 @@ def build_flow_profile(scenario):
             1 for token in tokens if token.startswith('question|')
         ),
         'signature': signature,
+        'structure_signature': structure_signature,
     }
 
 
@@ -872,6 +888,26 @@ def translation_pool_signature(scenario):
     return hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]
 
 
+def _recheck_machine_translation_pairs(matches):
+    """Mark machine-translation pairs changed only if their structure changed.
+
+    Their activity map and scores come from the translation itself, so the
+    scorer never overwrites them; swapped media do not count as a change.
+    """
+    changed = 0
+    for match in matches.select_related('scenario_a', 'scenario_b'):
+        if (
+            build_flow_profile(match.scenario_a)['structure_signature']
+            != match.structure_signature_a
+            or build_flow_profile(match.scenario_b)['structure_signature']
+            != match.structure_signature_b
+        ):
+            match.status = 'changed'
+            match.save(update_fields=['status', 'updated_at'])
+            changed += 1
+    return changed
+
+
 def scan_translation_matches(scenario_ids=None, dry_run=False):
     """Score all scenario pairs and store them for administrator review.
 
@@ -925,6 +961,8 @@ def scan_translation_matches(scenario_ids=None, dry_run=False):
                 scenario_a_id=pair[0],
                 scenario_b_id=pair[1],
             ).first()
+            if match is not None and match.origin == 'machine_translation':
+                continue  # checked by structure below
             if match is None:
                 TranslationMatch.objects.create(
                     scenario_a_id=pair[0],
@@ -950,6 +988,10 @@ def scan_translation_matches(scenario_ids=None, dry_run=False):
                 scenario_a_id__in=scenario_ids,
                 scenario_b_id__in=scenario_ids,
             )
+        changed += _recheck_machine_translation_pairs(
+            stale.filter(origin='machine_translation', status='confirmed')
+        )
+        stale = stale.exclude(origin='machine_translation')
         removed = 0
         for match in stale:
             if (match.scenario_a_id, match.scenario_b_id) in seen:
