@@ -106,7 +106,8 @@ def scan_translation_matches_task(scenario_ids=None):
 
 @shared_task
 def check_translation_service_task():
-    """Run by Celery beat every minute; caches whether Ollama can translate."""
+    """Run by Celery beat every minute (and by "Check again"); caches what the
+    AI server on the NTUA machine has, for translations and proposals."""
     from .machine_translation.health import check_translation_service
 
     return check_translation_service()

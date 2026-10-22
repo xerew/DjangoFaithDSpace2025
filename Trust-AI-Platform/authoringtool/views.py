@@ -72,11 +72,11 @@ from .machine_translation.editing import (
     translation_pending_guard,
     translation_structure_guard,
 )
-from .machine_translation.health import translation_service_available
+from .machine_translation.health import OK as AI_SERVER_OK, proposal_server_status, translation_service_available
 from .machine_translation.queue import retry_job
 from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
-from .tasks import drain_translation_queue_task
+from .tasks import check_translation_service_task, drain_translation_queue_task
 from .translation_matching import (
     bundle_translations,
     language_order,
@@ -3507,6 +3507,7 @@ def ai_metrics(request, scenario_id):
         'can_edit':             can_edit,
         'can_generate_proposals': can_generate_proposals,
         'proposal_generation_available': proposal_generation_available,
+        'ai_server': proposal_server_status() if proposal_generation_available else None,
         'metrics_grouped':      metrics_grouped,
         'flags_grouped':        flags_grouped,
         'has_metrics':          bool(metrics_grouped),
@@ -3708,12 +3709,39 @@ def trigger_llm_context_task(request, scenario_id):
                         "generate proposals."
                     )
                 }, status=403)
+            server = proposal_server_status()
+            if server['state'] != AI_SERVER_OK:
+                return JsonResponse({"error": server['title']}, status=503)
             force = request.GET.get("force", "false").lower() == "true"
             task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
             return JsonResponse({"status": "started", "task_id": task.id})
         except Scenario.DoesNotExist:
             return JsonResponse({"error": "Scenario not found"}, status=404)
     return JsonResponse({"error": "Invalid request"}, status=400)
+
+def _ai_server_json():
+    status = proposal_server_status()
+    return JsonResponse({
+        'state': status['state'],
+        'title': status['title'],
+        'detail': status['detail'],
+        'checked_at': status['checked_at'].isoformat() if status['checked_at'] else None,
+    })
+
+
+@group_required('teachers')
+def ai_server_status(request):
+    """The AI server banner's state, read from Celery's last check."""
+    return _ai_server_json()
+
+
+@require_POST
+@group_required('teachers')
+def ai_server_check(request):
+    """Check again: ask Celery (the only side that reaches NTUA) to check now."""
+    check_translation_service_task.delay()
+    return _ai_server_json()
+
 
 @login_required
 def get_llm_context_task_status(request, task_id):

@@ -98,6 +98,8 @@ urlpatterns = [
     ),
     # LLM Generation
     path('scenarios/<int:scenario_id>/generate_llm_context/', views.trigger_llm_context_task, name='generate_llm_context'),
+    path('ai-server/status/', views.ai_server_status, name='ai_server_status'),
+    path('ai-server/check/', views.ai_server_check, name='ai_server_check'),
     path('scenarios/llm_context_status/<str:task_id>/', views.get_llm_context_task_status, name='llm_context_status'),
     # Proposals
     path('scenarios/<int:scenario_id>/proposals/', views.proposal_list_view, name='proposal_list'),

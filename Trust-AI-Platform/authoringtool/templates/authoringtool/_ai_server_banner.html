@@ -1,0 +1,87 @@
+{% comment %}
+AI server (Ollama on the NTUA machine) banner. Takes ai_server from
+machine_translation.health.proposal_server_status; shown only when it isn't ok.
+{% endcomment %}
+<style>
+  .ai-server-banner {
+    display: flex; align-items: center; gap: 16px;
+    background: #fefce8; border: 1px solid #facc15; border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px; color: #854d0e;
+  }
+  .ai-server-banner .ai-server-icon { font-size: 22px; flex-shrink: 0; }
+  .ai-server-banner .ai-server-title { font-weight: 700; color: #713f12; margin-bottom: 2px; }
+  .ai-server-banner .ai-server-detail { font-size: 14px; }
+  .ai-server-banner .ai-server-check {
+    flex-shrink: 0; margin-left: auto; background: transparent; color: #57534e;
+    border: 1px dashed #d6d3d1; border-radius: 999px; padding: 6px 16px; font-size: 14px;
+  }
+  .ai-server-banner .ai-server-check:hover:not(:disabled) { background: #fef9c3; }
+  .ai-server-note { font-size: 12px; color: #92400e; margin-top: 6px; }
+  @media (max-width: 576px) {
+    .ai-server-banner { flex-wrap: wrap; }
+    .ai-server-banner .ai-server-check { margin-left: 0; }
+  }
+</style>
+
+<div id="aiServerBanner" class="ai-server-banner" role="status" data-checked-at="{{ ai_server.checked_at|date:'c' }}">
+  <i class="bi bi-cloud-slash ai-server-icon" aria-hidden="true"></i>
+  <div>
+    <div class="ai-server-title" id="aiServerTitle">{{ ai_server.title }}</div>
+    <div class="ai-server-detail" id="aiServerDetail">{{ ai_server.detail }}</div>
+  </div>
+  <button type="button" class="ai-server-check" id="aiServerCheckBtn">
+    <i class="bi bi-arrow-repeat me-1"></i>Check again
+  </button>
+</div>
+
+<script>
+(function () {
+  const banner = document.getElementById('aiServerBanner');
+  const button = document.getElementById('aiServerCheckBtn');
+  const statusUrl = '{% url "ai_server_status" %}';
+  const checkUrl = '{% url "ai_server_check" %}';
+  const idleHtml = button.innerHTML;
+
+  function showStatus(data) {
+    button.disabled = false;
+    button.innerHTML = idleHtml;
+    if (data.state === 'ok') {
+      // Back online: drop the banner and re-enable generation.
+      banner.remove();
+      document.querySelectorAll('.ai-server-note').forEach(function (note) { note.remove(); });
+      ['btn-generate-context', 'btn-generate-context-force'].forEach(function (id) {
+        const generate = document.getElementById(id);
+        if (generate) generate.disabled = false;
+      });
+      return;
+    }
+    document.getElementById('aiServerTitle').textContent = data.title;
+    document.getElementById('aiServerDetail').textContent = data.detail;
+    banner.dataset.checkedAt = data.checked_at || '';
+  }
+
+  button.addEventListener('click', function () {
+    const before = banner.dataset.checkedAt;
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    let polls = 0;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Checking…';
+
+    // The check runs in the background worker; wait for a newer result.
+    function waitForResult(data) {
+      const changed = data.checked_at && data.checked_at !== before;
+      if (changed || polls >= 10) return showStatus(data);
+      polls += 1;
+      setTimeout(function () {
+        fetch(statusUrl).then(function (r) { return r.json(); }).then(waitForResult)
+          .catch(function () { showStatus(data); });
+      }, 1500);
+    }
+
+    fetch(checkUrl, { method: 'POST', headers: { 'X-CSRFToken': csrf } })
+      .then(function (r) { return r.json(); })
+      .then(waitForResult)
+      .catch(function () { button.disabled = false; button.innerHTML = idleHtml; });
+  });
+})();
+</script>

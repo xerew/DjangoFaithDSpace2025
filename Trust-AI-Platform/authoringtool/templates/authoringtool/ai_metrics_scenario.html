@@ -275,6 +275,8 @@
 
   <section class="section">
 
+    {% if ai_server and ai_server.state != 'ok' %}{% include 'authoringtool/_ai_server_banner.html' %}{% endif %}
+
     <!-- ── Action cards row ── -->
     <div class="row g-3 mb-4">
 
@@ -328,9 +330,10 @@
           </div>
           <div class="action-card-desc">Generate AI evaluation context for activities that have not yet been processed by the language model.</div>
           <button id="btn-generate-context" data-scenario-id="{{ myScenario.id }}" data-force="false"
-                  class="btn btn-sm btn-primary mt-auto">
+                  class="btn btn-sm btn-primary mt-auto"{% if ai_server.state != 'ok' %} disabled{% endif %}>
             <i class="bi bi-cpu me-1"></i> Generate LLM Context
           </button>
+          {% if ai_server and ai_server.state != 'ok' %}<div class="ai-server-note">Unavailable while the AI server is offline.</div>{% endif %}
         </div>
       </div>
 
@@ -345,9 +348,10 @@
           </div>
           <div class="action-card-desc">Wipe all cached AI context and rebuild from scratch. Use only when PDFs have changed or results are incorrect.</div>
           <button id="btn-generate-context-force" data-scenario-id="{{ myScenario.id }}" data-force="true"
-                  class="btn btn-sm btn-warning mt-auto">
+                  class="btn btn-sm btn-warning mt-auto"{% if ai_server.state != 'ok' %} disabled{% endif %}>
             <i class="bi bi-trash me-1"></i> Force Rebuild
           </button>
+          {% if ai_server and ai_server.state != 'ok' %}<div class="ai-server-note">Unavailable while the AI server is offline.</div>{% endif %}
         </div>
       </div>
       {% endif %}
@@ -763,7 +767,9 @@ function startLlmGeneration(button, force) {
       normalBtn.disabled = false;
       forceBtn.disabled  = false;
       button.innerHTML   = origHtml;
-      setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>Error starting the task.');
+      const reason = document.createElement('span');
+      reason.textContent = data.error || 'Error starting the task.';
+      setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>' + reason.innerHTML);
     }
   })
   .catch(() => {
