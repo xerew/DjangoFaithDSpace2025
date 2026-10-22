@@ -4,7 +4,7 @@ This Compose sidecar keeps a private SSH tunnel open from the application
 network to Ollama on the NTUA VM. Port 11434 is exposed only to other Compose
 services; it is not published on the host.
 
-The default NTUA SSH address is `147.102.23.222`. Set `OLLAMA_SSH_HOST`
+The default NTUA SSH address is `147.102.17.66`. Set `OLLAMA_SSH_HOST`
 in the deployment `.env` only if a different address is needed.
 
 ## One-time setup on the deployment host
@@ -33,7 +33,7 @@ docker compose up -d ollama-tunnel celery
 ## Updating an existing deployment to the new NTUA address
 
 After pulling the updated code, check the deployment `.env`: if it sets
-`OLLAMA_SSH_HOST`, update it to `147.102.23.222` or remove that override to
+`OLLAMA_SSH_HOST`, update it to `147.102.17.66` or remove that override to
 use the new default. Existing SSH usernames and credentials remain the same.
 
 On the platform deployment host, rebuild the tunnel, run setup to register
