@@ -2,7 +2,8 @@ import html
 import re
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.conf import settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from authoringtool.models import Language, Scenario, ScenarioTranslationJob
@@ -17,6 +18,8 @@ BANNER = (
 EMOJI = re.compile('[\U0001F300-\U0001FAFF☀-➿]')
 
 
+# These cover the flow once machine translation is rolled out to teachers.
+@override_settings(MACHINE_TRANSLATION_FOR_ALL=True)
 class StartTranslationTests(TestCase):
     def setUp(self):
         Language.objects.get_or_create(name='Greek')
@@ -105,3 +108,41 @@ class StartTranslationTests(TestCase):
         self.assertIn(BANNER, content)
         self.assertIn(reverse('start_machine_translation', args=[self.source.id]), content)
         self.assertIsNone(EMOJI.search(content))
+
+
+class AdminOnlyRolloutTests(TestCase):
+    """Until MACHINE_TRANSLATION_FOR_ALL is switched on, only admins translate."""
+
+    def setUp(self):
+        Language.objects.get_or_create(name='Greek')
+        self.owner = make_teacher('mt_gate_owner')
+        self.teacher = make_teacher('mt_gate_teacher')
+        self.admin = make_teacher('mt_gate_admin', admin=True)
+        self.source = build_source_scenario(self.owner)
+        self.url = reverse('start_machine_translation', args=[self.source.id])
+
+    def test_setting_is_off_by_default(self):
+        self.assertFalse(settings.MACHINE_TRANSLATION_FOR_ALL)
+
+    def test_teacher_cannot_start_translation(self):
+        self.client.force_login(self.teacher)
+        with patch(AVAILABLE, return_value=True), patch(DELAY):
+            response = self.client.post(self.url, {'target_language': 'Greek'})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ScenarioTranslationJob.objects.exists())
+
+    def test_admin_can_start_translation(self):
+        self.client.force_login(self.admin)
+        with patch(AVAILABLE, return_value=True), patch(DELAY):
+            self.client.post(self.url, {'target_language': 'Greek'})
+        self.assertEqual(ScenarioTranslationJob.objects.get().requested_by, self.admin)
+
+    def test_translate_button_shown_to_admins_only(self):
+        self.client.force_login(self.teacher)
+        content = self.client.get(reverse('scenarios')).content.decode()
+        self.assertNotIn(self.url, content)
+        self.assertNotIn('id="translateModal"', content)
+        self.client.force_login(self.admin)
+        content = self.client.get(reverse('scenarios')).content.decode()
+        self.assertIn(self.url, content)
+        self.assertIn('id="translateModal"', content)

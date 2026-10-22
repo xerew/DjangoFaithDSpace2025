@@ -231,6 +231,11 @@ LLM_TRANSLATION_MODEL = os.getenv("LLM_TRANSLATION_MODEL", "aya-expanse:32b")
 # Machine translation of whole scenarios (Translate button), on the NTUA machine.
 LLM_MACHINE_TRANSLATION_MODEL = os.getenv("LLM_MACHINE_TRANSLATION_MODEL", "gemma4:31b")
 MACHINE_TRANSLATION_TIMEOUT = int(os.getenv("MACHINE_TRANSLATION_TIMEOUT", "600"))
+# Off: only admins see Translate while it is being tried out. Set
+# MACHINE_TRANSLATION_FOR_ALL=1 to open it to every teacher.
+MACHINE_TRANSLATION_FOR_ALL = (
+    os.getenv("MACHINE_TRANSLATION_FOR_ALL", "0").lower() in {"1", "true", "yes", "on"}
+)
 
 AI_METRICS_CACHE_ROOT = os.getenv("AI_METRICS_CACHE_DIR", str(BASE_DIR / "ai_metrics_cache"))
 AI_METRICS_CACHE_URL  = os.getenv("AI_METRICS_CACHE_URL", "/ai_metrics_cache/")

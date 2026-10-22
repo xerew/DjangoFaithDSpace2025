@@ -286,6 +286,7 @@
                 <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=adaptation">
                   <i class="bi bi-copy"></i> Adapt
                 </a>
+                {% if can_machine_translate %}
                 <button type="button" class="sc-btn sc-btn-copy js-translate"
                         data-bs-toggle="modal" data-bs-target="#translateModal"
                         data-action="{% url 'start_machine_translation' scenario_id=scenario.id %}"
@@ -293,6 +294,7 @@
                         data-language="{{ scenario.language }}">
                   <i class="bi bi-translate"></i> Translate
                 </button>
+                {% endif %}
                 {% if scenario.mt_job and request.user.is_staff or scenario.mt_job and request.user.is_superuser %}
                 <button type="button" class="sc-btn sc-btn-view"
                         data-bs-toggle="modal" data-bs-target="#assignReviewerModal"
@@ -453,6 +455,7 @@
 </main>
 
 <!-- ── Machine translation ── -->
+{% if can_machine_translate %}
 <div class="modal fade" id="translateModal" tabindex="-1" aria-labelledby="translateModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form method="post" class="modal-content" style="border-radius:12px;overflow:hidden;" id="translateForm">
@@ -491,9 +494,11 @@
     </form>
   </div>
 </div>
+{% endif %}
 <script>
   (function () {
     const modal = document.getElementById('translateModal');
+    if (!modal) { return; }
     const form = document.getElementById('translateForm');
     const target = document.getElementById('translateTarget');
     const sourceGroup = document.getElementById('translateSourceGroup');

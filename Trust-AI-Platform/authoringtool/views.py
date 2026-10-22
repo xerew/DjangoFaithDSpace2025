@@ -794,6 +794,7 @@ def scenarios(request):
         'translation_languages': Language.objects.values_list('name', flat=True),
         'translation_service_down': TRANSLATION_SERVICE_DOWN,
         'service_down': not translation_service_available(),
+        'can_machine_translate': can_machine_translate(request.user),
     }
     return HttpResponse(template.render(context, request))
 
@@ -3074,6 +3075,11 @@ def unverify_machine_translation(request, scenario_id):
     return redirect('viewScenario', id=scenario.id)
 
 
+def can_machine_translate(user):
+    """Admins only, until MACHINE_TRANSLATION_FOR_ALL opens it to teachers."""
+    return settings.MACHINE_TRANSLATION_FOR_ALL or is_admin_user(user)
+
+
 @group_required('teachers')
 def machine_translation_status(request):
     """Whether the Translate modal may start a job (read from Celery's check)."""
@@ -3084,6 +3090,8 @@ def machine_translation_status(request):
 @group_required('teachers')
 def start_machine_translation(request, scenario_id):
     """Queue a machine translation of a scenario into another language."""
+    if not can_machine_translate(request.user):
+        return HttpResponseForbidden("Machine translation is available to admins only for now.")
     scenario = get_object_or_404(Scenario, pk=scenario_id, archived_at__isnull=True)
     if not user_can_view_scenario(request.user, scenario):
         return HttpResponseForbidden("You cannot translate this scenario.")
