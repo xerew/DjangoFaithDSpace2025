@@ -13,6 +13,8 @@ import re
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count, Q, Max, Min, F, Avg, Case, When, Value, IntegerField
 from django.core.cache import cache
+import logging
+
 from django.db import transaction
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -110,6 +112,8 @@ from django.utils._os import safe_join
 def is_admin_user(user):
     """Returns True for superusers and staff — both get full scenario access."""
     return user.is_superuser or user.is_staff
+
+logger = logging.getLogger(__name__)
 
 
 def _count(number, noun):
@@ -2796,161 +2800,193 @@ def performance_by_department(request, scenario_id):
 
     return JsonResponse(data)
 
+SCENARIO_NAME_MAX = Scenario._meta.get_field('name').max_length
+
+
+def _free_scenario_name(base, user):
+    """`base`, or `base 2`, `base 3`… if the user already has that name."""
+    base = base[:SCENARIO_NAME_MAX]
+    name, counter = base, 2
+    while Scenario.objects.filter(name=name, created_by=user).exists():
+        suffix = f' {counter}'
+        name = f'{base[:SCENARIO_NAME_MAX - len(suffix)]}{suffix}'
+        counter += 1
+    return name
+
+
+@require_POST
 @group_required('teachers')
 def duplicate_scenario(request, scenario_id):
+    """Adapt: copy a scenario for the user, all or nothing (see the Adapt modal)."""
+    original_scenario = get_object_or_404(Scenario, pk=scenario_id)
+    if not user_can_view_scenario(request.user, original_scenario):
+        return HttpResponseForbidden("You cannot copy this scenario.")
     try:
-        original_scenario = get_object_or_404(Scenario, pk=scenario_id)
-        if not user_can_view_scenario(request.user, original_scenario):
-            return HttpResponseForbidden("You cannot copy this scenario.")
-        user = request.user
-        family = original_scenario.ensure_family()
-        requested_variant = request.GET.get('variant', 'adaptation')
-        if requested_variant not in {'translation', 'adaptation'}:
-            requested_variant = 'adaptation'
-        label = 'Translation' if requested_variant == 'translation' else 'Copy'
-        new_scenario_name_base = (
-            f"{original_scenario.name} {label} Made by {user.username}"
-        )
-        new_scenario_name = new_scenario_name_base
-        
-        # Check if scenario with the new name already exists and modify the name if needed
-        counter = 1
-        while Scenario.objects.filter(name=new_scenario_name, created_by=user).exists():
-            new_scenario_name = f"{new_scenario_name_base} {counter}"
-            counter += 1
-        
-        new_scenario = Scenario.objects.create(
-            name=new_scenario_name,
-            learning_goals=original_scenario.learning_goals,
-            description=original_scenario.description,
-            age_of_students=original_scenario.age_of_students,
-            subject_domains=original_scenario.subject_domains,
-            language=original_scenario.language,
-            suggested_learning_time=original_scenario.suggested_learning_time,
-            image=original_scenario.image,
-            created_by=user,
-            updated_by=user,
-            origin_scenario=original_scenario,
-            family=family,
-            variant_type=requested_variant,
-            ai_metrics_min_implementations=(
-                original_scenario.ai_metrics_min_implementations
-            ),
-        )
-        new_scenario.subjects.set(original_scenario.subjects.all())
-
-        # Map for original activities to their duplicates
-        activity_mapping = {}
-        answer_mapping = {}
-        phase_mapping = {}
-
-        # Duplicate phases first so phase-less activities are preserved too.
-        for phase in original_scenario.phases.all():
-            new_phase = Phase.objects.create(
-                name=phase.name,
-                description=phase.description,
-                image=phase.image,
-                order=phase.order,
-                scenario=new_scenario,
-                created_by=user,
-                updated_by=user
-            )
-            phase_mapping[phase.id] = new_phase
-
-        for activity in original_scenario.activities.order_by('id'):
-            new_activity = Activity.objects.create(
-                name=activity.name,
-                text=activity.text,
-                plain_text=activity.plain_text,
-                correct_count=activity.correct_count,
-                incorrect_count=activity.incorrect_count,
-                is_evaluatable=activity.is_evaluatable,
-                is_primary_ev=activity.is_primary_ev,
-                order=activity.order,
-                must_wait=activity.must_wait,
-                score_limit=activity.score_limit,
-                scenario=new_scenario,
-                phase=phase_mapping.get(activity.phase_id),
-                activity_type=activity.activity_type,
-                helper=activity.helper,
-                simulation=activity.simulation,
-                experiment_ll=activity.experiment_ll,
-                vr_ar_experiment=activity.vr_ar_experiment,
-                lineage_key=activity.lineage_key,
-                concept=activity.concept,
-                created_by=user,
-                updated_by=user
-            )
-
-            # Copy answers
-            for answer in activity.answers.all():
-                new_answer = Answer.objects.create(
-                    activity=new_activity,
-                    text=answer.text,
-                    is_correct=answer.is_correct,
-                    answer_weight=answer.answer_weight,
-                    image=answer.image,
-                    vid_url=answer.vid_url,
-                    created_by=user,
-                    updated_by=user
-                )
-                answer_mapping[answer.id] = new_answer
-
-            activity_mapping[activity.id] = new_activity
-
-        mapped_start = activity_mapping.get(original_scenario.start_activity_id)
-        if mapped_start:
-            new_scenario.start_activity = mapped_start
-            new_scenario.save(update_fields=["start_activity"])
-
-        # Duplicate Next Question Logic
-        for original_activity_id, new_activity in activity_mapping.items():
-            original_activity = Activity.objects.get(pk=original_activity_id)
-            for logic in original_activity.next_logic.all():
-                NextQuestionLogic.objects.create(
-                    activity=new_activity,
-                    answer=answer_mapping.get(logic.answer.id, None) if logic.answer else None,
-                    next_activity=activity_mapping.get(logic.next_activity.id, None) if logic.next_activity else None
-                )
-
-        # Duplicate EvQuestionBranching and QuestionBunch for Evaluatable Activities
-        for original_activity_id, new_activity in activity_mapping.items():
-            original_activity = Activity.objects.get(pk=original_activity_id)
-            if original_activity.is_evaluatable:
-                if hasattr(original_activity, 'branching'):
-                    branching = original_activity.branching
-                    EvQuestionBranching.objects.create(
-                        activity=new_activity,
-                        next_question_on_high=activity_mapping.get(branching.next_question_on_high.id, None) if branching.next_question_on_high else None,
-                        next_question_on_high_feedback=branching.next_question_on_high_feedback,
-                        next_question_on_mid=activity_mapping.get(branching.next_question_on_mid.id, None) if branching.next_question_on_mid else None,
-                        next_question_on_mid_feedback=branching.next_question_on_mid_feedback,
-                        next_question_on_low=activity_mapping.get(branching.next_question_on_low.id, None) if branching.next_question_on_low else None,
-                        next_question_on_low_feedback=branching.next_question_on_low_feedback,
-                    )
-
-                # Duplicate QuestionBunch
-                question_bunch = QuestionBunch.objects.filter(activity_primary=original_activity).first()
-                if question_bunch:
-                    new_bunch = QuestionBunch.objects.create(
-                        activity_primary=new_activity,
-                        activity_ids=[activity_mapping[aid].id for aid in question_bunch.activity_ids]
-                    )
-
-        new_scenario.ensure_current_version(
-            created_by=user,
-            change_summary=(
-                'Translation created from scenario family'
-                if requested_variant == 'translation'
-                else 'Teacher adaptation created from scenario family'
-            ),
-        )
-        messages.success(request, f'Successfully duplicated scenario: {new_scenario_name}')
-        return redirect('updateScenario', id=new_scenario.id)
-
+        with transaction.atomic():
+            new_scenario = _copy_scenario(request, original_scenario)
     except Exception as e:
-        messages.error(request, f'Failed to duplicate scenario: {str(e)}')
-        return redirect('scenarios')  # Redirect to an appropriate error view or page
+        logger.exception('Adapt failed for scenario %s', scenario_id)
+        messages.error(
+            request,
+            f"The copy couldn't be created. Nothing was changed. ({e})",
+        )
+        return redirect('scenarios')
+    messages.success(request, f'Successfully duplicated scenario: {new_scenario.name}')
+    return redirect('updateScenario', id=new_scenario.id)
+
+
+def _copy_scenario(request, original_scenario):
+    """Create the copy; run inside a transaction so a failure leaves nothing."""
+    user = request.user
+    family = original_scenario.ensure_family()
+    requested_variant = (
+        request.POST.get('variant') or request.GET.get('variant') or 'adaptation'
+    )
+    if requested_variant not in {'translation', 'adaptation'}:
+        requested_variant = 'adaptation'
+    label = 'Translation' if requested_variant == 'translation' else 'Copy'
+    chosen_name = (request.POST.get('name') or '').strip()
+    new_scenario_name = _free_scenario_name(
+        chosen_name or f"{original_scenario.name} {label} Made by {user.username}",
+        user,
+    )
+
+    new_scenario = Scenario.objects.create(
+        name=new_scenario_name,
+        learning_goals=original_scenario.learning_goals,
+        description=original_scenario.description,
+        age_of_students=original_scenario.age_of_students,
+        subject_domains=original_scenario.subject_domains,
+        language=original_scenario.language,
+        suggested_learning_time=original_scenario.suggested_learning_time,
+        image=original_scenario.image,
+        created_by=user,
+        updated_by=user,
+        origin_scenario=original_scenario,
+        family=family,
+        variant_type=requested_variant,
+        ai_metrics_min_implementations=(
+            original_scenario.ai_metrics_min_implementations
+        ),
+    )
+    new_scenario.subjects.set(original_scenario.subjects.all())
+
+    # Map for original activities to their duplicates
+    activity_mapping = {}
+    answer_mapping = {}
+    phase_mapping = {}
+
+    # Duplicate phases first so phase-less activities are preserved too.
+    for phase in original_scenario.phases.all():
+        new_phase = Phase.objects.create(
+            name=phase.name,
+            description=phase.description,
+            image=phase.image,
+            order=phase.order,
+            scenario=new_scenario,
+            created_by=user,
+            updated_by=user
+        )
+        phase_mapping[phase.id] = new_phase
+
+    for activity in original_scenario.activities.order_by('id'):
+        new_activity = Activity.objects.create(
+            name=activity.name,
+            text=activity.text,
+            plain_text=activity.plain_text,
+            correct_count=activity.correct_count,
+            incorrect_count=activity.incorrect_count,
+            is_evaluatable=activity.is_evaluatable,
+            is_primary_ev=activity.is_primary_ev,
+            order=activity.order,
+            must_wait=activity.must_wait,
+            score_limit=activity.score_limit,
+            scenario=new_scenario,
+            phase=phase_mapping.get(activity.phase_id),
+            activity_type=activity.activity_type,
+            helper=activity.helper,
+            simulation=activity.simulation,
+            experiment_ll=activity.experiment_ll,
+            vr_ar_experiment=activity.vr_ar_experiment,
+            lineage_key=activity.lineage_key,
+            concept=activity.concept,
+            created_by=user,
+            updated_by=user
+        )
+
+        # Copy answers
+        for answer in activity.answers.all():
+            new_answer = Answer.objects.create(
+                activity=new_activity,
+                text=answer.text,
+                is_correct=answer.is_correct,
+                answer_weight=answer.answer_weight,
+                image=answer.image,
+                vid_url=answer.vid_url,
+                created_by=user,
+                updated_by=user
+            )
+            answer_mapping[answer.id] = new_answer
+            for feedback in answer.feedbacks.all():
+                AnswerFeedback.objects.create(
+                    answer=new_answer,
+                    text=feedback.text,
+                    image=feedback.image,
+                    vid_url=feedback.vid_url,
+                    created_by=user,
+                    updated_by=user,
+                )
+
+        activity_mapping[activity.id] = new_activity
+
+    mapped_start = activity_mapping.get(original_scenario.start_activity_id)
+    if mapped_start:
+        new_scenario.start_activity = mapped_start
+        new_scenario.save(update_fields=["start_activity"])
+
+    # Duplicate Next Question Logic
+    for original_activity_id, new_activity in activity_mapping.items():
+        original_activity = Activity.objects.get(pk=original_activity_id)
+        for logic in original_activity.next_logic.all():
+            NextQuestionLogic.objects.create(
+                activity=new_activity,
+                answer=answer_mapping.get(logic.answer.id, None) if logic.answer else None,
+                next_activity=activity_mapping.get(logic.next_activity.id, None) if logic.next_activity else None
+            )
+
+    # Duplicate EvQuestionBranching and QuestionBunch for Evaluatable Activities
+    for original_activity_id, new_activity in activity_mapping.items():
+        original_activity = Activity.objects.get(pk=original_activity_id)
+        if original_activity.is_evaluatable:
+            if hasattr(original_activity, 'branching'):
+                branching = original_activity.branching
+                EvQuestionBranching.objects.create(
+                    activity=new_activity,
+                    next_question_on_high=activity_mapping.get(branching.next_question_on_high.id, None) if branching.next_question_on_high else None,
+                    next_question_on_high_feedback=branching.next_question_on_high_feedback,
+                    next_question_on_mid=activity_mapping.get(branching.next_question_on_mid.id, None) if branching.next_question_on_mid else None,
+                    next_question_on_mid_feedback=branching.next_question_on_mid_feedback,
+                    next_question_on_low=activity_mapping.get(branching.next_question_on_low.id, None) if branching.next_question_on_low else None,
+                    next_question_on_low_feedback=branching.next_question_on_low_feedback,
+                )
+
+            # Duplicate QuestionBunch
+            question_bunch = QuestionBunch.objects.filter(activity_primary=original_activity).first()
+            if question_bunch:
+                new_bunch = QuestionBunch.objects.create(
+                    activity_primary=new_activity,
+                    activity_ids=[activity_mapping[aid].id for aid in question_bunch.activity_ids]
+                )
+
+    new_scenario.ensure_current_version(
+        created_by=user,
+        change_summary=(
+            'Translation created from scenario family'
+            if requested_variant == 'translation'
+            else 'Teacher adaptation created from scenario family'
+        ),
+    )
+    return new_scenario
 
 
 TRANSLATION_SERVICE_DOWN = (

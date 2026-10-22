@@ -164,7 +164,7 @@ class ScenarioFamilyTests(TestCase):
         scenario = self.create_canonical()
         self.client.force_login(self.owner)
 
-        response = self.client.get(
+        response = self.client.post(
             reverse('duplicate_scenario', args=[scenario.id]),
             {'variant': 'adaptation'},
         )
@@ -183,7 +183,7 @@ class ScenarioFamilyTests(TestCase):
         scenario = self.create_canonical(visibility_status='private')
         self.client.force_login(self.other_teacher)
 
-        response = self.client.get(
+        response = self.client.post(
             reverse('duplicate_scenario', args=[scenario.id])
         )
 
@@ -248,7 +248,7 @@ class ScenarioFamilyTests(TestCase):
         )
         self.client.force_login(self.owner)
 
-        response = self.client.get(
+        response = self.client.post(
             reverse('duplicate_scenario', args=[scenario.id]),
             {'variant': 'translation'},
         )
@@ -290,7 +290,7 @@ class ScenarioFamilyTests(TestCase):
         )
         self.client.force_login(self.owner)
 
-        response = self.client.get(
+        response = self.client.post(
             reverse('duplicate_scenario', args=[scenario.id])
         )
 

@@ -283,9 +283,13 @@
                   <i class="bi bi-globe2"></i> Translations ({{ scenario.translation_count }})
                 </button>
                 {% endif %}
-                <a class="sc-btn sc-btn-copy" href="{% url 'duplicate_scenario' scenario_id=scenario.id %}?variant=adaptation">
+                <button type="button" class="sc-btn sc-btn-copy"
+                        data-bs-toggle="modal" data-bs-target="#adaptModal"
+                        data-action="{% url 'duplicate_scenario' scenario_id=scenario.id %}"
+                        data-name="{{ scenario.name }}"
+                        data-default-name="{{ scenario.name }} Copy Made by {{ request.user.username }}">
                   <i class="bi bi-copy"></i> Adapt
-                </a>
+                </button>
                 {% if can_machine_translate %}
                 <button type="button" class="sc-btn sc-btn-copy js-translate"
                         data-bs-toggle="modal" data-bs-target="#translateModal"
@@ -453,6 +457,82 @@
     {% endif %}
   </section>
 </main>
+
+<!-- ── Adapt (copy a scenario) ── -->
+<div class="modal fade" id="adaptModal" tabindex="-1" aria-labelledby="adaptModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" class="modal-content" style="border-radius:12px;overflow:hidden;" id="adaptForm">
+      {% csrf_token %}
+      <input type="hidden" name="variant" value="adaptation">
+      <div class="modal-header">
+        <h5 class="modal-title" id="adaptModalLabel">
+          <i class="bi bi-copy me-2" style="color:#1a56db;"></i>Adapt <span id="adaptName"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="adaptClose"></button>
+      </div>
+      <div class="modal-body" id="adaptChoose">
+        <label class="form-label fw-semibold" for="adaptNewName">Name of your copy</label>
+        <input type="text" class="form-control" name="name" id="adaptNewName" maxlength="255">
+        <p class="fw-semibold mt-3 mb-1">What gets copied</p>
+        <ul class="small text-muted mb-3 ps-3">
+          <li>The scenario details: learning goals, description, subjects, language and image</li>
+          <li>All phases and activities, in the same order</li>
+          <li>The answers, with their correct and wrong marks and feedback</li>
+          <li>The activity flow and branching</li>
+          <li>Linked simulations, remote labs and VR experiments</li>
+        </ul>
+        <p class="small mb-0">
+          <i class="bi bi-lock me-1"></i>The copy is private and belongs to you. Only you
+          can see it until you share it. You'll go straight to its edit page.
+        </p>
+      </div>
+      <div class="modal-body text-center py-5 d-none" id="adaptWorking" role="status">
+        <span class="spinner-border text-primary mb-3" aria-hidden="true"></span>
+        <p class="fw-semibold mb-1">Creating your copy…</p>
+        <p class="small text-muted mb-0">This can take a few seconds for large scenarios.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="adaptCancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="adaptCreate">Create copy</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    const modal = document.getElementById('adaptModal');
+    const form = document.getElementById('adaptForm');
+    const nameInput = document.getElementById('adaptNewName');
+    const choose = document.getElementById('adaptChoose');
+    const working = document.getElementById('adaptWorking');
+    const buttons = ['adaptCancel', 'adaptCreate', 'adaptClose'].map(function (id) {
+      return document.getElementById(id);
+    });
+    let creating = false;
+
+    modal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      form.action = button.dataset.action;
+      document.getElementById('adaptName').textContent = button.dataset.name;
+      nameInput.value = button.dataset.defaultName;
+      creating = false;
+      choose.classList.remove('d-none');
+      working.classList.add('d-none');
+      buttons.forEach(function (b) { b.disabled = false; });
+    });
+    modal.addEventListener('shown.bs.modal', function () { nameInput.select(); });
+    // Keep the "Creating your copy" state open until the edit page loads.
+    modal.addEventListener('hide.bs.modal', function (event) {
+      if (creating) { event.preventDefault(); }
+    });
+    form.addEventListener('submit', function () {
+      creating = true;
+      choose.classList.add('d-none');
+      working.classList.remove('d-none');
+      buttons.forEach(function (b) { b.disabled = true; });
+    });
+  })();
+</script>
 
 <!-- ── Machine translation ── -->
 {% if can_machine_translate %}
