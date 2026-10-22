@@ -757,6 +757,14 @@ class TriggerLlmContextTaskPermissionTests(TestCase):
         self.scenario = Scenario.objects.create(
             name='Gen Perm Scenario', created_by=self.owner, updated_by=self.owner
         )
+        # These tests are about permissions: the AI server is up.
+        from unittest.mock import patch
+        server_up = patch(
+            'authoringtool.views.proposal_server_status',
+            return_value={'state': 'ok', 'title': ''},
+        )
+        server_up.start()
+        self.addCleanup(server_up.stop)
 
     def test_non_owner_teacher_forbidden(self):
         from unittest.mock import patch
