@@ -55,6 +55,7 @@ class UserProfile(models.Model):
     bio         = models.TextField(max_length=500, blank=True, help_text="A short bio (max 500 characters)")
     gender      = models.CharField(max_length=10, blank=True, choices=GENDER_CHOICES)
     picture     = models.ImageField(upload_to='profile_pictures', null=True, blank=True)
+    language    = models.CharField(max_length=10, blank=True)
 
     def __str__(self):
         return f"Profile of {self.user.username}"

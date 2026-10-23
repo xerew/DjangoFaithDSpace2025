@@ -76,14 +76,17 @@ INSTALLED_APPS = [
     'home',
     'messaging',
     'feedback',
+    'localization',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'localization.middleware.UserLanguageMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.LoginRequiredMiddleware',
@@ -102,6 +105,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.maintenance_notices',
@@ -165,7 +169,25 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en'
+
+LANGUAGES = [
+    ('en', 'English'),
+    ('eu', 'Euskara'),
+    ('ca', 'Català'),
+    ('et', 'Eesti'),
+    ('fr', 'Français'),
+    ('de', 'Deutsch'),
+    ('el', 'Ελληνικά'),
+    ('it', 'Italiano'),
+    ('pt', 'Português'),
+    ('ro', 'Română'),
+    ('es', 'Español'),
+    ('tr', 'Türkçe'),
+    ('uk', 'Українська'),
+]
+
+LOCALE_PATHS = [BASE_DIR / 'locale']
 
 #TIME_ZONE = 'EET' 2026
 TIME_ZONE = "Europe/Athens"

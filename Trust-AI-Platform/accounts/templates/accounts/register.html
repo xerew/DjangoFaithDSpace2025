@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
 
 <head>
   <meta charset="utf-8">
@@ -43,6 +43,7 @@
 
 <body>
   {% include 'includes/maintenance_banner.html' %}
+  {% load localization_tags %}<div style="position:absolute;top:8px;right:12px;z-index:1050;">{% language_switcher %}</div>
   <div class="wrapper">
     <main class="content py-2">
       <div class="container">

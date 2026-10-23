@@ -1,0 +1,23 @@
+{% load static %}
+<div class="dropdown language-switcher">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ current.native }}">
+    <img src="{% static 'vendor/flag-icons/4x3/' %}{{ current.flag }}.svg" width="20" height="15" alt="">
+    <span>{{ current.code|upper }}</span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    {% for lang in languages %}
+    <li>
+      <form method="post" action="{% url 'switch_language' %}" class="m-0">
+        {% csrf_token %}
+        <input type="hidden" name="language" value="{{ lang.code }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="dropdown-item d-flex align-items-center gap-2{% if lang.code == current.code %} active{% endif %}">
+          <img src="{% static 'vendor/flag-icons/4x3/' %}{{ lang.flag }}.svg" width="20" height="15" alt="">
+          <span>{{ lang.code|upper }}</span>
+          <span class="d-none d-sm-inline">{{ lang.native }}</span>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

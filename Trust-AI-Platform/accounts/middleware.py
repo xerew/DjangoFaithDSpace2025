@@ -8,7 +8,7 @@ class LoginRequiredMiddleware:
 
     def __call__(self, request):
         excluded_paths = [
-            '/accounts/', '/static/', '/media/', '/admin/',
+            '/accounts/', '/language/', '/static/', '/media/', '/admin/',
         ]
 
         if not request.user.is_authenticated and not any(request.path.startswith(path) for path in excluded_paths):

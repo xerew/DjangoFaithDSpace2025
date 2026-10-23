@@ -2,7 +2,7 @@
 
 {% load group_tags %}
 
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
 
 <head>
   <meta charset="utf-8">
@@ -97,6 +97,9 @@
     <nav class="header-nav ms-auto">
 	
       <ul class="d-flex align-items-center">
+
+        {% load localization_tags %}
+        <li class="nav-item pe-3">{% language_switcher %}</li>
 
         <li class="nav-item dropdown pe-3">
 
