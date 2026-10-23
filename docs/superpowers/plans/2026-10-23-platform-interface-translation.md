@@ -252,21 +252,24 @@ locally (`xgettext`, `msgfmt` in `C:/Program Files/gettext-iconv/bin`),
 
 ---
 
-### Tasks 3–6: Mark interface text, one area per task
+### Task 3: Mark shell and account pages
 
-Each of these tasks follows the marking rules in Global Constraints. Its
-test lives in `localization/tests/test_marked_<area>.py` and asserts that a
-set of sentinel strings is in `marked_msgids()` after `update_translations`.
-Sentinels are exact English strings copied from the templates and code of
-that area:
-- at least one heading, one button and one message per page
-- every Python message string
-- every script string
+**Method (same for Tasks 3–6):**
+- Follow the marking rules in Global Constraints.
+- The test lives in `localization/tests/test_marked_<area>.py` and asserts
+  that a set of sentinel strings is in `marked_msgids()` (from
+  `localization/catalog.py`, Task 2) after running `update_translations`.
+- Sentinels are exact English strings copied from this area's templates and
+  code:
+  - at least one heading, one button and one message per page
+  - every Python message string
+  - every script string
+- Step 1 writes the sentinel test. Step 2 sees it fail, because nothing is
+  marked yet. Step 3 marks the text and runs `update_translations`. Step 4
+  sees the test pass and runs the app's existing tests (no new failures).
+  Step 5 commits, including the regenerated `locale/` files.
 
-The task's Step 1 lists them, and Step 2 sees them fail because they aren't
-marked yet.
-
-**Task 3: shell and accounts.**
+**Scope:**
 - `templates/` (`head.html`, `sidebar.html`, `footer.html`, `main.html`,
   `404.html`, `confirm_removal.html`, `includes/maintenance_banner.html`,
   `registration/*.html` including `password_reset_email.html` and
@@ -281,7 +284,24 @@ marked yet.
   labels.
 - Commit: `Mark shell, sign-in and account pages for translation`
 
-**Task 4: authoring.**
+### Task 4: Mark authoring pages
+
+**Method (same for Tasks 3–6):**
+- Follow the marking rules in Global Constraints.
+- The test lives in `localization/tests/test_marked_<area>.py` and asserts
+  that a set of sentinel strings is in `marked_msgids()` (from
+  `localization/catalog.py`, Task 2) after running `update_translations`.
+- Sentinels are exact English strings copied from this area's templates and
+  code:
+  - at least one heading, one button and one message per page
+  - every Python message string
+  - every script string
+- Step 1 writes the sentinel test. Step 2 sees it fail, because nothing is
+  marked yet. Step 3 marks the text and runs `update_translations`. Step 4
+  sees the test pass and runs the app's existing tests (no new failures).
+  Step 5 commits, including the regenerated `locale/` files.
+
+**Scope:**
 - `authoringtool/templates/authoringtool/`: `scenarios.html`,
   `archived_scenarios.html`, `create*/update*/view*` for Scenario, Phase,
   Activity, Answer(s) and Criterion, `includes/next_activity_picker.html`,
@@ -300,7 +320,24 @@ marked yet.
   to `%(error)s` form.
 - Commit: `Mark authoring pages for translation`
 
-**Task 5: Metrics & AI, proposals and analytics.**
+### Task 5: Mark Metrics & AI, proposals and analytics
+
+**Method (same for Tasks 3–6):**
+- Follow the marking rules in Global Constraints.
+- The test lives in `localization/tests/test_marked_<area>.py` and asserts
+  that a set of sentinel strings is in `marked_msgids()` (from
+  `localization/catalog.py`, Task 2) after running `update_translations`.
+- Sentinels are exact English strings copied from this area's templates and
+  code:
+  - at least one heading, one button and one message per page
+  - every Python message string
+  - every script string
+- Step 1 writes the sentinel test. Step 2 sees it fail, because nothing is
+  marked yet. Step 3 marks the text and runs `update_translations`. Step 4
+  sees the test pass and runs the app's existing tests (no new failures).
+  Step 5 commits, including the regenerated `locale/` files.
+
+**Scope:**
 - `ai_metrics_scenario.html`, `_ai_server_banner.html`,
   `proposal_list.html`, `proposal_history*.html`, and `index.html` (the
   analytics dashboard, the largest file)
@@ -313,7 +350,24 @@ marked yet.
   "Force Rebuild" and "Proposal History".
 - Commit: `Mark metrics, proposals and analytics pages for translation`
 
-**Task 6: groups, organizations, feedback, student pages.**
+### Task 6: Mark groups, organizations, feedback and student pages
+
+**Method (same for Tasks 3–6):**
+- Follow the marking rules in Global Constraints.
+- The test lives in `localization/tests/test_marked_<area>.py` and asserts
+  that a set of sentinel strings is in `marked_msgids()` (from
+  `localization/catalog.py`, Task 2) after running `update_translations`.
+- Sentinels are exact English strings copied from this area's templates and
+  code:
+  - at least one heading, one button and one message per page
+  - every Python message string
+  - every script string
+- Step 1 writes the sentinel test. Step 2 sees it fail, because nothing is
+  marked yet. Step 3 marks the text and runs `update_translations`. Step 4
+  sees the test pass and runs the app's existing tests (no new failures).
+  Step 5 commits, including the regenerated `locale/` files.
+
+**Scope:**
 - `usergroups/templates/usergroups/*.html`,
   `organization/templates/organization/*.html`,
   `feedback/templates/feedback/*.html`
