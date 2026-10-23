@@ -1,10 +1,11 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Update Group</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Update Group" %}</title>{% endblock %}
 
 {% block atcontent %}
 <main id="main" class="main">
   <div class="pagetitle">
-    <h1>Update Group: {{ group.name }}</h1>
+    <h1>{% blocktranslate trimmed with name=group.name %}Update Group: {{ name }}{% endblocktranslate %}</h1>
   </div>
   
   <section class="section">
@@ -12,32 +13,32 @@
       <div class="col-12 col-md-8 col-lg-6">
         <div class="card">
           <div class="card-body">
-            <h5 class="card-title">Update Group Details</h5>
+            <h5 class="card-title">{% translate "Update Group Details" %}</h5>
             <form method="post" action="{% url 'update_group' group.id %}">
               {% csrf_token %}
               <div class="row mb-3">
-                <label for="name" class="col-sm-4 col-form-label">Group Name</label>
+                <label for="name" class="col-sm-4 col-form-label">{% translate "Group Name" %}</label>
                 <div class="col-sm-8">
                   {{ form.name }}
                 </div>
               </div>
 
               <div class="row mb-3">
-                <label for="prefix" class="col-sm-4 col-form-label">User Prefix</label>
+                <label for="prefix" class="col-sm-4 col-form-label">{% translate "User Prefix" %}</label>
                 <div class="col-sm-8">
                   {{ form.prefix }}
                 </div>
               </div>
 
               <div class="row mb-3">
-                <label for="number_of_users" class="col-sm-4 col-form-label">Number of Users</label>
+                <label for="number_of_users" class="col-sm-4 col-form-label">{% translate "Number of Users" %}</label>
                 <div class="col-sm-8">
                   {{ form.number_of_users }}
                 </div>
               </div>
 
               <div class="row mb-3">
-                <label for="assigned_scenarios" class="col-sm-4 col-form-label">Assign Scenarios</label>
+                <label for="assigned_scenarios" class="col-sm-4 col-form-label">{% translate "Assign Scenarios" %}</label>
                 <div class="col-sm-8">
                   {{ form.assigned_scenarios }}
                 </div>
@@ -45,8 +46,8 @@
 
               <div class="row mb-2">
                 <div class="col-sm-10">
-                  <button type="submit" class="btn btn-primary">Update Group</button>
-                  <a href="{% url 'view_group' group.id %}" class="btn btn-secondary">Cancel</a>
+                  <button type="submit" class="btn btn-primary">{% translate "Update Group" %}</button>
+                  <a href="{% url 'view_group' group.id %}" class="btn btn-secondary">{% translate "Cancel" %}</a>
                 </div>
               </div>
             </form>

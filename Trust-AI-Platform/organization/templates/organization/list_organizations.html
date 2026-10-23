@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Organizations</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Organizations" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -100,20 +101,20 @@
       <div class="org-hero-icon"><i class="bi bi-building"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
-          Organizations
+          {% translate "Organizations" %}
         </div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">All Organizations</h2>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "All Organizations" %}</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
-          Browse and manage organizations
+          {% translate "Browse and manage organizations" %}
         </div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'index' %}">Dashboard</a></li>
-          <li class="breadcrumb-item active">Organizations</li>
+          <li class="breadcrumb-item"><a href="{% url 'index' %}">{% translate "Dashboard" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Organizations" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'create_organization' %}" class="hero-btn-solid">
-          <i class="bi bi-plus-lg"></i> Create New Organization
+          <i class="bi bi-plus-lg"></i> {% translate "Create New Organization" %}
         </a>
       </div>
     </div>
@@ -124,40 +125,40 @@
     <!-- ── Filter Card ── -->
     <div class="filter-card">
       <div class="filter-card-header">
-        <i class="bi bi-funnel"></i> Filter Organizations
+        <i class="bi bi-funnel"></i> {% translate "Filter Organizations" %}
       </div>
       <div class="filter-card-body">
         <form method="get">
           <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
-              <label class="f-label"><i class="bi bi-search"></i>Search</label>
-              <input type="text" name="q" class="f-input" placeholder="Name, short name, country…" value="{{ query }}">
+              <label class="f-label"><i class="bi bi-search"></i>{% translate "Search" %}</label>
+              <input type="text" name="q" class="f-input" placeholder="{% translate "Name, short name, country…" %}" value="{{ query }}">
             </div>
             <div class="col-12 col-md-3">
-              <label class="f-label"><i class="bi bi-translate"></i>Language</label>
+              <label class="f-label"><i class="bi bi-translate"></i>{% translate "Language" %}</label>
               <select name="language" class="f-input">
-                <option value="">All Languages</option>
+                <option value="">{% translate "All Languages" %}</option>
                 {% for lang in languages %}
                   <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="col-12 col-md-3">
-              <label class="f-label"><i class="bi bi-sort-alpha-down"></i>Sort By</label>
+              <label class="f-label"><i class="bi bi-sort-alpha-down"></i>{% translate "Sort By" %}</label>
               <select name="sort" class="f-input">
-                <option value="name"     {% if sort == "name" %}selected{% endif %}>Name A→Z</option>
-                <option value="-name"    {% if sort == "-name" %}selected{% endif %}>Name Z→A</option>
-                <option value="country"  {% if sort == "country" %}selected{% endif %}>Country</option>
-                <option value="-members" {% if sort == "-members" %}selected{% endif %}>Most Members</option>
-                <option value="members"  {% if sort == "members" %}selected{% endif %}>Fewest Members</option>
+                <option value="name"     {% if sort == "name" %}selected{% endif %}>{% translate "Name A→Z" %}</option>
+                <option value="-name"    {% if sort == "-name" %}selected{% endif %}>{% translate "Name Z→A" %}</option>
+                <option value="country"  {% if sort == "country" %}selected{% endif %}>{% translate "Country" %}</option>
+                <option value="-members" {% if sort == "-members" %}selected{% endif %}>{% translate "Most Members" %}</option>
+                <option value="members"  {% if sort == "members" %}selected{% endif %}>{% translate "Fewest Members" %}</option>
               </select>
             </div>
             <div class="col-12 col-md-2 d-flex gap-2 align-items-end">
               <button type="submit" class="f-submit flex-fill">
-                <i class="bi bi-search"></i> Filter
+                <i class="bi bi-search"></i> {% translate "Filter" %}
               </button>
               <a href="{% url 'list_organizations' %}" class="f-reset">
-                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                <i class="bi bi-arrow-counterclockwise"></i> {% translate "Reset" %}
               </a>
             </div>
           </div>
@@ -169,7 +170,7 @@
     {% if my_orgs %}
     <div class="mb-4">
       <div class="section-heading">
-        <i class="bi bi-person-check me-1"></i>My Organizations ({{ my_orgs|length }})
+        <i class="bi bi-person-check me-1"></i>{% blocktranslate trimmed with count=my_orgs|length %}My Organizations ({{ count }}){% endblocktranslate %}
       </div>
       <div class="row g-3">
         {% for org in my_orgs %}
@@ -186,16 +187,16 @@
                 <div class="org-card-short">{{ org.short_name }}</div>
               </div>
               <span class="org-member-badge badge-mine ms-auto flex-shrink-0">
-                <i class="bi bi-check-circle-fill"></i> Member
+                <i class="bi bi-check-circle-fill"></i> {% translate "Member" %}
               </span>
             </div>
             <div class="org-card-body">
               <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
               <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
-              <div class="org-meta"><i class="bi bi-people"></i> {{ org.member_count }} member{{ org.member_count|pluralize }}</div>
+              <div class="org-meta"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=org.member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</div>
               <div class="d-flex gap-2 mt-3">
                 <a href="{% url 'organization_detail' org.id %}" class="btn btn-primary btn-sm flex-fill">
-                  <i class="bi bi-eye me-1"></i>View
+                  <i class="bi bi-eye me-1"></i>{% translate "View" %}
                 </a>
                 {% if request.user in org.admins.all or request.user.is_staff or request.user.is_superuser %}
                 <a href="{% url 'edit_organization' org.id %}" class="btn btn-outline-warning btn-sm">
@@ -215,7 +216,7 @@
     {% if other_orgs %}
     <div class="mb-4">
       <div class="section-heading" style="color:#888; border-color:#e8edf5;">
-        <i class="bi bi-building me-1"></i>Other Organizations ({{ other_orgs|length }})
+        <i class="bi bi-building me-1"></i>{% blocktranslate trimmed with count=other_orgs|length %}Other Organizations ({{ count }}){% endblocktranslate %}
       </div>
       <div class="row g-3">
         {% for org in other_orgs %}
@@ -232,16 +233,16 @@
                 <div class="org-card-short">{{ org.short_name }}</div>
               </div>
               <span class="org-member-badge badge-other ms-auto flex-shrink-0 bg-white">
-                <i class="bi bi-person-x"></i> Not a member
+                <i class="bi bi-person-x"></i> {% translate "Not a member" %}
               </span>
             </div>
             <div class="org-card-body">
               <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
               <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
-              <div class="org-meta"><i class="bi bi-people"></i> {{ org.member_count }} member{{ org.member_count|pluralize }}</div>
+              <div class="org-meta"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=org.member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</div>
               <div class="d-flex gap-2 mt-3">
                 <a href="{% url 'organization_detail' org.id %}" class="btn btn-outline-secondary btn-sm flex-fill">
-                  <i class="bi bi-eye me-1"></i>View
+                  <i class="bi bi-eye me-1"></i>{% translate "View" %}
                 </a>
                 {% if request.user.is_staff or request.user.is_superuser %}
                 <a href="{% url 'edit_organization' org.id %}" class="btn btn-outline-warning btn-sm">
@@ -260,7 +261,7 @@
     {% if not my_orgs and not other_orgs %}
     <div class="text-center py-5" style="color:#888;">
       <i class="bi bi-building" style="font-size:40px; display:block; margin-bottom:12px;"></i>
-      No organizations found matching your filters.
+      {% translate "No organizations found matching your filters." %}
     </div>
     {% endif %}
 

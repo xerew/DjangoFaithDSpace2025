@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Create Organization</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Create Organization" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -54,17 +55,17 @@
     <div class="d-flex align-items-start gap-3">
       <div class="org-hero-icon"><i class="bi bi-building-add"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Organizations</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Create Organization</h2>
-        <div style="font-size:13px;opacity:0.82;margin-top:2px;">Fill in the details below. You will become its first admin.</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Organizations" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Create Organization" %}</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{% translate "Fill in the details below. You will become its first admin." %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
-          <li class="breadcrumb-item active">Create Organization</li>
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">{% translate "Organizations" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Create Organization" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'list_organizations' %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back to Organizations
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Organizations" %}
         </a>
       </div>
     </div>
@@ -77,33 +78,33 @@
           <form method="post" enctype="multipart/form-data" id="createOrgForm">
             {% csrf_token %}
 
-            <div class="form-section-label">Basic Information</div>
+            <div class="form-section-label">{% translate "Basic Information" %}</div>
             <div class="row g-3 mb-3">
               <div class="col-md-8">
-                <label class="field-label">Organization Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="name" placeholder="e.g. Information Management Unit" required>
+                <label class="field-label">{% translate "Organization Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="{% translate "e.g. Information Management Unit" %}" required>
               </div>
               <div class="col-md-4">
-                <label class="field-label">Short Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="short_name" placeholder="e.g. IMU" required>
+                <label class="field-label">{% translate "Short Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="short_name" placeholder="{% translate "e.g. IMU" %}" required>
               </div>
             </div>
 
             <div class="mb-3">
-              <label class="field-label">Description <span class="text-danger">*</span></label>
-              <textarea class="form-control" name="description" rows="4" placeholder="Briefly describe the organization…" required></textarea>
+              <label class="field-label">{% translate "Description" %} <span class="text-danger">*</span></label>
+              <textarea class="form-control" name="description" rows="4" placeholder="{% translate "Briefly describe the organization…" %}" required></textarea>
             </div>
 
-            <div class="form-section-label">Location & Language</div>
+            <div class="form-section-label">{% translate "Location & Language" %}</div>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="field-label">Country <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="country" placeholder="e.g. Greece" required>
+                <label class="field-label">{% translate "Country" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="country" placeholder="{% translate "e.g. Greece" %}" required>
               </div>
               <div class="col-md-6">
-                <label class="field-label">Language <span class="text-danger">*</span></label>
+                <label class="field-label">{% translate "Language" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="language" required>
-                  <option value="" disabled selected>Select a language…</option>
+                  <option value="" disabled selected>{% translate "Select a language…" %}</option>
                   {% for lang in languages %}
                     <option value="{{ lang.name }}">{{ lang.name }}</option>
                   {% endfor %}
@@ -111,19 +112,19 @@
               </div>
             </div>
 
-            <div class="form-section-label">Logo / Picture</div>
+            <div class="form-section-label">{% translate "Logo / Picture" %}</div>
             <div class="mb-4">
-              <label class="field-label">Upload Picture</label>
+              <label class="field-label">{% translate "Upload Picture" %}</label>
               <input class="form-control" type="file" name="picture" accept="image/*">
-              <div class="form-text">Optional. Recommended: square image, at least 200×200px.</div>
+              <div class="form-text">{% translate "Optional. Recommended: square image, at least 200×200px." %}</div>
             </div>
 
             <div class="d-flex gap-3 pt-3 border-top">
               <a href="{% url 'list_organizations' %}" class="btn btn-outline-secondary flex-fill">
-                <i class="bi bi-arrow-left me-1"></i>Cancel
+                <i class="bi bi-arrow-left me-1"></i>{% translate "Cancel" %}
               </a>
               <button type="submit" class="btn btn-primary flex-fill" id="formSubmitButton">
-                <i class="bi bi-check-lg me-1"></i>Create Organization
+                <i class="bi bi-check-lg me-1"></i>{% translate "Create Organization" %}
               </button>
             </div>
           </form>
@@ -134,13 +135,16 @@
 </main>
 
 <script>
+  const ORG_I18N = {
+    creating: "{% translate 'Creating…' as s %}{{ s|escapejs }}",
+  };
   function submitOrg() {
     const form = document.getElementById('createOrgForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     setTimeout(() => {
       ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Creating…'; btn.disabled = true; }
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> ' + ORG_I18N.creating; btn.disabled = true; }
       });
     }, 100);
   }

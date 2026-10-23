@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — New Announcement</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "New Announcement" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -49,18 +50,18 @@
     <div class="d-flex align-items-start gap-3">
       <div class="org-hero-icon"><i class="bi bi-megaphone-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Organizations</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">New Announcement</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Organizations" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "New Announcement" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ organization.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">{% translate "Organizations" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'organization_detail' organization.id %}">{{ organization.short_name }}</a></li>
-          <li class="breadcrumb-item active">New Announcement</li>
+          <li class="breadcrumb-item active">{% translate "New Announcement" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'organization_detail' organization.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
@@ -72,16 +73,16 @@
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="field-label" for="id_title">Title</label>
+            <label class="field-label" for="id_title">{% translate "Title" %}</label>
             {{ form.title }}
           </div>
           <div class="mb-3">
-            <label class="field-label" for="id_body">Announcement</label>
+            <label class="field-label" for="id_body">{% translate "Announcement" %}</label>
             <textarea class="tinymce-editor" name="body" id="id_body">{{ form.body.value|default:'' }}</textarea>
           </div>
           <div class="text-end">
             <button type="submit" class="hero-btn-solid" style="color:#1a56db;">
-              <i class="bi bi-send"></i> Post Announcement
+              <i class="bi bi-send"></i> {% translate "Post Announcement" %}
             </button>
           </div>
         </form>
@@ -92,6 +93,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
+const ANN_I18N = {
+  uploadFailed: "{% translate 'Upload failed' as s %}{{ s|escapejs }}",
+  imageUploadFailed: "{% translate 'Image upload failed. Check file size (max 8 MB).' as s %}{{ s|escapejs }}",
+};
 tinymce.init({
   selector: '.tinymce-editor',
   height: 320,
@@ -112,11 +117,11 @@ tinymce.init({
         credentials: 'same-origin'
       })
       .then(function (r) {
-        if (!r.ok) return r.json().then(function (d) { reject(d.error || 'Upload failed'); });
+        if (!r.ok) return r.json().then(function (d) { reject(d.error || ANN_I18N.uploadFailed); });
         return r.json();
       })
       .then(function (data) { if (data && data.location) resolve(data.location); })
-      .catch(function () { reject('Image upload failed. Check file size (max 8 MB).'); });
+      .catch(function () { reject(ANN_I18N.imageUploadFailed); });
     });
   },
   setup: function (editor) {

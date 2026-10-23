@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Pre-Scenario Questions</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Pre-Scenario Questions" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -54,17 +55,17 @@
     <div class="d-flex align-items-start gap-3">
       <div class="sv-hero-icon"><i class="bi bi-clipboard-check"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Student View</div>
-        <h2 style="margin:0;font-size:18px;font-weight:700;line-height:1.2;">Pre-Scenario Questions</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Student View" %}</div>
+        <h2 style="margin:0;font-size:18px;font-weight:700;line-height:1.2;">{% translate "Pre-Scenario Questions" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">{% translate "Scenarios" %}</a></li>
           <li class="breadcrumb-item active">{{ myScenario.name }}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'studentScenarios' %}" class="sv-hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back to Scenarios
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Scenarios" %}
         </a>
       </div>
     </div>
@@ -79,16 +80,16 @@
         <div class="scenario-header">
           <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
             <div>
-              <div style="font-size:12px; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">Scenario</div>
+              <div style="font-size:12px; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">{% translate "Scenario" %}</div>
               <h4 style="color:#fff; margin:0; font-weight:700;">{{ myScenario.name }}</h4>
             </div>
             <div class="text-end">
               {% if display_language != 'English' and display_language in "Ελληνικά Greek Português Portuguese German Deutsch Spanish French Italian Romanian Estonian Ukrainian Persian" %}
                 <span class="lang-badge"><i class="bi bi-translate me-1"></i>{{ display_language }}</span>
               {% elif display_language != 'English' %}
-                <span class="lang-badge lang-badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>Showing in English (no {{ display_language }} translation)</span>
+                <span class="lang-badge lang-badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>{% blocktranslate trimmed with language=display_language %}Showing in English (no {{ language }} translation){% endblocktranslate %}</span>
               {% else %}
-                <span class="lang-badge"><i class="bi bi-translate me-1"></i>English</span>
+                <span class="lang-badge"><i class="bi bi-translate me-1"></i>{% translate "English" %}</span>
               {% endif %}
             </div>
           </div>
@@ -97,7 +98,7 @@
           {% if total_questions > 0 %}
           <div class="mt-4">
             <div class="progress-label" style="color:rgba(255,255,255,0.7);">
-              {{ answered_count }} of {{ total_questions }} question{{ total_questions|pluralize }} answered
+              {% blocktranslate trimmed count counter=total_questions %}{{ answered_count }} of {{ counter }} question answered{% plural %}{{ answered_count }} of {{ counter }} questions answered{% endblocktranslate %}
             </div>
             <div class="progress" style="height:6px; background:rgba(255,255,255,0.2); border-radius:4px;">
               <div class="progress-bar bg-white" id="progressBar" role="progressbar"
@@ -117,19 +118,19 @@
           <div class="answered-banner">
             <i class="bi bi-check-circle-fill" style="font-size:20px;"></i>
             <div>
-              <strong>You have already submitted your answers.</strong>
-              Your responses are shown below in read-only mode.
+              <strong>{% translate "You have already submitted your answers." %}</strong>
+              {% translate "Your responses are shown below in read-only mode." %}
             </div>
           </div>
           {% else %}
           <!-- Intro -->
           <div class="intro-text">
             <i class="bi bi-info-circle me-2"></i>
-            Before starting the scenario, please take a moment to answer the following questions.
+            {% translate "Before starting the scenario, please take a moment to answer the following questions." %}
             {% if total_questions > 0 %}
-              Questions marked <span class="text-danger fw-semibold">*</span> are required.
+              {% translate 'Questions marked <span class="text-danger fw-semibold">*</span> are required.' %}
             {% endif %}
-            <strong>These questions are optional</strong> — you can skip directly to the scenario if you prefer.
+            {% translate "<strong>These questions are optional</strong> — you can skip directly to the scenario if you prefer." %}
           </div>
           {% endif %}
 
@@ -139,7 +140,7 @@
 
             {% for question_data in questions %}
             <div class="question-block {% if all_questions_answered %}readonly{% endif %}">
-              <div class="question-number">Question {{ forloop.counter }}</div>
+              <div class="question-number">{% blocktranslate trimmed with number=forloop.counter %}Question {{ number }}{% endblocktranslate %}</div>
               <div class="question-text">
                 {{ question_data.text }}
                 {% if question_data.is_required %}
@@ -161,7 +162,7 @@
             </div>
             {% empty %}
             <div class="alert alert-info">
-              <i class="bi bi-info-circle me-2"></i>No questions have been set up for this scenario yet.
+              <i class="bi bi-info-circle me-2"></i>{% translate "No questions have been set up for this scenario yet." %}
             </div>
             {% endfor %}
 
@@ -169,12 +170,12 @@
             <div class="d-flex gap-3 mt-4 pt-3 border-top">
               <a href="{% url 'studentView' scenario_id=myScenario.id %}" class="btn btn-outline-secondary flex-fill">
                 <i class="bi bi-skip-forward me-1"></i>
-                {% if all_questions_answered %}Go to Scenario{% else %}Skip & Go to Scenario{% endif %}
+                {% if all_questions_answered %}{% translate "Go to Scenario" %}{% else %}{% translate "Skip & Go to Scenario" %}{% endif %}
               </a>
               {% if not all_questions_answered %}
               <button type="button" class="btn btn-primary flex-fill"
                       data-bs-toggle="modal" data-bs-target="#submitConfirmationModal">
-                <i class="bi bi-send me-1"></i> Submit & Start Scenario
+                <i class="bi bi-send me-1"></i> {% translate "Submit & Start Scenario" %}
               </button>
               {% endif %}
             </div>
@@ -192,20 +193,20 @@
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title">
-          <i class="bi bi-send-check text-primary me-2"></i>Submit Feedback
+          <i class="bi bi-send-check text-primary me-2"></i>{% translate "Submit Feedback" %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body pt-2">
         <p class="text-muted mb-0">
-          Once submitted your answers cannot be changed.
-          Are you ready to submit and start the scenario?
+          {% translate "Once submitted your answers cannot be changed." %}
+          {% translate "Are you ready to submit and start the scenario?" %}
         </p>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go Back</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Go Back" %}</button>
         <button type="button" class="btn btn-primary" id="confirmSubmit">
-          <i class="bi bi-check-lg me-1"></i> Yes, Submit
+          <i class="bi bi-check-lg me-1"></i> {% translate "Yes, Submit" %}
         </button>
       </div>
     </div>
@@ -213,6 +214,9 @@
 </div>
 
 <script>
+  const FORM_I18N = {
+    answered: "{% blocktranslate trimmed count counter=total_questions with answered_count='{filled}' asvar answered_text %}{{ answered_count }} of {{ counter }} question answered{% plural %}{{ answered_count }} of {{ counter }} questions answered{% endblocktranslate %}{{ answered_text|escapejs }}",
+  };
   // Submit form on confirm
   document.getElementById('confirmSubmit').addEventListener('click', function () {
     document.getElementById('feedbackForm').submit();
@@ -235,7 +239,7 @@
     if (bar) {
       bar.style.width = pct + '%';
       bar.setAttribute('aria-valuenow', filled);
-      bar.closest('.progress').previousElementSibling.textContent = filled + ' of ' + total + ' question' + (total !== 1 ? 's' : '') + ' answered';
+      bar.closest('.progress').previousElementSibling.textContent = FORM_I18N.answered.replace('{filled}', () => filled);
     }
   }
 </script>

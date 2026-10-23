@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load i18n %}
 {% block page_title %}<title>Trust AI Lab — Edit {{ organization.name }}</title>{% endblock %}
 {% block atcontent %}
 
@@ -55,18 +56,18 @@
     <div class="d-flex align-items-start gap-3">
       <div class="org-hero-icon"><i class="bi bi-pencil-square"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Organizations</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Edit Organization</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Organizations" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Edit Organization" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ organization.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">{% translate "Organizations" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'organization_detail' organization.id %}">{{ organization.name }}</a></li>
-          <li class="breadcrumb-item active">Edit</li>
+          <li class="breadcrumb-item active">{% translate "Edit" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'organization_detail' organization.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back to Organization
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Organization" %}
         </a>
       </div>
     </div>
@@ -79,33 +80,33 @@
           <form method="post" enctype="multipart/form-data" id="editOrgForm">
             {% csrf_token %}
 
-            <div class="form-section-label">Basic Information</div>
+            <div class="form-section-label">{% translate "Basic Information" %}</div>
             <div class="row g-3 mb-3">
               <div class="col-md-8">
-                <label class="field-label">Organization Name <span class="text-danger">*</span></label>
+                <label class="field-label">{% translate "Organization Name" %} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="name" value="{{ form.name.value }}" required>
               </div>
               <div class="col-md-4">
-                <label class="field-label">Short Name <span class="text-danger">*</span></label>
+                <label class="field-label">{% translate "Short Name" %} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="short_name" value="{{ form.short_name.value }}" required>
               </div>
             </div>
 
             <div class="mb-3">
-              <label class="field-label">Description <span class="text-danger">*</span></label>
+              <label class="field-label">{% translate "Description" %} <span class="text-danger">*</span></label>
               <textarea class="form-control" name="description" rows="4" required>{{ form.description.value }}</textarea>
             </div>
 
-            <div class="form-section-label">Location & Language</div>
+            <div class="form-section-label">{% translate "Location & Language" %}</div>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="field-label">Country <span class="text-danger">*</span></label>
+                <label class="field-label">{% translate "Country" %} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="country" value="{{ form.country.value }}" required>
               </div>
               <div class="col-md-6">
-                <label class="field-label">Language <span class="text-danger">*</span></label>
+                <label class="field-label">{% translate "Language" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="language" required>
-                  <option value="" disabled {% if not form.language.value %}selected{% endif %}>Select a language…</option>
+                  <option value="" disabled {% if not form.language.value %}selected{% endif %}>{% translate "Select a language…" %}</option>
                   {% for lang in languages %}
                     <option value="{{ lang.name }}" {% if lang.name == form.language.value %}selected{% endif %}>{{ lang.name }}</option>
                   {% endfor %}
@@ -113,28 +114,28 @@
               </div>
             </div>
 
-            <div class="form-section-label">Logo / Picture</div>
+            <div class="form-section-label">{% translate "Logo / Picture" %}</div>
             <div class="mb-4">
               {% if organization.picture %}
               <div class="d-flex align-items-center gap-4 mb-3">
                 <img src="{{ organization.picture.url }}" alt="{{ organization.name }}" class="current-picture">
                 <div>
-                  <div style="font-size:13px; font-weight:600; color:#333;">Current picture</div>
-                  <div style="font-size:12px; color:#888;">Upload a new file below to replace it.</div>
+                  <div style="font-size:13px; font-weight:600; color:#333;">{% translate "Current picture" %}</div>
+                  <div style="font-size:12px; color:#888;">{% translate "Upload a new file below to replace it." %}</div>
                 </div>
               </div>
               {% endif %}
-              <label class="field-label">Upload New Picture</label>
+              <label class="field-label">{% translate "Upload New Picture" %}</label>
               <input class="form-control" type="file" name="picture" accept="image/*">
-              <div class="form-text">Optional. Recommended: square image, at least 200×200px.</div>
+              <div class="form-text">{% translate "Optional. Recommended: square image, at least 200×200px." %}</div>
             </div>
 
             <div class="d-flex gap-3 pt-3 border-top">
               <a href="{% url 'organization_detail' organization.id %}" class="btn btn-outline-secondary flex-fill">
-                <i class="bi bi-arrow-left me-1"></i>Cancel
+                <i class="bi bi-arrow-left me-1"></i>{% translate "Cancel" %}
               </a>
               <button type="submit" class="btn btn-primary flex-fill" id="formSubmitButton">
-                <i class="bi bi-check-lg me-1"></i>Save Changes
+                <i class="bi bi-check-lg me-1"></i>{% translate "Save Changes" %}
               </button>
             </div>
           </form>
@@ -145,13 +146,16 @@
 </main>
 
 <script>
+  const ORG_I18N = {
+    saving: "{% translate 'Saving…' as s %}{{ s|escapejs }}",
+  };
   function submitOrg() {
     const form = document.getElementById('editOrgForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     setTimeout(() => {
       ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Saving…'; btn.disabled = true; }
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> ' + ORG_I18N.saving; btn.disabled = true; }
       });
     }, 100);
   }

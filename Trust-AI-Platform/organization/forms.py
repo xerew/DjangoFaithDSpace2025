@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from .models import Organization, Announcement
 
 class OrganizationForm(forms.ModelForm):
@@ -12,5 +13,5 @@ class AnnouncementForm(forms.ModelForm):
         model = Announcement
         fields = ['title', 'body']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Announcement title'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Announcement title')}),
         }

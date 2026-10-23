@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
+from django.utils.translation import gettext as _, ngettext
 from .models import UserGroup, UserGroupMembership
 import openpyxl
 from django.http import HttpResponse
@@ -98,7 +99,11 @@ def create_user_group(request):
                 password = group.generate_password()
                 user = User.objects.create_user(username=username, password=password)
                 UserGroupMembership.objects.create(group=group, user=user, initial_password=encrypt_initial_password(password))
-            messages.success(request, f"Group '{group.name}' created successfully with {group.number_of_users} users.")
+            messages.success(request, ngettext(
+                "Group '%(name)s' created successfully with %(count)d user.",
+                "Group '%(name)s' created successfully with %(count)d users.",
+                group.number_of_users,
+            ) % {'name': group.name, 'count': group.number_of_users})
             return redirect('list_groups')
     else:
         form = UserGroupForm()
@@ -224,21 +229,22 @@ def delete_group(request, group_id):
             User.objects.filter(usergroupmembership__group=group).update(is_active=False)
         messages.success(
             request,
-            f"Group '{group.name}' was archived. Its students can no longer log in, "
-            "but all their work is kept. You can restore it from Archived groups.",
+            _("Group '%(name)s' was archived. Its students can no longer log in, "
+              "but all their work is kept. You can restore it from Archived groups.")
+            % {'name': group.name},
         )
         return redirect('list_groups')
 
     student_count = group.members.count()
     return render(request, 'confirm_removal.html', {
-        'title': f"Archive group “{group.name}”?",
-        'message': (
-            f"The group is hidden from your list and its {student_count} student "
+        'title': _("Archive group “%(name)s”?") % {'name': group.name},
+        'message': _(
+            "The group is hidden from your list and its %(count)s student "
             "account(s) can no longer log in. Their answers and results are kept, "
             "and you can restore the group at any time."
-        ),
+        ) % {'count': student_count},
         'warning': '',
-        'confirm_label': 'Archive group',
+        'confirm_label': _('Archive group'),
         'danger': False,
         'cancel_url': reverse('view_group', args=[group.id]),
     })
@@ -257,7 +263,7 @@ def restore_group(request, group_id):
         group.archived_by = None
         group.save(update_fields=['archived_at', 'archived_by'])
         User.objects.filter(usergroupmembership__group=group).update(is_active=True)
-    messages.success(request, f"Group '{group.name}' was restored.")
+    messages.success(request, _("Group '%(name)s' was restored.") % {'name': group.name})
     return redirect('list_groups')
 
 @group_required('teachers')
@@ -287,7 +293,11 @@ def edit_group(request, group_id):
                     password = group.generate_password()
                     user = User.objects.create_user(username=username, password=password)
                     UserGroupMembership.objects.create(group=group, user=user, initial_password=encrypt_initial_password(password))
-                messages.success(request, f"Added {diff} new users to the group.")
+                messages.success(request, ngettext(
+                    "Added %(count)d new user to the group.",
+                    "Added %(count)d new users to the group.",
+                    diff,
+                ) % {'count': diff})
 
             elif new_number_of_users < current_number_of_users:
                 # Removing extra users
@@ -297,13 +307,23 @@ def edit_group(request, group_id):
                 for membership in memberships_to_delete:
                     if remove_student_account(membership.user) == 'deactivated':
                         deactivated += 1
-                messages.success(request, f"Removed {diff} users from the group.")
+                messages.success(request, ngettext(
+                    "Removed %(count)d user from the group.",
+                    "Removed %(count)d users from the group.",
+                    diff,
+                ) % {'count': diff})
                 if deactivated:
                     messages.info(
                         request,
-                        f"{deactivated} of them had already worked on scenarios, so "
-                        "their accounts were deactivated instead of deleted to keep "
-                        "their work.",
+                        ngettext(
+                            "%(count)d of them had already worked on scenarios, so "
+                            "their account was deactivated instead of deleted to keep "
+                            "their work.",
+                            "%(count)d of them had already worked on scenarios, so "
+                            "their accounts were deactivated instead of deleted to keep "
+                            "their work.",
+                            deactivated,
+                        ) % {'count': deactivated},
                     )
 
             # Update the group model with the new number of users
@@ -312,7 +332,7 @@ def edit_group(request, group_id):
 
             group.save()
 
-            messages.success(request, f"Group '{group.name}' updated successfully.")
+            messages.success(request, _("Group '%(name)s' updated successfully.") % {'name': group.name})
             return redirect('view_group', group_id=group.id)
 
     else:
@@ -519,7 +539,7 @@ def export_multilingual_answers_csv(request):
     
     # Prepare headers
     header = ['User ID', 'Username', 'Scenario', 'Created On'] + [
-        f"Q{index+1}" for index, _ in enumerate(questions)
+        f"Q{index+1}" for index, _question in enumerate(questions)
     ]
     writer.writerow(header)
 

@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Feedback Forms</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Feedback Forms" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -41,16 +42,16 @@
     <div class="d-flex align-items-start gap-3">
       <div class="fb-hero-icon"><i class="bi bi-clipboard-check-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Feedback Forms</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Administration" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Feedback Forms" %}</h2>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">User Management</a></li>
-          <li class="breadcrumb-item active">Feedback Forms</li>
+          <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">{% translate "User Management" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Feedback Forms" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'feedback_form_create' %}" class="hero-btn-solid">
-          <i class="bi bi-plus-lg"></i> New Form
+          <i class="bi bi-plus-lg"></i> {% translate "New Form" %}
         </a>
       </div>
     </div>
@@ -62,37 +63,37 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Audience</th>
-              <th>Status</th>
-              <th class="text-center">Questions</th>
-              <th class="text-center">Responses</th>
-              <th>Created</th>
-              <th class="text-end">Actions</th>
+              <th>{% translate "Title" %}</th>
+              <th>{% translate "Audience" %}</th>
+              <th>{% translate "Status" %}</th>
+              <th class="text-center">{% translate "Questions" %}</th>
+              <th class="text-center">{% translate "Responses" %}</th>
+              <th>{% translate "Created" %}</th>
+              <th class="text-end">{% translate "Actions" %}</th>
             </tr>
           </thead>
           <tbody>
             {% for form in forms %}
             <tr>
               <td style="font-weight:600; color:#012970;">{{ form.title }}</td>
-              <td><span class="audience-badge {{ form.audience }}">{{ form.get_audience_display }}</span></td>
-              <td>{% if form.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="inactive-badge">Inactive</span>{% endif %}</td>
+              <td><span class="audience-badge {{ form.audience }}">{% if form.audience == "teacher" %}{% translate "Teacher" %}{% else %}{% translate "Student" %}{% endif %}</span></td>
+              <td>{% if form.is_active %}<span class="badge bg-success">{% translate "Active" %}</span>{% else %}<span class="inactive-badge">{% translate "Inactive" %}</span>{% endif %}</td>
               <td class="text-center">{{ form.question_count }}</td>
               <td class="text-center">{{ form.response_count }}</td>
               <td class="text-muted small">{{ form.created_on|date:"d M Y" }}</td>
               <td class="text-end" style="white-space:nowrap;">
-                <a href="{% url 'feedback_form_responses' form.id %}" class="action-btn" title="View responses"><i class="bi bi-inbox"></i></a>
-                <a href="{% url 'feedback_form_edit' form.id %}" class="action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-                <form method="post" action="{% url 'feedback_form_delete' form.id %}" class="action-form" onsubmit="return confirm('Delete this form and ALL its responses?');">
+                <a href="{% url 'feedback_form_responses' form.id %}" class="action-btn" title="{% translate "View responses" %}"><i class="bi bi-inbox"></i></a>
+                <a href="{% url 'feedback_form_edit' form.id %}" class="action-btn" title="{% translate "Edit" %}"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{% url 'feedback_form_delete' form.id %}" class="action-form" onsubmit="return confirm('{% translate "Delete this form and ALL its responses?" as msg %}{{ msg|escapejs }}');">
                   {% csrf_token %}
-                  <button type="submit" class="action-btn remove" title="Delete"><i class="bi bi-trash"></i></button>
+                  <button type="submit" class="action-btn remove" title="{% translate "Delete" %}"><i class="bi bi-trash"></i></button>
                 </form>
               </td>
             </tr>
             {% empty %}
             <tr><td colspan="7" class="text-center text-muted py-5">
               <i class="bi bi-clipboard-check" style="font-size:2rem;color:#d1d9e0;display:block;margin-bottom:8px;"></i>
-              No feedback forms yet.
+              {% translate "No feedback forms yet." %}
             </td></tr>
             {% endfor %}
           </tbody>

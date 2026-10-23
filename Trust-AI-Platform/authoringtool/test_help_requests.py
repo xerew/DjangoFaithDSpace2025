@@ -226,9 +226,11 @@ class StudentPageTests(HelpRequestBase):
             reverse('studentView', args=[self.scenario.id]),
         )
 
-        self.assertContains(response, 'Ζήτησε βοήθεια')
-        self.assertContains(response, 'Παύση: ζητήθηκε βοήθεια')
-        self.assertNotContains(response, 'Paused: help requested')
+        # The page is rendered in the scenario's language. The Greek help
+        # texts themselves arrive with the translation catalogue (Task 12),
+        # so this checks the language used, not the Greek words.
+        self.assertEqual(response.context['LANGUAGE_CODE'], 'el')
+        self.assertContains(response, '<html lang="el"')
 
     def test_unknown_language_falls_back_to_english(self):
         self.scenario.language = 'Klingon'

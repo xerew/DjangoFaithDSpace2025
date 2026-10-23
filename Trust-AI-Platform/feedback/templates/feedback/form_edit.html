@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load i18n %}
 {% block page_title %}<title>Trust AI Lab — {% if form_obj %}Edit{% else %}New{% endif %} Feedback Form</title>{% endblock %}
 {% block atcontent %}
 
@@ -34,15 +35,15 @@
     <div class="d-flex align-items-start gap-3">
       <div class="fb-hero-icon"><i class="bi bi-clipboard-plus-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if form_obj %}Edit Feedback Form{% else %}New Feedback Form{% endif %}</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Administration" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if form_obj %}{% translate "Edit Feedback Form" %}{% else %}{% translate "New Feedback Form" %}{% endif %}</h2>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'feedback_form_list' %}">Feedback Forms</a></li>
-          <li class="breadcrumb-item active">{% if form_obj %}Edit{% else %}New{% endif %}</li>
+          <li class="breadcrumb-item"><a href="{% url 'feedback_form_list' %}">{% translate "Feedback Forms" %}</a></li>
+          <li class="breadcrumb-item active">{% if form_obj %}{% translate "Edit" %}{% else %}{% translate "New" %}{% endif %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
-        <a href="{% url 'feedback_form_list' %}" class="hero-btn-ghost"><i class="bi bi-arrow-left"></i> Back</a>
+        <a href="{% url 'feedback_form_list' %}" class="hero-btn-ghost"><i class="bi bi-arrow-left"></i> {% translate "Back" %}</a>
       </div>
     </div>
   </div>
@@ -52,7 +53,7 @@
       <div class="card-body p-4">
         {% if form_obj and form_obj.responses.exists %}
         <div class="warn-banner"><i class="bi bi-exclamation-triangle-fill me-1"></i>
-          This form already has responses. Saving will replace all questions and <strong>permanently erase the answers already collected</strong> — export the responses first if you need them.
+          {% translate "This form already has responses. Saving will replace all questions and <strong>permanently erase the answers already collected</strong> — export the responses first if you need them." %}
         </div>
         {% endif %}
         {% if error %}
@@ -62,50 +63,50 @@
         <form method="post" id="feedbackFormEditor">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="field-label">Title</label>
+            <label class="field-label">{% translate "Title" %}</label>
             <input type="text" name="title" class="form-control" required
                    value="{% if posted %}{{ posted.title }}{% elif form_obj %}{{ form_obj.title }}{% endif %}">
           </div>
           <div class="mb-3">
-            <label class="field-label">Description (shown above the questions)</label>
+            <label class="field-label">{% translate "Description (shown above the questions)" %}</label>
             <textarea name="description" class="form-control" rows="2">{% if posted %}{{ posted.description }}{% elif form_obj %}{{ form_obj.description }}{% endif %}</textarea>
           </div>
           <div class="row g-3 mb-3">
             <div class="col-12 col-md-6">
-              <label class="field-label">Audience</label>
+              <label class="field-label">{% translate "Audience" %}</label>
               <select name="audience" class="form-select">
-                <option value="teacher" {% if posted %}{% if posted.audience == 'teacher' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'teacher' %}selected{% endif %}>Teachers (after creating a personalized scenario)</option>
-                <option value="student" {% if posted %}{% if posted.audience == 'student' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'student' %}selected{% endif %}>Students (after finishing a scenario)</option>
+                <option value="teacher" {% if posted %}{% if posted.audience == 'teacher' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'teacher' %}selected{% endif %}>{% translate "Teachers (after creating a personalized scenario)" %}</option>
+                <option value="student" {% if posted %}{% if posted.audience == 'student' %}selected{% endif %}{% elif form_obj and form_obj.audience == 'student' %}selected{% endif %}>{% translate "Students (after finishing a scenario)" %}</option>
               </select>
             </div>
             <div class="col-12 col-md-6 d-flex align-items-end">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
                        {% if posted %}{% if posted.is_active %}checked{% endif %}{% elif not form_obj or form_obj.is_active %}checked{% endif %}>
-                <label class="form-check-label" for="isActive" style="font-size:13.5px;">Active (shown to users)</label>
+                <label class="form-check-label" for="isActive" style="font-size:13.5px;">{% translate "Active (shown to users)" %}</label>
               </div>
             </div>
           </div>
 
           <hr>
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-            <label class="field-label mb-0">Questions</label>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="addQuestionBtn"><i class="bi bi-plus-lg"></i> Add question</button>
+            <label class="field-label mb-0">{% translate "Questions" %}</label>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addQuestionBtn"><i class="bi bi-plus-lg"></i> {% translate "Add question" %}</button>
           </div>
           <div id="questionList"></div>
           <input type="hidden" name="questions_json" id="questionsJson">
 
           <hr>
-          <label class="field-label">Scenario assignment</label>
+          <label class="field-label">{% translate "Scenario assignment" %}</label>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="assign_to_all" id="assignAll"
                    {% if posted %}{% if posted.assign_to_all %}checked{% endif %}{% elif not form_obj or form_obj.assign_to_all %}checked{% endif %}>
             <label class="form-check-label" for="assignAll" style="font-size:13.5px;">
-              Assign to <strong>all scenarios</strong> (includes scenarios created in the future)
+              {% translate "Assign to <strong>all scenarios</strong> (includes scenarios created in the future)" %}
             </label>
           </div>
           <div class="text-muted small mb-2" id="scenarioHint"></div>
-          <input type="text" class="form-control form-control-sm mb-2" id="scenarioSearch" placeholder="Search scenarios…" autocomplete="off">
+          <input type="text" class="form-control form-control-sm mb-2" id="scenarioSearch" placeholder="{% translate "Search scenarios…" %}" autocomplete="off">
           <div class="scenario-box">
             {% for scenario in scenarios %}
             <div class="form-check">
@@ -122,14 +123,14 @@
               <label class="form-check-label" for="sc{{ scenario.id }}" style="font-size:13.5px;">{{ scenario.name }}</label>
             </div>
             {% empty %}
-            <div class="text-muted small">No scenarios exist yet.</div>
+            <div class="text-muted small">{% translate "No scenarios exist yet." %}</div>
             {% endfor %}
-            <div class="text-muted small" id="scenarioNoMatch" style="display:none;">No scenarios match.</div>
+            <div class="text-muted small" id="scenarioNoMatch" style="display:none;">{% translate "No scenarios match." %}</div>
           </div>
 
           <div class="text-end mt-4">
             <button type="submit" class="btn btn-primary">
-              <i class="bi bi-check-lg me-1"></i>{% if form_obj %}Save Changes{% else %}Create Form{% endif %}
+              <i class="bi bi-check-lg me-1"></i>{% if form_obj %}{% translate "Save Changes" %}{% else %}{% translate "Create Form" %}{% endif %}
             </button>
           </div>
         </form>
@@ -140,6 +141,21 @@
 
 {{ questions_json|json_script:"initialQuestions" }}
 <script>
+const FB_I18N = {
+  allCovered: "{% translate 'All scenarios are covered. Uncheck a scenario below to EXCLUDE it (new scenarios are always covered).' as s %}{{ s|escapejs }}",
+  onlyChecked: "{% translate 'Only the CHECKED scenarios below get this form.' as s %}{{ s|escapejs }}",
+  questionText: "{% translate 'Question text' as s %}{{ s|escapejs }}",
+  multipleChoice: "{% translate 'Multiple choice' as s %}{{ s|escapejs }}",
+  freeText: "{% translate 'Free text' as s %}{{ s|escapejs }}",
+  required: "{% translate 'Required' as s %}{{ s|escapejs }}",
+  removeQuestion: "{% translate 'Remove question' as s %}{{ s|escapejs }}",
+  optionsHelp: "{% translate 'Options (one per line)' as s %}{{ s|escapejs }}",
+  optionsExample: [
+    "{% translate 'Very useful' as s %}{{ s|escapejs }}",
+    "{% translate 'Somewhat useful' as s %}{{ s|escapejs }}",
+    "{% translate 'Not useful' as s %}{{ s|escapejs }}",
+  ].join('\n'),
+};
 document.addEventListener('DOMContentLoaded', function () {
   const list = document.getElementById('questionList');
   const addBtn = document.getElementById('addQuestionBtn');
@@ -150,8 +166,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function updateHint() {
     hint.textContent = assignAll.checked
-      ? 'All scenarios are covered. Uncheck a scenario below to EXCLUDE it (new scenarios are always covered).'
-      : 'Only the CHECKED scenarios below get this form.';
+      ? FB_I18N.allCovered
+      : FB_I18N.onlyChecked;
   }
   assignAll.addEventListener('change', function () {
     updateHint();
@@ -182,21 +198,28 @@ document.addEventListener('DOMContentLoaded', function () {
     row.className = 'question-row';
     row.innerHTML =
       '<div class="d-flex gap-2 align-items-start flex-wrap">' +
-      '  <input type="text" class="form-control flex-grow-1 q-text" placeholder="Question text" style="min-width:200px;">' +
+      '  <input type="text" class="form-control flex-grow-1 q-text" style="min-width:200px;">' +
       '  <select class="form-select q-type" style="width:auto;">' +
-      '    <option value="choice">Multiple choice</option>' +
-      '    <option value="text">Free text</option>' +
+      '    <option value="choice"></option>' +
+      '    <option value="text"></option>' +
       '  </select>' +
       '  <div class="form-check align-self-center">' +
       '    <input class="form-check-input q-required" type="checkbox" checked>' +
-      '    <label class="form-check-label" style="font-size:12.5px;">Required</label>' +
+      '    <label class="form-check-label q-required-label" style="font-size:12.5px;"></label>' +
       '  </div>' +
-      '  <button type="button" class="remove-q" title="Remove question"><i class="bi bi-x-lg"></i></button>' +
+      '  <button type="button" class="remove-q"><i class="bi bi-x-lg"></i></button>' +
       '</div>' +
       '<div class="mt-2 q-options-wrap">' +
-      '  <label style="font-size:12px;color:#666;">Options (one per line)</label>' +
-      '  <textarea class="form-control q-options" rows="3" placeholder="Very useful\nSomewhat useful\nNot useful"></textarea>' +
+      '  <label class="q-options-help" style="font-size:12px;color:#666;"></label>' +
+      '  <textarea class="form-control q-options" rows="3"></textarea>' +
       '</div>';
+    row.querySelector('.q-text').placeholder = FB_I18N.questionText;
+    row.querySelector('.q-type').options[0].textContent = FB_I18N.multipleChoice;
+    row.querySelector('.q-type').options[1].textContent = FB_I18N.freeText;
+    row.querySelector('.q-required-label').textContent = FB_I18N.required;
+    row.querySelector('.remove-q').title = FB_I18N.removeQuestion;
+    row.querySelector('.q-options-help').textContent = FB_I18N.optionsHelp;
+    row.querySelector('.q-options').placeholder = FB_I18N.optionsExample;
     row.querySelector('.q-text').value = q.text || '';
     row.querySelector('.q-type').value = q.type || 'choice';
     row.querySelector('.q-required').checked = q.required !== false;

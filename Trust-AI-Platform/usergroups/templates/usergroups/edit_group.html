@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Edit Group</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Edit Group" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -76,18 +77,18 @@
     <div class="d-flex align-items-start gap-3">
       <div class="ug-hero-icon"><i class="bi bi-pencil-square"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Edit Group</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "User Groups" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Edit Group" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ group.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">{% translate "Groups" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'view_group' group.id %}">{{ group.name }}</a></li>
-          <li class="breadcrumb-item active">Edit</li>
+          <li class="breadcrumb-item active">{% translate "Edit" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'view_group' group.id %}" class="hero-btn-ghost" id="cancelBtn">
-          <i class="bi bi-arrow-left"></i> Back to Group
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Group" %}
         </a>
       </div>
     </div>
@@ -103,32 +104,32 @@
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-4">
-                <i class="bi bi-pencil-fill text-primary"></i> Group Details
+                <i class="bi bi-pencil-fill text-primary"></i> {% translate "Group Details" %}
               </h5>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Group Name</label>
+                <label class="form-label fw-semibold">{% translate "Group Name" %}</label>
                 {{ form.name }}
                 {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold">
-                  User Prefix
-                  <span class="text-muted fw-normal small ms-1">— used to generate usernames</span>
+                  {% translate "User Prefix" %}
+                  <span class="text-muted fw-normal small ms-1">{% translate "— used to generate usernames" %}</span>
                 </label>
                 {{ form.prefix }}
                 <div class="form-text text-warning-emphasis">
                   <i class="bi bi-exclamation-triangle me-1"></i>
-                  Changing the prefix affects <em>new</em> users only — existing accounts keep their current usernames.
+                  {% translate "Changing the prefix affects <em>new</em> users only — existing accounts keep their current usernames." %}
                 </div>
                 {% if form.prefix.errors %}<div class="text-danger small mt-1">{{ form.prefix.errors }}</div>{% endif %}
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold d-flex align-items-center gap-2">
-                  Number of Students
-                  <span class="member-badge">{{ current_member_count }} current</span>
+                  {% translate "Number of Students" %}
+                  <span class="member-badge">{% blocktranslate trimmed with count=current_member_count %}{{ count }} current{% endblocktranslate %}</span>
                 </label>
                 {{ form.number_of_users }}
                 <div id="userWarning"></div>
@@ -137,10 +138,10 @@
 
               <div class="d-flex gap-2 mt-4 pt-2 border-top">
                 <a href="{% url 'view_group' group.id %}" class="btn btn-outline-secondary" id="cancelBtn">
-                  <i class="bi bi-x-lg me-1"></i> Cancel
+                  <i class="bi bi-x-lg me-1"></i> {% translate "Cancel" %}
                 </a>
                 <button type="submit" class="btn btn-primary flex-grow-1" id="formSubmitButton">
-                  <i class="bi bi-check-lg me-1"></i> Save Changes
+                  <i class="bi bi-check-lg me-1"></i> {% translate "Save Changes" %}
                 </button>
               </div>
             </div>
@@ -152,24 +153,24 @@
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-1">
-                <i class="bi bi-journal-bookmark-fill text-primary"></i> Assign Scenarios
+                <i class="bi bi-journal-bookmark-fill text-primary"></i> {% translate "Assign Scenarios" %}
               </h5>
-              <p class="text-muted small mb-3">Select the scenarios this group will have access to.</p>
+              <p class="text-muted small mb-3">{% translate "Select the scenarios this group will have access to." %}</p>
 
               <div class="scenario-picker">
                 <div class="scenario-picker-header d-flex align-items-center gap-3">
                   <div class="search-wrap flex-grow-1">
                     <i class="bi bi-search"></i>
                     <input type="text" id="scenarioSearch" class="form-control form-control-sm"
-                           placeholder="Search scenarios…" oninput="filterScenarios()">
+                           placeholder="{% translate "Search scenarios…" %}" oninput="filterScenarios()">
                   </div>
-                  <span class="selected-count" id="selectedCount">0 selected</span>
+                  <span class="selected-count" id="selectedCount">{% translate "0 selected" %}</span>
                 </div>
 
                 <div class="scenario-picker-body" id="scenarioList">
 
                   {% if my_scenarios %}
-                  <div class="scenario-section-label" data-section>My Scenarios</div>
+                  <div class="scenario-section-label" data-section>{% translate "My Scenarios" %}</div>
                   {% for row in my_scenarios %}
                   {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
@@ -177,14 +178,14 @@
 
                   {% if other_scenarios %}
                   {% if my_scenarios %}<hr class="scenario-divider">{% endif %}
-                  <div class="scenario-section-label" data-section>Other Accessible Scenarios</div>
+                  <div class="scenario-section-label" data-section>{% translate "Other Accessible Scenarios" %}</div>
                   {% for row in other_scenarios %}
                   {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
                   {% endif %}
 
                   {% if not my_scenarios and not other_scenarios %}
-                  <p class="scenario-empty">No scenarios available.</p>
+                  <p class="scenario-empty">{% translate "No scenarios available." %}</p>
                   {% endif %}
 
                 </div>
@@ -205,6 +206,15 @@
 </main>
 
 <script>
+  const GROUP_I18N = {
+    selected: "{% translate '{count} selected' as s %}{{ s|escapejs }}",
+    saving: "{% translate 'Saving…' as s %}{{ s|escapejs }}",
+    reduceOne: "{% translate 'Reducing by <strong>{diff}</strong> will permanently delete <strong>{diff}</strong> student account and all their data.' as s %}{{ s|escapejs }}",
+    reduceMany: "{% translate 'Reducing by <strong>{diff}</strong> will permanently delete <strong>{diff}</strong> student accounts and all their data.' as s %}{{ s|escapejs }}",
+    addOne: "{% translate '<strong>{diff}</strong> new student account will be created.' as s %}{{ s|escapejs }}",
+    addMany: "{% translate '<strong>{diff}</strong> new student accounts will be created.' as s %}{{ s|escapejs }}",
+  };
+
   const currentMembers = {{ current_member_count }};
 
   function filterScenarios() {
@@ -239,7 +249,7 @@
 
   function updateCount() {
     const n = document.querySelectorAll('#scenarioList input[type="checkbox"]:checked').length;
-    document.getElementById('selectedCount').textContent = n + ' selected';
+    document.getElementById('selectedCount').textContent = GROUP_I18N.selected.replace('{count}', () => n);
   }
 
   // Live warning on number-of-users change
@@ -254,11 +264,11 @@
     } else if (newVal < currentMembers) {
       const diff = currentMembers - newVal;
       warning.className = 'text-danger';
-      warning.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Reducing by <strong>${diff}</strong> will permanently delete <strong>${diff}</strong> student account${diff > 1 ? 's' : ''} and all their data.`;
+      warning.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + (diff > 1 ? GROUP_I18N.reduceMany : GROUP_I18N.reduceOne).replace(/\{diff\}/g, () => diff);
     } else {
       const diff = newVal - currentMembers;
       warning.className = 'text-success';
-      warning.innerHTML = `<i class="bi bi-plus-circle me-1"></i><strong>${diff}</strong> new student account${diff > 1 ? 's' : ''} will be created.`;
+      warning.innerHTML = '<i class="bi bi-plus-circle me-1"></i>' + (diff > 1 ? GROUP_I18N.addMany : GROUP_I18N.addOne).replace(/\{diff\}/g, () => diff);
     }
   });
 
@@ -269,7 +279,7 @@
     setTimeout(() => {
       ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Saving…'; btn.disabled = true; }
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> ' + GROUP_I18N.saving; btn.disabled = true; }
       });
       document.getElementById('cancelBtn').classList.add('disabled');
     }, 100);

@@ -1,6 +1,7 @@
 {% extends "main.html" %}
+{% load i18n %}
 {% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — Pilot Implementations</title>{% endblock %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Pilot Implementations" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -71,19 +72,19 @@
     <div class="d-flex align-items-start gap-3">
       <div class="ug-hero-icon"><i class="bi bi-bar-chart-line"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Pilot Implementations</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "User Groups" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Pilot Implementations" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">
-          {{ group_data|length }} group{{ group_data|length|pluralize }} &middot; {{ grand_total_implementations }} total implementations
+          {% blocktranslate trimmed count counter=group_data|length %}{{ counter }} group{% plural %}{{ counter }} groups{% endblocktranslate %} &middot; {% blocktranslate trimmed with total=grand_total_implementations %}{{ total }} total implementations{% endblocktranslate %}
         </div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">User Groups</a></li>
-          <li class="breadcrumb-item active">Pilot Implementations</li>
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">{% translate "User Groups" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Pilot Implementations" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'list_groups' %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back to Groups
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Groups" %}
         </a>
       </div>
     </div>
@@ -96,25 +97,25 @@
       <div class="col-6 col-sm-3">
         <div class="card stat-card">
           <div class="stat-value text-primary">{{ group_data|length }}</div>
-          <div class="stat-label">Groups</div>
+          <div class="stat-label">{% translate "Groups" %}</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
         <div class="card stat-card">
           <div class="stat-value text-success">{{ grand_total_implementations }}</div>
-          <div class="stat-label">Total Implementations</div>
+          <div class="stat-label">{% translate "Total Implementations" %}</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
         <div class="card stat-card">
           <div class="stat-value text-warning">{{ totals_rows|length }}</div>
-          <div class="stat-label">Scenarios Used</div>
+          <div class="stat-label">{% translate "Scenarios Used" %}</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
         <div class="card stat-card">
           <div class="stat-value text-secondary">{{ total_scenarios_in_system }}</div>
-          <div class="stat-label">Total in System</div>
+          <div class="stat-label">{% translate "Total in System" %}</div>
         </div>
       </div>
     </div>
@@ -130,14 +131,14 @@
               <button class="nav-link active" id="tab-groups" data-bs-toggle="tab"
                       data-bs-target="#pane-groups" type="button" role="tab"
                       aria-controls="pane-groups" aria-selected="true">
-                <i class="bi bi-table me-1"></i>Groups &amp; Implementations
+                <i class="bi bi-table me-1"></i>{% translate "Groups &amp; Implementations" %}
               </button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="tab-totals" data-bs-toggle="tab"
                       data-bs-target="#pane-totals" type="button" role="tab"
                       aria-controls="pane-totals" aria-selected="false">
-                <i class="bi bi-bar-chart me-1"></i>Totals per Scenario
+                <i class="bi bi-bar-chart me-1"></i>{% translate "Totals per Scenario" %}
               </button>
             </li>
           </ul>
@@ -145,7 +146,7 @@
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
               <input type="text" id="implSearch" class="form-control border-start-0 bg-light"
-                     placeholder="Filter by teacher or scenario…">
+                     placeholder="{% translate "Filter by teacher or scenario…" %}">
             </div>
           </div>
         </div>
@@ -160,13 +161,13 @@
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light sticky-top-thead">
                 <tr>
-                  <th class="ps-4"><a href="?sort=group" class="text-decoration-none text-dark">Group</a></th>
-                  <th><a href="?sort=teacher" class="text-decoration-none text-dark">Teacher</a></th>
-                  <th class="text-center"><a href="?sort=num_students" class="text-decoration-none text-dark">Students</a></th>
-                  <th class="text-center"><a href="?sort=implementations&order={{ order }}" class="text-decoration-none text-dark">Impls.</a></th>
-                  <th><a href="?sort=first_implementation&order={{ order }}" class="text-decoration-none text-dark">First</a></th>
-                  <th><a href="?sort=last_implementation&order={{ order }}" class="text-decoration-none text-dark">Last</a></th>
-                  <th class="pe-4"><a href="?sort=scenario" class="text-decoration-none text-dark">Per Scenario</a></th>
+                  <th class="ps-4"><a href="?sort=group" class="text-decoration-none text-dark">{% translate "Group" %}</a></th>
+                  <th><a href="?sort=teacher" class="text-decoration-none text-dark">{% translate "Teacher" %}</a></th>
+                  <th class="text-center"><a href="?sort=num_students" class="text-decoration-none text-dark">{% translate "Students" %}</a></th>
+                  <th class="text-center"><a href="?sort=implementations&order={{ order }}" class="text-decoration-none text-dark">{% translate "Impls." %}</a></th>
+                  <th><a href="?sort=first_implementation&order={{ order }}" class="text-decoration-none text-dark">{% translate "First" %}</a></th>
+                  <th><a href="?sort=last_implementation&order={{ order }}" class="text-decoration-none text-dark">{% translate "Last" %}</a></th>
+                  <th class="pe-4"><a href="?sort=scenario" class="text-decoration-none text-dark">{% translate "Per Scenario" %}</a></th>
                 </tr>
               </thead>
               <tbody id="groups-tbody">
@@ -203,13 +204,13 @@
                   <tr>
                     <td colspan="7" class="text-center text-muted py-5">
                       <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                      No groups found. <a href="{% url 'create_group' %}">Create a new group</a>.
+                      {% translate "No groups found." %} <a href="{% url 'create_group' %}">{% translate "Create a new group" %}</a>.
                     </td>
                   </tr>
                 {% endfor %}
                 <tr class="no-results-row" id="groups-no-results">
                   <td colspan="7" class="text-center text-muted py-4">
-                    <i class="bi bi-search fs-4 d-block mb-2"></i>No results match your filter.
+                    <i class="bi bi-search fs-4 d-block mb-2"></i>{% translate "No results match your filter." %}
                   </td>
                 </tr>
               </tbody>
@@ -227,27 +228,27 @@
                   <div class="d-flex align-items-center gap-2 flex-wrap">
                     <span class="fw-semibold">{{ row.name }}</span>
                     {% if row.visibility == 'public' %}
-                      <span class="badge bg-success">Public</span>
+                      <span class="badge bg-success">{% translate "Public" %}</span>
                     {% elif row.visibility == 'org' %}
-                      <span class="badge bg-warning text-dark">Org-Only</span>
+                      <span class="badge bg-warning text-dark">{% translate "Org-Only" %}</span>
                     {% elif row.visibility == 'private' %}
-                      <span class="badge bg-danger">Private</span>
+                      <span class="badge bg-danger">{% translate "Private" %}</span>
                     {% endif %}
                   </div>
                   {% if row.extra %}
-                    <span class="text-muted" style="font-size:.75rem;">+{{ row.extra }} extra included</span>
+                    <span class="text-muted" style="font-size:.75rem;">{% blocktranslate trimmed with extra=row.extra %}+{{ extra }} extra included{% endblocktranslate %}</span>
                   {% endif %}
                 </div>
                 <span class="badge bg-success rounded-pill ms-3">{{ row.total }}</span>
               </li>
             {% empty %}
-              <li class="list-group-item text-center text-muted py-5">No data yet.</li>
+              <li class="list-group-item text-center text-muted py-5">{% translate "No data yet." %}</li>
             {% endfor %}
             <li class="list-group-item no-results-item text-center text-muted py-4" id="totals-no-results">
-              <i class="bi bi-search d-block mb-2" style="font-size:1.3rem;"></i>No results match your filter.
+              <i class="bi bi-search d-block mb-2" style="font-size:1.3rem;"></i>{% translate "No results match your filter." %}
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 bg-light" id="totals-grand-total">
-              <span class="fw-bold">Grand Total</span>
+              <span class="fw-bold">{% translate "Grand Total" %}</span>
               <span class="badge bg-dark rounded-pill fs-6">{{ grand_total_implementations }}</span>
             </li>
           </ul>

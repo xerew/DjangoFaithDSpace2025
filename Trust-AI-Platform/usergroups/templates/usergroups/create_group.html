@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Create Group</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Create Group" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -75,17 +76,17 @@
     <div class="d-flex align-items-start gap-3">
       <div class="ug-hero-icon"><i class="bi bi-plus-square-dotted"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">User Groups</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Create Group</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Set up a new student group and assign scenarios</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "User Groups" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Create Group" %}</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">{% translate "Set up a new student group and assign scenarios" %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">Groups</a></li>
-          <li class="breadcrumb-item active">Create Group</li>
+          <li class="breadcrumb-item"><a href="{% url 'list_groups' %}">{% translate "Groups" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Create Group" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'list_groups' %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back to Groups
+          <i class="bi bi-arrow-left"></i> {% translate "Back to Groups" %}
         </a>
       </div>
     </div>
@@ -101,35 +102,35 @@
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-4">
-                <i class="bi bi-people-fill text-primary"></i> Group Details
+                <i class="bi bi-people-fill text-primary"></i> {% translate "Group Details" %}
               </h5>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Group Name</label>
+                <label class="form-label fw-semibold">{% translate "Group Name" %}</label>
                 {{ form.name }}
                 {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
               </div>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">User Prefix
-                  <span class="text-muted fw-normal small ms-1">— used to auto-generate usernames</span>
+                <label class="form-label fw-semibold">{% translate "User Prefix" %}
+                  <span class="text-muted fw-normal small ms-1">{% translate "— used to auto-generate usernames" %}</span>
                 </label>
                 {{ form.prefix }}
                 {% if form.prefix.errors %}<div class="text-danger small mt-1">{{ form.prefix.errors }}</div>{% endif %}
               </div>
 
               <div class="mb-3">
-                <label class="form-label fw-semibold">Number of Students</label>
+                <label class="form-label fw-semibold">{% translate "Number of Students" %}</label>
                 {{ form.number_of_users }}
                 {% if form.number_of_users.errors %}<div class="text-danger small mt-1">{{ form.number_of_users.errors }}</div>{% endif %}
               </div>
 
               <div class="d-flex gap-2 mt-4 pt-2 border-top">
                 <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
-                  <i class="bi bi-arrow-left me-1"></i> Cancel
+                  <i class="bi bi-arrow-left me-1"></i> {% translate "Cancel" %}
                 </button>
                 <button type="submit" class="btn btn-primary flex-grow-1" id="formSubmitButton">
-                  <i class="bi bi-plus-circle me-1"></i> Create Group
+                  <i class="bi bi-plus-circle me-1"></i> {% translate "Create Group" %}
                 </button>
               </div>
             </div>
@@ -141,24 +142,24 @@
           <div class="card h-100">
             <div class="card-body p-4">
               <h5 class="card-title d-flex align-items-center gap-2 mb-1">
-                <i class="bi bi-journal-bookmark-fill text-primary"></i> Assign Scenarios
+                <i class="bi bi-journal-bookmark-fill text-primary"></i> {% translate "Assign Scenarios" %}
               </h5>
-              <p class="text-muted small mb-3">Select the scenarios this group will have access to.</p>
+              <p class="text-muted small mb-3">{% translate "Select the scenarios this group will have access to." %}</p>
 
               <div class="scenario-picker">
                 <div class="scenario-picker-header d-flex align-items-center gap-3">
                   <div class="search-wrap flex-grow-1">
                     <i class="bi bi-search"></i>
                     <input type="text" id="scenarioSearch" class="form-control form-control-sm"
-                           placeholder="Search scenarios…" oninput="filterScenarios()">
+                           placeholder="{% translate "Search scenarios…" %}" oninput="filterScenarios()">
                   </div>
-                  <span class="selected-count" id="selectedCount">0 selected</span>
+                  <span class="selected-count" id="selectedCount">{% translate "0 selected" %}</span>
                 </div>
 
                 <div class="scenario-picker-body" id="scenarioList">
 
                   {% if my_scenarios %}
-                  <div class="scenario-section-label" data-section>My Scenarios</div>
+                  <div class="scenario-section-label" data-section>{% translate "My Scenarios" %}</div>
                   {% for row in my_scenarios %}
                   {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
@@ -166,14 +167,14 @@
 
                   {% if other_scenarios %}
                   {% if my_scenarios %}<hr class="scenario-divider">{% endif %}
-                  <div class="scenario-section-label" data-section>Other Accessible Scenarios</div>
+                  <div class="scenario-section-label" data-section>{% translate "Other Accessible Scenarios" %}</div>
                   {% for row in other_scenarios %}
                   {% include "usergroups/includes/scenario_choice.html" %}
                   {% endfor %}
                   {% endif %}
 
                   {% if not my_scenarios and not other_scenarios %}
-                  <p class="scenario-empty">No scenarios available.</p>
+                  <p class="scenario-empty">{% translate "No scenarios available." %}</p>
                   {% endif %}
 
                 </div><!-- /picker-body -->
@@ -194,6 +195,11 @@
 </main>
 
 <script>
+  const GROUP_I18N = {
+    selected: "{% translate '{count} selected' as s %}{{ s|escapejs }}",
+    creating: "{% translate 'Creating…' as s %}{{ s|escapejs }}",
+  };
+
   function filterScenarios() {
     const q = document.getElementById('scenarioSearch').value.toLowerCase();
     document.querySelectorAll('#scenarioList .scenario-item').forEach(item => {
@@ -227,7 +233,7 @@
 
   function updateCount() {
     const n = document.querySelectorAll('#scenarioList input[type="checkbox"]:checked').length;
-    document.getElementById('selectedCount').textContent = n + ' selected';
+    document.getElementById('selectedCount').textContent = GROUP_I18N.selected.replace('{count}', () => n);
   }
 
   function submitCreate(e) {
@@ -236,7 +242,7 @@
     setTimeout(() => {
       ['formSubmitButton', 'heroSubmitBtn'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> Creating…'; btn.disabled = true; }
+        if (btn) { btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span> ' + GROUP_I18N.creating; btn.disabled = true; }
       });
     }, 100);
   }

@@ -14,7 +14,7 @@ from django.utils import timezone
 from functools import wraps
 from authoringtool.models import Language, Scenario, Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
-from studentview.help_labels import HELP_LABELS
+from localization.languages import LANGUAGE_META
 
 from .bulk_email import (
     absolutize_content_urls,
@@ -412,13 +412,17 @@ def admin_delete_role(request, role_id):
 # ── Languages ───────────────────────────────────────────────────────────────
 # Scenarios and organizations store a language by name, so renaming a
 # language also renames it there. Languages with built-in chat and help texts
-# (studentview/help_labels.py) are matched by name and cannot be renamed.
+# (localization/languages.py, plus Persian whose interface texts are not
+# translated yet) are matched by name and cannot be renamed.
 
 LANGUAGE_NAME_MAX_LENGTH = 50  # Organization.language is the shortest column
 
 
+_BUILT_IN_LANGUAGES = {meta['table_name'].casefold() for meta in LANGUAGE_META} | {'persian'}
+
+
 def _built_in(name):
-    return name.casefold() in {label.casefold() for label in HELP_LABELS}
+    return name.casefold() in _BUILT_IN_LANGUAGES
 
 
 def _usage_counts(model):

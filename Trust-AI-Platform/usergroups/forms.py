@@ -1,16 +1,17 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from .models import UserGroup, UserGroupMembership
 from authoringtool.models import Scenario  # Assuming Scenario is in the authoringtool app
 from django.contrib.auth.models import User
 
 class UserGroupForm(forms.ModelForm):
-    number_of_users = forms.IntegerField(min_value=1, label="Number of Users")
-    prefix = forms.CharField(max_length=50, label="User Prefix")
+    number_of_users = forms.IntegerField(min_value=1, label=_("Number of Users"))
+    prefix = forms.CharField(max_length=50, label=_("User Prefix"))
     assigned_scenarios = forms.ModelMultipleChoiceField(
         queryset=Scenario.objects.all(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        label="Assign Scenarios"
+        label=_("Assign Scenarios")
     )
 
     class Meta:
@@ -27,14 +28,14 @@ class UserGroupForm(forms.ModelForm):
         """Ensure that group name is unique."""
         name = self.cleaned_data['name']
         if UserGroup.objects.filter(name=name).exclude(id=self.instance.id).exists():
-            raise forms.ValidationError("A group with this name already exists.")
+            raise forms.ValidationError(_("A group with this name already exists."))
         return name
 
     def clean_prefix(self):
         """Ensure that prefix is not empty."""
         prefix = self.cleaned_data['prefix']
         if not prefix:
-            raise forms.ValidationError("Prefix cannot be empty.")
+            raise forms.ValidationError(_("Prefix cannot be empty."))
         return prefix
 
     def save(self, commit=True):

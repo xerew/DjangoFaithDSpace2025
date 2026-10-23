@@ -3,6 +3,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from django.db.models import Count
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -36,30 +37,30 @@ def submit_feedback(request, form_id, scenario_id):
 
     is_teacher = request.user.groups.filter(name='teachers').exists()
     if form.audience == 'student' and is_teacher:
-        return JsonResponse({'success': False, 'error': 'Student forms cannot be submitted by teachers.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Student forms cannot be submitted by teachers.')}, status=403)
     if form.audience == 'teacher' and not is_teacher:
-        return JsonResponse({'success': False, 'error': 'Teacher forms can only be submitted by teachers.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Teacher forms can only be submitted by teachers.')}, status=403)
     if not form.applies_to(scenario):
-        return JsonResponse({'success': False, 'error': 'This form does not apply to this scenario.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('This form does not apply to this scenario.')}, status=403)
 
     if FeedbackResponse.objects.filter(form=form, user=request.user, scenario=scenario).exists():
-        return JsonResponse({'success': False, 'error': 'You have already submitted this form.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('You have already submitted this form.')}, status=400)
 
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Invalid JSON.')}, status=400)
     answers = payload.get('answers') or {}
     if not isinstance(answers, dict):
-        return JsonResponse({'success': False, 'error': 'Invalid answers payload.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Invalid answers payload.')}, status=400)
 
     questions = list(form.questions.all())
     for question in questions:
         raw = _clean_answer(answers, question)
         if question.is_required and not raw:
-            return JsonResponse({'success': False, 'error': f'Question "{question.text}" is required.'}, status=400)
+            return JsonResponse({'success': False, 'error': _('Question "%(text)s" is required.') % {'text': question.text}}, status=400)
         if raw and question.question_type == 'choice' and raw not in question.options:
-            return JsonResponse({'success': False, 'error': f'Invalid option for "{question.text}".'}, status=400)
+            return JsonResponse({'success': False, 'error': _('Invalid option for "%(text)s".') % {'text': question.text}}, status=400)
 
     try:
         with transaction.atomic():
@@ -69,7 +70,7 @@ def submit_feedback(request, form_id, scenario_id):
                 if raw:
                     FeedbackAnswer.objects.create(response=response, question=question, answer_text=raw)
     except IntegrityError:
-        return JsonResponse({'success': False, 'error': 'You have already submitted this form.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('You have already submitted this form.')}, status=400)
 
     return JsonResponse({'success': True})
 
@@ -80,21 +81,21 @@ def _parse_questions_json(raw):
     try:
         data = json.loads(raw or '[]')
     except json.JSONDecodeError:
-        return None, 'Invalid question data.'
+        return None, _('Invalid question data.')
     if not isinstance(data, list) or not data:
-        return None, 'At least one question is required.'
+        return None, _('At least one question is required.')
     cleaned = []
     for item in data:
         text = (item.get('text') or '').strip()
         qtype = item.get('type')
         options = item.get('options') or []
         if not text:
-            return None, 'Every question needs text.'
+            return None, _('Every question needs text.')
         if qtype not in ('choice', 'text'):
-            return None, 'Invalid question type.'
+            return None, _('Invalid question type.')
         options = [str(o).strip() for o in options if str(o).strip()]
         if qtype == 'choice' and len(options) < 2:
-            return None, f'Question "{text}" needs at least two options.'
+            return None, _('Question "%(text)s" needs at least two options.') % {'text': text}
         cleaned.append({
             'text': text, 'type': qtype, 'options': options if qtype == 'choice' else [],
             'required': bool(item.get('required')),
@@ -106,10 +107,10 @@ def _save_form_from_post(request, form=None):
     """Shared create/edit POST handling. Returns (form, error_message)."""
     title = (request.POST.get('title') or '').strip()
     if not title:
-        return None, 'Title is required.'
+        return None, _('Title is required.')
     audience = request.POST.get('audience')
     if audience not in ('teacher', 'student'):
-        return None, 'Invalid audience.'
+        return None, _('Invalid audience.')
     questions, error = _parse_questions_json(request.POST.get('questions_json'))
     if error:
         return None, error
@@ -161,7 +162,7 @@ def feedback_form_create(request):
     if request.method == 'POST':
         form, error = _save_form_from_post(request)
         if error is None:
-            messages.success(request, 'Feedback form created.')
+            messages.success(request, _('Feedback form created.'))
             return redirect('feedback_form_list')
         return render(request, 'feedback/form_edit.html', {
             'form_obj': None, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
@@ -178,9 +179,9 @@ def feedback_form_create(request):
 def feedback_form_edit(request, form_id):
     form = get_object_or_404(FeedbackForm, id=form_id)
     if request.method == 'POST':
-        _, error = _save_form_from_post(request, form=form)
+        _saved, error = _save_form_from_post(request, form=form)
         if error is None:
-            messages.success(request, 'Feedback form updated.')
+            messages.success(request, _('Feedback form updated.'))
             return redirect('feedback_form_list')
         return render(request, 'feedback/form_edit.html', {
             'form_obj': form, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
@@ -202,7 +203,7 @@ def feedback_form_edit(request, form_id):
 def feedback_form_delete(request, form_id):
     form = get_object_or_404(FeedbackForm, id=form_id)
     form.delete()
-    messages.success(request, 'Feedback form deleted.')
+    messages.success(request, _('Feedback form deleted.'))
     return redirect('feedback_form_list')
 
 
@@ -231,7 +232,7 @@ def feedback_response_delete(request, response_id):
     response = get_object_or_404(FeedbackResponse, id=response_id)
     form_id = response.form_id
     response.delete()
-    messages.success(request, 'Response deleted.')
+    messages.success(request, _('Response deleted.'))
     return redirect('feedback_form_responses', form_id=form_id)
 
 

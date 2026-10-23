@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Student View</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Student View" %}</title>{% endblock %}
 {% block atcontent %}
 
     <script type="text/javascript">
@@ -105,10 +106,10 @@
 			end: "{% url 'help_end' myScenario.id %}",
 		};
 		const csrfToken = "{{ csrf_token }}";
-		// Read on demand: this script runs before the help-text element is parsed.
-		function helpText(key) {
-			return JSON.parse(document.getElementById('help-text').textContent)[key];
-		}
+		const helpText = {
+			pause_error: "{% translate 'Could not pause the scenario. Please try again.' as s %}{{ s|escapejs }}",
+			resume_error: "{% translate 'Could not resume the scenario. Please try again.' as s %}{{ s|escapejs }}",
+		};
 
 		let scenarioStarted = false;
 
@@ -148,7 +149,7 @@
 			button.disabled = true;
 			postHelp(helpUrls.start, { activity_id: activityId })
 				.then(() => setHelpPaused(true))
-				.catch(() => alert(helpText('pause_error')))
+				.catch(() => alert(helpText.pause_error))
 				.finally(() => { button.disabled = false; });
 		}
 
@@ -157,7 +158,7 @@
 			button.disabled = true;
 			postHelp(helpUrls.end)
 				.then(() => setHelpPaused(false))
-				.catch(() => alert(helpText('resume_error')))
+				.catch(() => alert(helpText.resume_error))
 				.finally(() => { button.disabled = false; });
 		}
 		{% endif %}
@@ -312,25 +313,25 @@
           <div class="d-flex align-items-start gap-3">
             <div class="sv-hero-icon"><i class="bi bi-mortarboard"></i></div>
             <div class="flex-grow-1">
-              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Student View</div>
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Student View" %}</div>
               <h2 style="margin:0;font-size:18px;font-weight:700;line-height:1.2;">{{ myScenario.name }}</h2>
               <nav><ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">Scenarios</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'studentScenarios' %}">{% translate "Scenarios" %}</a></li>
                 <li class="breadcrumb-item active">{{ myScenario.name }}</li>
               </ol></nav>
             </div>
             <div class="flex-shrink-0 d-flex flex-wrap gap-2 align-items-start" style="padding-top:4px;">
               {% if is_teacher %}
               <button onclick="sendRestartAndYes()" class="sv-hero-btn-ghost">
-                <i class="bi bi-arrow-counterclockwise"></i> Restart
+                <i class="bi bi-arrow-counterclockwise"></i> {% translate "Restart" %}
               </button>
               {% else %}
-              <button type="button" id="askHelpButton" class="sv-hero-btn-ghost" style="display:none;" onclick="startHelpPause()" dir="{{ help_text.dir }}">
-                <i class="bi bi-hand-index-thumb"></i> {{ help_text.ask }}
+              <button type="button" id="askHelpButton" class="sv-hero-btn-ghost" style="display:none;" onclick="startHelpPause()">
+                <i class="bi bi-hand-index-thumb"></i> {% translate "Ask for help" %}
               </button>
               {% endif %}
               <a href="{% url 'studentScenarios' %}" class="sv-hero-btn-ghost">
-                <i class="bi bi-arrow-left"></i> Back to Scenarios
+                <i class="bi bi-arrow-left"></i> {% translate "Back to Scenarios" %}
               </a>
             </div>
           </div>
@@ -346,9 +347,9 @@
                   <div id="welcomeCard" class="welcome-card">
                     <div style="font-size:48px; margin-bottom:16px;">🎓</div>
                     <h2>{{ myScenario.name }}</h2>
-                    <p>Your AI learning companion <strong>Plato</strong> will guide you through this scenario.<br>Click Start when you're ready.</p>
+                    <p>{% translate "Your AI learning companion <strong>Plato</strong> will guide you through this scenario." %}<br>{% translate "Click Start when you're ready." %}</p>
                     <button id="readyButton" onclick="sendReadyMessage()">
-                      <i class="bi bi-play-fill"></i> Start
+                      <i class="bi bi-play-fill"></i> {% translate "Start" %}
                     </button>
                   </div>
 
@@ -359,8 +360,8 @@
                   <div style="position:relative;">
                     <iframe id="simulationPreview" width="100%" style="height:min(600px,80vh);display:block;" src="{{ simulation.iframe_url }}" frameborder="0" allowfullscreen></iframe>
                     <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
-                      Can't see the simulation? &nbsp;
-                      <a href="{{ simulation.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+                      {% translate "Can't see the simulation?" %} &nbsp;
+                      <a href="{{ simulation.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">{% translate "Open in a new tab ↗" %}</a>
                     </div>
                   </div>
                   {% endif %}
@@ -370,20 +371,19 @@
                 <div class="col-12 col-md-4">
                   <div class="chatbot-card">
                     <div class="chatbot-container">
-                      <iframe src="{% url 'chat_interface' %}" title="Plato, AI learning companion" style="width:100%; border:none;"></iframe>
+                      <iframe src="{% url 'chat_interface' %}" title="{% translate "Plato, AI learning companion" %}" style="width:100%; border:none;"></iframe>
                     </div>
                     {% if not is_teacher %}
                     <div id="helpPauseOverlay" class="help-pause-overlay" role="dialog" aria-modal="true" aria-labelledby="helpPauseTitle"{% if not help_paused %} hidden{% endif %}>
-                      <div class="help-pause-box" dir="{{ help_text.dir }}">
+                      <div class="help-pause-box">
                         <i class="bi bi-pause-circle" style="font-size:40px;"></i>
-                        <h3 id="helpPauseTitle">{{ help_text.title }}</h3>
-                        <p>{{ help_text.message }}</p>
+                        <h3 id="helpPauseTitle">{% translate "Paused: help requested" %}</h3>
+                        <p>{% translate "Your teacher has been asked for help. You can continue when you are ready." %}</p>
                         <button type="button" id="resumeHelpButton" onclick="endHelpPause()">
-                          <i class="bi bi-play-fill"></i> {{ help_text.resume }}
+                          <i class="bi bi-play-fill"></i> {% translate "Resume" %}
                         </button>
                       </div>
                     </div>
-                    {{ help_text|json_script:"help-text" }}
                     {% endif %}
                   </div>
                 </div>
@@ -391,6 +391,14 @@
             </div>
         </div>
             <script>
+                const SV_I18N = {
+                    scanToLaunch: "{% translate 'Scan to Launch: {name}' as s %}{{ s|escapejs }}",
+                    qrCode: "{% translate 'QR Code' as s %}{{ s|escapejs }}",
+                    vrArPreview: "{% translate 'VR/AR Preview' as s %}{{ s|escapejs }}",
+                    openInNewTab: "{% translate 'Open in a new tab ↗' as s %}{{ s|escapejs }}",
+                    cantSeeSimulation: "{% translate "Can't see the simulation?" as s %}{{ s|escapejs }}",
+                    somethingWrong: "{% translate 'Something went wrong.' as s %}{{ s|escapejs }}",
+                };
                 {% comment %} function fetchAndDisplayActivity(activityId) {
                     fetch(`/studentview/get_activity/${activityId}`)
                       .then(response => {
@@ -447,14 +455,14 @@
 								// ✅ Render VR/AR Experiment info if available
 								if (data.vr_ar_data) {
 									const qrTitle = document.createElement('h5');
-									qrTitle.textContent = `Scan to Launch: ${data.vr_ar_data.name}`;
+									qrTitle.textContent = SV_I18N.scanToLaunch.replace('{name}', () => data.vr_ar_data.name);
 									qrTitle.style.marginTop = '20px';
 									contentDiv.appendChild(qrTitle);
 
 									if (data.vr_ar_data.qr_code_url) {
 										const qrImage = document.createElement('img');
 										qrImage.src = data.vr_ar_data.qr_code_url;
-										qrImage.alt = 'QR Code';
+										qrImage.alt = SV_I18N.qrCode;
 										qrImage.style.maxWidth = '300px';
 										qrImage.style.marginBottom = '15px';
 										qrImage.style.display = 'block';
@@ -464,7 +472,7 @@
 									if (data.vr_ar_data.picture_url) {
 										const previewImage = document.createElement('img');
 										previewImage.src = data.vr_ar_data.picture_url;
-										previewImage.alt = 'VR/AR Preview';
+										previewImage.alt = SV_I18N.vrArPreview;
 										previewImage.style.maxWidth = '100%';
 										previewImage.style.marginBottom = '15px';
 										previewImage.style.border = '1px solid #ccc';
@@ -517,8 +525,8 @@
 									_fallbackLink.target = '_blank';
 									_fallbackLink.rel = 'noopener';
 									_fallbackLink.style.cssText = 'color:#93c5fd;font-weight:600;text-decoration:none;';
-									_fallbackLink.textContent = 'Open in a new tab ↗';
-									_fallback.appendChild(document.createTextNode("Can't see the simulation?  "));
+									_fallbackLink.textContent = SV_I18N.openInNewTab;
+									_fallback.appendChild(document.createTextNode(SV_I18N.cantSeeSimulation + "  "));
 									_fallback.appendChild(_fallbackLink);
 									_iframeWrapper.appendChild(_fallback);
 								}
@@ -691,7 +699,7 @@
     <div class="modal-content" style="border-radius:14px;">
       <div class="modal-header" style="background:linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%);color:#fff;border-radius:14px 14px 0 0;">
         <h5 class="modal-title" id="feedbackModalTitle" style="font-size:16px;font-weight:700;"></h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{% translate "Close" %}"></button>
       </div>
       <div class="modal-body">
         <p class="text-muted" id="feedbackModalDesc" style="font-size:13.5px;"></p>
@@ -699,8 +707,8 @@
         <div class="text-danger small" id="feedbackModalError" style="display:none;"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Skip</button>
-        <button type="button" class="btn btn-primary btn-sm" id="feedbackModalSubmit"><i class="bi bi-send me-1"></i>Submit</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Skip" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" id="feedbackModalSubmit"><i class="bi bi-send me-1"></i>{% translate "Submit" %}</button>
       </div>
     </div>
   </div>
@@ -770,7 +778,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
       } else {
         const err = document.getElementById('feedbackModalError');
-        err.textContent = res.data.error || 'Something went wrong.';
+        err.textContent = res.data.error || SV_I18N.somethingWrong;
         err.style.display = '';
       }
     });

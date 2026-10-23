@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Add Member</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Add Member" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -56,21 +57,21 @@
       <div class="org-hero-icon"><i class="bi bi-person-plus"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
-          Organizations
+          {% translate "Organizations" %}
         </div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Add Member</h2>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Add Member" %}</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">
-          Search for a user and add them to {{ organization.name }}
+          {% blocktranslate trimmed with name=organization.name %}Search for a user and add them to {{ name }}{% endblocktranslate %}
         </div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">{% translate "Organizations" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'organization_detail' organization.id %}">{{ organization.name }}</a></li>
-          <li class="breadcrumb-item active">Add Member</li>
+          <li class="breadcrumb-item active">{% translate "Add Member" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'organization_detail' organization.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
@@ -85,24 +86,24 @@
             {% csrf_token %}
             <div class="row g-3 mb-3">
               <div class="col-12 col-md-4">
-                <label class="field-label">Username</label>
-                <input type="text" class="form-control" name="username" value="{{ request.POST.username }}" placeholder="e.g. jsmith">
+                <label class="field-label">{% translate "Username" %}</label>
+                <input type="text" class="form-control" name="username" value="{{ request.POST.username }}" placeholder="{% translate "e.g. jsmith" %}">
               </div>
               <div class="col-12 col-md-4">
-                <label class="field-label">First Name</label>
-                <input type="text" class="form-control" name="first_name" value="{{ request.POST.first_name }}" placeholder="e.g. John">
+                <label class="field-label">{% translate "First Name" %}</label>
+                <input type="text" class="form-control" name="first_name" value="{{ request.POST.first_name }}" placeholder="{% translate "e.g. John" %}">
               </div>
               <div class="col-12 col-md-4">
-                <label class="field-label">Last Name</label>
-                <input type="text" class="form-control" name="last_name" value="{{ request.POST.last_name }}" placeholder="e.g. Smith">
+                <label class="field-label">{% translate "Last Name" %}</label>
+                <input type="text" class="form-control" name="last_name" value="{{ request.POST.last_name }}" placeholder="{% translate "e.g. Smith" %}">
               </div>
             </div>
             <div class="d-flex gap-3 pt-3 border-top">
               <a href="{% url 'organization_detail' organization.id %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i>Cancel
+                <i class="bi bi-arrow-left me-1"></i>{% translate "Cancel" %}
               </a>
               <button type="submit" class="btn btn-primary flex-fill">
-                <i class="bi bi-search me-1"></i>Search Members
+                <i class="bi bi-search me-1"></i>{% translate "Search Members" %}
               </button>
             </div>
           </form>
@@ -114,7 +115,7 @@
           <div class="px-4 pt-3 pb-2">
             <span style="font-size:13px; font-weight:700; color:#012970;">
               <i class="bi bi-people-fill me-1"></i>
-              {% if users %}{{ users|length }} user{{ users|length|pluralize }} found{% else %}No users found{% endif %}
+              {% if users %}{% blocktranslate trimmed count counter=users|length %}{{ counter }} user found{% plural %}{{ counter }} users found{% endblocktranslate %}{% else %}{% translate "No users found" %}{% endif %}
             </span>
           </div>
 
@@ -145,12 +146,12 @@
               <!-- Status + Action -->
               <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 {% if user in organization.members.all %}
-                  <span class="badge text-bg-success" style="font-size:11px; padding: 6px 12px;">Already a member</span>
+                  <span class="badge text-bg-success" style="font-size:11px; padding: 6px 12px;">{% translate "Already a member" %}</span>
                 {% else %}
                   <form method="post" action="{% url 'add_member_to_org_confirm' organization.id user.id %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-primary">
-                      <i class="bi bi-person-plus-fill me-1"></i>Add to Org
+                      <i class="bi bi-person-plus-fill me-1"></i>{% translate "Add to Org" %}
                     </button>
                   </form>
                 {% endif %}
@@ -161,7 +162,7 @@
           {% else %}
             <div class="px-4 py-4 text-center text-muted" style="font-size:14px;">
               <i class="bi bi-person-x" style="font-size:28px; display:block; margin-bottom:8px;"></i>
-              No users matched your search. Try different terms.
+              {% translate "No users matched your search. Try different terms." %}
             </div>
           {% endif %}
         </div>

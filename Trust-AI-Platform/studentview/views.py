@@ -5,7 +5,10 @@ from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse, Http404
 from django.core.paginator import Paginator
-from studentview.help_labels import help_labels
+from contextlib import nullcontext
+from django.utils import translation
+from django.utils.translation import gettext as _
+from localization.languages import code_for_table_name, supported_codes
 from authoringtool.models import (
     Scenario,
     Activity,
@@ -45,6 +48,20 @@ from django.contrib import messages
 
 logger = logging.getLogger(__name__)
 
+
+def scenario_language(scenario):
+    """Context manager: use the scenario's own language for this response only.
+
+    The language comes from the scenario's language name (for example
+    "Greek" gives "el"). A language the platform does not translate keeps the
+    user's language. The override lasts for one response, so the user's saved
+    language and cookie are never changed.
+    """
+    code = code_for_table_name(scenario.language)
+    if code in supported_codes():
+        return translation.override(code)
+    return nullcontext()
+
 @login_required
 def scenario_viewer(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
@@ -53,7 +70,7 @@ def scenario_viewer(request, scenario_id):
     is_teacher = user.groups.filter(name="teachers").exists()
     if not is_teacher and hasattr(scenario, 'revision_draft'):
         return HttpResponse(
-            (
+            _(
                 'This scenario is temporarily unavailable while its teacher '
                 'prepares a new published revision. Please try again later.'
             ),
@@ -62,14 +79,14 @@ def scenario_viewer(request, scenario_id):
     first_activity = scenario.get_start_activity()
     if not first_activity:
         return HttpResponse(
-            'No activities found in this scenario.',
+            _('No activities found in this scenario.'),
             status=404,
         )
 
     current_version = scenario.ensure_current_version()
     implementation = None
     if not is_teacher:
-        implementation, _ = ScenarioImplementation.start_or_resume(
+        implementation, _created = ScenarioImplementation.start_or_resume(
             user,
             scenario,
         )
@@ -118,14 +135,15 @@ def scenario_viewer(request, scenario_id):
         ).exists()
     )
 
-    return render(request, 'studentview/scenarioView.html', {
-        'activity': first_activity, 'myScenario': scenario, 'user': user,
-        'is_teacher': is_teacher,
-        'implementation': implementation,
-        'feedback_form_json': feedback_form_json,
-        'help_paused': help_paused,
-        'help_text': help_labels(scenario.language),
-    })
+    # The page is shown in the scenario's language, not the user's.
+    with scenario_language(scenario):
+        return render(request, 'studentview/scenarioView.html', {
+            'activity': first_activity, 'myScenario': scenario, 'user': user,
+            'is_teacher': is_teacher,
+            'implementation': implementation,
+            'feedback_form_json': feedback_form_json,
+            'help_paused': help_paused,
+        })
 
 
 def _is_teacher(user):
@@ -155,16 +173,18 @@ def help_start(request, scenario_id):
     scenario = get_object_or_404(Scenario, pk=scenario_id)
     check_scenario_access(request.user, scenario)
     if _is_teacher(request.user):
-        return JsonResponse({'error': 'Only students can ask for help.'}, status=403)
+        with scenario_language(scenario):
+            return JsonResponse({'error': _('Only students can ask for help.')}, status=403)
     activity = Activity.objects.filter(
         pk=request.POST.get('activity_id') or None,
         scenario=scenario,
     ).select_related('phase').first()
     if activity is None:
-        return JsonResponse(
-            {'error': 'The activity does not belong to this scenario.'},
-            status=400,
-        )
+        with scenario_language(scenario):
+            return JsonResponse(
+                {'error': _('The activity does not belong to this scenario.')},
+                status=400,
+            )
     open_request = HelpRequest.objects.filter(
         user=request.user,
         scenario=scenario,
@@ -310,7 +330,7 @@ def get_activity(request, activity_id):
     if not is_teacher and hasattr(activity.scenario, 'revision_draft'):
         return JsonResponse(
             {
-                'error': (
+                'error': _(
                     'This scenario is temporarily unavailable while a new '
                     'revision is being prepared.'
                 )
@@ -364,12 +384,12 @@ def get_activity(request, activity_id):
         })
 
     except Activity.DoesNotExist:
-        return JsonResponse({'error': 'Activity not found'}, status=404)
+        return JsonResponse({'error': _('Activity not found')}, status=404)
     except (Simulation.DoesNotExist, ExperimentLL.DoesNotExist):
         # If the activity is supposed to have a simulation but doesn't find it, handle it gracefully
         return JsonResponse({
             'activity_id': activity.id,
-            'error': 'Linked simulation not found',
+            'error': _('Linked simulation not found'),
             'activity_type_name': activity.activity_type.name,
             'name': activity.name,
             'content': sanitize_html(activity.text)

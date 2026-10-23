@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load i18n %}
 {% load profile_tags %}
 {% load group_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ organization.name }}</title>{% endblock %}
@@ -89,7 +90,7 @@
         {% endif %}
       </div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Organizations</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Organizations" %}</div>
         <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{{ organization.name }}</h2>
         <div style="margin-top:6px;">
           {% if organization.country %}
@@ -98,31 +99,31 @@
           {% if organization.language %}
             <span class="org-meta-pill"><i class="bi bi-translate"></i> {{ organization.language }}</span>
           {% endif %}
-          <span class="org-meta-pill"><i class="bi bi-people"></i> {{ organization.members.count }} member{{ organization.members.count|pluralize }}</span>
+          <span class="org-meta-pill"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=organization.members.count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</span>
         </div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">Organizations</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'list_organizations' %}">{% translate "Organizations" %}</a></li>
           <li class="breadcrumb-item active">{{ organization.name }}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start flex-wrap" style="padding-top:4px;">
         <a href="{% url 'list_organizations' %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
         {% if is_member %}
         <a href="{% url 'org_chat' organization.id %}" class="hero-btn-ghost">
-          <i class="bi bi-chat-dots"></i> Team Chat
+          <i class="bi bi-chat-dots"></i> {% translate "Team Chat" %}
         </a>
         {% endif %}
         {% if is_admin %}
         <a href="{% url 'add_member_to_org' organization.id %}" class="hero-btn-ghost">
-          <i class="bi bi-person-plus"></i> Add Member
+          <i class="bi bi-person-plus"></i> {% translate "Add Member" %}
         </a>
         <a href="{% url 'edit_organization' organization.id %}" class="hero-btn-solid">
-          <i class="bi bi-pencil"></i> Edit
+          <i class="bi bi-pencil"></i> {% translate "Edit" %}
         </a>
         <button class="hero-btn-danger" data-bs-toggle="modal" data-bs-target="#deleteOrgModal">
-          <i class="bi bi-trash"></i> Delete
+          <i class="bi bi-trash"></i> {% translate "Delete" %}
         </button>
         {% elif not is_member %}
           {% if not join_request or join_request.status == 'rejected' %}
@@ -130,12 +131,12 @@
             {% csrf_token %}
             <button type="submit" class="hero-btn-solid">
               <i class="bi bi-person-check"></i>
-              {% if join_request and join_request.status == 'rejected' %}Re-request to Join{% else %}Request to Join{% endif %}
+              {% if join_request and join_request.status == 'rejected' %}{% translate "Re-request to Join" %}{% else %}{% translate "Request to Join" %}{% endif %}
             </button>
           </form>
           {% else %}
           <span class="hero-btn-ghost" style="opacity:0.75;cursor:default;">
-            <i class="bi bi-clock"></i> Request Pending
+            <i class="bi bi-clock"></i> {% translate "Request Pending" %}
           </span>
           {% endif %}
         {% endif %}
@@ -152,7 +153,7 @@
         <div class="card h-100" style="border-radius:12px;">
           <div class="card-body p-4">
             <h5 class="card-title" style="color:#012970; font-weight:700; margin-bottom:20px;">
-              <i class="bi bi-building me-2"></i>Organization Details
+              <i class="bi bi-building me-2"></i>{% translate "Organization Details" %}
             </h5>
 
             {% if organization.description %}
@@ -163,22 +164,22 @@
               {% if organization.country %}
               <div class="d-flex gap-2 align-items-center">
                 <span style="width:28px; text-align:center; color:#4154f1;"><i class="bi bi-geo-alt-fill"></i></span>
-                <span style="font-size:13px;"><strong>Country:</strong> {{ organization.country }}</span>
+                <span style="font-size:13px;"><strong>{% translate "Country:" %}</strong> {{ organization.country }}</span>
               </div>
               {% endif %}
               {% if organization.language %}
               <div class="d-flex gap-2 align-items-center">
                 <span style="width:28px; text-align:center; color:#4154f1;"><i class="bi bi-translate"></i></span>
-                <span style="font-size:13px;"><strong>Language:</strong> {{ organization.language }}</span>
+                <span style="font-size:13px;"><strong>{% translate "Language:" %}</strong> {{ organization.language }}</span>
               </div>
               {% endif %}
               <div class="d-flex gap-2 align-items-center">
                 <span style="width:28px; text-align:center; color:#4154f1;"><i class="bi bi-calendar3"></i></span>
-                <span style="font-size:13px;"><strong>Created:</strong> {{ organization.created_on|date:"d M Y" }}</span>
+                <span style="font-size:13px;"><strong>{% translate "Created:" %}</strong> {{ organization.created_on|date:"d M Y" }}</span>
               </div>
               <div class="d-flex gap-2 align-items-center">
                 <span style="width:28px; text-align:center; color:#4154f1;"><i class="bi bi-person-fill"></i></span>
-                <span style="font-size:13px;"><strong>Created by:</strong> {% user_link organization.created_by %}</span>
+                <span style="font-size:13px;"><strong>{% translate "Created by:" %}</strong> {% user_link organization.created_by %}</span>
               </div>
             </div>
 
@@ -186,41 +187,41 @@
 
             <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
               <h5 style="color:#012970; font-weight:700; margin:0; font-size:16px;">
-                <i class="bi bi-bar-chart-line-fill me-2"></i>Organization Data
+                <i class="bi bi-bar-chart-line-fill me-2"></i>{% translate "Organization Data" %}
               </h5>
               <a href="{% url 'download_organization_report' organization.id %}"
-                 class="btn btn-sm btn-outline-primary" title="Download organization data report">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Report
+                 class="btn btn-sm btn-outline-primary" title="{% translate "Download organization data report" %}">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>{% translate "Report" %}
               </a>
             </div>
 
             <div class="org-data-grid">
               <div class="org-data-stat">
                 <strong>{{ organization_stats.teacher_count }}</strong>
-                <span>Teachers</span>
+                <span>{% translate "Teachers" %}</span>
               </div>
               <div class="org-data-stat">
                 <strong>{{ organization_stats.student_count }}</strong>
-                <span>Students</span>
+                <span>{% translate "Students" %}</span>
               </div>
               <div class="org-data-stat">
                 <strong>{{ organization_stats.implementation_count }}</strong>
-                <span>Implementations</span>
+                <span>{% translate "Implementations" %}</span>
               </div>
               <div class="org-data-stat">
                 <strong>{{ organization_stats.scenario_count }}</strong>
-                <span>Scenarios used</span>
+                <span>{% translate "Scenarios used" %}</span>
               </div>
             </div>
 
             <div style="font-size:12px;color:#6b7280;line-height:1.6;margin-top:12px;">
-              {{ organization_stats.group_count }} student group{{ organization_stats.group_count|pluralize }}
-              &middot; {{ organization_stats.active_student_count }} active student{{ organization_stats.active_student_count|pluralize }}
-              &middot; {{ organization_stats.assigned_scenario_count }} assigned scenario{{ organization_stats.assigned_scenario_count|pluralize }}
+              {% blocktranslate trimmed count counter=organization_stats.group_count %}{{ counter }} student group{% plural %}{{ counter }} student groups{% endblocktranslate %}
+              &middot; {% blocktranslate trimmed count counter=organization_stats.active_student_count %}{{ counter }} active student{% plural %}{{ counter }} active students{% endblocktranslate %}
+              &middot; {% blocktranslate trimmed count counter=organization_stats.assigned_scenario_count %}{{ counter }} assigned scenario{% plural %}{{ counter }} assigned scenarios{% endblocktranslate %}
             </div>
 
             {% if organization_stats.category_rows %}
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:15px;margin-bottom:7px;">Scenario kinds</div>
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:15px;margin-bottom:7px;">{% translate "Scenario kinds" %}</div>
             <div class="d-flex flex-wrap gap-1">
               {% for row in organization_stats.category_rows %}
               <span class="org-type-chip">{{ row.category }} <strong>{{ row.scenario_count }}</strong></span>
@@ -228,7 +229,7 @@
             </div>
             {% elif organization_stats.teacher_count == 0 %}
             <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:12px;color:#6b7280;">
-              Statistics will appear when teacher members create student groups and run scenarios.
+              {% translate "Statistics will appear when teacher members create student groups and run scenarios." %}
             </div>
             {% endif %}
           </div>
@@ -241,8 +242,8 @@
           <div class="card-body p-0">
             <div class="d-flex align-items-center justify-content-between px-4 pt-4 pb-3 border-bottom">
               <h5 style="color:#012970; font-weight:700; margin:0;">
-                <i class="bi bi-people-fill me-2"></i>Members
-                <span style="font-size:13px; font-weight:400; color:#888; margin-left:6px;">{{ organization.members.count }} total</span>
+                <i class="bi bi-people-fill me-2"></i>{% translate "Members" %}
+                <span style="font-size:13px; font-weight:400; color:#888; margin-left:6px;">{% blocktranslate trimmed with count=organization.members.count %}{{ count }} total{% endblocktranslate %}</span>
               </h5>
             </div>
 
@@ -276,15 +277,15 @@
                 <!-- Role badge -->
                 <div class="flex-shrink-0">
                   {% if member in organization.admins.all %}
-                    <span class="badge-admin">Admin</span>
+                    <span class="badge-admin">{% translate "Admin" %}</span>
                   {% else %}
-                    <span class="badge-member">Member</span>
+                    <span class="badge-member">{% translate "Member" %}</span>
                   {% endif %}
                 </div>
 
                 <!-- Message (any teacher, not self) -->
                 {% if member != request.user and request.user|has_group:"teachers" %}
-                <a href="{% url 'thread' member.id %}" class="action-btn" title="Message" style="flex-shrink:0;">
+                <a href="{% url 'thread' member.id %}" class="action-btn" title="{% translate "Message" %}" style="flex-shrink:0;">
                   <i class="bi bi-chat-dots"></i>
                 </a>
                 {% endif %}
@@ -297,7 +298,7 @@
                     <!-- Demote -->
                     <form class="action-form" method="post" action="{% url 'demote_admin' organization.id member.id %}">
                       {% csrf_token %}
-                      <button type="submit" class="action-btn demote" title="Demote from Admin">
+                      <button type="submit" class="action-btn demote" title="{% translate "Demote from Admin" %}">
                         <i class="bi bi-person-dash-fill"></i>
                       </button>
                     </form>
@@ -305,12 +306,12 @@
                     <!-- Promote -->
                     <form class="action-form" method="post" action="{% url 'promote_admin' organization.id member.id %}">
                       {% csrf_token %}
-                      <button type="submit" class="action-btn promote" title="Promote to Admin">
+                      <button type="submit" class="action-btn promote" title="{% translate "Promote to Admin" %}">
                         <i class="bi bi-person-plus-fill"></i>
                       </button>
                     </form>
                     <!-- Remove -->
-                    <button type="button" class="action-btn remove" title="Remove Member"
+                    <button type="button" class="action-btn remove" title="{% translate "Remove Member" %}"
                             data-bs-toggle="modal" data-bs-target="#deleteMemberModal{{ member.id }}">
                       <i class="bi bi-trash-fill"></i>
                     </button>
@@ -324,7 +325,7 @@
               {% empty %}
               <div class="px-4 py-4 text-center text-muted" style="font-size:14px;">
                 <i class="bi bi-people" style="font-size:28px; display:block; margin-bottom:8px;"></i>
-                No members yet.
+                {% translate "No members yet." %}
               </div>
               {% endfor %}
             </div>
@@ -341,11 +342,11 @@
           <div class="card-body p-0">
             <div class="d-flex align-items-center justify-content-between gap-2 px-4 pt-4 pb-3 border-bottom flex-wrap">
               <h5 style="color:#012970; font-weight:700; margin:0;">
-                <i class="bi bi-megaphone-fill me-2"></i>Announcements
+                <i class="bi bi-megaphone-fill me-2"></i>{% translate "Announcements" %}
               </h5>
               {% if is_admin %}
               <a href="{% url 'create_announcement' organization.id %}" class="hero-btn-solid" style="background:#1a56db;color:#fff;">
-                <i class="bi bi-plus-lg"></i> New Announcement
+                <i class="bi bi-plus-lg"></i> {% translate "New Announcement" %}
               </a>
               {% endif %}
             </div>
@@ -358,12 +359,12 @@
                   </a>
                   {% if is_admin %}
                   <div class="d-flex gap-1 flex-shrink-0">
-                    <a href="{% url 'edit_announcement' organization.id announcement.id %}" class="action-btn" title="Edit">
+                    <a href="{% url 'edit_announcement' organization.id announcement.id %}" class="action-btn" title="{% translate "Edit" %}">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <form method="post" action="{% url 'delete_announcement' organization.id announcement.id %}" class="action-form" onsubmit="return confirm('Delete this announcement?');">
+                    <form method="post" action="{% url 'delete_announcement' organization.id announcement.id %}" class="action-form" onsubmit="return confirm('{% translate "Delete this announcement?" as msg %}{{ msg|escapejs }}');">
                       {% csrf_token %}
-                      <button type="submit" class="action-btn remove" title="Delete">
+                      <button type="submit" class="action-btn remove" title="{% translate "Delete" %}">
                         <i class="bi bi-trash"></i>
                       </button>
                     </form>
@@ -371,7 +372,7 @@
                   {% endif %}
                 </div>
                 <div class="member-meta mb-2">
-                  {% if announcement.created_by %}{% user_link announcement.created_by %}{% else %}Unknown{% endif %}
+                  {% if announcement.created_by %}{% user_link announcement.created_by %}{% else %}{% translate "Unknown" %}{% endif %}
                   · {{ announcement.created_on|date:"d M Y, H:i" }}
                 </div>
                 <a href="{% url 'announcement_detail' organization.id announcement.id %}" style="text-decoration:none; color:#333; display:block;">
@@ -381,12 +382,12 @@
               {% empty %}
               <div class="px-4 py-4 text-center text-muted" style="font-size:14px;">
                 <i class="bi bi-megaphone" style="font-size:28px; display:block; margin-bottom:8px;"></i>
-                No announcements yet.
+                {% translate "No announcements yet." %}
               </div>
               {% endfor %}
             </div>
             {% if announcements.paginator.num_pages > 1 %}
-            <nav class="px-4 py-3 border-top" aria-label="Announcement pages">
+            <nav class="px-4 py-3 border-top" aria-label="{% translate "Announcement pages" %}">
               <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
                 {% if announcements.has_previous %}
                   <li class="page-item">
@@ -428,7 +429,7 @@
           <div class="card-body p-0">
             <div class="d-flex align-items-center gap-2 px-4 pt-4 pb-3 border-bottom">
               <h5 style="color:#012970; font-weight:700; margin:0;">
-                <i class="bi bi-person-lines-fill me-2"></i>Pending Join Requests
+                <i class="bi bi-person-lines-fill me-2"></i>{% translate "Pending Join Requests" %}
               </h5>
               <span class="badge rounded-pill" style="background:#f59e0b;color:#fff;font-size:12px;">{{ pending_requests|length }}</span>
             </div>
@@ -449,19 +450,19 @@
                 {% if req.user.email %}
                   <div class="member-meta"><i class="bi bi-envelope me-1"></i>{{ req.user.email }}</div>
                 {% endif %}
-                <div class="member-meta"><i class="bi bi-clock me-1"></i>Requested {{ req.created_at|date:"d M Y" }}</div>
+                <div class="member-meta"><i class="bi bi-clock me-1"></i>{% blocktranslate trimmed with date=req.created_at|date:"d M Y" %}Requested {{ date }}{% endblocktranslate %}</div>
               </div>
               <div class="d-flex gap-2 flex-shrink-0">
                 <form method="post" action="{% url 'approve_join_request' req.id %}">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-success btn-sm">
-                    <i class="bi bi-check-lg me-1"></i>Approve
+                    <i class="bi bi-check-lg me-1"></i>{% translate "Approve" %}
                   </button>
                 </form>
                 <form method="post" action="{% url 'reject_join_request' req.id %}">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-x-lg me-1"></i>Reject
+                    <i class="bi bi-x-lg me-1"></i>{% translate "Reject" %}
                   </button>
                 </form>
               </div>
@@ -483,20 +484,20 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title"><i class="bi bi-person-x text-danger me-2"></i>Remove Member</h5>
+        <h5 class="modal-title"><i class="bi bi-person-x text-danger me-2"></i>{% translate "Remove Member" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body pt-2">
         <p class="text-muted mb-0">
-          Remove <strong>{{ member.get_full_name|default:member.username }}</strong> from <strong>{{ organization.name }}</strong>?
-          This cannot be undone.
+          {% blocktranslate trimmed with member_name=member.get_full_name|default:member.username org_name=organization.name %}Remove <strong>{{ member_name }}</strong> from <strong>{{ org_name }}</strong>?{% endblocktranslate %}
+          {% translate "This cannot be undone." %}
         </p>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <form method="post" action="{% url 'remove_member' organization.id member.id %}" style="display:inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-danger">Remove</button>
+          <button type="submit" class="btn btn-danger">{% translate "Remove" %}</button>
         </form>
       </div>
     </div>
@@ -511,18 +512,18 @@
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
       <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
         <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
-          <i class="bi bi-exclamation-triangle me-2"></i>Delete Organization
+          <i class="bi bi-exclamation-triangle me-2"></i>{% translate "Delete Organization" %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-        Are you sure you want to delete <strong>{{ organization.name }}</strong>? This action cannot be undone.
+        {% blocktranslate trimmed with name=organization.name %}Are you sure you want to delete <strong>{{ name }}</strong>? This action cannot be undone.{% endblocktranslate %}
       </div>
       <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <form method="post" action="{% url 'delete_organization' organization.id %}" style="display:inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Yes, Delete</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>{% translate "Yes, Delete" %}</button>
         </form>
       </div>
     </div>

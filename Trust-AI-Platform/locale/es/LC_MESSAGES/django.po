@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-23 23:23+0300\n"
+"POT-Creation-Date: 2026-10-23 23:57+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -113,13 +113,16 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\templates\main.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\studentview\templates\studentview\scenarioView.html .\templates\main.html
 msgid "Close"
 msgstr ""
 
 #: .\accounts\templates\accounts\login.html
 #: .\accounts\templates\accounts\profile.html
 #: .\accounts\templates\accounts\register.html
+#: .\organization\templates\organization\add_member.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Username"
 msgstr ""
 
@@ -216,6 +219,9 @@ msgid "Last login"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\list_organizations.html
 msgid "Country"
 msgstr ""
 
@@ -227,7 +233,16 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: .\accounts\templates\accounts\profile.html .\templates\head.html
+#: .\accounts\templates\accounts\profile.html
+#: .\organization\templates\organization\add_member.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_announcement.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\templates\head.html
 msgid "Organizations"
 msgstr ""
 
@@ -249,11 +264,13 @@ msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
 #: .\accounts\templates\accounts\register.html
+#: .\organization\templates\organization\add_member.html
 msgid "First Name"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
 #: .\accounts\templates\accounts\register.html
+#: .\organization\templates\organization\add_member.html
 msgid "Last Name"
 msgstr ""
 
@@ -311,6 +328,10 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 #: .\authoringtool\templates\authoringtool\updatePhase.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\organization\templates\organization\edit_announcement.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\usergroups\templates\usergroups\edit_group.html
 msgid "Save Changes"
 msgstr ""
 
@@ -539,7 +560,8 @@ msgstr ""
 msgid "Unknown action."
 msgstr ""
 
-#: .\accounts\views.py
+#: .\accounts\views.py .\feedback\templates\feedback\form_list.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
 msgid "Teacher"
 msgstr ""
 
@@ -552,6 +574,7 @@ msgid "Superuser"
 msgstr ""
 
 #: .\accounts\views.py
+#: .\organization\templates\organization\organization_detail.html
 msgid "Admin"
 msgstr ""
 
@@ -817,6 +840,9 @@ msgstr ""
 
 #: .\authoringtool\models.py
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\usergroups\templates\usergroups\includes\scenario_choice.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Public"
 msgstr ""
 
@@ -896,7 +922,16 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\add_member.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\organization_detail.html
 #: .\templates\confirm_removal.html
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\update_group.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Cancel"
 msgstr ""
 
@@ -1004,6 +1039,10 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\studentview\templates\studentview\scenarioForm.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\studentview\templates\studentview\scenarioView.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Scenarios"
 msgstr ""
 
@@ -1138,6 +1177,11 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\usergroups\templates\usergroups\includes\scenario_choice.html
 msgid "Language"
 msgstr ""
 
@@ -1565,6 +1609,7 @@ msgid "owner %(username)s"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\archived_scenarios.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Restore"
 msgstr ""
 
@@ -1589,6 +1634,8 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createScenario.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
 msgid "Basic Information"
 msgstr ""
 
@@ -1729,12 +1776,14 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 #: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "Can't see the simulation?"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 #: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "Open in a new tab ↗"
 msgstr ""
 
@@ -1874,6 +1923,7 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 #: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "QR Code"
 msgstr ""
 
@@ -1881,6 +1931,8 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createCriterion.html
 #: .\authoringtool\templates\authoringtool\createPhase.html
 #: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\usergroups\templates\usergroups\create_group.html
 msgid "Creating…"
 msgstr ""
 
@@ -1897,11 +1949,15 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\edit_announcement.html
 msgid "Upload failed"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\edit_announcement.html
 msgid "Image upload failed. Check file size (max 8 MB)."
 msgstr ""
 
@@ -1943,6 +1999,14 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\updateAnswers.html
 #: .\authoringtool\templates\authoringtool\updateCriterion.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_responses.html
+#: .\organization\templates\organization\add_member.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\edit_announcement.html
+#: .\organization\templates\organization\org_chat.html
+#: .\organization\templates\organization\organization_detail.html
 msgid "Back"
 msgstr ""
 
@@ -1996,6 +2060,7 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createAnswer.html
 #: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\organization\templates\organization\organization_detail.html
 msgid "Remove"
 msgstr ""
 
@@ -2003,6 +2068,8 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\updateAnswers.html
 #: .\authoringtool\templates\authoringtool\updatePhase.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\usergroups\templates\usergroups\edit_group.html
 msgid "Saving…"
 msgstr ""
 
@@ -2171,6 +2238,8 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createScenario.html
 #: .\authoringtool\templates\authoringtool\updatePhase.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
 msgid "Description"
 msgstr ""
 
@@ -2293,6 +2362,7 @@ msgid "Cover Image"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\feedback\templates\feedback\form_edit.html
 msgid "Required"
 msgstr ""
 
@@ -2322,7 +2392,9 @@ msgstr ""
 msgid "Trust AI Lab — Dashboard"
 msgstr ""
 
-#: .\authoringtool\templates\authoringtool\index.html .\templates\head.html
+#: .\authoringtool\templates\authoringtool\index.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\templates\head.html
 msgid "Dashboard"
 msgstr ""
 
@@ -2502,10 +2574,14 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\studentview\templates\studentview\scenarioForm.html
 msgid "Scenario"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
 msgid "Search scenarios…"
 msgstr ""
 
@@ -2515,6 +2591,7 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
 #: .\home\templates\home\home.html .\templates\head.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Student Groups"
 msgstr ""
 
@@ -2555,11 +2632,14 @@ msgid "All time"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Apply"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Reset"
 msgstr ""
 
@@ -2792,6 +2872,8 @@ msgid "Triggered by"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_history.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\organization_detail.html
 msgid "Unknown"
 msgstr ""
 
@@ -3042,6 +3124,7 @@ msgid "Accept"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\organization\templates\organization\organization_detail.html
 msgid "Reject"
 msgstr ""
 
@@ -3060,6 +3143,13 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Edit"
 msgstr ""
 
@@ -3098,6 +3188,7 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Name"
 msgstr ""
 
@@ -3198,14 +3289,17 @@ msgid "✓ Correct"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "Skip"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "Submit"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\studentview\templates\studentview\scenarioView.html
 msgid "Something went wrong."
 msgstr ""
 
@@ -3226,10 +3320,13 @@ msgid "Create New"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Filter Scenarios"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Search"
 msgstr ""
 
@@ -3252,10 +3349,16 @@ msgid "Visibility"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\usergroups\templates\usergroups\includes\scenario_choice.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Org-Only"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\usergroups\templates\usergroups\includes\scenario_choice.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Private"
 msgstr ""
 
@@ -3264,6 +3367,7 @@ msgid "Show My Scenarios"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Subject"
 msgstr ""
 
@@ -3275,6 +3379,8 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 #: .\home\templates\home\home.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "View"
 msgstr ""
 
@@ -3300,10 +3406,14 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\organization_detail.html
 msgid "Delete"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 #, python-format
 msgid "%(name)s: all languages"
 msgstr ""
@@ -3321,12 +3431,17 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Students"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\feedback\templates\feedback\form_list.html
 msgid "Actions"
 msgstr ""
 
@@ -3376,6 +3491,7 @@ msgid "create a new one"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Scenario pages"
 msgstr ""
 
@@ -3807,6 +3923,7 @@ msgid "Type"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Created On"
 msgstr ""
 
@@ -3967,6 +4084,8 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\usergroups\templates\usergroups\list_groups.html
 msgid "Created"
 msgstr ""
 
@@ -4021,6 +4140,7 @@ msgid "Delete Activity"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\organization\templates\organization\organization_detail.html
 #, python-format
 msgid ""
 "Are you sure you want to delete <strong>%(name)s</strong>? This action "
@@ -4088,6 +4208,7 @@ msgid "%(minutes)s minutes"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\usergroups\templates\usergroups\view_group.html
 msgid "Created By"
 msgstr ""
 
@@ -4539,6 +4660,7 @@ msgid "Delete phase “%(name)s”?"
 msgstr ""
 
 #: .\authoringtool\views.py
+#: .\organization\templates\organization\organization_detail.html
 msgid "This cannot be undone."
 msgstr ""
 
@@ -4788,6 +4910,285 @@ msgstr ""
 msgid "Image exceeds the 8 MB size limit."
 msgstr ""
 
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Administration"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Edit Feedback Form"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "New Feedback Form"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\feedback\templates\feedback\form_responses.html
+msgid "Feedback Forms"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "New"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid ""
+"This form already has responses. Saving will replace all questions and "
+"<strong>permanently erase the answers already collected</strong> — export "
+"the responses first if you need them."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\edit_announcement.html
+msgid "Title"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Description (shown above the questions)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Audience"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Teachers (after creating a personalized scenario)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Students (after finishing a scenario)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Active (shown to users)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Questions"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Add question"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Scenario assignment"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid ""
+"Assign to <strong>all scenarios</strong> (includes scenarios created in the "
+"future)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "No scenarios exist yet."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "No scenarios match."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Create Form"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid ""
+"All scenarios are covered. Uncheck a scenario below to EXCLUDE it (new "
+"scenarios are always covered)."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Only the CHECKED scenarios below get this form."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Question text"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Multiple choice"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Free text"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Remove question"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Options (one per line)"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Very useful"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Somewhat useful"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_edit.html
+msgid "Not useful"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "User Management"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "New Form"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "Status"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+#: .\feedback\templates\feedback\form_responses.html
+msgid "Responses"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "Student"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html .\templates\head.html
+msgid "Active"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "Inactive"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "View responses"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "Delete this form and ALL its responses?"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_list.html
+msgid "No feedback forms yet."
+msgstr ""
+
+#: .\feedback\templates\feedback\form_responses.html
+#, python-format
+msgid "%(counter)s response"
+msgid_plural "%(counter)s responses"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\feedback\templates\feedback\form_responses.html
+msgid "XLSX"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_responses.html
+msgid "CSV"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_responses.html
+msgid "Delete this response?"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_responses.html
+msgid "Delete response"
+msgstr ""
+
+#: .\feedback\templates\feedback\form_responses.html
+msgid "No responses yet."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Student forms cannot be submitted by teachers."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Teacher forms can only be submitted by teachers."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "This form does not apply to this scenario."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "You have already submitted this form."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Invalid JSON."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Invalid answers payload."
+msgstr ""
+
+#: .\feedback\views.py
+#, python-format
+msgid "Question \"%(text)s\" is required."
+msgstr ""
+
+#: .\feedback\views.py
+#, python-format
+msgid "Invalid option for \"%(text)s\"."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Invalid question data."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "At least one question is required."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Every question needs text."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Invalid question type."
+msgstr ""
+
+#: .\feedback\views.py
+#, python-format
+msgid "Question \"%(text)s\" needs at least two options."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Title is required."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Invalid audience."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Feedback form created."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Feedback form updated."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Feedback form deleted."
+msgstr ""
+
+#: .\feedback\views.py
+msgid "Response deleted."
+msgstr ""
+
 #: .\home\templates\home\home.html
 #, python-format
 msgid "Welcome back, %(name)s!"
@@ -4923,12 +5324,711 @@ msgid ""
 "Message a colleague from their profile or an organization's member list."
 msgstr ""
 
-#: .\messaging\views.py
+#: .\messaging\views.py .\organization\views.py
 msgid "Message cannot be empty."
 msgstr ""
 
 #: .\messaging\views.py
 msgid "Invalid recipient."
+msgstr ""
+
+#: .\organization\forms.py
+msgid "Announcement title"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Add Member"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+#, python-format
+msgid "Search for a user and add them to %(name)s"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "e.g. jsmith"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "e.g. John"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "e.g. Smith"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "Search Members"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+#, python-format
+msgid "%(counter)s user found"
+msgid_plural "%(counter)s users found"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "No users found"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "Already a member"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "Add to Org"
+msgstr ""
+
+#: .\organization\templates\organization\add_member.html
+msgid "No users matched your search. Try different terms."
+msgstr ""
+
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Delete this announcement?"
+msgstr ""
+
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "New Announcement"
+msgstr ""
+
+#: .\organization\templates\organization\create_announcement.html
+#: .\organization\templates\organization\edit_announcement.html
+msgid "Announcement"
+msgstr ""
+
+#: .\organization\templates\organization\create_announcement.html
+msgid "Post Announcement"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "Create Organization"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "Fill in the details below. You will become its first admin."
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "Back to Organizations"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Organization Name"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "e.g. Information Management Unit"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Short Name"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "e.g. IMU"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "Briefly describe the organization…"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Location & Language"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "e.g. Greece"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Select a language…"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Logo / Picture"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+msgid "Upload Picture"
+msgstr ""
+
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Optional. Recommended: square image, at least 200×200px."
+msgstr ""
+
+#: .\organization\templates\organization\edit_announcement.html
+msgid "Edit Announcement"
+msgstr ""
+
+#: .\organization\templates\organization\edit_organization.html
+msgid "Edit Organization"
+msgstr ""
+
+#: .\organization\templates\organization\edit_organization.html
+msgid "Back to Organization"
+msgstr ""
+
+#: .\organization\templates\organization\edit_organization.html
+msgid "Current picture"
+msgstr ""
+
+#: .\organization\templates\organization\edit_organization.html
+msgid "Upload a new file below to replace it."
+msgstr ""
+
+#: .\organization\templates\organization\edit_organization.html
+msgid "Upload New Picture"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "All Organizations"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Browse and manage organizations"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Create New Organization"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Filter Organizations"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Name, short name, country…"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "All Languages"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Sort By"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Name A→Z"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Name Z→A"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Most Members"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Fewest Members"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Filter"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+#, python-format
+msgid "My Organizations (%(count)s)"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Member"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\organization\templates\organization\list_organizations.html
+#, python-format
+msgid "Other Organizations (%(count)s)"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "Not a member"
+msgstr ""
+
+#: .\organization\templates\organization\list_organizations.html
+msgid "No organizations found matching your filters."
+msgstr ""
+
+#: .\organization\templates\organization\org_chat.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Team Chat"
+msgstr ""
+
+#: .\organization\templates\organization\org_chat.html
+msgid "No messages yet. Say hello to the team!"
+msgstr ""
+
+#: .\organization\templates\organization\org_chat.html
+msgid "Message the team…"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Re-request to Join"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Request to Join"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Request Pending"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Organization Details"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Country:"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Language:"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Created:"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Created by:"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Organization Data"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Download organization data report"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Report"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Teachers"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Implementations"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Scenarios used"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(counter)s student group"
+msgid_plural "%(counter)s student groups"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(counter)s active student"
+msgid_plural "%(counter)s active students"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(counter)s assigned scenario"
+msgid_plural "%(counter)s assigned scenarios"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Scenario kinds"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid ""
+"Statistics will appear when teacher members create student groups and run "
+"scenarios."
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Members"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(count)s total"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Message"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Demote from Admin"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Promote to Admin"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Remove Member"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "No members yet."
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Announcements"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "No announcements yet."
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Announcement pages"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Pending Join Requests"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "Requested %(date)s"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Approve"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid ""
+"Remove <strong>%(member_name)s</strong> from <strong>%(org_name)s</strong>?"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Delete Organization"
+msgstr ""
+
+#: .\organization\templates\organization\organization_detail.html
+msgid "Yes, Delete"
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "Organization '%(name)s' created successfully."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Your join request has been re-submitted."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Your request to join has been submitted."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "%(user)s has been added to %(organization)s."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "Request from %(user)s has been rejected."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Could not add member. They may already be a member."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "%(user)s is now an admin."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "Organization '%(name)s' has been deleted."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "%(user)s has been demoted from admin."
+msgstr ""
+
+#: .\organization\views.py
+#, python-format
+msgid "%(user)s has been removed from %(organization)s."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Organization updated successfully."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Announcement posted."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Announcement updated."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Announcement deleted."
+msgstr ""
+
+#: .\organization\views.py
+msgid "Not a member."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Pre-Scenario Questions"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\studentview\templates\studentview\scenarioView.html .\templates\head.html
+msgid "Student View"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Back to Scenarios"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+#, python-format
+msgid "Showing in English (no %(language)s translation)"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "English"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+#, python-format
+msgid "%(answered_count)s of %(counter)s question answered"
+msgid_plural "%(answered_count)s of %(counter)s questions answered"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "You have already submitted your answers."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Your responses are shown below in read-only mode."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid ""
+"Before starting the scenario, please take a moment to answer the following "
+"questions."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid ""
+"Questions marked <span class=\"text-danger fw-semibold\">*</span> are "
+"required."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid ""
+"<strong>These questions are optional</strong> — you can skip directly to the "
+"scenario if you prefer."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+#, python-format
+msgid "Question %(number)s"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "No questions have been set up for this scenario yet."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Go to Scenario"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Skip & Go to Scenario"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Submit & Start Scenario"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Submit Feedback"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Once submitted your answers cannot be changed."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Are you ready to submit and start the scenario?"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Go Back"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "Yes, Submit"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "Student Scenarios"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "Browse and start your learning scenarios"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "Scenario name or description…"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Start"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+#, python-format
+msgid "Translations (%(count)s)"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "No language"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "No scenarios available. Try adjusting your filters."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioSelection.html
+#, python-format
+msgid "Page %(page)s of %(pages)s &mdash; %(counter)s scenario"
+msgid_plural "Page %(page)s of %(pages)s &mdash; %(counter)s scenarios"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Could not pause the scenario. Please try again."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Could not resume the scenario. Please try again."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Restart"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Ask for help"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid ""
+"Your AI learning companion <strong>Plato</strong> will guide you through "
+"this scenario."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Click Start when you're ready."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Plato, AI learning companion"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Paused: help requested"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid ""
+"Your teacher has been asked for help. You can continue when you are ready."
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "Resume"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+#, python-brace-format
+msgid "Scan to Launch: {name}"
+msgstr ""
+
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "VR/AR Preview"
+msgstr ""
+
+#: .\studentview\views.py
+msgid ""
+"This scenario is temporarily unavailable while its teacher prepares a new "
+"published revision. Please try again later."
+msgstr ""
+
+#: .\studentview\views.py
+msgid "No activities found in this scenario."
+msgstr ""
+
+#: .\studentview\views.py
+msgid "Only students can ask for help."
+msgstr ""
+
+#: .\studentview\views.py
+msgid "The activity does not belong to this scenario."
+msgstr ""
+
+#: .\studentview\views.py
+msgid ""
+"This scenario is temporarily unavailable while a new revision is being "
+"prepared."
+msgstr ""
+
+#: .\studentview\views.py
+msgid "Activity not found"
+msgstr ""
+
+#: .\studentview\views.py
+msgid "Linked simulation not found"
 msgstr ""
 
 #: .\templates\404.html
@@ -4972,10 +6072,6 @@ msgid "Exit Impersonation"
 msgstr ""
 
 #: .\templates\head.html
-msgid "Active"
-msgstr ""
-
-#: .\templates\head.html
 msgid "Platform Administration"
 msgstr ""
 
@@ -4985,10 +6081,6 @@ msgstr ""
 
 #: .\templates\head.html
 msgid "Trust AI Lab Logo"
-msgstr ""
-
-#: .\templates\head.html
-msgid "Student View"
 msgstr ""
 
 #: .\templates\head.html
@@ -5132,4 +6224,537 @@ msgstr ""
 
 #: .\templates\registration\password_reset_form.html
 msgid "Sending…"
+msgstr ""
+
+#: .\usergroups\forms.py .\usergroups\templates\usergroups\update_group.html
+msgid "Number of Users"
+msgstr ""
+
+#: .\usergroups\forms.py .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\update_group.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "User Prefix"
+msgstr ""
+
+#: .\usergroups\forms.py .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\update_group.html
+msgid "Assign Scenarios"
+msgstr ""
+
+#: .\usergroups\forms.py
+msgid "A group with this name already exists."
+msgstr ""
+
+#: .\usergroups\forms.py
+msgid "Prefix cannot be empty."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+msgid "Create Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "User Groups"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+msgid "Set up a new student group and assign scenarios"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Groups"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Back to Groups"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Group Details"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\update_group.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Group Name"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+msgid "— used to auto-generate usernames"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Number of Students"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Select the scenarios this group will have access to."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "0 selected"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "My Scenarios"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Other Accessible Scenarios"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "No scenarios available."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-brace-format
+msgid "{count} selected"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Edit Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Back to Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "— used to generate usernames"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid ""
+"Changing the prefix affects <em>new</em> users only — existing accounts keep "
+"their current usernames."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-format
+msgid "%(count)s current"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-brace-format
+msgid ""
+"Reducing by <strong>{diff}</strong> will permanently delete <strong>{diff}</"
+"strong> student account and all their data."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-brace-format
+msgid ""
+"Reducing by <strong>{diff}</strong> will permanently delete <strong>{diff}</"
+"strong> student accounts and all their data."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-brace-format
+msgid "<strong>{diff}</strong> new student account will be created."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\edit_group.html
+#, python-brace-format
+msgid "<strong>{diff}</strong> new student accounts will be created."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Your Groups"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Manage student groups and scenario assignments"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Create New Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Pilot Implementations"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Open Questions CSV"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Downloading…"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Search groups…"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Scenario Assigned"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "All scenarios"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Clear"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Sort by"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#, python-format
+msgid "%(counter)s group"
+msgid_plural "%(counter)s groups"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#, python-format
+msgid "Name: \"%(q)s\""
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#, python-format
+msgid "Scenario: %(name)s"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "No scenarios assigned"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Credentials"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Archive Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\view_group.html
+#, python-format
+msgid "Archive <strong>%(name)s</strong>?"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid ""
+"The group is hidden from this list and its students can no longer log in."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid ""
+"All their answers and results are kept, and you can restore the group from "
+"<em>Archived groups</em> below."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Archive"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "No groups match your filters"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Try adjusting your search or scenario filter."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Clear Filters"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "No groups yet"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Create your first group to start assigning students to scenarios."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Archived groups"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid ""
+"These students cannot log in. Their work is kept; restoring a group lets "
+"them log in again."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_groups.html
+#, python-format
+msgid "archived %(date)s"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#, python-format
+msgid "%(total)s total implementations"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Total Implementations"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Scenarios Used"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Total in System"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Groups &amp; Implementations"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Totals per Scenario"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Filter by teacher or scenario…"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Impls."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "First"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Last"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Per Scenario"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "No groups found."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Create a new group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "No results match your filter."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#, python-format
+msgid "+%(extra)s extra included"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "No data yet."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\list_with_imp.html
+msgid "Grand Total"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\update_group.html
+msgid "Update Group"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\update_group.html
+#, python-format
+msgid "Update Group: %(name)s"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\update_group.html
+msgid "Update Group Details"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+#, python-format
+msgid "%(counter)s student"
+msgid_plural "%(counter)s students"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+#, python-format
+msgid "%(counter)s scenario assigned"
+msgid_plural "%(counter)s scenarios assigned"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Download Credentials"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Scenarios Assigned"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Date Created"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Group Info"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Assigned Scenarios"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "No scenarios assigned to this group."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Student Accounts"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Export Excel"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Initial Password"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Show"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid ""
+"It was encrypted with a key that has changed. An administrator can recover "
+"it."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Can't be read — ask an administrator"
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "No student accounts in this group."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+#, python-format
+msgid ""
+"Its <strong>%(count)s student account(s)</strong> will no longer be able to "
+"log in."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid ""
+"All their answers and results are kept, and you can restore the group from "
+"the groups list."
+msgstr ""
+
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Hide"
+msgstr ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Group '%(name)s' created successfully with %(count)d user."
+msgid_plural "Group '%(name)s' created successfully with %(count)d users."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid ""
+"Group '%(name)s' was archived. Its students can no longer log in, but all "
+"their work is kept. You can restore it from Archived groups."
+msgstr ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Archive group “%(name)s”?"
+msgstr ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid ""
+"The group is hidden from your list and its %(count)s student account(s) can "
+"no longer log in. Their answers and results are kept, and you can restore "
+"the group at any time."
+msgstr ""
+
+#: .\usergroups\views.py
+msgid "Archive group"
+msgstr ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Group '%(name)s' was restored."
+msgstr ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Added %(count)d new user to the group."
+msgid_plural "Added %(count)d new users to the group."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Removed %(count)d user from the group."
+msgid_plural "Removed %(count)d users from the group."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid ""
+"%(count)d of them had already worked on scenarios, so their account was "
+"deactivated instead of deleted to keep their work."
+msgid_plural ""
+"%(count)d of them had already worked on scenarios, so their accounts were "
+"deactivated instead of deleted to keep their work."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\usergroups\views.py
+#, python-format
+msgid "Group '%(name)s' updated successfully."
 msgstr ""

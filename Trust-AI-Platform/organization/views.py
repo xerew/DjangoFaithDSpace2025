@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from functools import wraps
 from django.utils.html import strip_tags
 from html import unescape
@@ -65,7 +66,7 @@ def create_organization(request):
             # Add the creator as both admin and member
             organization.admins.add(request.user)  # Add the creator as an admin
             organization.members.add(request.user)  # Add the creator as a member
-            messages.success(request, f"Organization '{organization.name}' created successfully.")
+            messages.success(request, _("Organization '%(name)s' created successfully.") % {'name': organization.name})
             return redirect('organization_detail', org_id=organization.id)
     else:
         form = OrganizationForm()
@@ -145,9 +146,9 @@ def request_to_join(request, org_id):
         join_request.reviewed_by = None
         join_request.reviewed_at = None
         join_request.save()
-        messages.success(request, "Your join request has been re-submitted.")
+        messages.success(request, _("Your join request has been re-submitted."))
     elif created:
-        messages.success(request, "Your request to join has been submitted.")
+        messages.success(request, _("Your request to join has been submitted."))
     return redirect('organization_detail', org_id=org_id)
 
 
@@ -167,7 +168,10 @@ def approve_join_request(request, request_id):
     join_req.reviewed_at = timezone.now()
     join_req.save()
     organization.members.add(join_req.user)
-    messages.success(request, f"{join_req.user.get_full_name() or join_req.user.username} has been added to {organization.name}.")
+    messages.success(request, _("%(user)s has been added to %(organization)s.") % {
+        'user': join_req.user.get_full_name() or join_req.user.username,
+        'organization': organization.name,
+    })
     return redirect('organization_detail', org_id=organization.id)
 
 
@@ -186,7 +190,9 @@ def reject_join_request(request, request_id):
     join_req.reviewed_by = request.user
     join_req.reviewed_at = timezone.now()
     join_req.save()
-    messages.info(request, f"Request from {join_req.user.get_full_name() or join_req.user.username} has been rejected.")
+    messages.info(request, _("Request from %(user)s has been rejected.") % {
+        'user': join_req.user.get_full_name() or join_req.user.username,
+    })
     return redirect('organization_detail', org_id=organization.id)
 
 @login_required
@@ -233,10 +239,13 @@ def add_member_to_org_confirm(request, org_id, user_id):
     can_manage = request.user in organization.admins.all() or is_site_admin
     if can_manage and user not in organization.members.all():
         organization.members.add(user)
-        messages.success(request, f"{user.get_full_name() or user.username} has been added to {organization.name}.")
+        messages.success(request, _("%(user)s has been added to %(organization)s.") % {
+            'user': user.get_full_name() or user.username,
+            'organization': organization.name,
+        })
         return redirect('organization_detail', org_id=org_id)
 
-    messages.error(request, "Could not add member. They may already be a member.")
+    messages.error(request, _("Could not add member. They may already be a member."))
     return redirect('organization_detail', org_id=org_id)
 
 
@@ -249,7 +258,7 @@ def make_admin(request, org_id, user_id):
     is_site_admin = request.user.is_staff or request.user.is_superuser
     if request.user in organization.admins.all() or is_site_admin:
         organization.admins.add(user)
-        messages.success(request, f"{user.get_full_name() or user.username} is now an admin.")
+        messages.success(request, _("%(user)s is now an admin.") % {'user': user.get_full_name() or user.username})
         return redirect('organization_detail', org_id=org_id)
 
     return redirect('organization_detail', org_id=org_id)
@@ -264,7 +273,7 @@ def delete_organization(request, org_id):
     if request.user in organization.admins.all() or is_site_admin:
         org_name = organization.name
         organization.delete()
-        messages.success(request, f"Organization '{org_name}' has been deleted.")
+        messages.success(request, _("Organization '%(name)s' has been deleted.") % {'name': org_name})
         return redirect('list_organizations')
 
     return redirect('organization_detail', org_id=org_id)
@@ -293,7 +302,7 @@ def demote_admin(request, org_id, user_id):
     can_manage = request.user in organization.admins.all() or is_site_admin
     if can_manage and user != request.user:
         organization.admins.remove(user)
-        messages.success(request, f"{user.get_full_name() or user.username} has been demoted from admin.")
+        messages.success(request, _("%(user)s has been demoted from admin.") % {'user': user.get_full_name() or user.username})
         return redirect('organization_detail', org_id=org_id)
 
     return redirect('organization_detail', org_id=org_id)
@@ -310,7 +319,10 @@ def remove_member(request, org_id, user_id):
         if user in organization.admins.all():
             return redirect('organization_detail', org_id=org_id)
         organization.members.remove(user)
-        messages.success(request, f"{user.get_full_name() or user.username} has been removed from {organization.name}.")
+        messages.success(request, _("%(user)s has been removed from %(organization)s.") % {
+            'user': user.get_full_name() or user.username,
+            'organization': organization.name,
+        })
         return redirect('organization_detail', org_id=org_id)
 
     return redirect('organization_detail', org_id=org_id)
@@ -327,7 +339,7 @@ def edit_organization(request, org_id):
         form = OrganizationForm(request.POST, request.FILES, instance=organization)
         if form.is_valid():
             form.save()
-            messages.success(request, "Organization updated successfully.")
+            messages.success(request, _("Organization updated successfully."))
             return redirect('organization_detail', org_id=org_id)
     else:
         form = OrganizationForm(instance=organization)
@@ -391,7 +403,7 @@ def create_announcement(request, org_id):
             announcement.created_by = request.user
             announcement.plain_text = strip_html_tags(announcement.body)
             announcement.save()
-            messages.success(request, "Announcement posted.")
+            messages.success(request, _("Announcement posted."))
             return redirect('organization_detail', org_id=org_id)
     else:
         form = AnnouncementForm()
@@ -415,7 +427,7 @@ def edit_announcement(request, org_id, announcement_id):
             updated = form.save(commit=False)
             updated.plain_text = strip_html_tags(updated.body)
             updated.save()
-            messages.success(request, "Announcement updated.")
+            messages.success(request, _("Announcement updated."))
             return redirect('organization_detail', org_id=org_id)
     else:
         form = AnnouncementForm(instance=announcement)
@@ -434,7 +446,7 @@ def delete_announcement(request, org_id, announcement_id):
     announcement = get_object_or_404(Announcement, id=announcement_id, organization=organization)
     if _is_org_admin(request.user, organization):
         announcement.delete()
-        messages.success(request, "Announcement deleted.")
+        messages.success(request, _("Announcement deleted."))
     return redirect('organization_detail', org_id=org_id)
 
 
@@ -456,11 +468,11 @@ def org_chat(request, org_id):
 def send_org_chat_message(request, org_id):
     organization = get_object_or_404(Organization, id=org_id)
     if not organization.members.filter(id=request.user.id).exists():
-        return JsonResponse({'success': False, 'error': 'Not a member.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Not a member.')}, status=403)
 
     body = (request.POST.get('body') or '').strip()
     if not body:
-        return JsonResponse({'success': False, 'error': 'Message cannot be empty.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Message cannot be empty.')}, status=400)
 
     msg = OrgChatMessage.objects.create(organization=organization, sender=request.user, body=body)
     return JsonResponse({
@@ -480,7 +492,7 @@ def send_org_chat_message(request, org_id):
 def org_chat_poll(request, org_id):
     organization = get_object_or_404(Organization, id=org_id)
     if not organization.members.filter(id=request.user.id).exists():
-        return JsonResponse({'success': False, 'error': 'Not a member.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Not a member.')}, status=403)
 
     try:
         since_id = int(request.GET.get('since_id', '0'))
