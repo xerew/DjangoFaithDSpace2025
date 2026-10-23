@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 
 {% load group_tags %}
 
@@ -45,10 +46,10 @@
     {% if request.session.impersonator_id %}
     <div id="impersonation-banner">
       <i class="bi bi-eye-fill"></i>
-      Viewing as <strong>@{{ request.user.username }}</strong> &mdash; not your account
+      {% blocktranslate trimmed with username=request.user.username %}Viewing as <strong>@{{ username }}</strong> &mdash; not your account{% endblocktranslate %}
       <form method="post" action="{% url 'admin_impersonate_exit' %}" style="display:inline;">
         {% csrf_token %}
-        <button type="submit">Exit Impersonation</button>
+        <button type="submit">{% translate "Exit Impersonation" %}</button>
       </form>
     </div>
     {% endif %}
@@ -127,7 +128,7 @@
               {% endif %}
               {% endwith %}
               <h6>{{ user.get_full_name|default:user.username }}</h6>
-              <span class="profile-role-badge"><span class="profile-role-dot"></span>Active</span>
+              <span class="profile-role-badge"><span class="profile-role-dot"></span>{% translate "Active" %}</span>
             </li>
 
             <li><hr class="dropdown-divider"></li>
@@ -136,20 +137,20 @@
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'message_threads' %}">
                 <span class="profile-icon-wrap" style="background:#cffafe;color:#0891b2;"><i class="bi bi-chat-dots-fill"></i></span>
-                <span>Messages</span>
+                <span>{% translate "Messages" %}</span>
                 <span id="sidebar-unread-badge" class="badge bg-danger ms-auto" style="display:none;"></span>
               </a>
             </li>
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'profile' %}">
                 <span class="profile-icon-wrap profile-icon-blue"><i class="bi bi-gear-fill"></i></span>
-                <span>Account Settings</span>
+                <span>{% translate "Account Settings" %}</span>
               </a>
             </li>
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'list_organizations' %}">
                 <span class="profile-icon-wrap profile-icon-indigo"><i class="bi bi-people-fill"></i></span>
-                <span>Organizations</span>
+                <span>{% translate "Organizations" %}</span>
               </a>
             </li>
             <li><hr class="dropdown-divider"></li>
@@ -159,7 +160,7 @@
             <li>
               <a class="dropdown-item d-flex align-items-center" href="{% url 'admin_dashboard' %}">
                 <span class="profile-icon-wrap" style="background:#ede9fe;color:#7c3aed;"><i class="bi bi-shield-lock-fill"></i></span>
-                <span>Platform Administration</span>
+                <span>{% translate "Platform Administration" %}</span>
               </a>
             </li>
             <li><hr class="dropdown-divider"></li>
@@ -168,7 +169,7 @@
             <li>
               <a class="dropdown-item d-flex align-items-center profile-signout" href="{% url 'logout' %}">
                 <span class="profile-icon-wrap profile-icon-red"><i class="bi bi-box-arrow-right"></i></span>
-                <span>Sign Out</span>
+                <span>{% translate "Sign Out" %}</span>
               </a>
             </li>
 
@@ -186,7 +187,7 @@
     <!-- Brand at top of sidebar -->
     <div class="d-flex align-items-center px-3 border-bottom" style="height:72px;">
       <a href="{% if request.user|has_group:'teachers' %}{% url 'teacher_home' %}{% else %}{% url 'studentScenarios' %}{% endif %}" class="logo d-flex align-items-center gap-2" style="text-decoration:none;">
-        <img src="{% static 'img/logo.png' %}" alt="Trust AI Lab Logo" style="max-height:46px;">
+        <img src="{% static 'img/logo.png' %}" alt="{% translate 'Trust AI Lab Logo' %}" style="max-height:46px;">
         <span style="font-size:18px; font-weight:700; color:#012970;">Trust AI Lab</span>
       </a>
     </div>
@@ -197,28 +198,28 @@
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'teacher_home' %}">
           <i class="bi bi-house-door-fill"></i>
-          <span>Home</span>
+          <span>{% translate "Home" %}</span>
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'index' %}">
           <i class="bi bi-grid"></i>
-          <span>Dashboard</span>
+          <span>{% translate "Dashboard" %}</span>
         </a>
       </li><!-- End Dashboard Nav -->
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'scenarios' %}">
           <i class="bi bi-pencil-square"></i>
-          <span>Authoring Tool</span>
+          <span>{% translate "Authoring Tool" %}</span>
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'list_groups' %}">
           <i class="bi bi-people-fill"></i>
-          <span>Student Groups</span>
+          <span>{% translate "Student Groups" %}</span>
         </a>
       </li>
 	{% endif %}
@@ -226,7 +227,7 @@
       <li class="nav-item">
         <a class="nav-link collapsed" href="{% url 'studentScenarios' %}">
           <i class="bi bi-mortarboard"></i>
-          <span>Student View</span>
+          <span>{% translate "Student View" %}</span>
         </a>
       </li>
     </ul>
@@ -236,7 +237,7 @@
         <li class="nav-item">
           <a class="nav-link collapsed" href="{% url 'documentation_and_tutorials' %}">
             <i class="bi bi-book"></i>
-            <span>Documentation & Tutorials</span>
+            <span>{% translate "Documentation & Tutorials" %}</span>
           </a>
         </li>
       </ul>
@@ -244,7 +245,7 @@
         <li class="nav-item">
           <a class="nav-link collapsed" href="{% url 'tos' %}">
             <i class="bi bi-file-text"></i>
-            <span>Terms of Service</span>
+            <span>{% translate "Terms of Service" %}</span>
           </a>
         </li>
       </ul>

@@ -1,11 +1,12 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Trust AI Lab — Register</title>
+  <title>Trust AI Lab — {% translate "Register" %}</title>
   <link href="{% static 'img/logo.png' %}" rel="icon">
   <link href="{% static 'img/apple-touch-icon.png' %}" rel="apple-touch-icon">
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -52,31 +53,31 @@
 
             <!-- Left Side: Trust AI Lab Platform Info -->
             <div class="col-12 col-lg-6 order-2 order-lg-1 d-flex flex-column align-items-center justify-content-center bg-light p-3">
-              <h3 class="text-center">Trust AI Lab Platform for STEM Education</h3>
+              <h3 class="text-center">{% translate "Trust AI Lab Platform for STEM Education" %}</h3>
               <p class="text-center">
-                The <strong>Trust AI Lab platform</strong>, developed by the ICCS-IMU team, is an Exploratory Learning Environment designed to enhance students' inquiry and problem-solving skills through virtual and remote labs.
+                {% blocktranslate trimmed %}The <strong>Trust AI Lab platform</strong>, developed by the ICCS-IMU team, is an Exploratory Learning Environment designed to enhance students' inquiry and problem-solving skills through virtual and remote labs.{% endblocktranslate %}
               </p>
-              <p>The <strong>Trust AI Lab platform</strong> consists of the following components:</p>
+              <p>{% blocktranslate trimmed %}The <strong>Trust AI Lab platform</strong> consists of the following components:{% endblocktranslate %}</p>
               <ul>
-                <li style="text-align: justify;"><strong>Plato, an AI Learning Companion for STEM education:</strong> Supports students by providing automated guidance and feedback in STEM laboratory courses. It also monitors student engagement and provides personalized learning recommendations.</li>
-                <li style="text-align: justify;"><strong>Trust AI Lab Authoring Tool:</strong> Helps teachers design and implement inquiry-based learning scenarios.</li>
-                <li style="text-align: justify;"><strong>Dashboard Analytics:</strong> Assists teachers in assessing students' performance.</li>
+                <li style="text-align: justify;">{% blocktranslate trimmed %}<strong>Plato, an AI Learning Companion for STEM education:</strong> Supports students by providing automated guidance and feedback in STEM laboratory courses. It also monitors student engagement and provides personalized learning recommendations.{% endblocktranslate %}</li>
+                <li style="text-align: justify;">{% blocktranslate trimmed %}<strong>Trust AI Lab Authoring Tool:</strong> Helps teachers design and implement inquiry-based learning scenarios.{% endblocktranslate %}</li>
+                <li style="text-align: justify;">{% blocktranslate trimmed %}<strong>Dashboard Analytics:</strong> Assists teachers in assessing students' performance.{% endblocktranslate %}</li>
               </ul>
               <div class="text-center mt-2">
-                <img src="{% static 'img/trustflow_1.png' %}" alt="Trust AI Lab Diagram" class="img-fluid" style="max-height:160px;">
+                <img src="{% static 'img/trustflow_1.png' %}" alt="{% translate 'Trust AI Lab Diagram' %}" class="img-fluid" style="max-height:160px;">
               </div>
             </div>
 
             <!-- Right Side: Registration Form -->
             <div class="col-12 col-lg-6 order-1 order-lg-2 d-flex flex-column align-items-center justify-content-center">
               <div class="logo-login mb-2" style="transform:scale(0.8); transform-origin:center;">
-                <img src="{% static 'img/logo.png' %}" alt="Platform Logo">
+                <img src="{% static 'img/logo.png' %}" alt="{% translate 'Platform Logo' %}">
               </div>
               <div class="card mb-2 w-100 w-lg-75">
                 <div class="card-body py-2 px-4">
                   <div class="pt-2 pb-1">
-                    <h5 class="card-title text-center pb-0 fs-5">Create an Account</h5>
-                    <p class="text-center small mb-0">Enter your personal details to create an account</p>
+                    <h5 class="card-title text-center pb-0 fs-5">{% translate "Create an Account" %}</h5>
+                    <p class="text-center small mb-0">{% translate "Enter your personal details to create an account" %}</p>
                   </div>
 
                   <!-- Server-side messages -->
@@ -84,7 +85,7 @@
                     {% for message in messages %}
                       <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
                       </div>
                     {% endfor %}
                   {% endif %}
@@ -93,32 +94,32 @@
                     {% csrf_token %}
 
                     <div class="col-md-6">
-                      <label for="yourFirstName" class="form-label">First Name</label>
+                      <label for="yourFirstName" class="form-label">{% translate "First Name" %}</label>
                       <input type="text" name="first_name" class="form-control" id="yourFirstName" required>
                     </div>
 
                     <div class="col-md-6">
-                      <label for="yourLastName" class="form-label">Last Name</label>
+                      <label for="yourLastName" class="form-label">{% translate "Last Name" %}</label>
                       <input type="text" name="last_name" class="form-control" id="yourLastName" required>
                     </div>
 
                     <div class="col-12">
-                      <label for="gender" class="form-label">Gender</label>
+                      <label for="gender" class="form-label">{% translate "Gender" %}</label>
                       <select class="form-select" name="gender" id="gender">
-                        <option value="">Prefer not to say</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
+                        <option value="">{% translate "Prefer not to say" %}</option>
+                        <option value="male">{% translate "Male" %}</option>
+                        <option value="female">{% translate "Female" %}</option>
                       </select>
                     </div>
 
                     <div class="col-12">
-                      <label for="yourEmail" class="form-label">Email</label>
+                      <label for="yourEmail" class="form-label">{% translate "Email" %}</label>
                       <input type="email" name="email" class="form-control" id="yourEmail" required>
                       <div id="emailError" class="invalid-feedback" style="display: none;"></div>
                     </div>
 
                     <div class="col-12">
-                      <label for="yourUsername" class="form-label">Username</label>
+                      <label for="yourUsername" class="form-label">{% translate "Username" %}</label>
                       <div class="input-group has-validation">
                         <span class="input-group-text">@</span>
                         <input type="text" name="username" class="form-control" id="yourUsername" required>
@@ -127,7 +128,7 @@
                     </div>
 
                     <div class="col-12">
-                      <label for="yourPassword" class="form-label">Password</label>
+                      <label for="yourPassword" class="form-label">{% translate "Password" %}</label>
                       <div class="input-group">
                         <input type="password" name="password" class="form-control" id="yourPassword" required>
                         <button type="button" class="btn btn-outline-secondary password-toggle" data-target="yourPassword" tabindex="-1">
@@ -145,18 +146,18 @@
                     </div>
 
                     <div class="col-12">
-                      <label for="yourPasswordConfirm" class="form-label">Confirm Password</label>
+                      <label for="yourPasswordConfirm" class="form-label">{% translate "Confirm Password" %}</label>
                       <div class="input-group">
                         <input type="password" name="password_confirm" class="form-control" id="yourPasswordConfirm" required>
                         <button type="button" class="btn btn-outline-secondary password-toggle" data-target="yourPasswordConfirm" tabindex="-1">
                           <i class="bi bi-eye" id="toggleIcon-yourPasswordConfirm"></i>
                         </button>
                       </div>
-                      <div id="confirmError" class="invalid-feedback" style="display: none;">Passwords do not match.</div>
+                      <div id="confirmError" class="invalid-feedback" style="display: none;">{% translate "Passwords do not match." %}</div>
                     </div>
 
                     <div class="col-12">
-                      <label for="access_code" class="form-label">Access Code</label>
+                      <label for="access_code" class="form-label">{% translate "Access Code" %}</label>
                       <input type="text" name="access_code" class="form-control" id="access_code" required>
                       <div id="accesscodeError" class="invalid-feedback" style="display: none;"></div>
                     </div>
@@ -165,17 +166,17 @@
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="agree_tos" id="agreeTos" required>
                         <label class="form-check-label" for="agreeTos">
-                          I agree to the <a href="{% url 'tos' %}" target="_blank">Terms of Service</a>
+                          {% url 'tos' as tos_url %}{% blocktranslate trimmed %}I agree to the <a href="{{ tos_url }}" target="_blank">Terms of Service</a>{% endblocktranslate %}
                         </label>
                       </div>
                     </div>
 
                     <div class="col-12">
-                      <button class="btn btn-primary w-100" type="submit" id="submitBtn">Create Account</button>
+                      <button class="btn btn-primary w-100" type="submit" id="submitBtn">{% translate "Create Account" %}</button>
                     </div>
 
                     <div class="col-12">
-                      <p class="small mb-0">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+                      <p class="small mb-0">{% url 'login' as login_url %}{% blocktranslate trimmed %}Already have an account? <a href="{{ login_url }}">Log in</a>{% endblocktranslate %}</p>
                     </div>
                   </form>
 
@@ -192,21 +193,23 @@
     <footer class="footer login-footer text-center py-2">
       <div class="eu-acknowledgement">
         <div class="eu-logo-text">
-          <img src="{% static 'img/eu_flag.png' %}" alt="EU Logo" class="eu-logo">
-          <span class="eu-funded-text">Funded by the European Union</span>
+          <img src="{% static 'img/eu_flag.png' %}" alt="{% translate 'EU Logo' %}" class="eu-logo">
+          <span class="eu-funded-text">{% translate "Funded by the European Union" %}</span>
         </div>
         <p class="eu-text">
-          This application was developed as part of the FAITH and DSPACE projects, funded under grant agreement No. 101135932 and No. 101086701. Views and opinions expressed are those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.
+          {% blocktranslate trimmed %}This application was developed as part of the FAITH and DSPACE projects, funded under grant agreement No. 101135932 and No. 101086701. Views and opinions expressed are those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.{% endblocktranslate %}
         </p>
       </div>
       <div>
-        Designed by <a href="http://imu.ntua.gr/wp/">IMU NTUA | ICCS</a>
+        {% blocktranslate trimmed %}Designed by <a href="http://imu.ntua.gr/wp/">IMU NTUA | ICCS</a>{% endblocktranslate %}
       </div>
     </footer>
   </div>
 
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   <script>
+    {% translate "Weak" as s_weak %}{% translate "Fair" as s_fair %}{% translate "Good" as s_good %}{% translate "Strong" as s_strong %}
+    {% translate "Creating account…" as s_creating %}{% translate "Create Account" as s_create %}
     // --- Pre-fill access code from ?code= query param (for QR code links) ---
     (function() {
       const code = new URLSearchParams(window.location.search).get('code');
@@ -246,10 +249,10 @@
 
       const levels = [
         { width: '0%',   cls: '',          text: '' },
-        { width: '25%',  cls: 'bg-danger', text: 'Weak' },
-        { width: '50%',  cls: 'bg-warning',text: 'Fair' },
-        { width: '75%',  cls: 'bg-info',   text: 'Good' },
-        { width: '100%', cls: 'bg-success',text: 'Strong' },
+        { width: '25%',  cls: 'bg-danger', text: "{{ s_weak|escapejs }}" },
+        { width: '50%',  cls: 'bg-warning',text: "{{ s_fair|escapejs }}" },
+        { width: '75%',  cls: 'bg-info',   text: "{{ s_good|escapejs }}" },
+        { width: '100%', cls: 'bg-success',text: "{{ s_strong|escapejs }}" },
       ];
       bar.style.width = levels[score].width;
       bar.className = 'progress-bar password-strength ' + levels[score].cls;
@@ -288,7 +291,7 @@
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating account…';
+      submitBtn.textContent = "{{ s_creating|escapejs }}";
 
       fetch('/accounts/register/', {
         method: 'POST',
@@ -302,7 +305,7 @@
       .then(function(data) {
         if (!data.success) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
+          submitBtn.textContent = "{{ s_create|escapejs }}";
           if (data.errors.username) {
             usernameErrorDiv.textContent = data.errors.username;
             usernameErrorDiv.style.display = 'block';
@@ -332,7 +335,7 @@
       })
       .catch(function() {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
+        submitBtn.textContent = "{{ s_create|escapejs }}";
       });
     });
   </script>

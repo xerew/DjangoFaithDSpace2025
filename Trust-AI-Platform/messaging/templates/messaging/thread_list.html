@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Messages</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Messages" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -20,8 +21,8 @@
         <i class="bi bi-chat-dots-fill"></i>
       </div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Account</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Messages</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Account" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Messages" %}</h2>
       </div>
     </div>
   </div>
@@ -29,19 +30,19 @@
   <section class="section">
     <div class="card mb-3">
       <div class="card-body p-0">
-        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Organization Chats</div>
+        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">{% translate "Organization Chats" %}</div>
         {% for org in organizations %}
         <a href="{% url 'org_chat' org.id %}" class="thread-row">
           <div class="thread-avatar">{{ org.short_name|default:org.name|slice:":2"|upper }}</div>
           <div class="flex-grow-1 min-width-0">
             <div class="thread-name">{{ org.name }}</div>
-            <div class="thread-snippet">Team chat</div>
+            <div class="thread-snippet">{% translate "Team chat" %}</div>
           </div>
         </a>
         {% empty %}
         <div class="text-center text-muted py-4">
           <i class="bi bi-people" style="font-size:2rem;color:#d1d9e0;"></i>
-          <p class="mt-2 mb-0 small">You're not part of any organization yet.</p>
+          <p class="mt-2 mb-0 small">{% translate "You're not part of any organization yet." %}</p>
         </div>
         {% endfor %}
       </div>
@@ -49,7 +50,7 @@
 
     <div class="card">
       <div class="card-body p-0">
-        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Messages</div>
+        <div class="px-4 pt-3 pb-2" style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">{% translate "Messages" %}</div>
         {% for t in threads %}
         <a href="{% url 'thread' t.partner.id %}" class="thread-row">
           <div class="thread-avatar">{{ t.partner.first_name|default:t.partner.username|slice:":1"|upper }}{{ t.partner.last_name|slice:":1"|upper }}</div>
@@ -65,8 +66,8 @@
         {% empty %}
         <div class="text-center text-muted py-5">
           <i class="bi bi-chat-dots" style="font-size:2.5rem;color:#d1d9e0;"></i>
-          <p class="mt-2 mb-0">No conversations yet.</p>
-          <p class="small">Message a colleague from their profile or an organization's member list.</p>
+          <p class="mt-2 mb-0">{% translate "No conversations yet." %}</p>
+          <p class="small">{% translate "Message a colleague from their profile or an organization's member list." %}</p>
         </div>
         {% endfor %}
       </div>

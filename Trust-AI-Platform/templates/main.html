@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% block page_title %}<title>Trust AI Lab</title>{% endblock %}
+{% load i18n %}{% block page_title %}<title>Trust AI Lab</title>{% endblock %}
 {% include 'head.html' %}
 
 {% if messages %}
@@ -7,7 +7,7 @@
   {% for message in messages %}
   <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
     {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
   </div>
   {% endfor %}
 </div>
@@ -23,6 +23,10 @@
 <script>
 (function () {
   let lastSeenMessageId = null;
+  {% translate "New message from {name}" as s_new_message %}
+  {% translate "Close" as s_close %}
+  const newMessageText = "{{ s_new_message|escapejs }}";
+  const closeText = "{{ s_close|escapejs }}";
 
   function renderToast(latest) {
     const container = document.getElementById('new-message-toast-container');
@@ -33,7 +37,7 @@
     toast.style.cursor = 'pointer';
 
     const strong = document.createElement('strong');
-    strong.textContent = 'New message from ' + latest.sender_name;
+    strong.textContent = newMessageText.replace('{name}', latest.sender_name);
     toast.appendChild(strong);
     toast.appendChild(document.createElement('br'));
     toast.appendChild(document.createTextNode(latest.snippet));
@@ -42,7 +46,7 @@
     closeBtn.type = 'button';
     closeBtn.className = 'btn-close';
     closeBtn.setAttribute('data-bs-dismiss', 'alert');
-    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.setAttribute('aria-label', closeText);
     toast.appendChild(closeBtn);
 
     toast.addEventListener('click', function (e) {

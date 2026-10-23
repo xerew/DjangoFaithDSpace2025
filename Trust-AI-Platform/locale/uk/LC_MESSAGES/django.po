@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-23 22:02+0300\n"
+"POT-Creation-Date: 2026-10-23 22:19+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,9 +21,700 @@ msgstr ""
 "100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
 "(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
 
+#: .\accounts\templates\accounts\login.html
+msgid "Login"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "Trust AI Lab Platform for STEM Education"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+msgid ""
+"The <strong>Trust AI Lab platform</strong>, developed by the ICCS-IMU team, "
+"is an Exploratory Learning Environment designed to enhance students’ inquiry "
+"and problem-solving skills through virtual and remote labs."
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"The <strong>Trust AI Lab platform</strong> consists of the following "
+"components:"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+msgid ""
+"<strong>Plato, an AI Learning Companion for STEM education:</strong> "
+"Supports students by providing automated guidance and feedback in STEM "
+"laboratory courses. It also monitors student engagement and provides "
+"personalized learning recommendations."
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"<strong>Trust AI Lab Authoring Tool:</strong> Helps teachers design and "
+"implement inquiry-based learning scenarios."
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+msgid ""
+"<strong>Dashboard Analytics:</strong> Assists teachers in assessing "
+"students’ performance."
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "Trust AI Lab Diagram"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "Platform Logo"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+msgid "Login to Your Account"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+msgid "Enter your username & password to login"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html .\templates\main.html
+msgid "Close"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Username"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+msgid "Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#, python-format
+msgid ""
+"Don't have an account? <a href=\"%(register_url)s\">Create an account</a>"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#, python-format
+msgid "Forgot password? <a href=\"%(reset_url)s\">Reset Password</a>"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html .\templates\footer.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "EU Logo"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html .\templates\footer.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "Funded by the European Union"
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html
+msgid ""
+"This application was developed as part of the FAITH and DSPACE projects, "
+"funded under grant agreement No. 101135932 and No. 101086701. Views and "
+"opinions expressed are those of the author(s) only and do not necessarily "
+"reflect those of the European Union or the European Education and Culture "
+"Executive Agency (EACEA). Neither the European Union nor EACEA can be held "
+"responsible for them."
+msgstr ""
+
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\register.html .\templates\404.html
+#: .\templates\footer.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid "Designed by <a href=\"http://imu.ntua.gr/wp/\">IMU NTUA | ICCS</a>"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "My Profile"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\messaging\templates\messaging\thread_list.html
+msgid "Account"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html .\templates\head.html
+msgid "Account Settings"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "View or change your profile picture"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "View profile picture"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Profile picture"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "User"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Member since"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Last login"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Country"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Institution"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "About"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html .\templates\head.html
+msgid "Organizations"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Admin of"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Member of"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Personal Info"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Change Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "First Name"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Last Name"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Email"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Username cannot be changed."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Gender"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Prefer not to say"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Male"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Female"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Profile Picture"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Leave blank to keep your current picture (or gender default)."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "e.g. University of Athens"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "School or university you work at."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "A short bio…"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Save Changes"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Current Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "New Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "Confirm New Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Update Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#, python-format
+msgid "Send %(name)s a message"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Start a conversation with this teacher."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgctxt "button"
+msgid "Message"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Change profile picture"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "JPG, PNG, WEBP or GIF, up to 5 MB."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "Weak"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "Fair"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "Good"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_confirm.html
+msgid "Strong"
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Please fix the errors below."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "Network error. Please try again."
+msgstr ""
+
+#: .\accounts\templates\accounts\profile.html
+msgid "The picture could not be saved."
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Register"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"The <strong>Trust AI Lab platform</strong>, developed by the ICCS-IMU team, "
+"is an Exploratory Learning Environment designed to enhance students' inquiry "
+"and problem-solving skills through virtual and remote labs."
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"<strong>Dashboard Analytics:</strong> Assists teachers in assessing "
+"students' performance."
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Create an Account"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Enter your personal details to create an account"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Confirm Password"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html .\accounts\views.py
+#: .\templates\registration\password_reset_confirm.html
+msgid "Passwords do not match."
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Access Code"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+#, python-format
+msgid ""
+"I agree to the <a href=\"%(tos_url)s\" target=\"_blank\">Terms of Service</a>"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Create Account"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+#, python-format
+msgid "Already have an account? <a href=\"%(login_url)s\">Log in</a>"
+msgstr ""
+
+#: .\accounts\templates\accounts\register.html
+msgid "Creating account…"
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Invalid username or password."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Username already taken."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Email already in use."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Invalid access code for Teacher registration."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Access code is required for Teacher registration."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Account created successfully. Please log in."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "AJAX required"
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Unsupported file type. Use JPG, PNG, WEBP, or GIF."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Image must be 5MB or smaller."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Uploaded file is not a valid image."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "First name is required."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Last name is required."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Email is required."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "This email is already in use by another account."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Bio must be 500 characters or fewer."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Profile updated successfully."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Choose an image to upload."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Profile picture updated."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Current password is incorrect."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Password changed successfully."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Unknown action."
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Teacher"
+msgstr ""
+
+#: .\accounts\views.py
+msgid "DSpace Partner"
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Superuser"
+msgstr ""
+
+#: .\accounts\views.py
+msgid "Admin"
+msgstr ""
+
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
 #: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+#: .\home\templates\home\home.html .\templates\head.html
 msgid "Home"
+msgstr ""
+
+#: .\home\templates\home\home.html
+#, python-format
+msgid "Welcome back, %(name)s!"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Get started"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "You haven't created a scenario yet - start building your first one."
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Create your first scenario"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Your Scenarios"
+msgstr ""
+
+#: .\home\templates\home\home.html .\templates\head.html
+msgid "Student Groups"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Total Students"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "About the Platform"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Inquiry-Based Learning with Trust AI Lab"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid ""
+"Trust AI Lab supports <strong>Inquiry-Based Learning (IBL)</strong> - a "
+"student-centred pedagogical approach where learners explore, question, and "
+"discover knowledge through guided investigation rather than passive "
+"instruction."
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid ""
+"As a teacher, you design <strong>scenarios</strong> - interactive digital "
+"experiments that guide students step by step through a scientific inquiry "
+"cycle. Each scenario can include simulations, remote labs, VR/AR "
+"experiences, adaptive evaluation, and branching paths based on student "
+"performance."
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid ""
+"This platform was developed as part of the <strong>FAITH</strong> and "
+"<strong>DSpace</strong> projects, funded by the European Union under grant "
+"agreements No. 101135932 and No. 101086701."
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Trust AI Lab platform overview"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Latest Public Scenarios"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "View all"
+msgstr ""
+
+#: .\home\templates\home\home.html
+#, python-format
+msgid "Ages %(ages)s"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "View"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "No public scenarios yet."
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Quick Actions"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Create Scenario"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Build a new IBL scenario for your students"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Manage your student groups and credentials"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "Analytics Dashboard"
+msgstr ""
+
+#: .\home\templates\home\home.html
+msgid "View student performance and scenario analytics"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread.html
+msgid "View profile"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread.html
+msgid "No messages yet. Say hello!"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread.html
+msgid "Type a message…"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html .\templates\head.html
+msgid "Messages"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html
+msgid "Organization Chats"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html
+msgid "Team chat"
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html
+msgid "You're not part of any organization yet."
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html
+msgid "No conversations yet."
+msgstr ""
+
+#: .\messaging\templates\messaging\thread_list.html
+msgid ""
+"Message a colleague from their profile or an organization's member list."
+msgstr ""
+
+#: .\messaging\views.py
+msgid "Message cannot be empty."
+msgstr ""
+
+#: .\messaging\views.py
+msgid "Invalid recipient."
+msgstr ""
+
+#: .\templates\404.html
+msgid "The page you are looking for doesn't exist."
+msgstr ""
+
+#: .\templates\404.html
+msgid "Back to home"
+msgstr ""
+
+#: .\templates\404.html
+msgid "Page Not Found"
 msgstr ""
 
 #: .\templates\admin\base_site.html
@@ -32,4 +723,199 @@ msgstr ""
 
 #: .\templates\admin\base_site.html
 msgid "Django administration"
+msgstr ""
+
+#: .\templates\confirm_removal.html
+msgid "Cancel"
+msgstr ""
+
+#: .\templates\footer.html
+msgid ""
+"Τhis application was developed as part of the FAITH and DSPACE projects, "
+"which have received funding from the European Union under grant agreement "
+"No. 101135932 and No. 101086701. Views and opinions expressed are however "
+"those of the author(s) only and do not necessarily reflect those of the "
+"European Union or the European Education and Culture Executive Agency "
+"(EACEA). Neither the European Union nor EACEA can be held responsible for "
+"them."
+msgstr ""
+
+#: .\templates\head.html
+#, python-format
+msgid "Viewing as <strong>@%(username)s</strong> &mdash; not your account"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Exit Impersonation"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Active"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Platform Administration"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Sign Out"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Trust AI Lab Logo"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Dashboard"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Authoring Tool"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Student View"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Documentation & Tutorials"
+msgstr ""
+
+#: .\templates\head.html
+msgid "Terms of Service"
+msgstr ""
+
+#: .\templates\includes\maintenance_banner.html
+msgid "Platform maintenance"
+msgstr ""
+
+#: .\templates\main.html
+#, python-brace-format
+msgid "New message from {name}"
+msgstr ""
+
+#: .\templates\registration\password_reset_complete.html
+msgid "Password Reset Complete"
+msgstr ""
+
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"<strong>Plato, an AI Learning Companion for STEM education:</strong> "
+"Supports students by providing automated guidance and feedback in STEM "
+"laboratory courses."
+msgstr ""
+
+#: .\templates\registration\password_reset_complete.html
+msgid "Your password has been successfully reset."
+msgstr ""
+
+#: .\templates\registration\password_reset_complete.html
+msgid "Login with New Password"
+msgstr ""
+
+#: .\templates\registration\password_reset_complete.html
+#: .\templates\registration\password_reset_confirm.html
+#: .\templates\registration\password_reset_done.html
+#: .\templates\registration\password_reset_form.html
+msgid ""
+"This application was developed as part of the FAITH and DSPACE projects, "
+"funded under grant agreement No. 101135932 and No. 101086701. Views and "
+"opinions expressed are those of the author(s) only and do not necessarily "
+"reflect those of the European Union or EACEA."
+msgstr ""
+
+#: .\templates\registration\password_reset_confirm.html
+msgid "Set New Password"
+msgstr ""
+
+#: .\templates\registration\password_reset_confirm.html
+msgid ""
+"Your password must be at least 8 characters, not entirely numeric, and not a "
+"common password."
+msgstr ""
+
+#: .\templates\registration\password_reset_done.html
+msgid "Reset Link Sent"
+msgstr ""
+
+#: .\templates\registration\password_reset_done.html
+msgid "Check your email for a link to reset your password."
+msgstr ""
+
+#: .\templates\registration\password_reset_done.html
+msgid "If it doesn't arrive in a few minutes, please check your spam folder."
+msgstr ""
+
+#: .\templates\registration\password_reset_done.html
+msgid "Back to Login"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid "Password Reset"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+#: .\templates\registration\password_reset_subject.txt
+msgid "Password Reset Request"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+#, python-format
+msgid "Hello %(name)s,"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid ""
+"We received a request to reset the password for your <strong>Trust AI Lab</"
+"strong> account. Click the button below to choose a new password."
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid "Reset My Password"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid "This link will expire in <strong>24 hours</strong>."
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid ""
+"If you didn't request a password reset, you can safely ignore this email — "
+"your password will remain unchanged."
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid "ICCS Team — Information Management Unit"
+msgstr ""
+
+#: .\templates\registration\password_reset_email.html
+msgid "This is an automated message, please do not reply."
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+msgid "Reset Password"
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+msgid "Enter your email address to receive a password reset link"
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+msgid "Email Address"
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+msgid "Send Reset Link"
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+#, python-format
+msgid "Remembered your password? <a href=\"%(login_url)s\">Back to Login</a>"
+msgstr ""
+
+#: .\templates\registration\password_reset_form.html
+msgid "Sending…"
 msgstr ""

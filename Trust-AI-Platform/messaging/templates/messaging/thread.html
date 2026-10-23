@@ -1,4 +1,5 @@
 {% extends "main.html" %}
+{% load i18n %}
 {% load profile_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ partner.get_full_name|default:partner.username }}</title>{% endblock %}
 {% block atcontent %}
@@ -24,7 +25,7 @@
     </div>
     <div>
       <h2 style="margin:0;font-size:18px;font-weight:700;">{% user_link partner %}</h2>
-      <a href="{% url 'view_profile' partner.id %}" style="font-size:12px;color:rgba(255,255,255,0.75);">View profile</a>
+      <a href="{% url 'view_profile' partner.id %}" style="font-size:12px;color:rgba(255,255,255,0.75);">{% translate "View profile" %}</a>
     </div>
   </div>
 
@@ -39,14 +40,14 @@
         {% empty %}
         <div class="text-center text-muted py-5">
           <i class="bi bi-chat-dots" style="font-size:2rem;color:#d1d9e0;"></i>
-          <p class="mt-2 mb-0">No messages yet. Say hello!</p>
+          <p class="mt-2 mb-0">{% translate "No messages yet. Say hello!" %}</p>
         </div>
         {% endfor %}
       </div>
       <div class="card-body border-top pt-3">
         <form id="composeForm" class="d-flex gap-2">
           {% csrf_token %}
-          <input type="text" class="form-control flex-grow-1" id="composeBody" placeholder="Type a message…" autocomplete="off" required>
+          <input type="text" class="form-control flex-grow-1" id="composeBody" placeholder="{% translate 'Type a message…' %}" autocomplete="off" required>
           <button type="submit" class="btn btn-primary flex-shrink-0"><i class="bi bi-send"></i></button>
         </form>
       </div>

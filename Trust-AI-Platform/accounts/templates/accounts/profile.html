@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — My Profile</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "My Profile" %}</title>{% endblock %}
 {% load static %}
 {% block atcontent %}
 
@@ -47,11 +48,11 @@
     <div class="d-flex align-items-start gap-3">
       <div class="profile-hero-icon"><i class="bi bi-person-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Account</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">My Profile</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Account" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "My Profile" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ profile_user.get_full_name|default:profile_user.username }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item active">Account Settings</li>
+          <li class="breadcrumb-item active">{% translate "Account Settings" %}</li>
         </ol></nav>
       </div>
     </div>
@@ -68,8 +69,8 @@
             <div class="profile-avatar mb-3">
               {% with avatar=profile_user|avatar_url %}
               <button type="button" class="profile-avatar-btn" data-bs-toggle="modal" data-bs-target="#avatarModal"
-                      title="{% if is_own_profile %}View or change your profile picture{% else %}View profile picture{% endif %}">
-                <img src="{{ avatar }}" alt="Profile picture" id="profileAvatarImg"{% if not avatar %} hidden{% endif %}>
+                      title="{% if is_own_profile %}{% translate 'View or change your profile picture' %}{% else %}{% translate 'View profile picture' %}{% endif %}">
+                <img src="{{ avatar }}" alt="{% translate 'Profile picture' %}" id="profileAvatarImg"{% if not avatar %} hidden{% endif %}>
                 <i class="bi bi-person-circle" id="profileAvatarIcon"{% if avatar %} hidden{% endif %}></i>
                 {% if is_own_profile %}<span class="avatar-edit-badge"><i class="bi bi-camera-fill"></i></span>{% endif %}
               </button>
@@ -81,56 +82,56 @@
               {% for role in roles %}
               <span class="badge bg-{{ role.color }}">{{ role.label }}</span>
               {% empty %}
-              <span class="badge bg-secondary">User</span>
+              <span class="badge bg-secondary">{% translate "User" %}</span>
               {% endfor %}
             </div>
 
             <div class="w-100 mt-2">
               <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted small">Username</span>
+                <span class="text-muted small">{% translate "Username" %}</span>
                 <span class="fw-semibold small">{{ profile_user.username }}</span>
               </div>
               <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted small">Member since</span>
+                <span class="text-muted small">{% translate "Member since" %}</span>
                 <span class="fw-semibold small">{{ profile_user.date_joined|date:"d M Y" }}</span>
               </div>
               <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted small">Last login</span>
+                <span class="text-muted small">{% translate "Last login" %}</span>
                 <span class="fw-semibold small">
                   {% if profile_user.last_login %}{{ profile_user.last_login|date:"d M Y, H:i" }}{% else %}—{% endif %}
                 </span>
               </div>
               {% if profile.country %}
               <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted small">Country</span>
+                <span class="text-muted small">{% translate "Country" %}</span>
                 <span class="fw-semibold small" id="card-country">{{ profile.country }}</span>
               </div>
               {% else %}
               <div class="d-flex justify-content-between py-2 border-bottom" id="card-country-row" style="display:none!important;">
-                <span class="text-muted small">Country</span>
+                <span class="text-muted small">{% translate "Country" %}</span>
                 <span class="fw-semibold small" id="card-country"></span>
               </div>
               {% endif %}
               {% if profile.institution %}
               <div class="d-flex justify-content-between py-2">
-                <span class="text-muted small">Institution</span>
+                <span class="text-muted small">{% translate "Institution" %}</span>
                 <span class="fw-semibold small text-end" id="card-institution" style="max-width:60%;">{{ profile.institution }}</span>
               </div>
               {% else %}
               <div class="d-flex justify-content-between py-2" id="card-institution-row" style="display:none!important;">
-                <span class="text-muted small">Institution</span>
+                <span class="text-muted small">{% translate "Institution" %}</span>
                 <span class="fw-semibold small text-end" id="card-institution" style="max-width:60%;"></span>
               </div>
               {% endif %}
             </div>
             {% if profile.bio %}
             <div class="w-100 mt-3 pt-2 border-top">
-              <p class="text-muted small mb-1 fw-semibold">About</p>
+              <p class="text-muted small mb-1 fw-semibold">{% translate "About" %}</p>
               <p class="small" id="card-bio" style="color:#444;line-height:1.5;">{{ profile.bio }}</p>
             </div>
             {% else %}
             <div class="w-100 mt-3 pt-2 border-top" id="card-bio-row" style="display:none!important;">
-              <p class="text-muted small mb-1 fw-semibold">About</p>
+              <p class="text-muted small mb-1 fw-semibold">{% translate "About" %}</p>
               <p class="small" id="card-bio" style="color:#444;line-height:1.5;"></p>
             </div>
             {% endif %}
@@ -141,9 +142,9 @@
         {% if admin_orgs or member_orgs %}
         <div class="card mt-3">
           <div class="card-body">
-            <h5 class="card-title">Organizations</h5>
+            <h5 class="card-title">{% translate "Organizations" %}</h5>
             {% if admin_orgs %}
-            <p class="text-muted small mb-1 fw-semibold">Admin of</p>
+            <p class="text-muted small mb-1 fw-semibold">{% translate "Admin of" %}</p>
             <ul class="list-group list-group-flush mb-3">
               {% for org in admin_orgs %}
               <li class="list-group-item px-0 py-1 small">
@@ -157,7 +158,7 @@
             </ul>
             {% endif %}
             {% if member_orgs %}
-            <p class="text-muted small mb-1 fw-semibold">Member of</p>
+            <p class="text-muted small mb-1 fw-semibold">{% translate "Member of" %}</p>
             <ul class="list-group list-group-flush">
               {% for org in member_orgs %}
               <li class="list-group-item px-0 py-1 small">
@@ -185,12 +186,12 @@
             <ul class="nav nav-tabs nav-tabs-bordered" id="profileTabs" role="tablist">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
-                  <i class="bi bi-person me-1"></i>Personal Info
+                  <i class="bi bi-person me-1"></i>{% translate "Personal Info" %}
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-change" type="button" role="tab">
-                  <i class="bi bi-key me-1"></i>Change Password
+                  <i class="bi bi-key me-1"></i>{% translate "Change Password" %}
                 </button>
               </li>
             </ul>
@@ -205,7 +206,7 @@
                   <input type="hidden" name="action" value="update_info">
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">First Name</label>
+                    <label class="col-md-4 col-form-label">{% translate "First Name" %}</label>
                     <div class="col-md-8">
                       <input type="text" class="form-control" name="first_name" id="first_name" value="{{ user.first_name }}" required>
                       <div class="invalid-feedback" id="first_name-error"></div>
@@ -213,7 +214,7 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Last Name</label>
+                    <label class="col-md-4 col-form-label">{% translate "Last Name" %}</label>
                     <div class="col-md-8">
                       <input type="text" class="form-control" name="last_name" id="last_name" value="{{ user.last_name }}" required>
                       <div class="invalid-feedback" id="last_name-error"></div>
@@ -221,7 +222,7 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Email</label>
+                    <label class="col-md-4 col-form-label">{% translate "Email" %}</label>
                     <div class="col-md-8">
                       <input type="email" class="form-control" name="email" id="email" value="{{ user.email }}" required>
                       <div class="invalid-feedback" id="email-error"></div>
@@ -229,15 +230,15 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Username</label>
+                    <label class="col-md-4 col-form-label">{% translate "Username" %}</label>
                     <div class="col-md-8">
                       <input type="text" class="form-control bg-light" value="{{ user.username }}" disabled>
-                      <div class="form-text text-muted">Username cannot be changed.</div>
+                      <div class="form-text text-muted">{% translate "Username cannot be changed." %}</div>
                     </div>
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Country</label>
+                    <label class="col-md-4 col-form-label">{% translate "Country" %}</label>
                     <div class="col-md-8">
                       <select class="form-select" name="country" id="country">
                         {% for value, label in country_choices %}
@@ -248,40 +249,40 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Gender</label>
+                    <label class="col-md-4 col-form-label">{% translate "Gender" %}</label>
                     <div class="col-md-8">
                       <select class="form-select" name="gender" id="gender">
-                        <option value="" {% if not profile.gender %}selected{% endif %}>Prefer not to say</option>
-                        <option value="male" {% if profile.gender == 'male' %}selected{% endif %}>Male</option>
-                        <option value="female" {% if profile.gender == 'female' %}selected{% endif %}>Female</option>
+                        <option value="" {% if not profile.gender %}selected{% endif %}>{% translate "Prefer not to say" %}</option>
+                        <option value="male" {% if profile.gender == 'male' %}selected{% endif %}>{% translate "Male" %}</option>
+                        <option value="female" {% if profile.gender == 'female' %}selected{% endif %}>{% translate "Female" %}</option>
                       </select>
                     </div>
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Profile Picture</label>
+                    <label class="col-md-4 col-form-label">{% translate "Profile Picture" %}</label>
                     <div class="col-md-8">
                       <input type="file" class="form-control" name="picture" id="picture" accept="image/*">
-                      <div class="form-text text-muted">Leave blank to keep your current picture (or gender default).</div>
+                      <div class="form-text text-muted">{% translate "Leave blank to keep your current picture (or gender default)." %}</div>
                     </div>
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Institution</label>
+                    <label class="col-md-4 col-form-label">{% translate "Institution" %}</label>
                     <div class="col-md-8">
                       <input type="text" class="form-control" name="institution" id="institution"
-                             placeholder="e.g. University of Athens"
+                             placeholder="{% translate 'e.g. University of Athens' %}"
                              value="{{ profile.institution }}">
-                      <div class="form-text text-muted">School or university you work at.</div>
+                      <div class="form-text text-muted">{% translate "School or university you work at." %}</div>
                     </div>
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">About</label>
+                    <label class="col-md-4 col-form-label">{% translate "About" %}</label>
                     <div class="col-md-8">
                       <textarea class="form-control" name="bio" id="bio" rows="3"
                                 maxlength="500"
-                                placeholder="A short bio…">{{ profile.bio }}</textarea>
+                                placeholder="{% translate 'A short bio…' %}">{{ profile.bio }}</textarea>
                       <div class="d-flex justify-content-between mt-1">
                         <div class="invalid-feedback d-block" id="bio-error"></div>
                         <span class="form-text text-muted ms-auto" id="bio-count">{{ profile.bio|length }} / 500</span>
@@ -292,7 +293,7 @@
                   <div class="text-end">
                     <button type="submit" class="btn btn-primary" id="saveInfoBtn">
                       <span id="saveInfoSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
-                      Save Changes
+                      {% translate "Save Changes" %}
                     </button>
                   </div>
                 </form>
@@ -306,7 +307,7 @@
                   <input type="hidden" name="action" value="change_password">
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Current Password</label>
+                    <label class="col-md-4 col-form-label">{% translate "Current Password" %}</label>
                     <div class="col-md-8">
                       <div class="input-group">
                         <input type="password" class="form-control" name="current_password" id="current_password" required>
@@ -319,7 +320,7 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">New Password</label>
+                    <label class="col-md-4 col-form-label">{% translate "New Password" %}</label>
                     <div class="col-md-8">
                       <div class="input-group">
                         <input type="password" class="form-control" name="new_password" id="new_password" required>
@@ -338,7 +339,7 @@
                   </div>
 
                   <div class="row mb-3">
-                    <label class="col-md-4 col-form-label">Confirm New Password</label>
+                    <label class="col-md-4 col-form-label">{% translate "Confirm New Password" %}</label>
                     <div class="col-md-8">
                       <div class="input-group">
                         <input type="password" class="form-control" name="confirm_password" id="confirm_password" required>
@@ -353,7 +354,7 @@
                   <div class="text-end">
                     <button type="submit" class="btn btn-primary" id="savePwBtn">
                       <span id="savePwSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
-                      Update Password
+                      {% translate "Update Password" %}
                     </button>
                   </div>
                 </form>
@@ -367,10 +368,10 @@
         <div class="card">
           <div class="card-body text-center py-5">
             <i class="bi bi-chat-dots" style="font-size:2.5rem;color:#94a3b8;"></i>
-            <h5 class="mt-3 mb-1">Send {{ profile_user.first_name|default:profile_user.username }} a message</h5>
-            <p class="text-muted small mb-4">Start a conversation with this teacher.</p>
+            <h5 class="mt-3 mb-1">{% blocktranslate trimmed with name=profile_user.first_name|default:profile_user.username %}Send {{ name }} a message{% endblocktranslate %}</h5>
+            <p class="text-muted small mb-4">{% translate "Start a conversation with this teacher." %}</p>
             <a href="{% url 'thread' profile_user.id %}" class="btn btn-primary">
-              <i class="bi bi-send me-1"></i> Message
+              <i class="bi bi-send me-1"></i> {% translate "Message" context "button" %}
             </a>
           </div>
         </div>
@@ -386,11 +387,11 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="avatarModalTitle">{{ profile_user.get_full_name|default:profile_user.username }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
         </div>
         <div class="modal-body text-center">
           {% with avatar=profile_user|avatar_url %}
-          <img src="{{ avatar }}" alt="Profile picture" class="avatar-large" id="avatarModalImg"{% if not avatar %} hidden{% endif %}>
+          <img src="{{ avatar }}" alt="{% translate 'Profile picture' %}" class="avatar-large" id="avatarModalImg"{% if not avatar %} hidden{% endif %}>
           <i class="bi bi-person-circle avatar-large-placeholder" id="avatarModalIcon"{% if avatar %} hidden{% endif %}></i>
           {% endwith %}
           <div id="avatar-alert" class="alert d-none mt-3 mb-0" role="alert"></div>
@@ -403,9 +404,9 @@
             <input type="file" name="picture" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
             <button type="button" class="btn btn-primary" id="avatarChangeBtn">
               <span id="avatarSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
-              <i class="bi bi-camera me-1"></i>Change profile picture
+              <i class="bi bi-camera me-1"></i>{% translate "Change profile picture" %}
             </button>
-            <div class="form-text">JPG, PNG, WEBP or GIF, up to 5 MB.</div>
+            <div class="form-text">{% translate "JPG, PNG, WEBP or GIF, up to 5 MB." %}</div>
           </form>
         </div>
         {% endif %}
@@ -416,6 +417,8 @@
 
 {% if is_own_profile %}
 <script>
+{% translate "Weak" as s_weak %}{% translate "Fair" as s_fair %}{% translate "Good" as s_good %}{% translate "Strong" as s_strong %}
+{% translate "Please fix the errors below." as s_fix %}{% translate "Network error. Please try again." as s_network %}{% translate "The picture could not be saved." as s_picture %}
 // --- Toggle password visibility ---
 document.querySelectorAll('.toggle-pw').forEach(btn => {
   btn.addEventListener('click', function () {
@@ -444,10 +447,10 @@ document.getElementById('new_password').addEventListener('input', function () {
 
   const levels = [
     { pct: '0%',   cls: '',          text: '' },
-    { pct: '25%',  cls: 'bg-danger', text: 'Weak' },
-    { pct: '50%',  cls: 'bg-warning',text: 'Fair' },
-    { pct: '75%',  cls: 'bg-info',   text: 'Good' },
-    { pct: '100%', cls: 'bg-success',text: 'Strong' },
+    { pct: '25%',  cls: 'bg-danger', text: "{{ s_weak|escapejs }}" },
+    { pct: '50%',  cls: 'bg-warning',text: "{{ s_fair|escapejs }}" },
+    { pct: '75%',  cls: 'bg-info',   text: "{{ s_good|escapejs }}" },
+    { pct: '100%', cls: 'bg-success',text: "{{ s_strong|escapejs }}" },
   ];
   const lvl = val.length === 0 ? levels[0] : levels[strength] || levels[1];
   bar.style.width = lvl.pct;
@@ -529,7 +532,7 @@ document.getElementById('infoForm').addEventListener('submit', function (e) {
       if (bioEl) bioEl.textContent = bio;
       if (bioRow) bioRow.style.display = bio ? '' : 'none';
     } else {
-      showAlert('info-alert', false, 'Please fix the errors below.');
+      showAlert('info-alert', false, "{{ s_fix|escapejs }}");
       if (res.errors) {
         Object.entries(res.errors).forEach(([k, v]) => showFieldError(k, Array.isArray(v) ? v.join(' ') : v));
       }
@@ -538,7 +541,7 @@ document.getElementById('infoForm').addEventListener('submit', function (e) {
   .catch(() => {
     btn.disabled = false;
     spinner.classList.add('d-none');
-    showAlert('info-alert', false, 'Network error. Please try again.');
+    showAlert('info-alert', false, "{{ s_network|escapejs }}");
   });
 });
 
@@ -585,10 +588,10 @@ document.getElementById('infoForm').addEventListener('submit', function (e) {
         showPicture(res.picture_url);
         showAlert('avatar-alert', true, res.message);
       } else {
-        showAlert('avatar-alert', false, (res.errors && res.errors.picture) || 'The picture could not be saved.');
+        showAlert('avatar-alert', false, (res.errors && res.errors.picture) || "{{ s_picture|escapejs }}");
       }
     })
-    .catch(() => showAlert('avatar-alert', false, 'Network error. Please try again.'))
+    .catch(() => showAlert('avatar-alert', false, "{{ s_network|escapejs }}"))
     .finally(() => {
       btn.disabled = false;
       spinner.classList.add('d-none');
@@ -623,7 +626,7 @@ document.getElementById('passwordForm').addEventListener('submit', function (e) 
       document.getElementById('pw-strength-bar').style.width = '0%';
       document.getElementById('pw-strength-label').textContent = '';
     } else {
-      showAlert('pw-alert', false, 'Please fix the errors below.');
+      showAlert('pw-alert', false, "{{ s_fix|escapejs }}");
       if (res.errors) {
         Object.entries(res.errors).forEach(([k, v]) => showFieldError(k, Array.isArray(v) ? v.join(' ') : v));
       }
@@ -632,7 +635,7 @@ document.getElementById('passwordForm').addEventListener('submit', function (e) 
   .catch(() => {
     btn.disabled = false;
     spinner.classList.add('d-none');
-    showAlert('pw-alert', false, 'Network error. Please try again.');
+    showAlert('pw-alert', false, "{{ s_network|escapejs }}");
   });
 });
 </script>

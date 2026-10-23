@@ -9,6 +9,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from django.contrib.auth.views import PasswordResetView
 from django.conf import settings
 from faithDev.settings import TEACHER_ACCESS_CODE_HASHED
@@ -54,7 +55,7 @@ def login_view(request):
             else:
                 return redirect('studentScenarios')  # Redirect to the default page
         else:
-            messages.error(request, 'Invalid username or password.')
+            messages.error(request, _('Invalid username or password.'))
             return redirect('login')  # Redirect back to the login page with an error message
 
     return render(request, 'accounts/login.html')  # Render the login page for GET requests
@@ -103,10 +104,10 @@ def registerAccount(request):
 
             errors = {}
             if User.objects.filter(username=username).exists():
-                errors['username'] = 'Username already taken.'
+                errors['username'] = _('Username already taken.')
 
             if User.objects.filter(email=email).exists():
-                errors['email'] = 'Email already in use.'
+                errors['email'] = _('Email already in use.')
             
             # Validate password
             try:
@@ -117,9 +118,9 @@ def registerAccount(request):
             # Validate access code for Teacher role
             if access_code:
                 if not check_password(access_code, TEACHER_ACCESS_CODE_HASHED):
-                    errors['access_code'] = 'Invalid access code for Teacher registration.'
+                    errors['access_code'] = _('Invalid access code for Teacher registration.')
             else:
-                errors['access_code'] = 'Access code is required for Teacher registration.'
+                errors['access_code'] = _('Access code is required for Teacher registration.')
 
             if errors:
                 return JsonResponse({'success': False, 'errors': errors})
@@ -135,12 +136,12 @@ def registerAccount(request):
             teacher_group = Group.objects.get_or_create(name="teachers")[0]
             user.groups.add(teacher_group)
 
-            messages.success(request, 'Account created successfully. Please log in.')
+            messages.success(request, _('Account created successfully. Please log in.'))
 
             return JsonResponse({'success': True})
 
         else:
-            return JsonResponse({'success': False, 'error': 'AJAX required'}, status=400)
+            return JsonResponse({'success': False, 'error': _('AJAX required')}, status=400)
 
     # For GET requests, render the registration form
     return render(request, 'accounts/register.html')
@@ -164,14 +165,14 @@ def _picture_error(picture):
     allowed_extensions = ('jpg', 'jpeg', 'png', 'webp', 'gif')
     ext = picture.name.rsplit('.', 1)[-1].lower() if '.' in picture.name else ''
     if ext not in allowed_extensions:
-        return 'Unsupported file type. Use JPG, PNG, WEBP, or GIF.'
+        return _('Unsupported file type. Use JPG, PNG, WEBP, or GIF.')
     if picture.size > 5 * 1024 * 1024:
-        return 'Image must be 5MB or smaller.'
+        return _('Image must be 5MB or smaller.')
     from PIL import Image
     try:
         Image.open(picture).verify()
     except Exception:
-        return 'Uploaded file is not a valid image.'
+        return _('Uploaded file is not a valid image.')
     finally:
         picture.seek(0)
     return ''
@@ -198,15 +199,15 @@ def profile_view(request):
 
             errors = {}
             if not first_name:
-                errors['first_name'] = 'First name is required.'
+                errors['first_name'] = _('First name is required.')
             if not last_name:
-                errors['last_name'] = 'Last name is required.'
+                errors['last_name'] = _('Last name is required.')
             if not email:
-                errors['email'] = 'Email is required.'
+                errors['email'] = _('Email is required.')
             elif User.objects.filter(email=email).exclude(pk=user.pk).exists():
-                errors['email'] = 'This email is already in use by another account.'
+                errors['email'] = _('This email is already in use by another account.')
             if len(bio) > 500:
-                errors['bio'] = 'Bio must be 500 characters or fewer.'
+                errors['bio'] = _('Bio must be 500 characters or fewer.')
             if picture:
                 picture_error = _picture_error(picture)
                 if picture_error:
@@ -220,7 +221,7 @@ def profile_view(request):
             user.email      = email
             user.save(update_fields=['first_name', 'last_name', 'email'])
 
-            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile, _created = UserProfile.objects.get_or_create(user=user)
             profile.country     = country
             profile.institution = institution
             profile.bio         = bio
@@ -231,19 +232,19 @@ def profile_view(request):
                 update_fields.append('picture')
             profile.save(update_fields=update_fields)
 
-            return JsonResponse({'success': True, 'message': 'Profile updated successfully.',
+            return JsonResponse({'success': True, 'message': _('Profile updated successfully.'),
                                  'country': country, 'institution': institution})
 
         elif action == 'update_picture':
             # From the avatar modal: change only the picture.
             picture = request.FILES.get('picture')
-            error = _picture_error(picture) if picture else 'Choose an image to upload.'
+            error = _picture_error(picture) if picture else _('Choose an image to upload.')
             if error:
                 return JsonResponse({'success': False, 'errors': {'picture': error}})
-            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile, _created = UserProfile.objects.get_or_create(user=user)
             profile.picture = picture
             profile.save(update_fields=['picture'])
-            return JsonResponse({'success': True, 'message': 'Profile picture updated.',
+            return JsonResponse({'success': True, 'message': _('Profile picture updated.'),
                                  'picture_url': profile.picture.url})
 
         elif action == 'change_password':
@@ -253,9 +254,9 @@ def profile_view(request):
 
             errors = {}
             if not user.check_password(current_password):
-                errors['current_password'] = 'Current password is incorrect.'
+                errors['current_password'] = _('Current password is incorrect.')
             if new_password != confirm_password:
-                errors['confirm_password'] = 'Passwords do not match.'
+                errors['confirm_password'] = _('Passwords do not match.')
             if new_password:
                 try:
                     validate_password(new_password, user)
@@ -270,28 +271,28 @@ def profile_view(request):
             # Re-authenticate to keep the session alive
             from django.contrib.auth import update_session_auth_hash
             update_session_auth_hash(request, user)
-            return JsonResponse({'success': True, 'message': 'Password changed successfully.'})
+            return JsonResponse({'success': True, 'message': _('Password changed successfully.')})
 
-        return JsonResponse({'success': False, 'error': 'Unknown action.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Unknown action.')}, status=400)
 
     admin_orgs = Organization.objects.filter(admins=user).values('id', 'name', 'short_name', 'country')
     member_orgs = Organization.objects.filter(members=user).exclude(admins=user).values('id', 'name', 'short_name', 'country')
 
     # Build role badges
     BADGE_MAP = {
-        'teachers':       ('Teacher',        'primary'),
-        'dspace_partners':('DSpace Partner',  'info'),
+        'teachers':       (_('Teacher'),        'primary'),
+        'dspace_partners':(_('DSpace Partner'),  'info'),
     }
     roles = []
     if user.is_superuser:
-        roles.append({'label': 'Superuser', 'color': 'danger'})
+        roles.append({'label': _('Superuser'), 'color': 'danger'})
     if user.is_staff and not user.is_superuser:
-        roles.append({'label': 'Admin', 'color': 'warning'})
+        roles.append({'label': _('Admin'), 'color': 'warning'})
     for group in user.groups.all():
         badge = BADGE_MAP.get(group.name, (group.name.replace('_', ' ').title(), 'secondary'))
         roles.append({'label': badge[0], 'color': badge[1]})
 
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile, _created = UserProfile.objects.get_or_create(user=user)
 
     context = {
         'admin_orgs':      list(admin_orgs),
@@ -328,19 +329,19 @@ def view_profile(request, user_id):
     member_orgs = Organization.objects.filter(members=target).exclude(admins=target).values('id', 'name', 'short_name', 'country')
 
     BADGE_MAP = {
-        'teachers':       ('Teacher',        'primary'),
-        'dspace_partners':('DSpace Partner',  'info'),
+        'teachers':       (_('Teacher'),        'primary'),
+        'dspace_partners':(_('DSpace Partner'),  'info'),
     }
     roles = []
     if target.is_superuser:
-        roles.append({'label': 'Superuser', 'color': 'danger'})
+        roles.append({'label': _('Superuser'), 'color': 'danger'})
     if target.is_staff and not target.is_superuser:
-        roles.append({'label': 'Admin', 'color': 'warning'})
+        roles.append({'label': _('Admin'), 'color': 'warning'})
     for group in target.groups.all():
         badge = BADGE_MAP.get(group.name, (group.name.replace('_', ' ').title(), 'secondary'))
         roles.append({'label': badge[0], 'color': badge[1]})
 
-    profile, _ = UserProfile.objects.get_or_create(user=target)
+    profile, _created = UserProfile.objects.get_or_create(user=target)
 
     context = {
         'admin_orgs':      list(admin_orgs),

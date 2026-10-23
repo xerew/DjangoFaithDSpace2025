@@ -1,8 +1,9 @@
+{% load i18n %}
 {% for notice in active_maintenance_notices %}
 <div class="maintenance-notice-banner" role="status" aria-live="polite">
   <span class="maintenance-notice-icon" aria-hidden="true">&#9888;</span>
   <div class="maintenance-notice-content">
-    <strong>Platform maintenance</strong>
+    <strong>{% translate "Platform maintenance" %}</strong>
     <span class="maintenance-notice-window">
       {{ notice.starts_at|date:"D, j M Y, H:i" }} &ndash; {{ notice.ends_at|date:"D, j M Y, H:i T" }}
     </span>

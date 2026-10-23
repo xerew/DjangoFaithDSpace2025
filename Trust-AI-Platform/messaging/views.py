@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Message
@@ -75,11 +76,11 @@ def send_message(request):
     body = (request.POST.get('body') or '').strip()
 
     if not body:
-        return JsonResponse({'success': False, 'error': 'Message cannot be empty.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Message cannot be empty.')}, status=400)
 
     recipient = get_object_or_404(User, pk=recipient_id)
     if recipient == request.user or not _is_valid_target(recipient):
-        return JsonResponse({'success': False, 'error': 'Invalid recipient.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Invalid recipient.')}, status=400)
 
     msg = Message.objects.create(sender=request.user, recipient=recipient, body=body)
     return JsonResponse({
