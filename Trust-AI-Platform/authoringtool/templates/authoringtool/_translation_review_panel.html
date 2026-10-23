@@ -1,15 +1,15 @@
-{% comment %}Reviewers and verification of a machine translation (scenario page).{% endcomment %}
+{% load i18n %}{% comment %}Reviewers and verification of a machine translation (scenario page).{% endcomment %}
 {% if mt_job and mt_job.status == 'done' %}
 <div class="d-flex flex-wrap align-items-center gap-2 mt-2" style="font-size:12.5px;">
   {% if collaborators %}
-    <span style="opacity:0.8;"><i class="bi bi-people me-1"></i>Reviewers:</span>
+    <span style="opacity:0.8;"><i class="bi bi-people me-1"></i>{% translate "Reviewers:" %}</span>
     {% for collaborator in collaborators %}
       <span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-1">
         {{ collaborator.user.get_full_name|default:collaborator.user.username }}
         {% if can_remove_collaborators %}
         <form method="post" action="{% url 'remove_scenario_collaborator' scenario_id=myScenario.id user_id=collaborator.user_id %}" class="d-inline m-0">
           {% csrf_token %}
-          <button type="submit" class="btn btn-link btn-sm p-0 text-danger" title="Remove {{ collaborator.user.username }}" aria-label="Remove {{ collaborator.user.username }}"><i class="bi bi-x-circle"></i></button>
+          <button type="submit" class="btn btn-link btn-sm p-0 text-danger" title="{% blocktranslate trimmed with username=collaborator.user.username %}Remove {{ username }}{% endblocktranslate %}" aria-label="{% blocktranslate trimmed with username=collaborator.user.username %}Remove {{ username }}{% endblocktranslate %}"><i class="bi bi-x-circle"></i></button>
         </form>
         {% endif %}
       </span>
@@ -21,19 +21,19 @@
             data-action="{% url 'assign_translation_reviewer' scenario_id=myScenario.id %}"
             data-candidates="{% url 'translation_reviewer_candidates' scenario_id=myScenario.id %}"
             data-name="{{ myScenario.name }}">
-      <i class="bi bi-person-plus me-1"></i>Assign reviewer
+      <i class="bi bi-person-plus me-1"></i>{% translate "Assign reviewer" %}
     </button>
   {% endif %}
   {% if can_verify_translation and not mt_job.verified_by_id %}
     <form method="post" action="{% url 'verify_machine_translation' scenario_id=myScenario.id %}" class="d-inline m-0">
       {% csrf_token %}
-      <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-patch-check me-1"></i>Mark translation verified</button>
+      <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-patch-check me-1"></i>{% translate "Mark translation verified" %}</button>
     </form>
   {% endif %}
   {% if mt_job.verified_by_id and request.user.is_staff or mt_job.verified_by_id and request.user.is_superuser %}
     <form method="post" action="{% url 'unverify_machine_translation' scenario_id=myScenario.id %}" class="d-inline m-0">
       {% csrf_token %}
-      <button type="submit" class="btn btn-sm btn-light"><i class="bi bi-arrow-counterclockwise me-1"></i>Undo verification</button>
+      <button type="submit" class="btn btn-sm btn-light"><i class="bi bi-arrow-counterclockwise me-1"></i>{% translate "Undo verification" %}</button>
     </form>
   {% endif %}
 </div>

@@ -1,6 +1,6 @@
 {% extends "main.html" %}
-{% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — {{ myScenario.name }}</title>{% endblock %}
+{% load profile_tags i18n %}
+{% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -199,7 +199,7 @@
       <div class="sc-hero-icon"><i class="bi bi-journal-richtext"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
-          Scenario
+          {% translate "Scenario" %}
         </div>
         <h2 style="margin:0; font-size:21px; font-weight:700; line-height:1.2;">{{ myScenario.name }}</h2>
         {% if mt_job %}
@@ -209,60 +209,60 @@
         {% include 'authoringtool/_translation_review_panel.html' %}
         {% endif %}
         <div style="font-size:12.5px; opacity:0.75; margin-top:4px;">
-          {{ phase_count }} phase{{ phase_count|pluralize }} &middot; {{ myScenario.language }}
-          {% if myScenario.suggested_learning_time %}&middot; {{ myScenario.suggested_learning_time }} min{% endif %}
+          {% blocktranslate trimmed count counter=phase_count %}{{ counter }} phase{% plural %}{{ counter }} phases{% endblocktranslate %} &middot; {{ myScenario.language }}
+          {% if myScenario.suggested_learning_time %}&middot; {% blocktranslate trimmed with minutes=myScenario.suggested_learning_time %}{{ minutes }} min{% endblocktranslate %}{% endif %}
         </div>
         <nav>
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
             <li class="breadcrumb-item active">{{ myScenario.name }}</li>
           </ol>
         </nav>
       </div>
       <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
         <a href="{% url 'scenarios' %}" class="btn btn-sm hero-btn-ghost">
-          <i class="bi bi-arrow-left me-1"></i> Scenarios
+          <i class="bi bi-arrow-left me-1"></i> {% translate "Scenarios" %}
         </a>
         <a href="{% url 'export_scenario' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
-          <i class="bi bi-file-earmark-arrow-down me-1"></i> Export
+          <i class="bi bi-file-earmark-arrow-down me-1"></i> {% translate "Export" %}
         </a>
         {% if can_edit %}
           <a href="{% url 'updateScenario' id=myScenario.id %}" class="btn btn-sm hero-btn-amber">
             <i class="bi bi-pencil me-1"></i>
-            {% if revision_draft %}Continue Draft{% else %}Edit{% endif %}
+            {% if revision_draft %}{% translate "Continue Draft" %}{% else %}{% translate "Edit" %}{% endif %}
           </a>
           {% if is_machine_translation %}
           {% elif revision_draft or not revision_protected %}
             {% if phase_count < 5 %}
             <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-sm hero-btn-solid">
-              <i class="bi bi-plus-circle me-1"></i> New Phase
+              <i class="bi bi-plus-circle me-1"></i> {% translate "New Phase" %}
             </a>
             {% else %}
-            <span class="btn btn-sm hero-btn-solid disabled" title="Maximum of 5 phases reached">
-              <i class="bi bi-plus-circle me-1"></i> New Phase
+            <span class="btn btn-sm hero-btn-solid disabled" title="{% translate 'Maximum of 5 phases reached' %}">
+              <i class="bi bi-plus-circle me-1"></i> {% translate "New Phase" %}
             </span>
             {% endif %}
           {% else %}
             <span class="btn btn-sm hero-btn-solid disabled"
-                  title="Start a revision draft before changing this scenario">
-              <i class="bi bi-shield-lock me-1"></i> New Phase
+                  title="{% translate 'Start a revision draft before changing this scenario' %}">
+              <i class="bi bi-shield-lock me-1"></i> {% translate "New Phase" %}
             </span>
           {% endif %}
         {% endif %}
         {% if translation_total %}
           <button type="button" class="btn btn-sm hero-btn-outline"
                   data-bs-toggle="modal" data-bs-target="#translationsModal">
-            <i class="bi bi-translate me-1"></i> Translations ({{ translation_total }})
+            <i class="bi bi-translate me-1"></i> {% blocktranslate trimmed with total=translation_total %}Translations ({{ total }}){% endblocktranslate %}
           </button>
         {% endif %}
         {% if proposal_threshold_count >= myScenario.ai_metrics_min_implementations %}
           <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-outline">
-            <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
+            <i class="bi bi-bar-chart-line me-1"></i> {% translate "Metrics &amp; AI" %}
           </a>
         {% else %}
           <button type="button" class="btn btn-sm hero-btn-outline"
                   data-bs-toggle="modal" data-bs-target="#lowDataWarningModal">
-            <i class="bi bi-bar-chart-line me-1"></i> Metrics &amp; AI
+            <i class="bi bi-bar-chart-line me-1"></i> {% translate "Metrics &amp; AI" %}
           </button>
         {% endif %}
       </div>
@@ -286,7 +286,7 @@
         <!-- Scenario metadata -->
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>Scenario Info</span>
+            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>{% translate "Scenario Info" %}</span>
           </div>
           <div class="sc-card-body" style="padding:0;">
             {% if myScenario.description %}
@@ -296,35 +296,35 @@
             {% endif %}
             <div style="padding:6px 20px 12px;">
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-people"></i> Age Range</div>
-                <div class="meta-val">{{ min_age }}–{{ max_age }} years</div>
+                <div class="meta-lbl"><i class="bi bi-people"></i> {% translate "Age Range" %}</div>
+                <div class="meta-val">{% blocktranslate trimmed with min=min_age max=max_age %}{{ min }}–{{ max }} years{% endblocktranslate %}</div>
               </div>
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-translate"></i> Language</div>
+                <div class="meta-lbl"><i class="bi bi-translate"></i> {% translate "Language" %}</div>
                 <div class="meta-val">{{ myScenario.language }}</div>
               </div>
               {% if current_scenario_version and show_version_details %}
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-layers"></i> Evidence Version</div>
-                <div class="meta-val">Version {{ current_scenario_version.version_number }}</div>
+                <div class="meta-lbl"><i class="bi bi-layers"></i> {% translate "Evidence Version" %}</div>
+                <div class="meta-val">{% blocktranslate trimmed with version=current_scenario_version.version_number %}Version {{ version }}{% endblocktranslate %}</div>
               </div>
               {% endif %}
               {% if myScenario.suggested_learning_time %}
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-clock"></i> Learning Time</div>
-                <div class="meta-val">{{ myScenario.suggested_learning_time }} minutes</div>
+                <div class="meta-lbl"><i class="bi bi-clock"></i> {% translate "Learning Time" %}</div>
+                <div class="meta-val">{% blocktranslate trimmed with minutes=myScenario.suggested_learning_time %}{{ minutes }} minutes{% endblocktranslate %}</div>
               </div>
               {% endif %}
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-calendar3"></i> Created</div>
+                <div class="meta-lbl"><i class="bi bi-calendar3"></i> {% translate "Created" %}</div>
                 <div class="meta-val">{{ myScenario.created_on|date:"d M Y" }}</div>
               </div>
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-person"></i> Created By</div>
+                <div class="meta-lbl"><i class="bi bi-person"></i> {% translate "Created By" %}</div>
                 <div class="meta-val">{% user_link myScenario.created_by %}</div>
               </div>
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-clock-history"></i> Last updated</div>
+                <div class="meta-lbl"><i class="bi bi-clock-history"></i> {% translate "Last updated" %}</div>
                 <div class="meta-val">
                   {{ myScenario.updated_on|date:"d M Y, H:i" }}
                   {% if myScenario.updated_by %}· {% user_link myScenario.updated_by %}{% endif %}
@@ -332,11 +332,11 @@
               </div>
               {% if myScenario.origin_scenario %}
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-diagram-2"></i> Origin</div>
+                <div class="meta-lbl"><i class="bi bi-diagram-2"></i> {% translate "Origin" %}</div>
                 <div class="meta-val">{{ myScenario.origin_scenario.name }}</div>
               </div>
               <div class="meta-row">
-                <div class="meta-lbl"><i class="bi bi-person-check"></i> Original Creator</div>
+                <div class="meta-lbl"><i class="bi bi-person-check"></i> {% translate "Original Creator" %}</div>
                 <div class="meta-val">{% user_link myScenario.origin_scenario.created_by %}</div>
               </div>
               {% endif %}
@@ -347,16 +347,14 @@
         {% if myScenario.family_pooling_enabled %}
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>Compatible Evidence Pool</span>
+            <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>{% translate "Compatible Evidence Pool" %}</span>
             <span style="font-size:11.5px; color:#6b7280; font-weight:500;">
-              {{ evidence_context.version_count }} version{{ evidence_context.version_count|pluralize }}
+              {% blocktranslate trimmed count counter=evidence_context.version_count %}{{ counter }} version{% plural %}{{ counter }} versions{% endblocktranslate %}
             </span>
           </div>
           <div class="sc-card-body">
             <div style="font-size:12.5px; color:#374151; line-height:1.6;">
-              Correctness evidence may be combined across approved,
-              structurally compatible variants. Response-time evidence remains
-              restricted to <strong>{{ myScenario.language|default:"this scenario's language" }}</strong>.
+              {% blocktranslate trimmed with language=myScenario.language|default:_("this scenario's language") %}Correctness evidence may be combined across approved, structurally compatible variants. Response-time evidence remains restricted to <strong>{{ language }}</strong>.{% endblocktranslate %}
             </div>
             {% if evidence_context.sources %}
             <div style="margin-top:12px; border-top:1px solid #eef1f6;">
@@ -369,25 +367,21 @@
                   <div style="font-size:11.5px;color:#9ca3af;">{{ source.language }}</div>
                 </div>
                 <div style="font-size:12px;color:#4b5563;white-space:nowrap;">
-                  {{ source.implementation_count }} implementation{{ source.implementation_count|pluralize }}
+                  {% blocktranslate trimmed count counter=source.implementation_count %}{{ counter }} implementation{% plural %}{{ counter }} implementations{% endblocktranslate %}
                 </div>
               </div>
               {% endfor %}
             </div>
             {% elif not evidence_context.restricted_source_count %}
             <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:11.5px;color:#6b7280;">
-              No eligible implementations have been collected for the current
-              compatible versions yet.
+              {% translate "No eligible implementations have been collected for the current compatible versions yet." %}
             </div>
             {% endif %}
             {% if evidence_context.restricted_source_count %}
             <div class="alert alert-light border mt-2 mb-0 py-2 px-3" style="font-size:11.5px;color:#6b7280;">
-              {{ evidence_context.restricted_implementation_count }}
-              implementation{{ evidence_context.restricted_implementation_count|pluralize }}
-              from {{ evidence_context.restricted_source_count }} restricted
-              source{{ evidence_context.restricted_source_count|pluralize }}
-              also contribute. Source details are hidden because you cannot
-              access those scenarios.
+              {% blocktranslate trimmed count counter=evidence_context.restricted_implementation_count %}{{ counter }} implementation{% plural %}{{ counter }} implementations{% endblocktranslate %}
+              {% blocktranslate trimmed count counter=evidence_context.restricted_source_count %}from {{ counter }} restricted source{% plural %}from {{ counter }} restricted sources{% endblocktranslate %}
+              {% translate "also contribute. Source details are hidden because you cannot access those scenarios." %}
             </div>
             {% endif %}
           </div>
@@ -397,9 +391,9 @@
         {% if scenario_versions and myScenario.family_pooling_enabled %}
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-clock-history me-2" style="color:#1a56db;"></i>Evidence History</span>
+            <span><i class="bi bi-clock-history me-2" style="color:#1a56db;"></i>{% translate "Evidence History" %}</span>
             <span style="font-size:11.5px; color:#6b7280; font-weight:500;">
-              {{ scenario_versions|length }} version{{ scenario_versions|length|pluralize }}
+              {% blocktranslate trimmed count counter=scenario_versions|length %}{{ counter }} version{% plural %}{{ counter }} versions{% endblocktranslate %}
             </span>
           </div>
           <div class="sc-card-body" style="padding:8px 20px;">
@@ -407,31 +401,30 @@
             <div style="padding:10px 0; border-bottom:1px solid #f3f4f6;">
               <div style="display:flex; justify-content:space-between; gap:10px;">
                 <span style="font-size:12.5px; font-weight:600; color:#1f2937;">
-                  Version {{ version.version_number }}
+                  {% blocktranslate trimmed with number=version.version_number %}Version {{ number }}{% endblocktranslate %}
                   {% if version.is_current %}
-                  <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-size:10px;">Current</span>
+                  <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-size:10px;">{% translate "Current" %}</span>
                   {% endif %}
                   {% if version.compatibility.status == "compatible" %}
-                  <span class="badge rounded-pill" style="background:#eef4ff;color:#1e40af;font-size:10px;">Compatible</span>
+                  <span class="badge rounded-pill" style="background:#eef4ff;color:#1e40af;font-size:10px;">{% translate "Compatible" %}</span>
                   {% elif version.compatibility.status == "needs_review" %}
-                  <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;font-size:10px;">Needs review</span>
+                  <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;font-size:10px;">{% translate "Needs review" %}</span>
                   {% elif version.compatibility.status == "excluded" %}
-                  <span class="badge rounded-pill" style="background:#fee2e2;color:#991b1b;font-size:10px;">Excluded</span>
+                  <span class="badge rounded-pill" style="background:#fee2e2;color:#991b1b;font-size:10px;">{% translate "Excluded" %}</span>
                   {% endif %}
                 </span>
                 <span style="font-size:11.5px; color:#6b7280;">
-                  {{ version.implementation_count }} implementation{{ version.implementation_count|pluralize }}
+                  {% blocktranslate trimmed count counter=version.implementation_count %}{{ counter }} implementation{% plural %}{{ counter }} implementations{% endblocktranslate %}
                 </span>
               </div>
               <div style="font-size:11.5px; color:#9ca3af; margin-top:3px;">
-                {{ version.change_summary|default:"Scenario evidence snapshot" }}
+                {{ version.change_summary|default:_("Scenario evidence snapshot") }}
                 · {{ version.created_at|date:"d M Y H:i" }}
               </div>
             </div>
             {% endfor %}
             <div style="font-size:11.5px; color:#6b7280; padding:10px 0 4px; line-height:1.5;">
-              Historical versions remain auditable. Only the current compatible
-              version is used for Metrics and AI proposals.
+              {% translate "Historical versions remain auditable. Only the current compatible version is used for Metrics and AI proposals." %}
             </div>
           </div>
         </div>
@@ -441,7 +434,7 @@
         {% if myScenario.learning_goals %}
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-bullseye me-2" style="color:#1a56db;"></i>Learning Goals</span>
+            <span><i class="bi bi-bullseye me-2" style="color:#1a56db;"></i>{% translate "Learning Goals" %}</span>
           </div>
           <div class="sc-card-body" style="font-size:13.5px;color:#374151;line-height:1.7;white-space:pre-line;">{{ myScenario.learning_goals }}</div>
         </div>
@@ -450,8 +443,8 @@
         <!-- PDF Files -->
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-file-earmark-pdf me-2" style="color:#dc2626;"></i>RAG Documents</span>
-            <span style="font-size:11.5px; color:#9ca3af; font-weight:400;">{{ rag_files|length }} file{{ rag_files|length|pluralize }}</span>
+            <span><i class="bi bi-file-earmark-pdf me-2" style="color:#dc2626;"></i>{% translate "RAG Documents" %}</span>
+            <span style="font-size:11.5px; color:#9ca3af; font-weight:400;">{% blocktranslate trimmed count counter=rag_files|length %}{{ counter }} file{% plural %}{{ counter }} files{% endblocktranslate %}</span>
           </div>
           <div class="sc-card-body">
             {% if can_edit or request.user.is_superuser %}
@@ -460,7 +453,7 @@
               <div class="input-group input-group-sm">
                 <input type="file" name="rag_pdf" accept=".pdf" class="form-control" required>
                 <button type="submit" class="btn btn-success btn-sm">
-                  <i class="bi bi-upload me-1"></i>Upload
+                  <i class="bi bi-upload me-1"></i>{% translate "Upload" %}
                 </button>
               </div>
             </form>
@@ -485,7 +478,7 @@
                   <div class="modal-content">
                     <div class="modal-header">
                       <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>{{ f }}</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
                     </div>
                     <div class="modal-body p-0">
                       <iframe src="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
@@ -494,9 +487,9 @@
                     <div class="modal-footer">
                       <a href="{% url 'serve_rag_pdf' scenario_id=myScenario.id filename=f %}"
                          class="btn btn-success" download>
-                        <i class="bi bi-download me-1"></i>Download
+                        <i class="bi bi-download me-1"></i>{% translate "Download" %}
                       </a>
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% translate "Close" %}</button>
                     </div>
                   </div>
                 </div>
@@ -505,7 +498,7 @@
             {% else %}
               <div style="text-align:center; color:#9ca3af; padding:16px 0; font-size:13px;">
                 <i class="bi bi-file-earmark" style="font-size:28px; display:block; margin-bottom:8px;"></i>
-                No documents uploaded yet.
+                {% translate "No documents uploaded yet." %}
               </div>
             {% endif %}
           </div>
@@ -515,7 +508,7 @@
         {% if llm_html %}
         <div class="llm-card">
           <div class="llm-card-hdr">
-            <span><i class="bi bi-robot me-2"></i>LLM Evaluation Context</span>
+            <span><i class="bi bi-robot me-2"></i>{% translate "LLM Evaluation Context" %}</span>
             <button type="button" class="btn btn-sm"
                     style="background:rgba(109,40,217,0.1); color:#6d28d9; border:none; padding:2px 10px; font-size:11px; border-radius:6px;"
                     data-bs-toggle="collapse" data-bs-target="#llmScBody">
@@ -537,12 +530,12 @@
 
         <div class="sc-card">
           <div class="sc-card-header">
-            <span><i class="bi bi-layers me-2" style="color:#1a56db;"></i>Phases
-              <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{{ phase_count }} of 5</span>
+            <span><i class="bi bi-layers me-2" style="color:#1a56db;"></i>{% translate "Phases" %}
+              <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{% blocktranslate trimmed with total=phase_count %}{{ total }} of 5{% endblocktranslate %}</span>
             </span>
             {% if can_edit and phase_count < 5 and not is_machine_translation %}
             <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-sm btn-primary" style="font-size:12px; padding:4px 14px;">
-              <i class="bi bi-plus-circle me-1"></i> New Phase
+              <i class="bi bi-plus-circle me-1"></i> {% translate "New Phase" %}
             </a>
             {% endif %}
           </div>
@@ -558,30 +551,30 @@
                       {{ phase.name }}
                     </a>
                     <span style="font-size:11.5px; color:#9ca3af; margin-left:4px;">
-                      {{ phase.activities.count }} activit{{ phase.activities.count|pluralize:"y,ies" }}
+                      {% blocktranslate trimmed count counter=phase.activities.count %}{{ counter }} activity{% plural %}{{ counter }} activities{% endblocktranslate %}
                     </span>
                   </div>
                   <div class="phase-actions flex-shrink-0">
                     <a href="{% url 'phase' scenario_id=myScenario.id phase_id=phase.id %}" class="ph-btn ph-btn-view">
-                      <i class="bi bi-eye"></i> View
+                      <i class="bi bi-eye"></i> {% translate "View" %}
                     </a>
                     {% if can_edit %}
                     {% if not is_machine_translation %}
                     <form method="post" action="{% url 'move_phase' myScenario.id phase.id 'up' %}" class="d-inline">
                       {% csrf_token %}
-                      <button type="submit" class="ph-btn ph-btn-view" title="Move up" aria-label="Move {{ phase.name }} up"{% if forloop.first %} disabled{% endif %}>
+                      <button type="submit" class="ph-btn ph-btn-view" title="{% translate 'Move up' %}" aria-label="{% blocktranslate trimmed with name=phase.name %}Move {{ name }} up{% endblocktranslate %}"{% if forloop.first %} disabled{% endif %}>
                         <i class="bi bi-arrow-up"></i>
                       </button>
                     </form>
                     <form method="post" action="{% url 'move_phase' myScenario.id phase.id 'down' %}" class="d-inline">
                       {% csrf_token %}
-                      <button type="submit" class="ph-btn ph-btn-view" title="Move down" aria-label="Move {{ phase.name }} down"{% if forloop.last %} disabled{% endif %}>
+                      <button type="submit" class="ph-btn ph-btn-view" title="{% translate 'Move down' %}" aria-label="{% blocktranslate trimmed with name=phase.name %}Move {{ name }} down{% endblocktranslate %}"{% if forloop.last %} disabled{% endif %}>
                         <i class="bi bi-arrow-down"></i>
                       </button>
                     </form>
                     {% endif %}
                     <a href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=phase.id %}" class="ph-btn ph-btn-edit">
-                      <i class="bi bi-pencil"></i> Edit
+                      <i class="bi bi-pencil"></i> {% translate "Edit" %}
                     </a>
                     {% if phase_count > 1 and not is_machine_translation %}
                     <button type="button" class="ph-btn ph-btn-delete"
@@ -617,10 +610,10 @@
                   </ul>
                   {% else %}
                   <p style="font-size:12.5px; color:#9ca3af; margin:0;">
-                    <i class="bi bi-inbox me-1"></i>No activities yet —
+                    <i class="bi bi-inbox me-1"></i>{% translate "No activities yet —" %}
                     {% if can_edit and not is_machine_translation %}
-                    <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=phase.id %}" style="color:#1a56db;">create one</a>
-                    {% else %}none added{% endif %}
+                    <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=phase.id %}" style="color:#1a56db;">{% translate "create one" %}</a>
+                    {% else %}{% translate "none added" %}{% endif %}
                   </p>
                   {% endif %}
                 </div>
@@ -630,11 +623,11 @@
             {% else %}
             <div class="empty-phases">
               <i class="bi bi-layers text-muted"></i>
-              <h5 class="text-muted">No phases yet</h5>
-              <p class="text-muted small mb-3">Add the first phase to start building this scenario.</p>
+              <h5 class="text-muted">{% translate "No phases yet" %}</h5>
+              <p class="text-muted small mb-3">{% translate "Add the first phase to start building this scenario." %}</p>
               {% if can_edit and not is_machine_translation %}
               <a href="{% url 'createPhase' id=myScenario.id %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i> Create First Phase
+                <i class="bi bi-plus-circle me-1"></i> {% translate "Create First Phase" %}
               </a>
               {% endif %}
             </div>
@@ -648,14 +641,14 @@
     <!-- ── Activity Flow Chart ── -->
     <div class="sc-card">
       <div class="sc-card-header">
-        <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>Activity Flow Chart</span>
+        <span><i class="bi bi-diagram-3 me-2" style="color:#1a56db;"></i>{% translate "Activity Flow Chart" %}</span>
         <div class="d-flex align-items-center gap-2">
-          <div class="btn-group btn-group-sm flow-direction-toggle" role="group" aria-label="Flow chart layout">
+          <div class="btn-group btn-group-sm flow-direction-toggle" role="group" aria-label="{% translate 'Flow chart layout' %}">
             <button type="button" class="btn btn-outline-primary" data-flow-direction="TD" aria-pressed="true">
-              <i class="bi bi-arrow-down"></i> Vertical
+              <i class="bi bi-arrow-down"></i> {% translate "Vertical" %}
             </button>
             <button type="button" class="btn btn-outline-primary" data-flow-direction="LR" aria-pressed="false">
-              <i class="bi bi-arrow-right"></i> Horizontal
+              <i class="bi bi-arrow-right"></i> {% translate "Horizontal" %}
             </button>
           </div>
           <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:11.5px; padding:3px 10px;"
@@ -672,22 +665,22 @@
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px 20px;padding:10px 18px 14px;border-top:1px solid #f3f4f6;font-size:12px;color:#6b7280;">
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;border:1.5px solid #1a56db;display:inline-block;"></span> Activity
+            <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;border:1.5px solid #1a56db;display:inline-block;"></span> {% translate "Activity" %}
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#ede9fe;border:1.5px solid #7c3aed;display:inline-block;"></span> Evaluatable Activity
+            <span style="width:14px;height:14px;border-radius:3px;background:#ede9fe;border:1.5px solid #7c3aed;display:inline-block;"></span> {% translate "Evaluatable Activity" %}
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #94a3b8;display:inline-block;"></span> End
+            <span style="width:14px;height:14px;border-radius:3px;background:#f1f5f9;border:1.5px solid #94a3b8;display:inline-block;"></span> {% translate "End" %}
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:28px;height:3px;border-radius:2px;background:green;display:inline-block;"></span> High branch
+            <span style="width:28px;height:3px;border-radius:2px;background:green;display:inline-block;"></span> {% translate "High branch" %}
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:28px;height:3px;border-radius:2px;background:orange;display:inline-block;"></span> Moderate branch
+            <span style="width:28px;height:3px;border-radius:2px;background:orange;display:inline-block;"></span> {% translate "Moderate branch" %}
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:28px;height:3px;border-radius:2px;background:red;display:inline-block;"></span> Low branch
+            <span style="width:28px;height:3px;border-radius:2px;background:red;display:inline-block;"></span> {% translate "Low branch" %}
           </span>
         </div>
       </div>
@@ -702,38 +695,38 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="translationsModalLabel">
-          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>Translations of {{ myScenario.name }}
+          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>{% blocktranslate trimmed with name=myScenario.name %}Translations of {{ name }}{% endblocktranslate %}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body">
         <p style="font-size:13px; color:#6b7280; margin-bottom:12px;">
-          Confirmed 1:1 translations: the same activities, answers and routes in another language.
+          {% translate "Confirmed 1:1 translations: the same activities, answers and routes in another language." %}
         </p>
         {% if translations %}
         <div class="table-responsive">
           <table class="table table-sm align-middle" style="font-size:13.5px;">
             <thead>
               <tr>
-                <th scope="col">Scenario</th>
-                <th scope="col">Language</th>
-                <th scope="col">Visibility</th>
-                <th scope="col">Owner</th>
-                <th scope="col" class="text-end">Students</th>
-                <th scope="col"><span class="visually-hidden">Actions</span></th>
+                <th scope="col">{% translate "Scenario" %}</th>
+                <th scope="col">{% translate "Language" %}</th>
+                <th scope="col">{% translate "Visibility" %}</th>
+                <th scope="col">{% translate "Owner" %}</th>
+                <th scope="col" class="text-end">{% translate "Students" %}</th>
+                <th scope="col"><span class="visually-hidden">{% translate "Actions" %}</span></th>
               </tr>
             </thead>
             <tbody>
               {% for translation in translations %}
               <tr>
                 <td style="font-weight:600;">{{ translation.name }}</td>
-                <td>{{ translation.language|default:"Not set" }}</td>
+                <td>{{ translation.language|default:_("Not set") }}</td>
                 <td>{{ translation.get_visibility_status_display }}</td>
                 <td>{% user_link translation.created_by %}</td>
                 <td class="text-end">{{ translation.student_count }}</td>
                 <td class="text-end" style="white-space:nowrap;">
-                  <a href="{% url 'viewScenario' id=translation.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                  <a href="{% url 'studentView' scenario_id=translation.id %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Open as student</a>
+                  <a href="{% url 'viewScenario' id=translation.id %}" class="btn btn-sm btn-outline-primary">{% translate "View" %}</a>
+                  <a href="{% url 'studentView' scenario_id=translation.id %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{% translate "Open as student" %}</a>
                 </td>
               </tr>
               {% endfor %}
@@ -743,8 +736,7 @@
         {% endif %}
         {% if hidden_translation_count %}
         <div class="alert alert-light border mb-0 py-2 px-3" style="font-size:12.5px; color:#6b7280;">
-          {{ hidden_translation_count }} more translation{{ hidden_translation_count|pluralize }}
-          {{ hidden_translation_count|pluralize:"is,are" }} private to another teacher.
+          {% blocktranslate trimmed count counter=hidden_translation_count %}{{ counter }} more translation is private to another teacher.{% plural %}{{ counter }} more translations are private to another teacher.{% endblocktranslate %}
         </div>
         {% endif %}
       </div>
@@ -760,48 +752,39 @@
     <div class="modal-content" style="border-radius:12px;">
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-semibold" id="lowDataWarningLabel">
-          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Current Version Needs Data
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>{% translate "Current Version Needs Data" %}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body pt-2">
         <p class="mb-2">
           {% if myScenario.family_pooling_enabled %}
-            Version {{ current_scenario_version.version_number }} has
-            <strong>{{ implementation_count }}</strong> compatible student
-            implementation{{ implementation_count|pluralize }} across approved family variants.
+            {% blocktranslate trimmed with version=current_scenario_version.version_number count counter=implementation_count %}Version {{ version }} has <strong>{{ counter }}</strong> compatible student implementation across approved family variants.{% plural %}Version {{ version }} has <strong>{{ counter }}</strong> compatible student implementations across approved family variants.{% endblocktranslate %}
           {% elif translation_total %}
-            This scenario and its confirmed translations have
-            <strong>{{ proposal_threshold_count }}</strong> student
-            implementation{{ proposal_threshold_count|pluralize }} together
-            ({{ implementation_count }} in this scenario).
+            {% blocktranslate trimmed with here=implementation_count count counter=proposal_threshold_count %}This scenario and its confirmed translations have <strong>{{ counter }}</strong> student implementation together ({{ here }} in this scenario).{% plural %}This scenario and its confirmed translations have <strong>{{ counter }}</strong> student implementations together ({{ here }} in this scenario).{% endblocktranslate %}
           {% else %}
-            This scenario has <strong>{{ implementation_count }}</strong> student
-            implementation{{ implementation_count|pluralize }}, including historical data.
+            {% blocktranslate trimmed count counter=implementation_count %}This scenario has <strong>{{ counter }}</strong> student implementation, including historical data.{% plural %}This scenario has <strong>{{ counter }}</strong> student implementations, including historical data.{% endblocktranslate %}
           {% endif %}
-          For accurate AI metrics and reliable proposals you need at least
-          <strong>{{ myScenario.ai_metrics_min_implementations }}</strong>.
+          {% blocktranslate trimmed with minimum=myScenario.ai_metrics_min_implementations %}For accurate AI metrics and reliable proposals you need at least <strong>{{ minimum }}</strong>.{% endblocktranslate %}
         </p>
         <p class="text-muted small mb-0">
-          Proceeding with limited data means the AI recommendations and metrics charts may not reflect real learning patterns and could be misleading.
+          {% translate "Proceeding with limited data means the AI recommendations and metrics charts may not reflect real learning patterns and could be misleading." %}
         </p>
         {% if myScenario.family_pooling_enabled and legacy_implementation_count %}
         <p class="small mt-3 mb-0" style="color:#92400e;">
-          <strong>{{ legacy_implementation_count }}</strong> older implementation{{ legacy_implementation_count|pluralize }}
-          remain available under Historical Analytics. They are excluded from AI proposals because they cannot be safely tied
-          to the current scenario structure.
+          {% blocktranslate trimmed count counter=legacy_implementation_count %}<strong>{{ counter }}</strong> older implementation remains available under Historical Analytics. It is excluded from AI proposals because it cannot be safely tied to the current scenario structure.{% plural %}<strong>{{ counter }}</strong> older implementations remain available under Historical Analytics. They are excluded from AI proposals because they cannot be safely tied to the current scenario structure.{% endblocktranslate %}
         </p>
         {% endif %}
       </div>
       <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         {% if myScenario.family_pooling_enabled and legacy_implementation_count %}
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}?scope=historical" class="btn btn-sm btn-outline-warning">
-          <i class="bi bi-clock-history me-1"></i>Historical Analytics
+          <i class="bi bi-clock-history me-1"></i>{% translate "Historical Analytics" %}
         </a>
         {% endif %}
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm btn-warning">
-          <i class="bi bi-bar-chart-line me-1"></i>Continue Anyway
+          <i class="bi bi-bar-chart-line me-1"></i>{% translate "Continue Anyway" %}
         </a>
       </div>
     </div>
@@ -817,18 +800,17 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Phase
+          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{% translate "Delete Phase" %}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body">
-        Are you sure you want to delete <strong>{{ phase.name }}</strong>?
-        All activities in this phase will also be deleted. This cannot be undone.
+        {% blocktranslate trimmed with name=phase.name %}Are you sure you want to delete <strong>{{ name }}</strong>? All activities in this phase will also be deleted. This cannot be undone.{% endblocktranslate %}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <a href="{% url 'deletePhase' scenario_id=myScenario.id phase_id=phase.id %}"
-           class="btn btn-danger"><i class="bi bi-trash me-1"></i> Continue</a>
+           class="btn btn-danger"><i class="bi bi-trash me-1"></i> {% translate "Continue" %}</a>
       </div>
     </div>
   </div>
@@ -898,7 +880,7 @@
         })
         .catch(function (error) {
           console.error('Flow chart could not be rendered', error);
-          canvas.textContent = 'The flow chart could not be rendered.';
+          canvas.textContent = "{% translate 'The flow chart could not be rendered.' as s %}{{ s|escapejs }}";
         });
     }
 

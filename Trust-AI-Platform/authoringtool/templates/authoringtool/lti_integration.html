@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+{% load i18n %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LTI Launch</title>
+    <title>{% translate "LTI Launch" %}</title>
 </head>
 <body>
-    <h1>Launching LTI Request...</h1>
+    <h1>{% translate "Launching LTI Request..." %}</h1>
 
     <form id="ltiLaunchForm" action="{{ launch_url }}" method="POST">
         {% for key, value in params.items %}

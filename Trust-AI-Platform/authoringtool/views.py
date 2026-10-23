@@ -9,6 +9,7 @@ from html import unescape
 from .forms import AnswerForm
 from django.forms import formset_factory
 from django.contrib import messages
+from django.utils.translation import gettext as _, gettext_lazy, ngettext, pgettext
 import re
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count, Q, Max, Min, F, Avg, Case, When, Value, IntegerField
@@ -116,8 +117,12 @@ def is_admin_user(user):
 logger = logging.getLogger(__name__)
 
 
-def _count(number, noun):
-    return f"{number} {noun}{'' if number == 1 else 's'}"
+def _students(number):
+    return ngettext('%(count)d student', '%(count)d students', number) % {'count': number}
+
+
+def _answers(number):
+    return ngettext('%(count)d answer', '%(count)d answers', number) % {'count': number}
 
 
 def user_can_view_scenario(user, scenario):
@@ -178,10 +183,10 @@ def start_analytics_task(request, scenario_id, task, *extra_args,
     """
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     group_ids = analytics_group_scope(request, scenario)
     if group_ids is None:
-        return HttpResponseForbidden("You can only analyse your own groups.")
+        return HttpResponseForbidden(_("You can only analyse your own groups."))
     if groups_as_text:
         group_ids = ','.join(str(group_id) for group_id in group_ids)
     result = task.delay(
@@ -329,8 +334,8 @@ def authoring_revision_guard(request, scenario):
         return None
     messages.error(
         request,
-        'This scenario already has student implementations. Start a '
-        'revision draft before changing its content or structure.',
+        _('This scenario already has student implementations. Start a '
+          'revision draft before changing its content or structure.'),
     )
     return HttpResponseRedirect(
         reverse('updateScenario', args=[scenario.id])
@@ -468,6 +473,7 @@ def generate_flowchart(scenario_id):
             branching = branching_logic.filter(activity=activity).first()
 
             if branching:
+                branch_labels = {'High': _('High'), 'Moderate': _('Moderate'), 'Low': _('Low')}
                 for branch, label in [
                     (branching.next_question_on_high, 'High'),
                     (branching.next_question_on_mid,  'Moderate'),
@@ -476,7 +482,7 @@ def generate_flowchart(scenario_id):
                     if branch:
                         safe_branch_name = sanitize_mermaid_text(branch.name)
                         graph_definition += (
-                            f"A{activity.id} -->|{label}| "
+                            f"A{activity.id} -->|{sanitize_mermaid_text(branch_labels[label])}| "
                             f"A{branch.id}[\"{safe_branch_name}\"]\n"
                         )
                         if label == 'High':
@@ -495,7 +501,7 @@ def generate_flowchart(scenario_id):
                     if answer_next_activity and answer_next_activity.next_activity:
                         match = re.search(r'\b[A-E]\b', answer.text)
                         answer_text = answer.text[:match.start()] + match.group() if match else answer.text[:20]
-                        safe_label = sanitize_mermaid_text(f"Answer: {answer_text}")
+                        safe_label = sanitize_mermaid_text(_('Answer: %(text)s') % {'text': answer_text})
                         safe_next_name = sanitize_mermaid_text(answer_next_activity.next_activity.name)
                         graph_definition += (
                             f"A{activity.id} -->|{safe_label}| "
@@ -532,7 +538,7 @@ def generate_flowchart(scenario_id):
                         break
 
             if not has_next:
-                safe_end_label = sanitize_mermaid_text("END")
+                safe_end_label = sanitize_mermaid_text(_('END'))
                 graph_definition += f"A{activity.id} --> END{activity.id}([\"{safe_end_label}\"])\n"
                 end_nodes.append(f"END{activity.id}")
                 edge_idx += 1
@@ -819,7 +825,7 @@ def createScenarioData(request):
     name = request.POST.get('name')
     # Check if a scenario with the same name already exists
     if Scenario.objects.filter(name=name, created_by=request.user).exists():
-        messages.error(request, 'A scenario with this name already exists among your scenarios.')
+        messages.error(request, _('A scenario with this name already exists among your scenarios.'))
         return HttpResponseRedirect(reverse('createScenario'))  
 
     learning_goals = request.POST.get('learning_goals')
@@ -832,7 +838,7 @@ def createScenarioData(request):
     suggested_learning_time = request.POST.get('suggested_learning_time')
     image = request.FILES.get('image_upload')
     if not image:
-        messages.error(request, 'An image is required.')
+        messages.error(request, _('An image is required.'))
         return HttpResponseRedirect(reverse('createScenario'))
     created_by = request.user
 
@@ -847,14 +853,14 @@ def createScenarioData(request):
     newScenario.subjects.set(selected_subject_ids)
     if newScenario.family_id:
         newScenario.family.subjects.set(newScenario.subjects.all())
-    messages.success(request, f"Scenario '{newScenario.name}' created successfully.")
+    messages.success(request, _("Scenario '%(name)s' created successfully.") % {'name': newScenario.name})
     return HttpResponseRedirect(reverse('scenarios'))
 
 @group_required('teachers')
 def updateScenario(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, updateScenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, updateScenario)
     if blocked:
         return blocked
@@ -888,14 +894,14 @@ def updateScenario(request, id):
 def begin_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
     if not getattr(settings, 'SCENARIO_REVISION_PROTECTION', False):
         messages.info(
             request,
-            'Revision drafts are switched off. Edit the scenario directly.',
+            _('Revision drafts are switched off. Edit the scenario directly.'),
         )
         return HttpResponseRedirect(
             reverse('updateScenario', args=[scenario.id])
@@ -903,11 +909,9 @@ def begin_scenario_revision(request, scenario_id):
     draft = scenario.begin_revision_draft(request.user)
     messages.success(
         request,
-        (
-            f'Revision draft opened from published version '
-            f'{draft.base_version.version_number}. Student access is paused '
-            f'until the draft is published.'
-        ),
+        _('Revision draft opened from published version %(version)s. '
+          'Student access is paused until the draft is published.')
+        % {'version': draft.base_version.version_number},
     )
     return HttpResponseRedirect(
         reverse('updateScenario', args=[scenario.id])
@@ -919,12 +923,12 @@ def begin_scenario_revision(request, scenario_id):
 def publish_scenario_revision(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
     if not hasattr(scenario, 'revision_draft'):
-        messages.error(request, 'This scenario has no revision draft.')
+        messages.error(request, _('This scenario has no revision draft.'))
         return HttpResponseRedirect(
             reverse('updateScenario', args=[scenario.id])
         )
@@ -937,18 +941,19 @@ def publish_scenario_revision(request, scenario_id):
     except ScenarioGraphValidationError as exc:
         messages.error(
             request,
-            'The draft cannot be published until its graph is valid: '
-            + '; '.join(
+            _('The draft cannot be published until its graph is valid: %(issues)s')
+            % {'issues': '; '.join(
                 issue.get('message', str(issue))
                 for issue in exc.issues
-            ),
+            )},
         )
         return HttpResponseRedirect(
             reverse('updateScenario', args=[scenario.id])
         )
     messages.success(
         request,
-        f'Scenario revision {version.version_number} was published.',
+        _('Scenario revision %(version)s was published.')
+        % {'version': version.version_number},
     )
     return HttpResponseRedirect(
         reverse('viewScenario', args=[scenario.id])
@@ -959,7 +964,7 @@ def publish_scenario_revision(request, scenario_id):
 def updateScenarioData(request, id):
     updateScenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, updateScenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, updateScenario)
     if blocked:
         return blocked
@@ -975,14 +980,14 @@ def updateScenarioData(request, id):
     # Check if the visibility is 'org' and no organizations are selected
     selected_org_ids = request.POST.getlist('organizations')
     if manages_sharing and visibility == 'org' and not selected_org_ids:
-        messages.error(request, 'You must select at least one organization if the visibility is set to Organization.')
+        messages.error(request, _('You must select at least one organization if the visibility is set to Organization.'))
         return HttpResponseRedirect(reverse('updateScenario', args=[id]))
     
     name = request.POST.get('name')
     if Scenario.objects.filter(
         name=name, created_by=updateScenario.created_by,
     ).exclude(pk=id).exists():
-        messages.error(request, 'A scenario with this name already exists.')
+        messages.error(request, _('A scenario with this name already exists.'))
         return HttpResponseRedirect(reverse('updateScenario', args=[id])) 
     learning_goals = request.POST.get('learning_goals')
     # visibility = request.POST.get('visibility')
@@ -1038,22 +1043,27 @@ def updateScenarioData(request, id):
 def deleteScenario(request, id):
     scenario = get_object_or_404(Scenario, id=id, archived_at__isnull=True)
     if not user_manages_scenario(request.user, scenario):
-        return HttpResponseForbidden("Only the scenario owner can do this.")
+        return HttpResponseForbidden(_("Only the scenario owner can do this."))
     if request.method != 'POST':
         impact = scenario_impact(scenario)
         warning = ''
         if impact['students']:
-            warning = (
-                f"{_count(impact['students'], 'student')} used this scenario. "
-                "It will be archived instead of deleted: hidden from every "
-                "list, with all of their work kept. You can restore it from "
-                "Archived scenarios."
-            )
+            warning = ngettext(
+                '%(count)d student used this scenario. '
+                'It will be archived instead of deleted: hidden from every '
+                'list, with all of their work kept. You can restore it from '
+                'Archived scenarios.',
+                '%(count)d students used this scenario. '
+                'It will be archived instead of deleted: hidden from every '
+                'list, with all of their work kept. You can restore it from '
+                'Archived scenarios.',
+                impact['students'],
+            ) % {'count': impact['students']}
         return render(request, 'confirm_removal.html', {
-            'title': f'Delete “{scenario.name}”?',
-            'message': 'The scenario, its phases and its activities will be removed.',
+            'title': _('Delete “%(name)s”?') % {'name': scenario.name},
+            'message': _('The scenario, its phases and its activities will be removed.'),
             'warning': warning,
-            'confirm_label': 'Archive scenario' if warning else 'Delete scenario',
+            'confirm_label': _('Archive scenario') if warning else _('Delete scenario'),
             'danger': not warning,
             'cancel_url': reverse('viewScenario', args=[scenario.id]),
         })
@@ -1061,11 +1071,11 @@ def deleteScenario(request, id):
     if delete_or_archive_scenario(scenario, request.user) == 'archived':
         messages.success(
             request,
-            f"“{name}” was archived. Students' work is kept and you can "
-            "restore it from Archived scenarios.",
+            _("“%(name)s” was archived. Students' work is kept and you can "
+              "restore it from Archived scenarios.") % {'name': name},
         )
     else:
-        messages.success(request, f'“{name}” was deleted.')
+        messages.success(request, _('“%(name)s” was deleted.') % {'name': name})
     return HttpResponseRedirect(reverse('scenarios'))
 
 
@@ -1084,16 +1094,16 @@ def archived_scenarios(request):
 def restore_scenario(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id, archived_at__isnull=False)
     if not user_manages_scenario(request.user, scenario):
-        return HttpResponseForbidden("Only the scenario owner can do this.")
+        return HttpResponseForbidden(_("Only the scenario owner can do this."))
     restore_scenario_record(scenario)
-    messages.success(request, f'“{scenario.name}” was restored.')
+    messages.success(request, _('“%(name)s” was restored.') % {'name': scenario.name})
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario.id]))
 
 @group_required('teachers')
 def serve_rag_pdf(request, scenario_id, filename):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     try:
         folder = safe_join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}")
         file_path = safe_join(folder, filename)
@@ -1109,7 +1119,7 @@ def serve_rag_pdf(request, scenario_id, filename):
 def viewScenario(request, id):
     myScenario = get_object_or_404(Scenario, id=id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     blocked = translation_pending_guard(request, myScenario)
     if blocked:
         return blocked
@@ -1119,13 +1129,13 @@ def viewScenario(request, id):
     # ⬇️ Handle PDF upload for RAG
     if request.method == "POST" and request.FILES.get('rag_pdf'): # 2026
         if not can_edit:
-            return HttpResponseForbidden("You cannot edit this scenario.")
+            return HttpResponseForbidden(_("You cannot edit this scenario."))
         uploaded_pdf = request.FILES['rag_pdf']
         if (
             not uploaded_pdf.name.lower().endswith('.pdf')
             or uploaded_pdf.read(5) != b'%PDF-'
         ):
-            messages.error(request, 'Only PDF files can be uploaded.')
+            messages.error(request, _('Only PDF files can be uploaded.'))
             return HttpResponseRedirect(reverse('viewScenario', args=[id]))
         uploaded_pdf.seek(0)
         rag_folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{id}")# os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{id}')
@@ -1133,7 +1143,7 @@ def viewScenario(request, id):
         uploaded_file = request.FILES['rag_pdf']
         fs = FileSystemStorage(location=rag_folder)
         fs.save(uploaded_file.name, uploaded_file)
-        messages.success(request, f"Uploaded RAG PDF: {uploaded_file.name}")
+        messages.success(request, _('Uploaded RAG PDF: %(name)s') % {'name': uploaded_file.name})
         return HttpResponseRedirect(reverse('viewScenario', args=[id]))
     
     scenarioPhases = Phase.objects.filter(scenario=id) # Me
@@ -1321,19 +1331,19 @@ def viewScenario(request, id):
 def delete_rag_pdf(request, scenario_id, filename):
     scenario = Scenario.objects.get(id=scenario_id)
     if request.user != scenario.created_by and not is_admin_user(request.user):
-        messages.error(request, "Only the scenario owner can delete RAG PDFs.")
+        messages.error(request, _('Only the scenario owner can delete RAG PDFs.'))
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
     folder = os.path.join(settings.RAG_PDFS_ROOT, f"scenario_{scenario_id}") # os.path.join(settings.BASE_DIR, 'rag_pdfs', f'scenario_{scenario_id}')
     safe_path = (Path(folder) / filename).resolve()
     if not str(safe_path).startswith(str(Path(folder).resolve())):
-        return HttpResponseForbidden("Invalid path")
+        return HttpResponseForbidden(_("Invalid path"))
     file_path = safe_path
     if os.path.exists(file_path):
         os.remove(file_path)
-        messages.success(request, f"Deleted {filename}")
+        messages.success(request, _('Deleted %(name)s') % {'name': filename})
     else:
-        messages.error(request, "File not found.")
+        messages.error(request, _('File not found.'))
 
     return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
 
@@ -1341,7 +1351,7 @@ def delete_rag_pdf(request, scenario_id, filename):
 def createPhase(request, id):
     scenario = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1357,7 +1367,7 @@ def createPhaseData(request, id):
 
     scenario_instance = get_object_or_404(Scenario, id=id)
     if not user_can_edit_scenario(request.user, scenario_instance):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1366,7 +1376,7 @@ def createPhaseData(request, id):
         return blocked
 
     if Phase.objects.filter(scenario=scenario_instance).count() >= 5:
-        messages.error(request, "A scenario cannot have more than 5 phases.")
+        messages.error(request, _('A scenario cannot have more than 5 phases.'))
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario]))
 
     newPhase = Phase(name=name, description=description, image=image, scenario=scenario_instance, created_by=created_by)
@@ -1382,7 +1392,7 @@ def updatePhase(request, scenario_id, phase_id):
     updatePhase = get_object_or_404(Phase, id=phase_id)
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, scenario)
     if blocked:
         return blocked
@@ -1399,7 +1409,7 @@ def updatePhase(request, scenario_id, phase_id):
 def updatePhaseData(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, scenario)
     if blocked:
         return blocked
@@ -1424,7 +1434,7 @@ def updatePhaseData(request, scenario_id, phase_id):
 def deletePhase(request, scenario_id, phase_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1432,7 +1442,7 @@ def deletePhase(request, scenario_id, phase_id):
     if blocked:
         return blocked
     if Phase.objects.filter(scenario=scenario).count() <= 1:
-        messages.error(request, "A scenario must have at least 1 phase.")
+        messages.error(request, _('A scenario must have at least 1 phase.'))
         return HttpResponseRedirect(reverse('viewScenario', args=[scenario_id]))
     phase = get_object_or_404(Phase, id=phase_id, scenario=scenario)
     activities = list(phase.activities.all())
@@ -1440,17 +1450,16 @@ def deletePhase(request, scenario_id, phase_id):
         impact = removal_impact(activities=activities)
         warning = ''
         if impact['students']:
-            warning = (
-                f"{_count(impact['students'], 'student')} answered this phase "
-                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+            warning = _(
+                '%(students)s answered this phase (%(answers)s). If you delete it anyway, '
                 "their answers are kept for research but no longer appear in "
                 "this scenario's charts."
-            )
+            ) % {'students': _students(impact['students']), 'answers': _answers(impact['answers'])}
         return render(request, 'confirm_removal.html', {
-            'title': f'Delete phase “{phase.name}”?',
-            'message': 'This cannot be undone.',
+            'title': _('Delete phase “%(name)s”?') % {'name': phase.name},
+            'message': _('This cannot be undone.'),
             'warning': warning,
-            'confirm_label': 'Delete anyway' if warning else 'Delete phase',
+            'confirm_label': _('Delete anyway') if warning else _('Delete phase'),
             'danger': True,
             'cancel_url': reverse('viewScenario', args=[scenario_id]),
         })
@@ -1465,7 +1474,7 @@ def deletePhase(request, scenario_id, phase_id):
 def viewPhase(request, scenario_id, phase_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     blocked = translation_pending_guard(request, myScenario)
     if blocked:
         return blocked
@@ -1490,7 +1499,7 @@ def createActivity(request, scenario_id, phase_id):
     activityTypes = ActivityType.objects.all()
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1539,7 +1548,7 @@ def createActivityData(request, scenario_id, phase_id):
     
     scenario_instance = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario_instance):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario_instance)
     if blocked:
         return blocked
@@ -1629,7 +1638,7 @@ def createActivityData(request, scenario_id, phase_id):
 def updateActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, scenario)
     if blocked:
         return blocked
@@ -1707,7 +1716,7 @@ def updateActivity(request, scenario_id, phase_id, activity_id):
 def updateActivityData(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, scenario)
     if blocked:
         return blocked
@@ -1863,7 +1872,7 @@ def updateActivityData(request, scenario_id, phase_id, activity_id):
 def deleteActivity(request, scenario_id, phase_id, activity_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1875,17 +1884,16 @@ def deleteActivity(request, scenario_id, phase_id, activity_id):
         impact = removal_impact(activities=[activity])
         warning = ''
         if impact['students']:
-            warning = (
-                f"{_count(impact['students'], 'student')} answered this activity "
-                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+            warning = _(
+                '%(students)s answered this activity (%(answers)s). If you delete it anyway, '
                 "their answers are kept for research but no longer appear in "
                 "this scenario's charts."
-            )
+            ) % {'students': _students(impact['students']), 'answers': _answers(impact['answers'])}
         return render(request, 'confirm_removal.html', {
-            'title': f'Delete activity “{activity.name}”?',
-            'message': 'This cannot be undone.',
+            'title': _('Delete activity “%(name)s”?') % {'name': activity.name},
+            'message': _('This cannot be undone.'),
             'warning': warning,
-            'confirm_label': 'Delete anyway' if warning else 'Delete activity',
+            'confirm_label': _('Delete anyway') if warning else _('Delete activity'),
             'danger': True,
             'cancel_url': reverse('activity', args=[scenario_id, phase_id, activity_id]),
         })
@@ -1915,7 +1923,7 @@ def _swap_with_neighbour(item, siblings, direction):
 def move_phase(request, scenario_id, phase_id, direction):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1930,7 +1938,7 @@ def move_phase(request, scenario_id, phase_id, direction):
 def move_activity(request, scenario_id, phase_id, activity_id, direction):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1946,7 +1954,7 @@ def set_start_activity(request, scenario_id, activity_id):
     """Make an activity the one new students begin the scenario with."""
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -1961,8 +1969,9 @@ def set_start_activity(request, scenario_id, activity_id):
     scenario.refresh_version_if_initialized(created_by=request.user)
     messages.success(
         request,
-        f'"{activity.name}" is now the first activity. New students start '
-        f'here; students already part-way through continue where they are.',
+        _('"%(name)s" is now the first activity. New students start '
+          'here; students already part-way through continue where they are.')
+        % {'name': activity.name},
     )
     leads_on = (
         NextQuestionLogic.objects.filter(
@@ -1978,9 +1987,10 @@ def set_start_activity(request, scenario_id, activity_id):
     if not leads_on:
         messages.warning(
             request,
-            f'"{activity.name}" does not lead to another activity yet, so '
-            f'students would stop after it. Set its next activity (or its '
-            f'answers\' next activities) to the activity that used to come first.',
+            _('"%(name)s" does not lead to another activity yet, so '
+              'students would stop after it. Set its next activity (or its '
+              'answers\' next activities) to the activity that used to come first.')
+            % {'name': activity.name},
         )
     if activity.phase_id:
         return HttpResponseRedirect(
@@ -1992,7 +2002,7 @@ def set_start_activity(request, scenario_id, activity_id):
 def viewActivity(request, scenario_id, phase_id, activity_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     blocked = translation_pending_guard(request, myScenario)
     if blocked:
         return blocked
@@ -2077,7 +2087,7 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
         activity = Activity.objects.get(id=activity_id)
         scenario = activity.scenario
         if not user_can_edit_scenario(request.user, scenario):
-            return HttpResponseForbidden("You cannot edit this scenario.")
+            return HttpResponseForbidden(_("You cannot edit this scenario."))
         blocked = translation_structure_guard(request, scenario)
         if blocked:
             return blocked
@@ -2150,7 +2160,7 @@ def createAnswers(request, scenario_id, phase_id, activity_id):
 def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -2164,17 +2174,16 @@ def deleteAnswer(request, scenario_id, phase_id, activity_id, answer_id):
         impact = removal_impact(answers=[answer])
         warning = ''
         if impact['students']:
-            warning = (
-                f"{_count(impact['students'], 'student')} answered this answer option "
-                f"({_count(impact['answers'], 'answer')}). If you delete it anyway, "
+            warning = _(
+                '%(students)s answered this answer option (%(answers)s). If you delete it anyway, '
                 "their answers are kept for research but no longer appear in "
                 "this scenario's charts."
-            )
+            ) % {'students': _students(impact['students']), 'answers': _answers(impact['answers'])}
         return render(request, 'confirm_removal.html', {
-            'title': f'Delete answer option “{answer.text}”?',
-            'message': 'This cannot be undone.',
+            'title': _('Delete answer option “%(text)s”?') % {'text': answer.text},
+            'message': _('This cannot be undone.'),
             'warning': warning,
-            'confirm_label': 'Delete anyway' if warning else 'Delete answer option',
+            'confirm_label': _('Delete anyway') if warning else _('Delete answer option'),
             'danger': True,
             'cancel_url': reverse('activity', args=[scenario_id, phase_id, activity_id]),
         })
@@ -2192,7 +2201,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
     scenario = activity.scenario
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_pending_guard(request, scenario)
     if blocked:
         return blocked
@@ -2209,7 +2218,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
             save_translation_answer_text(request, activity)
             record_edit(request.user, scenario, phase_id=phase_id, activity_id=activity_id)
             scenario.refresh_version_if_initialized(created_by=request.user)
-            messages.success(request, 'Answers updated successfully!')
+            messages.success(request, _('Answers updated successfully!'))
             return redirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
         existing_answer_ids = [answer.id for answer in activity.answers.all()]
         submitted_answer_ids = []
@@ -2292,7 +2301,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
         activity.scenario.refresh_version_if_initialized(
             created_by=request.user
         )
-        messages.success(request, 'Answers updated successfully!')
+        messages.success(request, _('Answers updated successfully!'))
         return redirect(reverse('activity', args=[scenario_id, phase_id, activity_id]))
 
     answers = activity.answers.all()
@@ -2333,7 +2342,7 @@ def updateAnswers(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def createCriterion(request, scenario_id, phase_id, activity_id):
     if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, get_object_or_404(Scenario, id=scenario_id))
     if blocked:
         return blocked
@@ -2358,7 +2367,7 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     scenario = activityPrimary.scenario
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -2423,7 +2432,7 @@ def createCriterionData(request, scenario_id, phase_id, activity_id):
 @group_required('teachers')
 def updateCriterion(request, scenario_id, phase_id, activity_id):
     if not user_can_edit_scenario(request.user, get_object_or_404(Scenario, id=scenario_id)):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, get_object_or_404(Scenario, id=scenario_id))
     if blocked:
         return blocked
@@ -2466,7 +2475,7 @@ def updateCriterionData(request, scenario_id, phase_id, activity_id):
     activityPrimary = Activity.objects.get(id=activity_id)
     scenario = activityPrimary.scenario
     if not user_can_edit_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot edit this scenario.")
+        return HttpResponseForbidden(_("You cannot edit this scenario."))
     blocked = translation_structure_guard(request, scenario)
     if blocked:
         return blocked
@@ -2629,10 +2638,10 @@ def help_time_data(request, scenario_id):
     """Help-time chart data: average pause time per activity, phase or scenario."""
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     group_ids = analytics_group_scope(request, scenario)
     if group_ids is None:
-        return HttpResponseForbidden("You can only analyse your own groups.")
+        return HttpResponseForbidden(_("You can only analyse your own groups."))
     return JsonResponse(help_time_chart(
         scenario,
         level=request.GET.get('level', 'activity'),
@@ -2680,7 +2689,7 @@ def get_time_spent_task_status(request, task_id):
 def performance_by_department(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
@@ -2824,7 +2833,7 @@ def duplicate_scenario(request, scenario_id):
     """Adapt: copy a scenario for the user, all or nothing (see the Adapt modal)."""
     original_scenario = get_object_or_404(Scenario, pk=scenario_id)
     if not user_can_view_scenario(request.user, original_scenario):
-        return HttpResponseForbidden("You cannot copy this scenario.")
+        return HttpResponseForbidden(_("You cannot copy this scenario."))
     try:
         with transaction.atomic():
             new_scenario = _copy_scenario(request, original_scenario)
@@ -2832,10 +2841,11 @@ def duplicate_scenario(request, scenario_id):
         logger.exception('Adapt failed for scenario %s', scenario_id)
         messages.error(
             request,
-            f"The copy couldn't be created. Nothing was changed. ({e})",
+            _("The copy couldn't be created. Nothing was changed. (%(error)s)")
+            % {'error': e},
         )
         return redirect('scenarios')
-    messages.success(request, f'Successfully duplicated scenario: {new_scenario.name}')
+    messages.success(request, _('Successfully duplicated scenario: %(name)s') % {'name': new_scenario.name})
     return redirect('updateScenario', id=new_scenario.id)
 
 
@@ -2993,7 +3003,7 @@ def _copy_scenario(request, original_scenario):
     return new_scenario
 
 
-TRANSLATION_SERVICE_DOWN = (
+TRANSLATION_SERVICE_DOWN = gettext_lazy(
     "The translation service can't be reached right now. Machine translation "
     "is paused. Please try again later."
 )
@@ -3040,10 +3050,10 @@ def machine_translation_job_status(request):
 def retry_machine_translation(request, job_id):
     job = get_object_or_404(ScenarioTranslationJob, pk=job_id)
     if not (is_admin_user(request.user) or job.requested_by_id == request.user.id):
-        return HttpResponseForbidden("Only the teacher who asked for this translation can retry it.")
+        return HttpResponseForbidden(_("Only the teacher who asked for this translation can retry it."))
     retry_job(job)
     transaction.on_commit(drain_translation_queue_task.delay)
-    messages.success(request, 'Translation queued again.')
+    messages.success(request, _('Translation queued again.'))
     return redirect('scenarios')
 
 
@@ -3059,7 +3069,7 @@ def _machine_translation(scenario_id):
 @group_required('teachers')
 def translation_reviewer_candidates(request, scenario_id):
     if not is_admin_user(request.user):
-        return HttpResponseForbidden("Only admins can assign reviewers.")
+        return HttpResponseForbidden(_("Only admins can assign reviewers."))
     scenario = _machine_translation(scenario_id)
     return JsonResponse({
         'users': reviewer_candidates(scenario, request.GET.get('q', '').strip()),
@@ -3074,8 +3084,8 @@ def assign_translation_reviewer(request, scenario_id):
     try:
         assign_reviewer(scenario, reviewer, request.user)
     except PermissionDenied:
-        return HttpResponseForbidden("Only admins can assign reviewers, and only to teachers.")
-    messages.success(request, f'{reviewer.username} can now review “{scenario.name}”.')
+        return HttpResponseForbidden(_("Only admins can assign reviewers, and only to teachers."))
+    messages.success(request, _('%(username)s can now review “%(name)s”.') % {'username': reviewer.username, 'name': scenario.name})
     return redirect(request.POST.get('next') or reverse('viewScenario', args=[scenario.id]))
 
 
@@ -3086,8 +3096,8 @@ def remove_scenario_collaborator(request, scenario_id, user_id):
     try:
         remove_collaborator(scenario, get_object_or_404(User, pk=user_id), request.user)
     except PermissionDenied:
-        return HttpResponseForbidden("Only the scenario's creator or an admin can do this.")
-    messages.success(request, 'Collaborator removed.')
+        return HttpResponseForbidden(_("Only the scenario's creator or an admin can do this."))
+    messages.success(request, _('Collaborator removed.'))
     return redirect('viewScenario', id=scenario.id)
 
 
@@ -3098,8 +3108,8 @@ def verify_machine_translation(request, scenario_id):
     try:
         verify_translation(scenario, request.user)
     except PermissionDenied:
-        return HttpResponseForbidden("Only the assigned reviewer or an admin can verify this translation.")
-    messages.success(request, 'Translation marked as verified.')
+        return HttpResponseForbidden(_("Only the assigned reviewer or an admin can verify this translation."))
+    messages.success(request, _('Translation marked as verified.'))
     return redirect('viewScenario', id=scenario.id)
 
 
@@ -3110,8 +3120,8 @@ def unverify_machine_translation(request, scenario_id):
     try:
         unverify_translation(scenario, request.user)
     except PermissionDenied:
-        return HttpResponseForbidden("Only admins can undo a verification.")
-    messages.success(request, 'Verification removed.')
+        return HttpResponseForbidden(_("Only admins can undo a verification."))
+    messages.success(request, _('Verification removed.'))
     return redirect('viewScenario', id=scenario.id)
 
 
@@ -3131,25 +3141,25 @@ def machine_translation_status(request):
 def start_machine_translation(request, scenario_id):
     """Queue a machine translation of a scenario into another language."""
     if not can_machine_translate(request.user):
-        return HttpResponseForbidden("Machine translation is available to admins only for now.")
+        return HttpResponseForbidden(_("Machine translation is available to admins only for now."))
     scenario = get_object_or_404(Scenario, pk=scenario_id, archived_at__isnull=True)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot translate this scenario.")
+        return HttpResponseForbidden(_("You cannot translate this scenario."))
     if ScenarioTranslationJob.objects.filter(
         target_scenario=scenario,
         status__in=ScenarioTranslationJob.PENDING_STATUSES,
     ).exists():
-        messages.error(request, 'This translation is still being prepared.')
+        messages.error(request, _('This translation is still being prepared.'))
         return redirect('scenarios')
 
     names = {language.name.casefold(): language.name for language in Language.objects.all()}
     source = names.get((scenario.language or request.POST.get('source_language', '')).strip().casefold())
     target = names.get(request.POST.get('target_language', '').strip().casefold())
     if not source:
-        messages.error(request, 'Choose the language the scenario is written in.')
+        messages.error(request, _('Choose the language the scenario is written in.'))
         return redirect('scenarios')
     if not target or target == source:
-        messages.error(request, 'Choose a language different from the scenario\'s own.')
+        messages.error(request, _('Choose a language different from the scenario\'s own.'))
         return redirect('scenarios')
     if not translation_service_available():
         messages.error(request, TRANSLATION_SERVICE_DOWN)
@@ -3157,7 +3167,7 @@ def start_machine_translation(request, scenario_id):
 
     copy_for_translation(scenario, request.user, target, source)
     transaction.on_commit(drain_translation_queue_task.delay)
-    messages.success(request, 'Translation queued. You can leave this page.')
+    messages.success(request, _('Translation queued. You can leave this page.'))
     return redirect('scenarios')
 
 
@@ -3268,7 +3278,7 @@ def lms_lti_launch(request, experiment_id): #=None
 def lab_sessions_data(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     # Optional date filtering from request parameters
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -3420,7 +3430,7 @@ def get_teacher_groups(request, scenario_id):
 def ai_metrics(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
 
     can_edit = user_can_edit_scenario(request.user, scenario)
     can_generate_proposals = user_can_generate_proposals(
@@ -3583,7 +3593,7 @@ def ai_metrics(request, scenario_id):
 def category_metrics_view(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     start = request.GET.get('start_date')
     end = request.GET.get('end_date')
     group_ids = request.GET.getlist('group_ids[]', None)
@@ -3625,7 +3635,7 @@ def category_metrics_status(request, task_id):
         # csv_path = os.path.join(settings.BASE_DIR, 'ai_metrics_cache', f'scenario_{scenario_id}_combined_activity_metrics.csv')
         scenario = get_object_or_404(Scenario, id=scenario_id)
         if not user_can_view_scenario(request.user, scenario):
-            return HttpResponseForbidden("You cannot view this scenario.")
+            return HttpResponseForbidden(_("You cannot view this scenario."))
         csv_path = get_scenario_evidence_cache_paths(
             scenario,
             scope=evidence_scope,
@@ -3649,7 +3659,7 @@ def category_metrics_status(request, task_id):
 def risk_flags_view(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     evidence_scope = normalize_evidence_scope(
         request.GET.get('scope', 'compatible'),
         scenario,
@@ -3685,7 +3695,7 @@ def risk_flags_status(request, task_id):
         # Path for the risk flags CSV
         scenario = get_object_or_404(Scenario, id=scenario_id)
         if not user_can_view_scenario(request.user, scenario):
-            return HttpResponseForbidden("You cannot view this scenario.")
+            return HttpResponseForbidden(_("You cannot view this scenario."))
         flags_csv_path = get_scenario_evidence_cache_paths(
             scenario,
             scope=evidence_scope,
@@ -3709,7 +3719,7 @@ def risk_flags_status(request, task_id):
 def download_ai_evidence_csv(request, scenario_id, report_kind):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     if report_kind not in {'metrics', 'flags'}:
         raise Http404('Unknown AI evidence report.')
     evidence_scope = normalize_evidence_scope(
@@ -3871,8 +3881,8 @@ def _report_personal_scenario_outcome(request, scenario):
         created = Scenario.objects.filter(pk=outcome.result).first()
         if created:
             messages.success(request, format_html(
-                'Your personalised scenario <a href="{}">{}</a> is ready.',
-                reverse('viewScenario', args=[created.id]), created.name,
+                _('Your personalised scenario <a href="{url}">{name}</a> is ready.'),
+                url=reverse('viewScenario', args=[created.id]), name=created.name,
             ))
             return
     failure = (
@@ -3884,19 +3894,20 @@ def _report_personal_scenario_outcome(request, scenario):
         error.get('message', str(error)) if isinstance(error, dict) else str(error)
         for error in (failure.errors if failure else [])
     ]
-    messages.error(
-        request,
-        'Your personalised scenario could not be created'
-        + (': ' + '; '.join(reasons[:5]) if reasons else '.')
-        + ' No changes were made.',
-    )
+    if reasons:
+        failure_message = _(
+            'Your personalised scenario could not be created: %(reasons)s No changes were made.'
+        ) % {'reasons': '; '.join(reasons[:5])}
+    else:
+        failure_message = _('Your personalised scenario could not be created. No changes were made.')
+    messages.error(request, failure_message)
 
 
 @group_required('teachers')
 def proposal_list_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     current_version = myScenario.ensure_current_version(
         created_by=request.user,
     )
@@ -3932,8 +3943,8 @@ def proposal_list_view(request, scenario_id):
         current_generation_run = None
         messages.info(
             request,
-            'The evidence pool changed. The previous proposals '
-            'were archived; the scenario owner can generate a current set.',
+            _('The evidence pool changed. The previous proposals '
+              'were archived; the scenario owner can generate a current set.'),
         )
 
     # Only the latest generation is reviewed; earlier runs stay in Proposal
@@ -4069,8 +4080,8 @@ def accept_proposal(request, pk, scenario_id):
         activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
-        return HttpResponseForbidden("You cannot review this scenario.")
-    review, _ = UserProposalReview.objects.get_or_create(
+        return HttpResponseForbidden(_("You cannot review this scenario."))
+    review, _created = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
@@ -4111,7 +4122,8 @@ def accept_proposal(request, pk, scenario_id):
         )
         messages.error(
             request,
-            f"This proposal cannot be accepted until its structure is fixed: {exc}",
+            _('This proposal cannot be accepted until its structure is fixed: %(error)s')
+            % {'error': exc},
         )
         return redirect('proposal_list', scenario_id=scenario_id)
     review.accept()
@@ -4127,8 +4139,8 @@ def reject_proposal(request, pk, scenario_id):
         activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
-        return HttpResponseForbidden("You cannot review this scenario.")
-    review, _ = UserProposalReview.objects.get_or_create(
+        return HttpResponseForbidden(_("You cannot review this scenario."))
+    review, _created = UserProposalReview.objects.get_or_create(
         proposal=proposal,
         user=request.user
     )
@@ -4158,7 +4170,7 @@ def reset_proposal_review(request, pk, scenario_id):
         activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
-        return HttpResponseForbidden("You cannot review this scenario.")
+        return HttpResponseForbidden(_("You cannot review this scenario."))
     review = get_object_or_404(
         UserProposalReview,
         proposal=proposal,
@@ -4173,12 +4185,12 @@ def reset_proposal_review(request, pk, scenario_id):
 def create_personal_scenario(request, scenario_id):
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot use this scenario.")
+        return HttpResponseForbidden(_("You cannot use this scenario."))
     task = apply_user_proposals_to_new_scenario.delay(scenario_id, request.user.id)
     # The proposals page reports how it went once the task has finished.
     if isinstance(getattr(task, 'id', None), str):
         request.session['personal_scenario_task'] = {'id': task.id, 'scenario': scenario_id}
-    messages.success(request, "Your personalized scenario is being created. Reload this page in a moment to see the result.")
+    messages.success(request, _('Your personalized scenario is being created. Reload this page in a moment to see the result.'))
     request.session['feedback_prompt_scenario_id'] = scenario_id
     return redirect('proposal_list', scenario_id=scenario_id)
 
@@ -4211,7 +4223,7 @@ def edit_proposal_json(request, scenario_id, pk):
         activity__isnull=False,
     )
     if not user_can_view_scenario(request.user, proposal.scenario):
-        return HttpResponseForbidden("You cannot review this scenario.")
+        return HttpResponseForbidden(_("You cannot review this scenario."))
     user = request.user
 
     # Get or create the review
@@ -4312,11 +4324,11 @@ def import_scenario(request):
     uploaded = request.FILES.get('template_file')
     if not uploaded:
         return JsonResponse({'success': False, 'errors': [
-            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'No file uploaded.'}
+            {'sheet': pgettext('import error location', 'File'), 'row': 0, 'column': '-', 'message': _('No file uploaded.')}
         ]})
     if not (uploaded.name.endswith('.xlsx') or uploaded.name.endswith('.zip')):
         return JsonResponse({'success': False, 'errors': [
-            {'sheet': 'File', 'row': 0, 'column': '-', 'message': 'Only .xlsx or .zip files are supported.'}
+            {'sheet': pgettext('import error location', 'File'), 'row': 0, 'column': '-', 'message': _('Only .xlsx or .zip files are supported.')}
         ]})
     importer = ScenarioImporter(uploaded, request.user)
     scenario, errors = importer.run()
@@ -4338,7 +4350,7 @@ def export_scenario(request, scenario_id):
     from .exporter import ScenarioExporter
     scenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, scenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     safe_name = re.sub(r'[^\w\s-]', '', scenario.name).strip().replace(' ', '_')
     base = safe_name[:60]
     exporter = ScenarioExporter(scenario)
@@ -4354,12 +4366,12 @@ def tinymce_image_upload(request):
     """Accept a single image from TinyMCE, save it to media/tinymce/, return its URL."""
     file = request.FILES.get('file')
     if not file:
-        return JsonResponse({'error': 'No file provided.'}, status=400)
+        return JsonResponse({'error': _('No file provided.')}, status=400)
     if not file.content_type.startswith('image/'):
-        return JsonResponse({'error': 'Only image files are allowed.'}, status=400)
+        return JsonResponse({'error': _('Only image files are allowed.')}, status=400)
     max_bytes = 8 * 1024 * 1024  # 8 MB per image
     if file.size > max_bytes:
-        return JsonResponse({'error': 'Image exceeds the 8 MB size limit.'}, status=413)
+        return JsonResponse({'error': _('Image exceeds the 8 MB size limit.')}, status=413)
 
     ext = os.path.splitext(file.name)[1].lower() or '.jpg'
     filename = f"{uuid.uuid4().hex}{ext}"
@@ -4377,7 +4389,7 @@ def tinymce_image_upload(request):
 def proposal_history_view(request, scenario_id):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     # History is the complete archive, including runs predating versioning
     # and runs still marked current after their scenario version changed.
     past_runs = (
@@ -4452,7 +4464,7 @@ def proposal_history_view(request, scenario_id):
 def proposal_history_run_detail_view(request, scenario_id, run_id=None):
     myScenario = get_object_or_404(Scenario, id=scenario_id)
     if not user_can_view_scenario(request.user, myScenario):
-        return HttpResponseForbidden("You cannot view this scenario.")
+        return HttpResponseForbidden(_("You cannot view this scenario."))
     run = (
         get_object_or_404(ProposalGenerationRun, id=run_id, scenario=myScenario)
         if run_id is not None else None

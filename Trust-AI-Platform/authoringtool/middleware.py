@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.translation import gettext as _
 
 from .models import ScenarioTranslationJob
 
@@ -38,16 +39,16 @@ class MachineTranslationNoticeMiddleware:
             name = job.target_scenario.name
             if job.status == ScenarioTranslationJob.STATUS_DONE:
                 messages.success(request, format_html(
-                    'Your {} translation of <a href="{}">{}</a> is ready.',
-                    job.target_language,
-                    reverse('viewScenario', args=[job.target_scenario_id]),
-                    name,
+                    _('Your {language} translation of <a href="{url}">{name}</a> is ready.'),
+                    language=job.target_language,
+                    url=reverse('viewScenario', args=[job.target_scenario_id]),
+                    name=name,
                 ))
             else:
                 messages.error(
                     request,
-                    f'Your {job.target_language} translation of {name} failed. '
-                    'Open your scenarios to retry.',
+                    _('Your %(language)s translation of %(name)s failed. Open your scenarios to retry.')
+                    % {'language': job.target_language, 'name': name},
                 )
         if jobs:
             ScenarioTranslationJob.objects.filter(

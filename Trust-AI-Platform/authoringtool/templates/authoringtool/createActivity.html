@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Create Activity</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Create Activity" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -192,16 +193,16 @@
         <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
           {{ myScenario.name }} &rsaquo; {{ myPhase.name }}
         </div>
-        <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">New Activity</h2>
-        <div style="font-size:13px; opacity:0.78; margin-top:2px;">Fill in the details below to create an activity</div>
+        <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">{% translate "New Activity" %}</h2>
+        <div style="font-size:13px; opacity:0.78; margin-top:2px;">{% translate "Fill in the details below to create an activity" %}</div>
       </div>
     </div>
     <nav>
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
         <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
         <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
-        <li class="breadcrumb-item active">New Activity</li>
+        <li class="breadcrumb-item active">{% translate "New Activity" %}</li>
       </ol>
     </nav>
   </div>
@@ -217,24 +218,24 @@
       <!-- ── Card 1: Basic Information ── -->
       <div class="act-card">
         <div class="act-card-header">
-          <i class="bi bi-info-circle-fill"></i> Basic Information
+          <i class="bi bi-info-circle-fill"></i> {% translate "Basic Information" %}
         </div>
         <div class="act-card-body">
           <div class="act-field-row">
             <label class="act-field-label" for="activityNameInput">
-              <i class="bi bi-tag"></i> Activity Name
+              <i class="bi bi-tag"></i> {% translate "Activity Name" %}
             </label>
             <input type="text" class="form-control" id="activityNameInput"
-                   name="activity_name" required placeholder="Enter activity name…">
+                   name="activity_name" required placeholder="{% translate 'Enter activity name…' %}">
           </div>
           <div class="act-field-row">
             <label class="act-field-label">
-              <i class="bi bi-body-text"></i> Content
+              <i class="bi bi-body-text"></i> {% translate "Content" %}
               <span style="font-weight:400; color:#9ca3af; font-size:11px; margin-left:6px;">
-                — supports rich text, images, links, tables
+                {% translate "— supports rich text, images, links, tables" %}
               </span>
             </label>
-            <textarea class="tinymce-editor" name="activity_text"><p>Type the activity content here…</p></textarea>
+            <textarea class="tinymce-editor" name="activity_text"><p>{% translate "Type the activity content here…" %}</p></textarea>
           </div>
         </div>
       </div>
@@ -242,19 +243,19 @@
       <!-- ── Card 2: Activity Settings ── -->
       <div class="act-card">
         <div class="act-card-header">
-          <i class="bi bi-sliders2"></i> Activity Settings
+          <i class="bi bi-sliders2"></i> {% translate "Activity Settings" %}
         </div>
         <div class="act-card-body">
 
           <!-- Evaluatable toggle -->
           <div class="act-field-row">
-            <label class="act-field-label"><i class="bi bi-patch-check"></i> Evaluation</label>
+            <label class="act-field-label"><i class="bi bi-patch-check"></i> {% translate "Evaluation" %}</label>
             <div class="act-toggle-wrap">
               <div>
                 <div style="font-size:13.5px; font-weight:600; color:#1e3a8a;">
-                  <i class="bi bi-bar-chart-steps me-1 text-primary"></i> Evaluatable Activity
+                  <i class="bi bi-bar-chart-steps me-1 text-primary"></i> {% translate "Evaluatable Activity" %}
                 </div>
-                <div class="act-toggle-info">Check if this activity evaluates the student's performance</div>
+                <div class="act-toggle-info">{% translate "Check if this activity evaluates the student's performance" %}</div>
               </div>
               <div class="form-check form-switch" style="margin:0;">
                 <input class="form-check-input" type="checkbox" role="switch" id="gridCheck1"
@@ -266,7 +267,7 @@
           <!-- Activity Type -->
           <div class="act-field-row">
             <label class="act-field-label" for="activityTypeSelect">
-              <i class="bi bi-grid-3x3-gap"></i> Activity Type
+              <i class="bi bi-grid-3x3-gap"></i> {% translate "Activity Type" %}
             </label>
             <select class="form-select" name="activity_type" id="activityTypeSelect">
               {% for option in activityTypes %}
@@ -282,23 +283,23 @@
           <!-- Experiment Type (shown only when type = Experiment) -->
           <div id="experimentTypeSection" class="act-field-row" style="display:none;">
             <label class="act-field-label" for="experimentTypeSelect">
-              <i class="bi bi-lightning-charge"></i> Experiment Type
+              <i class="bi bi-lightning-charge"></i> {% translate "Experiment Type" %}
             </label>
             <select id="experimentTypeSelect" class="form-select" name="experiment_type">
-              <option value="">Select Experiment Type…</option>
-              <option value="simulation">Simulation</option>
-              <option value="remote_lab">Remote Lab</option>
-              <option value="vr_ar_exp">VR/AR Lab</option>
+              <option value="">{% translate "Select Experiment Type…" %}</option>
+              <option value="simulation">{% translate "Simulation" %}</option>
+              <option value="remote_lab">{% translate "Remote Lab" %}</option>
+              <option value="vr_ar_exp">{% translate "VR/AR Lab" %}</option>
             </select>
           </div>
 
           <!-- Helping Quote -->
           <div class="act-field-row">
             <label class="act-field-label" for="helpingQuote">
-              <i class="bi bi-chat-quote"></i> Helping Quote
+              <i class="bi bi-chat-quote"></i> {% translate "Helping Quote" %}
             </label>
             <input type="text" class="form-control" id="helpingQuote"
-                   name="helping_quote" placeholder="Optional hint shown to the student…">
+                   name="helping_quote" placeholder="{% translate 'Optional hint shown to the student…' %}">
           </div>
         </div>
       </div>
@@ -306,22 +307,22 @@
       <!-- ── Experiment sub-sections ── -->
       <div id="simulationSection" class="act-card" style="display:none; border-left:4px solid #7c3aed;">
         <div class="act-card-header" style="background:#f5f3ff; border-bottom-color:#ede9fe;">
-          <i class="bi bi-cpu-fill" style="color:#7c3aed;"></i> Simulation
+          <i class="bi bi-cpu-fill" style="color:#7c3aed;"></i> {% translate "Simulation" %}
         </div>
         <div class="act-card-body">
           <div class="act-field-row">
-            <label class="act-field-label"><i class="bi bi-display"></i> Select Simulation</label>
+            <label class="act-field-label"><i class="bi bi-display"></i> {% translate "Select Simulation" %}</label>
             <div class="csp-wrapper" style="position:relative;">
               <button type="button" id="simPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
-                <span id="simPickerLabel" class="text-muted">Select Simulation…</span>
+                <span id="simPickerLabel" class="text-muted">{% translate "Select Simulation…" %}</span>
                 <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
               </button>
               <div id="simPickerDropdown" class="csp-dropdown" style="display:none;">
                 <div class="csp-search-wrap">
-                  <input type="text" id="simSearchInput" class="form-control form-control-sm" placeholder="Search simulations…" autocomplete="off">
+                  <input type="text" id="simSearchInput" class="form-control form-control-sm" placeholder="{% translate 'Search simulations…' %}" autocomplete="off">
                 </div>
                 <div id="simPickerList" class="csp-list">
-                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> {% translate "Clear selection" %}</div>
                   {% for sim in simulations %}
                   <div class="csp-item" data-value="{{ sim.id }}" data-url="{{ sim.iframe_url }}">
                     <span class="csp-item-name">{{ sim.name }}</span>
@@ -342,22 +343,22 @@
 
       <div id="remoteLabSection" class="act-card" style="display:none; border-left:4px solid #0891b2;">
         <div class="act-card-header" style="background:#ecfeff; border-bottom-color:#cffafe;">
-          <i class="bi bi-broadcast-pin" style="color:#0891b2;"></i> Remote Lab
+          <i class="bi bi-broadcast-pin" style="color:#0891b2;"></i> {% translate "Remote Lab" %}
         </div>
         <div class="act-card-body">
           <div class="act-field-row">
-            <label class="act-field-label"><i class="bi bi-wifi"></i> Select Remote Lab</label>
+            <label class="act-field-label"><i class="bi bi-wifi"></i> {% translate "Select Remote Lab" %}</label>
             <div class="csp-wrapper" style="position:relative;">
               <button type="button" id="labPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
-                <span id="labPickerLabel" class="text-muted">Select Remote Lab…</span>
+                <span id="labPickerLabel" class="text-muted">{% translate "Select Remote Lab…" %}</span>
                 <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
               </button>
               <div id="labPickerDropdown" class="csp-dropdown" style="display:none;">
                 <div class="csp-search-wrap">
-                  <input type="text" id="labSearchInput" class="form-control form-control-sm" placeholder="Search remote labs…" autocomplete="off">
+                  <input type="text" id="labSearchInput" class="form-control form-control-sm" placeholder="{% translate 'Search remote labs…' %}" autocomplete="off">
                 </div>
                 <div id="labPickerList" class="csp-list">
-                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  <div class="csp-item csp-clear" data-value="" data-url=""><i class="bi bi-x-circle me-1"></i> {% translate "Clear selection" %}</div>
                   {% for lab in remote_labs %}
                   <div class="csp-item" data-value="{{ lab.id }}" data-url="{% url 'lti_integration_in' lab.id %}">
                     <span class="csp-item-name">{{ lab.name }}</span>
@@ -379,36 +380,36 @@
       <!-- Shared iframe preview for Simulation and Remote Lab -->
       <div id="iframeSection" class="act-card" style="display:none; border-left:4px solid #7c3aed; overflow:hidden;">
         <div class="act-card-header" style="background:#f5f3ff; border-bottom-color:#ede9fe;">
-          <i class="bi bi-window" style="color:#7c3aed;"></i> Preview
+          <i class="bi bi-window" style="color:#7c3aed;"></i> {% translate "Preview" %}
         </div>
         <div class="act-card-body" style="padding:0;position:relative;">
           <iframe id="simulationPreview" width="100%" height="450" src=""
                   frameborder="0" allowfullscreen style="display:block;"></iframe>
           <div id="simFallbackBanner" style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
-            Can't see the simulation? &nbsp;
-            <a id="simFallbackLink" href="#" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+            {% translate "Can't see the simulation?" %} &nbsp;
+            <a id="simFallbackLink" href="#" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">{% translate "Open in a new tab ↗" %}</a>
           </div>
         </div>
       </div>
 
       <div id="vrarSection" class="act-card" style="display:none; border-left:4px solid #dc2626;">
         <div class="act-card-header" style="background:#fef2f2; border-bottom-color:#fee2e2;">
-          <i class="bi bi-vr" style="color:#dc2626;"></i> VR/AR Lab
+          <i class="bi bi-vr" style="color:#dc2626;"></i> {% translate "VR/AR Lab" %}
         </div>
         <div class="act-card-body">
           <div class="act-field-row">
-            <label class="act-field-label"><i class="bi bi-headset"></i> Select VR/AR Lab</label>
+            <label class="act-field-label"><i class="bi bi-headset"></i> {% translate "Select VR/AR Lab" %}</label>
             <div class="csp-wrapper" style="position:relative;">
               <button type="button" id="vrarPickerBtn" class="form-select text-start d-flex align-items-center justify-content-between" style="cursor:pointer; background:#fff;">
-                <span id="vrarPickerLabel" class="text-muted">Select VR/AR Lab…</span>
+                <span id="vrarPickerLabel" class="text-muted">{% translate "Select VR/AR Lab…" %}</span>
                 <i class="bi bi-search ms-2 text-muted" style="font-size:13px; flex-shrink:0;"></i>
               </button>
               <div id="vrarPickerDropdown" class="csp-dropdown" style="display:none;">
                 <div class="csp-search-wrap">
-                  <input type="text" id="vrarSearchInput" class="form-control form-control-sm" placeholder="Search VR/AR labs…" autocomplete="off">
+                  <input type="text" id="vrarSearchInput" class="form-control form-control-sm" placeholder="{% translate 'Search VR/AR labs…' %}" autocomplete="off">
                 </div>
                 <div id="vrarPickerList" class="csp-list">
-                  <div class="csp-item csp-clear" data-value="" data-qr=""><i class="bi bi-x-circle me-1"></i> Clear selection</div>
+                  <div class="csp-item csp-clear" data-value="" data-qr=""><i class="bi bi-x-circle me-1"></i> {% translate "Clear selection" %}</div>
                   {% for lab in vr_ar_exp %}
                   <div class="csp-item" data-value="{{ lab.id }}" data-qr="{% if lab.qr_code %}{{ lab.qr_code.url }}{% endif %}">
                     <span class="csp-item-name">{{ lab.name }}</span>
@@ -427,7 +428,7 @@
           </div>
           <div id="vrarQRCodeDisplay" style="display:none; text-align:center; margin-top:16px;">
             <div id="vrarQRCodeContent">
-              <p class="text-muted" style="font-size:13px;">Please select a VR/AR Lab</p>
+              <p class="text-muted" style="font-size:13px;">{% translate "Please select a VR/AR Lab" %}</p>
             </div>
           </div>
         </div>
@@ -436,22 +437,22 @@
       <!-- ── Card 3: Evaluation Activities (shown when evaluatable) ── -->
       <div id="evalCard" class="act-card" style="display:none; border-left:4px solid #1a56db;">
         <div class="act-card-header" style="background:#f0f5ff; border-bottom-color:#dce8ff;">
-          <i class="bi bi-journals" style="color:#1a56db;"></i> Activities Being Evaluated
+          <i class="bi bi-journals" style="color:#1a56db;"></i> {% translate "Activities Being Evaluated" %}
         </div>
         <div class="act-card-body">
           <p style="font-size:12.5px; color:#6b7280; margin-bottom:14px;">
-            Select all activities whose answers are scored together in this evaluation.
-            <strong>This activity</strong> will always be automatically included by the system.
+            {% translate "Select all activities whose answers are scored together in this evaluation." %}
+            {% blocktranslate trimmed %}<strong>This activity</strong> will always be automatically included by the system.{% endblocktranslate %}
           </p>
 
           <div class="act-field-row">
             <label class="act-field-label">
-              <i class="bi bi-check2-square"></i> Activities to Evaluate
+              <i class="bi bi-check2-square"></i> {% translate "Activities to Evaluate" %}
             </label>
             <div class="eval-picker-wrap">
               <button type="button" class="eval-picker-btn" id="evalPickerBtn">
                 <i class="bi bi-journals" style="color:#1a56db; flex-shrink:0;"></i>
-                <span id="evalPickerLabel">Select activities…</span>
+                <span id="evalPickerLabel">{% translate "Select activities…" %}</span>
                 <span id="evalPickerBadge" class="badge"
                       style="background:#1a56db; font-size:11px; display:none; margin-left:4px;">0</span>
                 <i class="bi bi-chevron-down ep-arrow"></i>
@@ -459,13 +460,13 @@
 
               <div class="eval-picker-dropdown" id="evalDropdown">
                 <div class="ep-search-wrap">
-                  <input type="text" class="ep-search" id="evalSearchInput" placeholder="Search activities…">
+                  <input type="text" class="ep-search" id="evalSearchInput" placeholder="{% translate 'Search activities…' %}">
                 </div>
                 <div class="ep-items" id="evalItemsContainer">
 
                   <!-- Current phase header -->
                   <div class="ep-group-hdr ep-cur">
-                    <i class="bi bi-geo-alt-fill me-1"></i>{{ myPhase.name }} — Current Phase
+                    <i class="bi bi-geo-alt-fill me-1"></i>{% blocktranslate trimmed with name=myPhase.name %}{{ name }} — Current Phase{% endblocktranslate %}
                   </div>
                   {% for act in eval_activities %}{% if act.phase.id == myPhase.id %}
                   <label class="ep-item">
@@ -488,7 +489,7 @@
 
                   {% if not eval_activities %}
                   <div style="padding:18px 13px; color:#9ca3af; font-size:13px; text-align:center;">
-                    <i class="bi bi-inbox me-1"></i> No other activities in this phase yet
+                    <i class="bi bi-inbox me-1"></i> {% translate "No other activities in this phase yet" %}
                   </div>
                   {% endif %}
 
@@ -510,9 +511,9 @@
             <div class="act-toggle-wrap" style="border-left:3px solid #f59e0b;">
               <div>
                 <div style="font-size:13.5px; font-weight:600; color:#92400e;">
-                  <i class="bi bi-star-fill me-1 text-warning"></i> Primary Evaluation
+                  <i class="bi bi-star-fill me-1 text-warning"></i> {% translate "Primary Evaluation" %}
                 </div>
-                <div class="act-toggle-info">Mark this as the main evaluation activity for this phase</div>
+                <div class="act-toggle-info">{% translate "Mark this as the main evaluation activity for this phase" %}</div>
               </div>
               <div class="form-check form-switch" style="margin:0;">
                 <input class="form-check-input" type="checkbox" role="switch" id="gridCheckPrimary"
@@ -526,33 +527,33 @@
       <!-- ── Card 4: Next Activity (hidden when evaluatable or Question type) ── -->
       <div id="nextActivityCard" class="act-card" style="display:block; border-left:4px solid #10b981;">
         <div class="act-card-header" style="background:#f0fdf4; border-bottom-color:#d1fae5;">
-          <i class="bi bi-arrow-right-circle-fill" style="color:#10b981;"></i> Next Activity
+          <i class="bi bi-arrow-right-circle-fill" style="color:#10b981;"></i> {% translate "Next Activity" %}
         </div>
         <div class="act-card-body">
           <p style="font-size:12.5px; color:#6b7280; margin-bottom:14px;">
-            Choose the activity that follows this one, or create a new placeholder automatically.
+            {% translate "Choose the activity that follows this one, or create a new placeholder automatically." %}
           </p>
           <div class="act-field-row">
             <label class="act-field-label">
-              <i class="bi bi-link-45deg"></i> Following Activity
+              <i class="bi bi-link-45deg"></i> {% translate "Following Activity" %}
             </label>
             <div class="next-picker-wrap">
               <button type="button" class="next-picker-btn" id="nextPickerBtn">
                 <i class="bi bi-box-arrow-right" style="color:#10b981; flex-shrink:0;"></i>
-                <span id="nextPickerLabel">Select Next Activity (Optional)…</span>
+                <span id="nextPickerLabel">{% translate "Select Next Activity (Optional)…" %}</span>
                 <i class="bi bi-chevron-down np-arrow"></i>
               </button>
 
               <div class="next-picker-dropdown" id="nextDropdown">
                 <div class="np-search-wrap">
-                  <input type="text" class="np-search" id="nextSearchInput" placeholder="Search activities…">
+                  <input type="text" class="np-search" id="nextSearchInput" placeholder="{% translate 'Search activities…' %}">
                 </div>
                 <div class="np-items" id="nextItemsContainer">
                   {% regroup eligible_activities by phase as next_phase_groups %}
                   {% for pg in next_phase_groups %}
                   <div class="np-group-hdr">
                     {% if pg.grouper.id == myPhase.id %}<i class="bi bi-geo-alt-fill me-1" style="color:#1a56db;font-size:9px;"></i>{% endif %}
-                    {{ pg.grouper.name }}{% if pg.grouper.id == myPhase.id %} (Current){% endif %}
+                    {{ pg.grouper.name }}{% if pg.grouper.id == myPhase.id %} {% translate "(Current)" %}{% endif %}
                   </div>
                   {% for act in pg.list %}
                   <div class="np-item" data-val="{{ act.id }}" data-name="{{ act.name }}">
@@ -562,11 +563,11 @@
                   {% endfor %}
                   {% endfor %}
                   <div class="np-item create-new" data-val="create_new" data-name="+ Create New Activity">
-                    <i class="bi bi-plus-circle-fill"></i> Create New Activity
+                    <i class="bi bi-plus-circle-fill"></i> {% translate "Create New Activity" %}
                   </div>
                 </div>
                 <div class="np-clear" id="nextPickerClear">
-                  <i class="bi bi-x-circle me-1"></i> Clear — no next activity
+                  <i class="bi bi-x-circle me-1"></i> {% translate "Clear — no next activity" %}
                 </div>
               </div>
 
@@ -580,10 +581,10 @@
       <div class="d-flex gap-2 mt-2 mb-4 justify-content-center">
         <a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}"
            class="btn btn-outline-secondary">
-          <i class="bi bi-arrow-left me-1"></i> Back to Phase
+          <i class="bi bi-arrow-left me-1"></i> {% translate "Back to Phase" %}
         </a>
         <button type="submit" class="btn btn-primary px-4" id="formSubmitButton">
-          <i class="bi bi-plus-lg me-1"></i> Create Activity
+          <i class="bi bi-plus-lg me-1"></i> {% translate "Create Activity" %}
         </button>
       </div>
 
@@ -591,6 +592,22 @@
   </section>
 </main>
 
+<script>
+  const ACT_I18N = {
+    selectSimulation: "{% translate 'Select Simulation…' as s %}{{ s|escapejs }}",
+    selectRemoteLab: "{% translate 'Select Remote Lab…' as s %}{{ s|escapejs }}",
+    selectVrarLab: "{% translate 'Select VR/AR Lab…' as s %}{{ s|escapejs }}",
+    pleaseSelectVrar: "{% translate 'Please select a VR/AR Lab' as s %}{{ s|escapejs }}",
+    qrAlt: "{% translate 'QR Code' as s %}{{ s|escapejs }}",
+    creating: "{% translate 'Creating…' as s %}{{ s|escapejs }}",
+    selectActivities: "{% translate 'Select activities…' as s %}{{ s|escapejs }}",
+    oneSelected: "{% translate '1 activity selected' as s %}{{ s|escapejs }}",
+    manySelected: "{% translate '{count} activities selected' as s %}{{ s|escapejs }}",
+    selectNext: "{% translate 'Select Next Activity (Optional)…' as s %}{{ s|escapejs }}",
+    uploadFailed: "{% translate 'Upload failed' as s %}{{ s|escapejs }}",
+    imageUploadFailed: "{% translate 'Image upload failed. Check file size (max 8 MB).' as s %}{{ s|escapejs }}"
+  };
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -636,22 +653,37 @@ document.addEventListener('DOMContentLoaded', function () {
     var qrd = document.getElementById('vrarQRCodeDisplay');
     var cnt = document.getElementById('vrarQRCodeContent');
     qrd.style.display = 'block';
-    cnt.innerHTML = url.trim()
-      ? '<img src="' + url + '" alt="QR Code" style="max-width:260px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">'
-      : '<p class="text-muted" style="font-size:13px;">Please select a VR/AR Lab</p>';
+    cnt.textContent = '';
+    if (url.trim()) {
+      var qr = document.createElement('img');
+      qr.src = url;
+      qr.alt = ACT_I18N.qrAlt;
+      qr.style.cssText = 'max-width:260px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.1);';
+      cnt.appendChild(qr);
+    } else {
+      var hint = document.createElement('p');
+      hint.className = 'text-muted';
+      hint.style.fontSize = '13px';
+      hint.textContent = ACT_I18N.pleaseSelectVrar;
+      cnt.appendChild(hint);
+    }
   });
 
   // ── Searchable Pickers ──────────────────────────────────────────
-  initSearchablePicker('simPickerBtn',  'simPickerDropdown',  'simSearchInput',  'simPickerList',  'simulationSelect', 'Select Simulation…');
-  initSearchablePicker('labPickerBtn',  'labPickerDropdown',  'labSearchInput',  'labPickerList',  'remoteLabSelect',  'Select Remote Lab…');
-  initSearchablePicker('vrarPickerBtn', 'vrarPickerDropdown', 'vrarSearchInput', 'vrarPickerList', 'VRARLabSelect',    'Select VR/AR Lab…');
+  initSearchablePicker('simPickerBtn',  'simPickerDropdown',  'simSearchInput',  'simPickerList',  'simulationSelect', ACT_I18N.selectSimulation);
+  initSearchablePicker('labPickerBtn',  'labPickerDropdown',  'labSearchInput',  'labPickerList',  'remoteLabSelect',  ACT_I18N.selectRemoteLab);
+  initSearchablePicker('vrarPickerBtn', 'vrarPickerDropdown', 'vrarSearchInput', 'vrarPickerList', 'VRARLabSelect',    ACT_I18N.selectVrarLab);
 
   // ── Submit Spinner ──────────────────────────────────────────────
   document.getElementById('activityForm').addEventListener('submit', function () {
     if (typeof tinymce !== 'undefined') tinymce.triggerSave();
     var btn = document.getElementById('formSubmitButton');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2" role="status"></span> Creating…';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner-grow spinner-grow-sm me-2';
+    spinner.setAttribute('role', 'status');
+    btn.textContent = ' ' + ACT_I18N.creating;
+    btn.insertBefore(spinner, btn.firstChild);
   });
 
   // ── Eval Multi-Picker ───────────────────────────────────────────
@@ -702,9 +734,9 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       badge.textContent = count;
       badge.style.display = count > 0 ? 'inline-block' : 'none';
-      lbl.textContent = count === 0 ? 'Select activities…'
-                      : count === 1 ? '1 activity selected'
-                      : count + ' activities selected';
+      lbl.textContent = count === 0 ? ACT_I18N.selectActivities
+                      : count === 1 ? ACT_I18N.oneSelected
+                      : ACT_I18N.manySelected.replace('{count}', () => count);
       btn.classList.toggle('has-sel', count > 0);
     }
     document.querySelectorAll('#evalItemsContainer .ep-check').forEach(function (cb) {
@@ -765,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clearBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       hInput.value = '';
-      lbl.textContent = 'Select Next Activity (Optional)…';
+      lbl.textContent = ACT_I18N.selectNext;
       btn.classList.remove('filled');
       clearBtn.style.display = 'none';
       document.querySelectorAll('#nextItemsContainer .np-item').forEach(function (i) { i.classList.remove('selected'); });
@@ -799,11 +831,11 @@ tinymce.init({
         credentials: 'same-origin'
       })
       .then(function (r) {
-        if (!r.ok) return r.json().then(function (d) { reject(d.error || 'Upload failed'); });
+        if (!r.ok) return r.json().then(function (d) { reject(d.error || ACT_I18N.uploadFailed); });
         return r.json();
       })
       .then(function (data) { if (data && data.location) resolve(data.location); })
-      .catch(function () { reject('Image upload failed. Check file size (max 8 MB).'); });
+      .catch(function () { reject(ACT_I18N.imageUploadFailed); });
     });
   },
   setup: function (editor) {
@@ -818,9 +850,9 @@ function toggleExperimentSection(type) {
   // Always close the preview on type change; it reopens when user selects a specific sim/lab
   document.getElementById('iframeSection').style.display = 'none';
   document.getElementById('simulationPreview').src = '';
-  if (type !== 'simulation') { document.getElementById('simulationSelect').value = ''; resetPickerLabel('simPickerBtn',  'Select Simulation…'); }
-  if (type !== 'remote_lab') { document.getElementById('remoteLabSelect').value  = ''; resetPickerLabel('labPickerBtn',  'Select Remote Lab…'); }
-  if (type !== 'vr_ar_exp')  { document.getElementById('VRARLabSelect').value    = ''; resetPickerLabel('vrarPickerBtn', 'Select VR/AR Lab…');  }
+  if (type !== 'simulation') { document.getElementById('simulationSelect').value = ''; resetPickerLabel('simPickerBtn',  ACT_I18N.selectSimulation); }
+  if (type !== 'remote_lab') { document.getElementById('remoteLabSelect').value  = ''; resetPickerLabel('labPickerBtn',  ACT_I18N.selectRemoteLab); }
+  if (type !== 'vr_ar_exp')  { document.getElementById('VRARLabSelect').value    = ''; resetPickerLabel('vrarPickerBtn', ACT_I18N.selectVrarLab);  }
 }
 
 function resetPickerLabel(btnId, placeholder) {
@@ -838,9 +870,9 @@ function resetExperimentFields() {
   document.getElementById('simulationPreview').src           = '';
   document.getElementById('iframeSection').style.display     = 'none';
   document.getElementById('vrarQRCodeDisplay').style.display = 'none';
-  resetPickerLabel('simPickerBtn',  'Select Simulation…');
-  resetPickerLabel('labPickerBtn',  'Select Remote Lab…');
-  resetPickerLabel('vrarPickerBtn', 'Select VR/AR Lab…');
+  resetPickerLabel('simPickerBtn',  ACT_I18N.selectSimulation);
+  resetPickerLabel('labPickerBtn',  ACT_I18N.selectRemoteLab);
+  resetPickerLabel('vrarPickerBtn', ACT_I18N.selectVrarLab);
   toggleExperimentSection('');
 }
 

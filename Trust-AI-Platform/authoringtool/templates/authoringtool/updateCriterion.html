@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab - Edit Evaluation</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab - Edit Evaluation" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -161,20 +162,20 @@
     <div class="d-flex align-items-start gap-3">
       <div class="crit-hero-icon"><i class="bi bi-diagram-3-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Authoring Tool</div>
-        <h2>Edit Evaluation Criterion</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{{ myActivity.name }} - Update how students are routed based on their performance score.</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Authoring Tool" %}</div>
+        <h2>{% translate "Edit Evaluation Criterion" %}</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{% blocktranslate trimmed with name=myActivity.name %}{{ name }} - Update how students are routed based on their performance score.{% endblocktranslate %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}">{{ myActivity.name }}</a></li>
-          <li class="breadcrumb-item active">Edit Evaluation</li>
+          <li class="breadcrumb-item active">{% translate "Edit Evaluation" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
@@ -191,22 +192,22 @@
           <!-- High Performers -->
           <div class="perf-card">
             <div class="perf-header perf-header-high">
-              <i class="bi bi-arrow-up-circle-fill"></i> High Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Best scoring students</span>
+              <i class="bi bi-arrow-up-circle-fill"></i> {% translate "High Performers" %}
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">{% translate "- Best scoring students" %}</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
                 <div class="col-sm-8">
-                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-success"></i>Next Activity</div>
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-success"></i>{% translate "Next Activity" %}</div>
                   <div class="activity-picker" id="picker-high">
                     <div class="picker-btn" role="button" tabindex="0" id="btn-high">
-                      <span class="picker-selected-text">{% if high_activity %}{{ high_activity.name }}{% else %}Select Activity…{% endif %}</span>
+                      <span class="picker-selected-text">{% if high_activity %}{{ high_activity.name }}{% else %}{% translate "Select Activity…" %}{% endif %}</span>
                       <i class="bi bi-chevron-down picker-chevron"></i>
                     </div>
                     <div class="picker-dropdown" id="drop-high" style="display:none;">
                       <div class="picker-search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" class="picker-search-input" id="search-high" placeholder="Search activities…" autocomplete="off">
+                        <input type="text" class="picker-search-input" id="search-high" placeholder="{% translate 'Search activities…' %}" autocomplete="off">
                       </div>
                       <div class="picker-items" id="items-high">
                         {% regroup eligible_activities by phase as phase_list %}
@@ -219,13 +220,13 @@
                             </div>
                           {% endfor %}
                         {% empty %}
-                          <div class="picker-empty">No activities available</div>
+                          <div class="picker-empty">{% translate "No activities available" %}</div>
                         {% endfor %}
                       </div>
                     </div>
                     <select name="highPerformersSelect" id="highPerformersSelect"
                             style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
-                      <option value="">Select Activity...</option>
+                      <option value="">{% translate "Select Activity..." %}</option>
                       {% for act in eligible_activities %}
                         <option value="{{ act.id }}" {% if high_activity and act.id == high_activity.id %}selected{% endif %}>{{ act.name }}</option>
                       {% endfor %}
@@ -233,9 +234,9 @@
                   </div>
                 </div>
                 <div class="col-sm-4">
-                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-success"></i>Performance Threshold</div>
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-success"></i>{% translate "Performance Threshold" %}</div>
                   <input type="number" class="form-control" name="high_score_limit" value="{{ high_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Min. avg weight to reach this group (1-3)</div>
+                  <div class="score-help">{% translate "Min. avg weight to reach this group (1-3)" %}</div>
                 </div>
               </div>
             </div>
@@ -244,22 +245,22 @@
           <!-- Moderate Performers -->
           <div class="perf-card">
             <div class="perf-header perf-header-mid">
-              <i class="bi bi-dash-circle-fill"></i> Moderate Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Average scoring students</span>
+              <i class="bi bi-dash-circle-fill"></i> {% translate "Moderate Performers" %}
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">{% translate "- Average scoring students" %}</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
                 <div class="col-sm-8">
-                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-warning"></i>Next Activity</div>
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-warning"></i>{% translate "Next Activity" %}</div>
                   <div class="activity-picker" id="picker-mid">
                     <div class="picker-btn" role="button" tabindex="0" id="btn-mid">
-                      <span class="picker-selected-text">{% if mid_activity %}{{ mid_activity.name }}{% else %}Select Activity…{% endif %}</span>
+                      <span class="picker-selected-text">{% if mid_activity %}{{ mid_activity.name }}{% else %}{% translate "Select Activity…" %}{% endif %}</span>
                       <i class="bi bi-chevron-down picker-chevron"></i>
                     </div>
                     <div class="picker-dropdown" id="drop-mid" style="display:none;">
                       <div class="picker-search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" class="picker-search-input" id="search-mid" placeholder="Search activities…" autocomplete="off">
+                        <input type="text" class="picker-search-input" id="search-mid" placeholder="{% translate 'Search activities…' %}" autocomplete="off">
                       </div>
                       <div class="picker-items" id="items-mid">
                         {% regroup eligible_activities by phase as phase_list %}
@@ -272,13 +273,13 @@
                             </div>
                           {% endfor %}
                         {% empty %}
-                          <div class="picker-empty">No activities available</div>
+                          <div class="picker-empty">{% translate "No activities available" %}</div>
                         {% endfor %}
                       </div>
                     </div>
                     <select name="midPerformersSelect" id="midPerformersSelect"
                             style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
-                      <option value="">Select Activity...</option>
+                      <option value="">{% translate "Select Activity..." %}</option>
                       {% for act in eligible_activities %}
                         <option value="{{ act.id }}" {% if mid_activity and act.id == mid_activity.id %}selected{% endif %}>{{ act.name }}</option>
                       {% endfor %}
@@ -286,9 +287,9 @@
                   </div>
                 </div>
                 <div class="col-sm-4">
-                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-warning"></i>Performance Threshold</div>
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-warning"></i>{% translate "Performance Threshold" %}</div>
                   <input type="number" class="form-control" name="mid_score_limit" value="{{ mid_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Min. avg weight to reach this group (1-3)</div>
+                  <div class="score-help">{% translate "Min. avg weight to reach this group (1-3)" %}</div>
                 </div>
               </div>
             </div>
@@ -297,22 +298,22 @@
           <!-- Low Performers -->
           <div class="perf-card">
             <div class="perf-header perf-header-low">
-              <i class="bi bi-arrow-down-circle-fill"></i> Low Performers
-              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">- Lowest scoring students</span>
+              <i class="bi bi-arrow-down-circle-fill"></i> {% translate "Low Performers" %}
+              <span style="font-weight:400; font-size:12px; margin-left:6px; opacity:0.85;">{% translate "- Lowest scoring students" %}</span>
             </div>
             <div class="perf-body">
               <div class="row g-3 align-items-start">
                 <div class="col-sm-8">
-                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-danger"></i>Next Activity</div>
+                  <div class="field-label"><i class="bi bi-arrow-right-circle me-1 text-danger"></i>{% translate "Next Activity" %}</div>
                   <div class="activity-picker" id="picker-low">
                     <div class="picker-btn" role="button" tabindex="0" id="btn-low">
-                      <span class="picker-selected-text">{% if low_activity %}{{ low_activity.name }}{% else %}Select Activity…{% endif %}</span>
+                      <span class="picker-selected-text">{% if low_activity %}{{ low_activity.name }}{% else %}{% translate "Select Activity…" %}{% endif %}</span>
                       <i class="bi bi-chevron-down picker-chevron"></i>
                     </div>
                     <div class="picker-dropdown" id="drop-low" style="display:none;">
                       <div class="picker-search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" class="picker-search-input" id="search-low" placeholder="Search activities…" autocomplete="off">
+                        <input type="text" class="picker-search-input" id="search-low" placeholder="{% translate 'Search activities…' %}" autocomplete="off">
                       </div>
                       <div class="picker-items" id="items-low">
                         {% regroup eligible_activities by phase as phase_list %}
@@ -325,13 +326,13 @@
                             </div>
                           {% endfor %}
                         {% empty %}
-                          <div class="picker-empty">No activities available</div>
+                          <div class="picker-empty">{% translate "No activities available" %}</div>
                         {% endfor %}
                       </div>
                     </div>
                     <select name="lowPerformersSelect" id="lowPerformersSelect"
                             style="position:absolute;opacity:0;pointer-events:none;height:0;width:0;" tabindex="-1">
-                      <option value="">Select Activity...</option>
+                      <option value="">{% translate "Select Activity..." %}</option>
                       {% for act in eligible_activities %}
                         <option value="{{ act.id }}" {% if low_activity and act.id == low_activity.id %}selected{% endif %}>{{ act.name }}</option>
                       {% endfor %}
@@ -339,9 +340,9 @@
                   </div>
                 </div>
                 <div class="col-sm-4">
-                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-danger"></i>Performance Threshold</div>
+                  <div class="field-label"><i class="bi bi-speedometer2 me-1 text-danger"></i>{% translate "Performance Threshold" %}</div>
                   <input type="number" class="form-control" name="low_score_limit" value="{{ low_activity.score_limit }}" step="0.01" required>
-                  <div class="score-help">Fallback - students below Moderate go here</div>
+                  <div class="score-help">{% translate "Fallback - students below Moderate go here" %}</div>
                 </div>
               </div>
             </div>
@@ -349,16 +350,16 @@
 
           <!-- Validation error -->
           <div id="criterion-error" class="alert alert-danger d-none mb-3" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>Please select a next activity for at least one performer group.
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{% translate "Please select a next activity for at least one performer group." %}
           </div>
 
           <!-- Submit -->
           <div class="d-flex gap-2 mt-2">
             <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=myActivity.id %}" class="btn btn-outline-secondary">
-              <i class="bi bi-x-circle me-1"></i>Cancel
+              <i class="bi bi-x-circle me-1"></i>{% translate "Cancel" %}
             </a>
             <button type="submit" class="btn btn-primary px-4" id="formSubmitButton">
-              <i class="bi bi-check2-circle me-1"></i>Update Evaluation
+              <i class="bi bi-check2-circle me-1"></i>{% translate "Update Evaluation" %}
             </button>
           </div>
 
@@ -369,16 +370,16 @@
           <div class="card border-0" style="background:#f8faff; border-radius:12px; border:1px solid #e0e8ff !important;">
             <div class="card-body p-4">
               <div class="fw-bold mb-3" style="color:#012970; font-size:13px;">
-                <i class="bi bi-info-circle-fill me-2 text-primary"></i>How it works
+                <i class="bi bi-info-circle-fill me-2 text-primary"></i>{% translate "How it works" %}
               </div>
               <div class="small text-muted" style="line-height:1.7;">
-                <p>After students complete the evaluation, their <strong>average answer weight</strong> (1-3) across all activities in the group is compared against your thresholds:</p>
+                <p>{% blocktranslate trimmed %}After students complete the evaluation, their <strong>average answer weight</strong> (1-3) across all activities in the group is compared against your thresholds:{% endblocktranslate %}</p>
                 <ul class="ps-3 mb-3">
-                  <li><span class="fw-semibold text-success">High</span> - avg weight ≥ High threshold</li>
-                  <li><span class="fw-semibold text-warning">Moderate</span> - avg weight ≥ Moderate threshold</li>
-                  <li><span class="fw-semibold text-danger">Low</span> - everyone else (fallback, threshold not used)</li>
+                  <li>{% blocktranslate trimmed %}<span class="fw-semibold text-success">High</span> - avg weight ≥ High threshold{% endblocktranslate %}</li>
+                  <li>{% blocktranslate trimmed %}<span class="fw-semibold text-warning">Moderate</span> - avg weight ≥ Moderate threshold{% endblocktranslate %}</li>
+                  <li>{% blocktranslate trimmed %}<span class="fw-semibold text-danger">Low</span> - everyone else (fallback, threshold not used){% endblocktranslate %}</li>
                 </ul>
-                <p class="mb-0">Recommended defaults: High = <strong>2.5</strong>, Moderate = <strong>1.5</strong>.</p>
+                <p class="mb-0">{% blocktranslate trimmed %}Recommended defaults: High = <strong>2.5</strong>, Moderate = <strong>1.5</strong>.{% endblocktranslate %}</p>
               </div>
             </div>
           </div>
@@ -491,7 +492,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     var btn = document.getElementById('formSubmitButton');
-    btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>Updating…';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner-grow spinner-grow-sm me-1';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+    btn.textContent = "{% translate 'Updating…' as s %}{{ s|escapejs }}";
+    btn.insertBefore(spinner, btn.firstChild);
     btn.disabled = true;
   });
 });

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import IntegerRangeField, ArrayField
 from organization.models import Organization
@@ -108,14 +109,14 @@ class ScenarioFamilyReviewProxy(ScenarioFamily):
 
 class Scenario(models.Model):
     VISIBILITY_CHOICES = [
-        ('private', 'Private (In-Progress)'),
-        ('org', 'Organization Users Only'),
-        ('public', 'Public'),
+        ('private', _('Private (In-Progress)')),
+        ('org', _('Organization Users Only')),
+        ('public', _('Public')),
     ]
     VARIANT_TYPE_CHOICES = [
-        ('canonical', 'Canonical'),
-        ('translation', 'Official translation'),
-        ('adaptation', 'Teacher adaptation'),
+        ('canonical', _('Canonical')),
+        ('translation', _('Official translation')),
+        ('adaptation', _('Teacher adaptation')),
     ]
     name = models.CharField(max_length=255)
     learning_goals = models.TextField(blank=True)
@@ -589,7 +590,7 @@ class Scenario(models.Model):
     def begin_revision_draft(self, created_by):
         """Open a protected working draft based on the published version."""
         current = self.ensure_current_version(created_by=created_by)
-        draft, _ = ScenarioRevisionDraft.objects.get_or_create(
+        draft, _created = ScenarioRevisionDraft.objects.get_or_create(
             scenario=self,
             defaults={
                 'base_version': current,
@@ -991,7 +992,7 @@ class ScenarioVersionCompatibility(models.Model):
         scenario = scenario_version.scenario
         family = scenario.ensure_family()
         fingerprint = scenario_version.structure_fingerprint
-        cluster, _ = EvidenceCompatibilityCluster.objects.get_or_create(
+        cluster, _created = EvidenceCompatibilityCluster.objects.get_or_create(
             family=family,
             cluster_key=f'auto:{fingerprint}',
             defaults={
@@ -1393,10 +1394,10 @@ class ScenarioTranslationJob(models.Model):
     STATUS_DONE = 'done'
     STATUS_FAILED = 'failed'
     STATUS_CHOICES = [
-        (STATUS_WAITING, 'Waiting'),
-        (STATUS_TRANSLATING, 'Translating'),
-        (STATUS_DONE, 'Done'),
-        (STATUS_FAILED, 'Failed'),
+        (STATUS_WAITING, _('Waiting')),
+        (STATUS_TRANSLATING, _('Translating')),
+        (STATUS_DONE, _('Done')),
+        (STATUS_FAILED, _('Failed')),
     ]
     PENDING_STATUSES = (STATUS_WAITING, STATUS_TRANSLATING)
 
@@ -1466,8 +1467,8 @@ class ScenarioCollaborator(models.Model):
     ROLE_TRANSLATION_REVIEWER = 'translation_reviewer'
     ROLE_CO_AUTHOR = 'co_author'
     ROLE_CHOICES = [
-        (ROLE_TRANSLATION_REVIEWER, 'Translation reviewer'),
-        (ROLE_CO_AUTHOR, 'Co-author'),
+        (ROLE_TRANSLATION_REVIEWER, _('Translation reviewer')),
+        (ROLE_CO_AUTHOR, _('Co-author')),
     ]
 
     scenario = models.ForeignKey(
@@ -2223,7 +2224,7 @@ class UserScenarioScore(models.Model):
                     last_activity_id=self.last_activity_id,
                 )
             else:
-                implementation, _ = (
+                implementation, _created = (
                     ScenarioImplementation.start_or_resume(
                         self.user,
                         self.scenario,
@@ -2355,7 +2356,7 @@ class UserAnswer(models.Model):
             and self.activity_id
             and self.version_confidence == 'exact'
         ):
-            self.implementation, _ = ScenarioImplementation.start_or_resume(
+            self.implementation, _created = ScenarioImplementation.start_or_resume(
                 self.user,
                 self.activity.scenario,
             )
@@ -2660,7 +2661,7 @@ def update_q_value(flag_type, category, action, reward, ALPHA=0.2):
     # Serialize updates to the same bandit arm so concurrent teacher reviews do
     # not overwrite either the learned value or its observation count.
     with transaction.atomic():
-        qv, _ = QValue.objects.select_for_update().get_or_create(
+        qv, _created = QValue.objects.select_for_update().get_or_create(
             flag_type=flag_type,
             category=category,
             action=action,

@@ -1,7 +1,7 @@
 {% extends "main.html" %}
-{% load profile_tags %}
+{% load profile_tags i18n %}
 {% load html_tags %}
-{% block page_title %}<title>Trust AI Lab — Activity Details</title>{% endblock %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Activity Details" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -200,21 +200,21 @@
           <div class="act-hero-badges">
             <span class="act-type-badge">{{ activity.activity_type.name }}</span>
             {% if activity.is_evaluatable %}
-              <span class="act-type-badge evaluatable"><i class="bi bi-check-circle me-1"></i>Evaluatable</span>
+              <span class="act-type-badge evaluatable"><i class="bi bi-check-circle me-1"></i>{% translate "Evaluatable" %}</span>
             {% endif %}
             {% if activity.is_primary_ev %}
               <span class="act-type-badge" style="background:rgba(251,191,36,0.3);">
-                <i class="bi bi-star me-1"></i>Primary Evaluation
+                <i class="bi bi-star me-1"></i>{% translate "Primary Evaluation" %}
               </span>
             {% endif %}
             {% if is_first_activity %}
               <span class="act-type-badge" style="background:rgba(34,197,94,0.3);">
-                <i class="bi bi-flag me-1"></i>First activity
+                <i class="bi bi-flag me-1"></i>{% translate "First activity" %}
               </span>
             {% endif %}
           </div>
           <nav><ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">{{ myPhase.name }}</a></li>
             <li class="breadcrumb-item active">{{ activity.name }}</li>
@@ -222,36 +222,36 @@
         </div>
         <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
           <a class="btn btn-sm hero-btn-ghost" href="{% url 'phase' scenario_id=myScenario.id phase_id=myPhase.id %}">
-            <i class="bi bi-arrow-left me-1"></i>Phase
+            <i class="bi bi-arrow-left me-1"></i>{% translate "Phase" %}
           </a>
           {% if can_edit %}
             <a class="btn btn-sm hero-btn-solid" href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
-              <i class="bi bi-pencil-square me-1"></i>Edit
+              <i class="bi bi-pencil-square me-1"></i>{% translate "Edit" %}
             </a>
             {% if activity.activity_type.name == 'Question' %}
               <a class="btn btn-sm hero-btn-outline" href="{% url 'updateAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
-                <i class="bi bi-list-check me-1"></i>Answers
+                <i class="bi bi-list-check me-1"></i>{% translate "Answers" %}
               </a>
             {% endif %}
             {% if activity.is_evaluatable and not is_machine_translation %}
               <a class="btn btn-sm hero-btn-outline" href="{% url 'updateCriterion' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
-                <i class="bi bi-sliders me-1"></i>Criterion
+                <i class="bi bi-sliders me-1"></i>{% translate "Criterion" %}
               </a>
             {% endif %}
           {% endif %}
           {% if can_set_first and not is_first_activity and not is_machine_translation %}
             <form method="post" action="{% url 'set_start_activity' scenario_id=myScenario.id activity_id=activity.id %}" class="d-inline"
-                  onsubmit="return confirm('Make this the first activity? New students will begin the scenario here.');">
+                  onsubmit="return confirm('{% translate 'Make this the first activity? New students will begin the scenario here.' as s %}{{ s|escapejs }}');">
               {% csrf_token %}
               <button type="submit" class="btn btn-sm hero-btn-outline">
-                <i class="bi bi-flag me-1"></i>Make this the first activity
+                <i class="bi bi-flag me-1"></i>{% translate "Make this the first activity" %}
               </button>
             </form>
           {% endif %}
           {% if can_edit and not is_machine_translation %}
             {# Opens the confirmation page, which shows how many students answered it. #}
             <a class="btn btn-sm hero-btn-danger" href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
-              <i class="bi bi-trash me-1"></i>Delete
+              <i class="bi bi-trash me-1"></i>{% translate "Delete" %}
             </a>
           {% endif %}
         </div>
@@ -265,21 +265,21 @@
 
         <!-- Basic info -->
         <div class="info-card">
-          <div class="info-card-header"><i class="bi bi-info-circle"></i> Activity Info</div>
+          <div class="info-card-header"><i class="bi bi-info-circle"></i> {% translate "Activity Info" %}</div>
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-tag"></i> Type</div>
+            <div class="info-label"><i class="bi bi-tag"></i> {% translate "Type" %}</div>
             <div class="info-value">{{ activity.activity_type.name }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-speedometer2"></i> Performance Threshold</div>
+            <div class="info-label"><i class="bi bi-speedometer2"></i> {% translate "Performance Threshold" %}</div>
             <div class="info-value">{{ activity.score_limit }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-clock"></i> Created On</div>
+            <div class="info-label"><i class="bi bi-clock"></i> {% translate "Created On" %}</div>
             <div class="info-value">{{ activity.created_on }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-clock-history"></i> Last updated</div>
+            <div class="info-label"><i class="bi bi-clock-history"></i> {% translate "Last updated" %}</div>
             <div class="info-value">
               {{ activity.updated_on }}
               {% if activity.updated_by %}· {% user_link activity.updated_by %}{% endif %}
@@ -287,12 +287,12 @@
           </div>
           {% if activity.activity_type.name != 'Question' and not activity.is_evaluatable %}
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Next Activity</div>
+            <div class="info-label"><i class="bi bi-arrow-right-circle"></i> {% translate "Next Activity" %}</div>
             <div class="info-value">
               {% if nextActivity %}
                 <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=nextActivity.id %}">{{ nextActivity.name }}</a>
               {% else %}
-                <span class="text-muted">End</span>
+                <span class="text-muted">{% translate "End" %}</span>
               {% endif %}
             </div>
           </div>
@@ -302,34 +302,34 @@
         <!-- Evaluation branching -->
         {% if activity.is_evaluatable %}
         <div class="info-card">
-          <div class="info-card-header"><i class="bi bi-bar-chart"></i> Evaluation</div>
+          <div class="info-card-header"><i class="bi bi-bar-chart"></i> {% translate "Evaluation" %}</div>
           <div class="info-row">
-            <div class="info-label"><i class="bi bi-layers"></i> Evaluating</div>
+            <div class="info-label"><i class="bi bi-layers"></i> {% translate "Evaluating" %}</div>
             <div class="info-value">
               {% for act in activities %}
                 <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=act.id %}">{{ act.name }}</a>{% if not forloop.last %}, {% endif %}
               {% empty %}
-                <span class="text-muted">None</span>
+                <span class="text-muted">{% translate "None" %}</span>
               {% endfor %}
             </div>
           </div>
           <div class="performer-row">
-            <span class="performer-badge high">High</span>
+            <span class="performer-badge high">{% translate "High" %}</span>
             {% if high_activity %}
               <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=high_activity.id %}">{{ high_activity.name }}</a>
-            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+            {% else %}<span class="text-muted">{% translate "Not Set" %}</span>{% endif %}
           </div>
           <div class="performer-row">
-            <span class="performer-badge mid">Mid</span>
+            <span class="performer-badge mid">{% translate "Mid" %}</span>
             {% if mid_activity %}
               <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=mid_activity.id %}">{{ mid_activity.name }}</a>
-            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+            {% else %}<span class="text-muted">{% translate "Not Set" %}</span>{% endif %}
           </div>
           <div class="performer-row">
-            <span class="performer-badge low">Low</span>
+            <span class="performer-badge low">{% translate "Low" %}</span>
             {% if low_activity %}
               <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=low_activity.id %}">{{ low_activity.name }}</a>
-            {% else %}<span class="text-muted">Not Set</span>{% endif %}
+            {% else %}<span class="text-muted">{% translate "Not Set" %}</span>{% endif %}
           </div>
         </div>
         {% endif %}
@@ -337,7 +337,7 @@
         <!-- Content -->
         {% if activity.text %}
         <div class="info-card">
-          <div class="info-card-header"><i class="bi bi-text-paragraph"></i> Content</div>
+          <div class="info-card-header"><i class="bi bi-text-paragraph"></i> {% translate "Content" %}</div>
           <div class="content-body">{{ activity.text|clean_html }}</div>
         </div>
         {% endif %}
@@ -346,7 +346,7 @@
         {% if llm_html %}
         <div class="llm-card">
           <div class="llm-card-header">
-            <span><i class="bi bi-robot me-2"></i>LLM Evaluation Context</span>
+            <span><i class="bi bi-robot me-2"></i>{% translate "LLM Evaluation Context" %}</span>
             <button type="button" class="btn btn-sm"
                     style="background:rgba(109,40,217,0.1); color:#6d28d9; border:none; padding:2px 10px; font-size:11px; border-radius:6px;"
                     data-bs-toggle="collapse" data-bs-target="#llmActivityBody">
@@ -367,34 +367,34 @@
       {% if activity.activity_type.name == 'Experiment' %}
       <div class="col-12 col-lg-6">
         <div class="info-card">
-          <div class="info-card-header"><i class="bi bi-eyedropper"></i> Experiment Preview</div>
+          <div class="info-card-header"><i class="bi bi-eyedropper"></i> {% translate "Experiment Preview" %}</div>
           <div class="content-body">
             {% if existingSim and not existingRemote and not existingVR_AR %}
-              <p style="font-size:13px; margin-bottom:10px;"><strong>Simulation:</strong> {{ existingSim.name }}</p>
+              <p style="font-size:13px; margin-bottom:10px;"><strong>{% translate "Simulation:" %}</strong> {{ existingSim.name }}</p>
               <div class="experiment-frame" style="position:relative;">
                 <iframe width="100%" style="height:min(420px,75vw);display:block;" src="{{ existingSim.iframe_url }}" frameborder="0" allowfullscreen></iframe>
                 <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.72);color:#fff;padding:7px 14px;font-size:12px;text-align:center;">
-                  Can't see the simulation? &nbsp;
-                  <a href="{{ existingSim.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">Open in a new tab ↗</a>
+                  {% translate "Can't see the simulation?" %} &nbsp;
+                  <a href="{{ existingSim.iframe_url }}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:600;text-decoration:none;">{% translate "Open in a new tab ↗" %}</a>
                 </div>
               </div>
             {% elif existingRemote and not existingVR_AR %}
-              <p style="font-size:13px; margin-bottom:10px;"><strong>Remote Lab:</strong> {{ existingRemote.name }}</p>
+              <p style="font-size:13px; margin-bottom:10px;"><strong>{% translate "Remote Lab:" %}</strong> {{ existingRemote.name }}</p>
               <div class="experiment-frame">
                 <iframe width="100%" style="height:min(420px,75vw);display:block;" src="{% url 'lti_integration_in' existingRemote.id %}" frameborder="0" allowfullscreen></iframe>
               </div>
             {% elif existingVR_AR %}
-              <p style="font-size:13px; margin-bottom:10px;"><strong>VR/AR Experiment:</strong> {{ existingVR_AR.name }}</p>
+              <p style="font-size:13px; margin-bottom:10px;"><strong>{% translate "VR/AR Experiment:" %}</strong> {{ existingVR_AR.name }}</p>
               {% if existingVR_AR.qr_code %}
                 <div class="qr-wrap">
-                  <img src="{{ existingVR_AR.qr_code.url }}" alt="QR Code" style="width:min(240px,100%);height:auto;">
-                  <p style="font-size:12px; color:#888; margin-top:8px;">Scan with a VR/AR-enabled device</p>
+                  <img src="{{ existingVR_AR.qr_code.url }}" alt="{% translate 'QR Code' %}" style="width:min(240px,100%);height:auto;">
+                  <p style="font-size:12px; color:#888; margin-top:8px;">{% translate "Scan with a VR/AR-enabled device" %}</p>
                 </div>
               {% else %}
-                <p class="text-muted" style="font-size:13px;">No QR Code available for this experiment.</p>
+                <p class="text-muted" style="font-size:13px;">{% translate "No QR Code available for this experiment." %}</p>
               {% endif %}
             {% else %}
-              <p class="text-muted" style="font-size:13px;">No experiment configured for this activity.</p>
+              <p class="text-muted" style="font-size:13px;">{% translate "No experiment configured for this activity." %}</p>
             {% endif %}
           </div>
         </div>
@@ -405,7 +405,7 @@
       {% if activity.activity_type.name == 'Question' %}
       <div class="col-12 col-lg-6">
         <div class="info-card">
-          <div class="info-card-header"><i class="bi bi-list-check"></i> Answers</div>
+          <div class="info-card-header"><i class="bi bi-list-check"></i> {% translate "Answers" %}</div>
           <div style="padding: 14px 14px 6px;">
             {% if answers %}
               {% for answer in answers %}
@@ -413,13 +413,13 @@
                 <div class="answer-card-header">
                   <div class="answer-card-label">
                     <div class="answer-num">{{ forloop.counter }}</div>
-                    Answer {{ forloop.counter }}
+                    {% blocktranslate trimmed with n=forloop.counter %}Answer {{ n }}{% endblocktranslate %}
                   </div>
                   <span class="answer-status {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
                     {% if answer.is_correct %}
-                      <i class="bi bi-check-circle-fill me-1"></i>Correct
+                      <i class="bi bi-check-circle-fill me-1"></i>{% translate "Correct" %}
                     {% else %}
-                      <i class="bi bi-x-circle-fill me-1"></i>Incorrect
+                      <i class="bi bi-x-circle-fill me-1"></i>{% translate "Incorrect" %}
                     {% endif %}
                   </span>
                 </div>
@@ -427,23 +427,23 @@
                   <div class="answer-text">{{ answer.text }}</div>
                   <div class="answer-meta">
                     <span class="answer-weight-badge">
-                      <i class="bi bi-speedometer2"></i> Weight: {{ answer.answer_weight }}
+                      <i class="bi bi-speedometer2"></i> {% blocktranslate trimmed with weight=answer.answer_weight %}Weight: {{ weight }}{% endblocktranslate %}
                     </span>
                     {% if not activity.is_evaluatable %}
                       {% if answer.next_activity %}
                         <span class="answer-next">
                           <i class="bi bi-arrow-right-circle text-primary"></i>
-                          Next: <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=answer.next_activity.id %}">{{ answer.next_activity.name }}</a>
+                          {% translate "Next:" %} <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=answer.next_activity.id %}">{{ answer.next_activity.name }}</a>
                         </span>
                       {% else %}
-                        <span class="answer-next text-muted"><i class="bi bi-dash-circle me-1"></i>No next activity</span>
+                        <span class="answer-next text-muted"><i class="bi bi-dash-circle me-1"></i>{% translate "No next activity" %}</span>
                       {% endif %}
                     {% endif %}
                     {% if can_edit and not is_machine_translation %}
                     <button type="button" class="btn btn-sm btn-outline-danger ms-auto"
                       data-bs-toggle="modal" data-bs-target="#deleteModal{{ answer.id }}"
                       style="font-size:12px; padding:3px 10px;">
-                      <i class="bi bi-trash3 me-1"></i>Delete
+                      <i class="bi bi-trash3 me-1"></i>{% translate "Delete" %}
                     </button>
                     {% endif %}
                   </div>
@@ -457,17 +457,17 @@
                   <div class="modal-content" style="border-radius:14px; overflow:hidden;">
                     <div class="modal-header border-0 pb-0">
                       <h5 class="modal-title" style="font-size:16px; font-weight:700; color:#012970;">
-                        <i class="bi bi-trash3 text-danger me-2"></i>Delete Answer
+                        <i class="bi bi-trash3 text-danger me-2"></i>{% translate "Delete Answer" %}
                       </h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
                     </div>
                     <div class="modal-body" style="font-size:13.5px; color:#444;">
-                      Are you sure you want to delete <strong>Answer {{ forloop.counter }}</strong>? This action cannot be undone.
+                      {% blocktranslate trimmed with n=forloop.counter %}Are you sure you want to delete <strong>Answer {{ n }}</strong>? This action cannot be undone.{% endblocktranslate %}
                     </div>
                     <div class="modal-footer border-0">
-                      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
                       <a class="btn btn-danger btn-sm" href="{% url 'deleteAnswer' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id answer_id=answer.id %}">
-                        <i class="bi bi-trash3 me-1"></i>Continue
+                        <i class="bi bi-trash3 me-1"></i>{% translate "Continue" %}
                       </a>
                     </div>
                   </div>
@@ -479,11 +479,11 @@
             {% else %}
               <div style="padding:24px; text-align:center; color:#888; font-size:13.5px;">
                 <i class="bi bi-inbox" style="font-size:32px; display:block; margin-bottom:10px; color:#ccc;"></i>
-                No answers found for this activity.
+                {% translate "No answers found for this activity." %}
                 {% if can_edit and not is_machine_translation %}
                   <div style="margin-top:14px;">
                     <a class="btn btn-sm btn-primary" href="{% url 'createAnswers' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}">
-                      <i class="bi bi-plus-circle me-1"></i>Create Answers
+                      <i class="bi bi-plus-circle me-1"></i>{% translate "Create Answers" %}
                     </a>
                   </div>
                 {% endif %}

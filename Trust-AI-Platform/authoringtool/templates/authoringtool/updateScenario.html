@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Edit Scenario</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Edit Scenario" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -126,14 +127,14 @@
       <div class="sc-hero-icon"><i class="bi bi-pencil-square"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
-          Authoring Tool
+          {% translate "Authoring Tool" %}
         </div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Edit Scenario</h2>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Edit Scenario" %}</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">{{ Scenario.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=Scenario.id %}">{{ Scenario.name }}</a></li>
-          <li class="breadcrumb-item active">Edit</li>
+          <li class="breadcrumb-item active">{% translate "Edit" %}</li>
         </ol></nav>
       </div>
     </div>
@@ -148,12 +149,9 @@
             <div class="d-flex align-items-start gap-3">
               <i class="bi bi-shield-lock fs-4"></i>
               <div class="flex-grow-1">
-                <div class="fw-bold">Published evidence is protected</div>
+                <div class="fw-bold">{% translate "Published evidence is protected" %}</div>
                 <div class="small mt-1">
-                  This scenario already has student implementations. Open a
-                  revision draft before editing it. Student access is paused
-                  while a draft is open, then resumes on the newly published
-                  revision.
+                  {% translate "This scenario already has student implementations. Open a revision draft before editing it. Student access is paused while a draft is open, then resumes on the newly published revision." %}
                 </div>
                 <form method="post"
                       action="{% url 'begin_scenario_revision' scenario_id=Scenario.id %}"
@@ -161,7 +159,7 @@
                   {% csrf_token %}
                   <button type="submit" class="btn btn-warning btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>
-                    Start Revision Draft
+                    {% translate "Start Revision Draft" %}
                   </button>
                 </form>
               </div>
@@ -171,28 +169,25 @@
           <div class="alert alert-info shadow-sm mb-4" role="alert">
             <div class="fw-bold">
               <i class="bi bi-pencil-square me-1"></i>
-              Revision draft in progress
+              {% translate "Revision draft in progress" %}
             </div>
             <div class="small mt-1">
-              Based on published version
-              {{ revision_draft.base_version.version_number }}. Student access
-              is paused while the draft is open. Save this form and all
-              activity changes before publishing.
+              {% blocktranslate trimmed with version=revision_draft.base_version.version_number %}Based on published version {{ version }}. Student access is paused while the draft is open. Save this form and all activity changes before publishing.{% endblocktranslate %}
             </div>
             <form method="post"
                   action="{% url 'publish_scenario_revision' scenario_id=Scenario.id %}"
                   class="mt-3">
               {% csrf_token %}
               <label for="changeSummary" class="form-label small fw-bold">
-                Change summary
+                {% translate "Change summary" %}
               </label>
               <div class="input-group">
                 <input id="changeSummary" type="text" name="change_summary"
                        class="form-control form-control-sm"
-                       placeholder="What changed in this revision?">
+                       placeholder="{% translate 'What changed in this revision?' %}">
                 <button type="submit" class="btn btn-success btn-sm">
                   <i class="bi bi-cloud-check me-1"></i>
-                  Validate &amp; Publish
+                  {% translate "Validate &amp; Publish" %}
                 </button>
               </div>
             </form>
@@ -206,35 +201,35 @@
           <!-- ── Card 1: Basic Information ── -->
           <div class="sc-card">
             <div class="sc-card-header">
-              <i class="bi bi-card-text"></i> Basic Information
+              <i class="bi bi-card-text"></i> {% translate "Basic Information" %}
             </div>
             <div class="sc-card-body">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-fonts"></i>Scenario Name <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-fonts"></i>{% translate "Scenario Name" %} <span class="sc-required">*</span></label>
                 <input type="text" class="sc-input" name="name"
-                       value="{{ Scenario.name }}" placeholder="e.g. Pendulum Physics, Climate Change…" required autofocus>
+                       value="{{ Scenario.name }}" placeholder="{% translate 'e.g. Pendulum Physics, Climate Change…' %}" required autofocus>
                 {% include 'authoringtool/_original_text.html' with text=original.name %}
               </div>
 
               <hr class="sc-divider">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-card-text"></i>Description <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-card-text"></i>{% translate "Description" %} <span class="sc-required">*</span></label>
                 <textarea class="sc-input" name="description"
-                          placeholder="A brief overview of this scenario and what it covers…" required>{{ Scenario.description }}</textarea>
+                          placeholder="{% translate 'A brief overview of this scenario and what it covers…' %}" required>{{ Scenario.description }}</textarea>
                 {% include 'authoringtool/_original_text.html' with text=original.description %}
-                <div class="sc-hint">Summarise the scenario topic for teachers and students.</div>
+                <div class="sc-hint">{% translate "Summarise the scenario topic for teachers and students." %}</div>
               </div>
 
               <hr class="sc-divider">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-bullseye"></i>Learning Goals <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-bullseye"></i>{% translate "Learning Goals" %} <span class="sc-required">*</span></label>
                 <textarea class="sc-input" name="learning_goals"
-                          placeholder="What will students learn or be able to do after completing this scenario?" required>{{ Scenario.learning_goals }}</textarea>
+                          placeholder="{% translate 'What will students learn or be able to do after completing this scenario?' %}" required>{{ Scenario.learning_goals }}</textarea>
                 {% include 'authoringtool/_original_text.html' with text=original.learning_goals %}
-                <div class="sc-hint">List the key competencies and outcomes.</div>
+                <div class="sc-hint">{% translate "List the key competencies and outcomes." %}</div>
               </div>
 
             </div>
@@ -243,22 +238,22 @@
           <!-- ── Card 2: Audience & Curriculum ── -->
           <div class="sc-card">
             <div class="sc-card-header">
-              <i class="bi bi-people"></i> Audience &amp; Curriculum
+              <i class="bi bi-people"></i> {% translate "Audience &amp; Curriculum" %}
             </div>
             <div class="sc-card-body">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-person-badge"></i>Student Age Range <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-person-badge"></i>{% translate "Student Age Range" %} <span class="sc-required">*</span></label>
                 <div class="sc-pair">
                   <div>
                     <input type="number" class="sc-input" name="min_age" value="{{ min_age }}"
-                           min="0" max="100" placeholder="Min age" required>
-                    <div class="sc-hint">Minimum age</div>
+                           min="0" max="100" placeholder="{% translate 'Min age' %}" required>
+                    <div class="sc-hint">{% translate "Minimum age" %}</div>
                   </div>
                   <div>
                     <input type="number" class="sc-input" name="max_age" value="{{ max_age }}"
-                           min="0" max="100" placeholder="Max age" required>
-                    <div class="sc-hint">Maximum age</div>
+                           min="0" max="100" placeholder="{% translate 'Max age' %}" required>
+                    <div class="sc-hint">{% translate "Maximum age" %}</div>
                   </div>
                 </div>
               </div>
@@ -267,7 +262,7 @@
 
               <div class="sc-pair">
                 <div class="sc-field">
-                  <label class="sc-label"><i class="bi bi-journals"></i>Subjects</label>
+                  <label class="sc-label"><i class="bi bi-journals"></i>{% translate "Subjects" %}</label>
                   <div class="subject-picker">
                     {% for subject in all_subjects %}
                     <label class="subject-chip">
@@ -281,9 +276,9 @@
                   </div>
                 </div>
                 <div class="sc-field">
-                  <label class="sc-label"><i class="bi bi-translate"></i>Language <span class="sc-required">*</span></label>
+                  <label class="sc-label"><i class="bi bi-translate"></i>{% translate "Language" %} <span class="sc-required">*</span></label>
                   <select class="sc-input" name="language" required>
-                    <option value="">Select language…</option>
+                    <option value="">{% translate "Select language…" %}</option>
                     {% for lang in languages %}
                     <option value="{{ lang.name }}" {% if Scenario.language == lang.name %}selected{% endif %}>{{ lang.name }}</option>
                     {% endfor %}
@@ -294,11 +289,11 @@
               <hr class="sc-divider">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-clock"></i>Suggested Learning Time <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-clock"></i>{% translate "Suggested Learning Time" %} <span class="sc-required">*</span></label>
                 <div style="display:flex;align-items:center;gap:10px;">
                   <input type="number" class="sc-input" name="suggested_learning_time"
                          value="{{ Scenario.suggested_learning_time }}" min="1" style="max-width:160px;" required>
-                  <span style="font-size:13.5px;color:#6b7280;">minutes</span>
+                  <span style="font-size:13.5px;color:#6b7280;">{% translate "minutes" %}</span>
                 </div>
               </div>
 
@@ -308,14 +303,14 @@
           <!-- ── Card 3: Cover Image ── -->
           <div class="sc-card">
             <div class="sc-card-header">
-              <i class="bi bi-image"></i> Cover Image
+              <i class="bi bi-image"></i> {% translate "Cover Image" %}
             </div>
             <div class="sc-card-body">
 
               {% if Scenario.image %}
               <div class="img-current-wrap" id="currentImgWrap">
-                <img src="{{ Scenario.image.url }}" alt="Current cover">
-                <div class="img-current-label"><i class="bi bi-paperclip"></i>{{ Scenario.image.name }} — <span style="color:#1a56db;cursor:pointer;" onclick="document.getElementById('imgInput').click()">Replace image</span></div>
+                <img src="{{ Scenario.image.url }}" alt="{% translate 'Current cover' %}">
+                <div class="img-current-label"><i class="bi bi-paperclip"></i>{{ Scenario.image.name }} — <span style="color:#1a56db;cursor:pointer;" onclick="document.getElementById('imgInput').click()">{% translate "Replace image" %}</span></div>
               </div>
               {% endif %}
 
@@ -325,15 +320,15 @@
                 <i class="bi bi-cloud-arrow-up img-upload-icon"></i>
                 <div class="img-upload-text">
                   {% if Scenario.image %}
-                  <strong>Click to replace</strong> or drag &amp; drop<br>
+                  <strong>{% translate "Click to replace" %}</strong> {% translate "or drag & drop" %}<br>
                   {% else %}
-                  <strong>Click to upload</strong> or drag &amp; drop<br>
+                  <strong>{% translate "Click to upload" %}</strong> {% translate "or drag & drop" %}<br>
                   {% endif %}
-                  <span style="font-size:12px;color:#9ca3af;">PNG, JPG, GIF, WEBP — recommended 1200×630px</span>
+                  <span style="font-size:12px;color:#9ca3af;">{% translate "PNG, JPG, GIF, WEBP — recommended 1200×630px" %}</span>
                 </div>
               </div>
               <div class="img-preview-wrap" id="imgPreviewWrap">
-                <img id="imgPreview" src="" alt="Preview">
+                <img id="imgPreview" src="" alt="{% translate 'Preview' %}">
                 <div style="margin-top:6px;font-size:12px;color:#6b7280;" id="imgFileName"></div>
               </div>
 
@@ -344,26 +339,26 @@
           <!-- ── Card 4: Visibility & Sharing ── -->
           <div class="sc-card">
             <div class="sc-card-header">
-              <i class="bi bi-shield-lock"></i> Visibility &amp; Sharing
+              <i class="bi bi-shield-lock"></i> {% translate "Visibility &amp; Sharing" %}
             </div>
             <div class="sc-card-body">
 
               <div class="sc-field">
-                <label class="sc-label"><i class="bi bi-eye"></i>Visibility <span class="sc-required">*</span></label>
+                <label class="sc-label"><i class="bi bi-eye"></i>{% translate "Visibility" %} <span class="sc-required">*</span></label>
                 <select class="sc-input" name="visibility" id="visibility" onchange="toggleOrganizations()" required>
-                  <option value="private" {% if Scenario.visibility_status == 'private' %}selected{% endif %}>Private — only you</option>
-                  <option value="org" {% if Scenario.visibility_status == 'org' %}selected{% endif %}>Organization — selected orgs</option>
+                  <option value="private" {% if Scenario.visibility_status == 'private' %}selected{% endif %}>{% translate "Private — only you" %}</option>
+                  <option value="org" {% if Scenario.visibility_status == 'org' %}selected{% endif %}>{% translate "Organization — selected orgs" %}</option>
                   {% if not Scenario.is_personal %}
-                  <option value="public" {% if Scenario.visibility_status == 'public' %}selected{% endif %}>Public — everyone</option>
+                  <option value="public" {% if Scenario.visibility_status == 'public' %}selected{% endif %}>{% translate "Public — everyone" %}</option>
                   {% endif %}
                 </select>
-                <div class="sc-hint">Control who can see and use this scenario.</div>
+                <div class="sc-hint">{% translate "Control who can see and use this scenario." %}</div>
               </div>
 
               <div id="org-selection" style="display:none;">
                 <hr class="sc-divider">
                 <div class="sc-field">
-                  <label class="sc-label"><i class="bi bi-building"></i>Select Organizations</label>
+                  <label class="sc-label"><i class="bi bi-building"></i>{% translate "Select Organizations" %}</label>
                   <div class="org-check-list">
                     {% for org in user_organizations %}
                     <label class="org-check-item">
@@ -372,7 +367,7 @@
                       {{ org.name }}
                     </label>
                     {% empty %}
-                    <div class="sc-hint">You are not a member of any organizations.</div>
+                    <div class="sc-hint">{% translate "You are not a member of any organizations." %}</div>
                     {% endfor %}
                   </div>
                 </div>
@@ -381,12 +376,12 @@
               <div id="org-edit" style="display:none;">
                 <hr class="sc-divider">
                 <div class="sc-field">
-                  <label class="sc-label"><i class="bi bi-pencil"></i>Editable by Org?</label>
+                  <label class="sc-label"><i class="bi bi-pencil"></i>{% translate "Editable by Org?" %}</label>
                   <div class="sc-switch-wrap">
                     <input class="form-check-input" type="checkbox" role="switch"
                            name="is_editable_by_org" id="is_editable_by_org"
                            {% if Scenario.is_editable_by_org %}checked{% endif %}>
-                    <span class="sc-switch-label">Allow organization members to edit this scenario</span>
+                    <span class="sc-switch-label">{% translate "Allow organization members to edit this scenario" %}</span>
                   </div>
                 </div>
               </div>
@@ -396,10 +391,10 @@
           {% else %}
           <div class="sc-card">
             <div class="sc-card-header">
-              <i class="bi bi-shield-lock"></i> Visibility &amp; Sharing
+              <i class="bi bi-shield-lock"></i> {% translate "Visibility &amp; Sharing" %}
             </div>
             <div class="sc-card-body">
-              <div class="sc-hint">Only the scenario owner can change who can see and edit this scenario.</div>
+              <div class="sc-hint">{% translate "Only the scenario owner can change who can see and edit this scenario." %}</div>
             </div>
           </div>
           {% endif %}
@@ -407,11 +402,11 @@
           <!-- ── Action Buttons ── -->
           <div class="sc-actions">
             <a href="{% url 'viewScenario' id=Scenario.id %}" class="btn btn-outline-secondary px-4">
-              <i class="bi bi-arrow-left me-1"></i> Back
+              <i class="bi bi-arrow-left me-1"></i> {% translate "Back" %}
             </a>
             <button type="submit" class="btn btn-primary px-5" id="submitBtn"
                     {% if revision_protected and not revision_draft %}disabled{% endif %}>
-              <i class="bi bi-check-circle me-1"></i> Save Changes
+              <i class="bi bi-check-circle me-1"></i> {% translate "Save Changes" %}
             </button>
           </div>
 
@@ -476,7 +471,12 @@
       form.classList.add('was-validated'); return;
     }
     setTimeout(function () {
-      btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2" role="status" aria-hidden="true"></span> Saving…';
+      var spinner = document.createElement('span');
+      spinner.className = 'spinner-grow spinner-grow-sm me-2';
+      spinner.setAttribute('role', 'status');
+      spinner.setAttribute('aria-hidden', 'true');
+      btn.textContent = ' ' + "{% translate 'Saving…' as s %}{{ s|escapejs }}";
+      btn.insertBefore(spinner, btn.firstChild);
       btn.disabled = true;
     }, 100);
   });

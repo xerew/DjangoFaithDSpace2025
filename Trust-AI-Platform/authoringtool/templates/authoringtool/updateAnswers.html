@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Edit Answers</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Edit Answers" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -147,18 +148,18 @@
     <div class="d-flex align-items-start gap-3">
       <div class="act-hero-icon"><i class="bi bi-list-check"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Authoring Tool</div>
-        <h2>Edit Answers</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{{ activity.name }} — exactly one answer must be marked correct</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Authoring Tool" %}</div>
+        <h2>{% translate "Edit Answers" %}</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">{% blocktranslate trimmed with name=activity.name %}{{ name }} — exactly one answer must be marked correct{% endblocktranslate %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'activity' scenario phase activity.id %}">{{ activity.name }}</a></li>
-          <li class="breadcrumb-item active">Edit Answers</li>
+          <li class="breadcrumb-item active">{% translate "Edit Answers" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'activity' scenario phase activity.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
@@ -179,23 +180,23 @@
                 <div class="answer-card-header">
                   <div class="answer-card-label">
                     <div class="answer-num">{{ forloop.counter }}</div>
-                    Answer {{ forloop.counter }}
+                    {% blocktranslate trimmed with n=forloop.counter %}Answer {{ n }}{% endblocktranslate %}
                   </div>
                   {% if not forloop.first and not is_machine_translation %}
                   <button type="button" class="removeAnswer btn-remove-answer">
-                    <i class="bi bi-trash3 me-1"></i>Remove
+                    <i class="bi bi-trash3 me-1"></i>{% translate "Remove" %}
                   </button>
                   {% endif %}
                 </div>
                 <div class="answer-card-body">
                   <div class="mb-3">
-                    <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold text-dark" style="font-size:13px;">{% translate "Answer Text" %} <span class="text-danger">*</span></label>
                     <textarea class="form-control" name="answers[{{ forloop.counter0 }}][text]" rows="3" required>{{ answer.text }}</textarea>
                     {% include 'authoringtool/_original_text.html' with text=answer.original_text %}
                   </div>
                   <div class="row g-3 mt-structure">
                     <div class="col-sm-5">
-                      <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+                      <label class="form-label fw-semibold text-dark" style="font-size:13px;">{% translate "Answer Weight" %} <span class="text-danger">*</span></label>
                       <select class="form-select" {% if not is_machine_translation %}name="answers[{{ forloop.counter0 }}][answer_weight]" required{% endif %}>
                         <option value="1" {% if answer.answer_weight == 1 %}selected{% endif %}>1</option>
                         <option value="2" {% if answer.answer_weight == 2 %}selected{% endif %}>2</option>
@@ -205,13 +206,13 @@
                     <div class="col-sm-7 d-flex flex-column justify-content-end">
                       <label class="correct-row">
                         <input type="checkbox" class="is-correct-check" {% if not is_machine_translation %}name="answers[{{ forloop.counter0 }}][is_correct]"{% endif %} {% if answer.is_correct %}checked{% endif %}>
-                        <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+                        <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>{% translate "Mark as Correct" %}</span>
                       </label>
                     </div>
                   </div>
                   {% if not activity.is_evaluatable and not is_machine_translation %}
                   <div class="next-activity-section">
-                    <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
+                    <label><i class="bi bi-arrow-right-circle me-1"></i>{% translate "Next Activity" %}</label>
                     {% include "authoringtool/includes/next_activity_picker.html" with field_name=answer.next_field_name selected_id=answer.next_activity_id selected_name=answer.next_activity_name %}
                   </div>
                   {% endif %}
@@ -224,20 +225,20 @@
 
           <div class="mb-4 mt-structure">
             <button type="button" id="addMoreAnswers" class="btn btn-outline-primary">
-              <i class="bi bi-plus-circle me-1"></i>Add Another Answer
+              <i class="bi bi-plus-circle me-1"></i>{% translate "Add Another Answer" %}
             </button>
           </div>
 
           <div id="correct-answer-error" class="alert alert-danger d-none mb-3" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>Exactly one answer must be marked as correct.
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{% translate "Exactly one answer must be marked as correct." %}
           </div>
 
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
-              <i class="bi bi-arrow-left me-1"></i>Cancel
+              <i class="bi bi-arrow-left me-1"></i>{% translate "Cancel" %}
             </button>
             <button type="submit" class="btn btn-primary px-4" id="submitBtn">
-              <i class="bi bi-check2-circle me-1"></i>Update Answers
+              <i class="bi bi-check2-circle me-1"></i>{% translate "Update Answers" %}
             </button>
           </div>
         </form>
@@ -254,12 +255,26 @@
 </main>
 
 <script>
+  const ANSWER_I18N = {
+    answerLabel: "{% translate 'Answer {n}' as s %}{{ s|escapejs }}",
+    remove: "{% translate 'Remove' as s %}{{ s|escapejs }}",
+    answerText: "{% translate 'Answer Text' as s %}{{ s|escapejs }}",
+    answerOption: "{% translate 'Enter the answer option…' as s %}{{ s|escapejs }}",
+    answerWeight: "{% translate 'Answer Weight' as s %}{{ s|escapejs }}",
+    selectWeight: "{% translate 'Select weight…' as s %}{{ s|escapejs }}",
+    markCorrect: "{% translate 'Mark as Correct' as s %}{{ s|escapejs }}",
+    nextActivity: "{% translate 'Next Activity' as s %}{{ s|escapejs }}",
+    saving: "{% translate 'Saving…' as s %}{{ s|escapejs }}",
+    emptyLabel: "{% translate 'Select Next Activity (Optional)…' as s %}{{ s|escapejs }}"
+  };
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', function () {
   let answerCount = {{ answers|length }};
   var isEvaluatable = {% if activity.is_evaluatable %}true{% else %}false{% endif %};
 
   // ── Next Activity pickers (one per answer, as on the activity page) ──
-  var EMPTY_LABEL = 'Select Next Activity (Optional)…';
+  var EMPTY_LABEL = ANSWER_I18N.emptyLabel;
 
   function filterPicker(wrap, q) {
     var ql = q.toLowerCase();
@@ -323,7 +338,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function renumber() {
     document.querySelectorAll('#answerFieldsList .answerFields').forEach(function (el, i) {
       var label = el.querySelector('.answer-card-label');
-      if (label) label.innerHTML = `<div class="answer-num">${i + 1}</div> Answer ${i + 1}`;
+      if (label) {
+        label.textContent = '';
+        var num = document.createElement('div');
+        num.className = 'answer-num';
+        num.textContent = i + 1;
+        label.appendChild(num);
+        label.appendChild(document.createTextNode(' ' + ANSWER_I18N.answerLabel.replace('{n}', () => i + 1)));
+      }
     });
   }
 
@@ -341,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var pickerTemplate = document.getElementById('nextPickerTemplate');
     var nextActHTML = (isEvaluatable || !pickerTemplate) ? '' : `
       <div class="next-activity-section">
-        <label><i class="bi bi-arrow-right-circle me-1"></i>Next Activity</label>
+        <label><i class="bi bi-arrow-right-circle me-1"></i>${ANSWER_I18N.nextActivity}</label>
         ${pickerTemplate.innerHTML.replace('__NAME__', 'next_activity_' + answerCount)}
       </div>`;
 
@@ -352,19 +374,19 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="answer-card-header">
           <div class="answer-card-label"></div>
           <button type="button" class="removeAnswer btn-remove-answer">
-            <i class="bi bi-trash3 me-1"></i>Remove
+            <i class="bi bi-trash3 me-1"></i>${ANSWER_I18N.remove}
           </button>
         </div>
         <div class="answer-card-body">
           <div class="mb-3">
-            <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Text <span class="text-danger">*</span></label>
-            <textarea class="form-control" name="answers[${answerCount}][text]" rows="3" placeholder="Enter the answer option…" required></textarea>
+            <label class="form-label fw-semibold text-dark" style="font-size:13px;">${ANSWER_I18N.answerText} <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="answers[${answerCount}][text]" rows="3" placeholder="${ANSWER_I18N.answerOption}" required></textarea>
           </div>
           <div class="row g-3">
             <div class="col-sm-5">
-              <label class="form-label fw-semibold text-dark" style="font-size:13px;">Answer Weight <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold text-dark" style="font-size:13px;">${ANSWER_I18N.answerWeight} <span class="text-danger">*</span></label>
               <select class="form-select" name="answers[${answerCount}][answer_weight]" required>
-                <option value="" disabled selected>Select weight…</option>
+                <option value="" disabled selected>${ANSWER_I18N.selectWeight}</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -373,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="col-sm-7 d-flex flex-column justify-content-end">
               <label class="correct-row">
                 <input type="checkbox" class="is-correct-check" name="answers[${answerCount}][is_correct]">
-                <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>Mark as Correct</span>
+                <span class="correct-row-label"><i class="bi bi-patch-check me-1 text-success"></i>${ANSWER_I18N.markCorrect}</span>
               </label>
             </div>
           </div>
@@ -405,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     errorEl.classList.add('d-none');
     var btn = document.getElementById('submitBtn');
-    btn.innerHTML = `<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>Saving…`;
+    btn.innerHTML = `<span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>${ANSWER_I18N.saving}`;
     btn.disabled = true;
   });
 });

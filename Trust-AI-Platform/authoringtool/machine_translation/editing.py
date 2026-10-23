@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 from authoringtool.models import (
     Activity,
@@ -22,8 +23,8 @@ from authoringtool.models import (
 
 from .units import strip_html
 
-PENDING_MESSAGE = 'This translation is still being prepared.'
-STRUCTURE_MESSAGE = (
+PENDING_MESSAGE = _('This translation is still being prepared.')
+STRUCTURE_MESSAGE = _(
     'Machine translations keep the original structure. Only text and media '
     'can be changed.'
 )

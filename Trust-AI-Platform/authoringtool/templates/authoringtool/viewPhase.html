@@ -1,6 +1,6 @@
 {% extends "main.html" %}
-{% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — {{ myPhase.name }}</title>{% endblock %}
+{% load profile_tags i18n %}
+{% block page_title %}<title>{% blocktranslate trimmed with name=myPhase.name %}Trust AI Lab — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -131,11 +131,11 @@
         </div>
         <h2 style="margin:0; font-size:21px; font-weight:700; line-height:1.2;">{{ myPhase.name }}</h2>
         <div style="font-size:12.5px; opacity:0.75; margin-top:4px;">
-          Phase &middot; {{ activities|length }} activit{{ activities|length|pluralize:"y,ies" }}
+          {% translate "Phase" %} &middot; {% blocktranslate trimmed count counter=activities|length %}{{ counter }} activity{% plural %}{{ counter }} activities{% endblocktranslate %}
         </div>
         <nav>
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
             <li class="breadcrumb-item active">{{ myPhase.name }}</li>
           </ol>
@@ -144,17 +144,17 @@
       <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
         <a href="{% url 'viewScenario' id=myScenario.id %}" class="btn btn-sm"
            style="background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);">
-          <i class="bi bi-arrow-left me-1"></i> Scenario
+          <i class="bi bi-arrow-left me-1"></i> {% translate "Scenario" %}
         </a>
         {% if can_edit %}
         <a href="{% url 'updatePhase' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-sm"
            style="background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);">
-          <i class="bi bi-pencil me-1"></i> Edit
+          <i class="bi bi-pencil me-1"></i> {% translate "Edit" %}
         </a>
         {% if not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-sm"
            style="background:#fff; color:#1a56db; font-weight:600; border:none;">
-          <i class="bi bi-plus-circle me-1"></i> New Activity
+          <i class="bi bi-plus-circle me-1"></i> {% translate "New Activity" %}
         </a>
         {% endif %}
         {% endif %}
@@ -171,7 +171,7 @@
       <div class="col-12 col-md-{% if myPhase.llm_context %}5{% else %}12{% endif %} col-lg-{% if myPhase.llm_context %}4{% else %}12{% endif %}">
         <div class="phase-card h-100">
           <div class="phase-card-header">
-            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>Phase Information</span>
+            <span><i class="bi bi-info-circle me-2" style="color:#1a56db;"></i>{% translate "Phase Information" %}</span>
           </div>
           <div class="phase-card-body">
             {% if myPhase.image %}
@@ -181,11 +181,11 @@
             {% if myPhase.description %}
             <p style="font-size:14px; color:#374151; line-height:1.65; margin-bottom:14px;">{{ myPhase.description }}</p>
             {% else %}
-            <p class="text-muted small mb-3"><em>No description provided.</em></p>
+            <p class="text-muted small mb-3"><em>{% translate "No description provided." %}</em></p>
             {% endif %}
             <div style="font-size:12.5px; color:#9ca3af;">
-              <i class="bi bi-calendar3 me-1"></i> Created {{ myPhase.created_on|date:"d M Y" }}
-              <span class="ms-2"><i class="bi bi-clock-history me-1"></i> Last updated {{ myPhase.updated_on|date:"d M Y, H:i" }}{% if myPhase.updated_by %} by {% user_link myPhase.updated_by %}{% endif %}</span>
+              <i class="bi bi-calendar3 me-1"></i> {% blocktranslate trimmed with date=myPhase.created_on|date:"d M Y" %}Created {{ date }}{% endblocktranslate %}
+              <span class="ms-2"><i class="bi bi-clock-history me-1"></i> {% blocktranslate trimmed with date=myPhase.updated_on|date:"d M Y, H:i" %}Last updated {{ date }}{% endblocktranslate %}{% if myPhase.updated_by %} {% translate "by" context "updated by user" %} {% user_link myPhase.updated_by %}{% endif %}</span>
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@
       <div class="col-12 col-md-7 col-lg-8">
         <div class="phase-card h-100">
           <div class="phase-card-header">
-            <span><i class="bi bi-robot me-2" style="color:#7c3aed;"></i>LLM Evaluation Context</span>
+            <span><i class="bi bi-robot me-2" style="color:#7c3aed;"></i>{% translate "LLM Evaluation Context" %}</span>
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     style="font-size:11.5px; padding:3px 10px;"
                     data-bs-toggle="collapse" data-bs-target="#llmCollapseBody">
@@ -218,13 +218,13 @@
     <div class="phase-card">
       <div class="phase-card-header">
         <span>
-          <i class="bi bi-list-task me-2" style="color:#1a56db;"></i>Activities
-          <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{{ activities|length }} total</span>
+          <i class="bi bi-list-task me-2" style="color:#1a56db;"></i>{% translate "Activities" %}
+          <span style="font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px;">{% blocktranslate trimmed with total=activities|length %}{{ total }} total{% endblocktranslate %}</span>
         </span>
         {% if can_edit and not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}"
            class="btn btn-sm btn-primary" style="font-size:12px; padding:4px 14px;">
-          <i class="bi bi-plus-circle me-1"></i> New Activity
+          <i class="bi bi-plus-circle me-1"></i> {% translate "New Activity" %}
         </a>
         {% endif %}
       </div>
@@ -235,16 +235,16 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Name</th>
-              <th>Text</th>
-              <th>Type</th>
-              <th>Evaluatable</th>
-              <th>Primary</th>
-              <th>Helper</th>
-              <th>Created</th>
-              <th>By</th>
-              <th>Last updated</th>
-              <th>Actions</th>
+              <th>{% translate "Name" %}</th>
+              <th>{% translate "Text" %}</th>
+              <th>{% translate "Type" %}</th>
+              <th>{% translate "Evaluatable" %}</th>
+              <th>{% translate "Primary" %}</th>
+              <th>{% translate "Helper" %}</th>
+              <th>{% translate "Created" %}</th>
+              <th>{% translate "By" %}</th>
+              <th>{% translate "Last updated" %}</th>
+              <th>{% translate "Actions" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -275,16 +275,16 @@
               </td>
               <td>
                 {% if activity.is_evaluatable %}
-                  <span class="bool-yes"><i class="bi bi-check2"></i> Yes</span>
+                  <span class="bool-yes"><i class="bi bi-check2"></i> {% translate "Yes" %}</span>
                 {% else %}
-                  <span class="bool-no">No</span>
+                  <span class="bool-no">{% translate "No" %}</span>
                 {% endif %}
               </td>
               <td>
                 {% if activity.is_primary_ev %}
-                  <span class="bool-yes"><i class="bi bi-check2"></i> Yes</span>
+                  <span class="bool-yes"><i class="bi bi-check2"></i> {% translate "Yes" %}</span>
                 {% else %}
-                  <span class="bool-no">No</span>
+                  <span class="bool-no">{% translate "No" %}</span>
                 {% endif %}
               </td>
               <td style="font-size:12.5px; color:#6b7280;">{{ activity.helper|default:"—" }}</td>
@@ -294,22 +294,22 @@
               <td>
                 <div class="act-actions">
                   <a href="{% url 'activity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
-                     class="act-btn act-btn-view" title="View"><i class="bi bi-eye"></i></a>
+                     class="act-btn act-btn-view" title="{% translate 'View' %}"><i class="bi bi-eye"></i></a>
                   {% if can_edit %}
                   {% if not is_machine_translation %}
                   <form method="post" action="{% url 'move_activity' myScenario.id myPhase.id activity.id 'up' %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="act-btn act-btn-view" title="Move up" aria-label="Move {{ activity.name }} up"{% if forloop.first %} disabled{% endif %}><i class="bi bi-arrow-up"></i></button>
+                    <button type="submit" class="act-btn act-btn-view" title="{% translate 'Move up' %}" aria-label="{% blocktranslate trimmed with name=activity.name %}Move {{ name }} up{% endblocktranslate %}"{% if forloop.first %} disabled{% endif %}><i class="bi bi-arrow-up"></i></button>
                   </form>
                   <form method="post" action="{% url 'move_activity' myScenario.id myPhase.id activity.id 'down' %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="act-btn act-btn-view" title="Move down" aria-label="Move {{ activity.name }} down"{% if forloop.last %} disabled{% endif %}><i class="bi bi-arrow-down"></i></button>
+                    <button type="submit" class="act-btn act-btn-view" title="{% translate 'Move down' %}" aria-label="{% blocktranslate trimmed with name=activity.name %}Move {{ name }} down{% endblocktranslate %}"{% if forloop.last %} disabled{% endif %}><i class="bi bi-arrow-down"></i></button>
                   </form>
                   {% endif %}
                   <a href="{% url 'updateActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
-                     class="act-btn act-btn-edit" title="Edit"><i class="bi bi-pencil"></i></a>
+                     class="act-btn act-btn-edit" title="{% translate 'Edit' %}"><i class="bi bi-pencil"></i></a>
                   {% if not is_machine_translation %}
-                  <button type="button" class="act-btn act-btn-delete" title="Delete"
+                  <button type="button" class="act-btn act-btn-delete" title="{% translate 'Delete' %}"
                           data-bs-toggle="modal" data-bs-target="#delModal{{ activity.id }}">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -326,11 +326,11 @@
       {% else %}
       <div class="empty-act">
         <i class="bi bi-clipboard-x text-muted"></i>
-        <h5 class="text-muted">No activities yet</h5>
-        <p class="text-muted small mb-3">Add the first activity to this phase to get started.</p>
+        <h5 class="text-muted">{% translate "No activities yet" %}</h5>
+        <p class="text-muted small mb-3">{% translate "Add the first activity to this phase to get started." %}</p>
         {% if can_edit and not is_machine_translation %}
         <a href="{% url 'createActivity' scenario_id=myScenario.id phase_id=myPhase.id %}" class="btn btn-primary">
-          <i class="bi bi-plus-circle me-1"></i> Create First Activity
+          <i class="bi bi-plus-circle me-1"></i> {% translate "Create First Activity" %}
         </a>
         {% endif %}
       </div>
@@ -349,18 +349,17 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Delete Activity
+          <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{% translate "Delete Activity" %}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body">
-        Are you sure you want to delete <strong>{{ activity.name }}</strong>?
-        This action cannot be undone.
+        {% blocktranslate trimmed with name=activity.name %}Are you sure you want to delete <strong>{{ name }}</strong>? This action cannot be undone.{% endblocktranslate %}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <a href="{% url 'deleteActivity' scenario_id=myScenario.id phase_id=myPhase.id activity_id=activity.id %}"
-           class="btn btn-danger"><i class="bi bi-trash me-1"></i> Continue</a>
+           class="btn btn-danger"><i class="bi bi-trash me-1"></i> {% translate "Continue" %}</a>
       </div>
     </div>
   </div>

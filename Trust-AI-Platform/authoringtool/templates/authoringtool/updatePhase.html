@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Edit Phase</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Edit Phase" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -96,14 +97,14 @@
         <div style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:0.7; margin-bottom:2px;">
           {{ myScenario.name }}
         </div>
-        <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">Edit Phase</h2>
+        <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">{% translate "Edit Phase" %}</h2>
         <div style="font-size:13px; opacity:0.82; margin-top:2px;">{{ Phase.name }}</div>
         <nav>
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=scenario_id %}">{{ myScenario.name }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'phase' scenario_id=scenario_id phase_id=Phase.id %}">{{ Phase.name }}</a></li>
-            <li class="breadcrumb-item active">Edit</li>
+            <li class="breadcrumb-item active">{% translate "Edit" %}</li>
           </ol>
         </nav>
       </div>
@@ -122,25 +123,25 @@
           <!-- ── Phase Details ── -->
           <div class="ph-card">
             <div class="ph-card-header">
-              <i class="bi bi-layers"></i> Phase Details
+              <i class="bi bi-layers"></i> {% translate "Phase Details" %}
             </div>
             <div class="ph-card-body">
 
               <div class="ph-field">
-                <label class="ph-label"><i class="bi bi-fonts"></i>Phase Name</label>
+                <label class="ph-label"><i class="bi bi-fonts"></i>{% translate "Phase Name" %}</label>
                 <input type="text" class="ph-input" name="name"
                        value="{{ Phase.name }}" required autofocus>
                 {% include 'authoringtool/_original_text.html' with text=original.name %}
-                <div class="ph-hint">Give this phase a clear, descriptive name.</div>
+                <div class="ph-hint">{% translate "Give this phase a clear, descriptive name." %}</div>
               </div>
 
               <hr class="ph-divider">
 
               <div class="ph-field">
-                <label class="ph-label"><i class="bi bi-card-text"></i>Description</label>
+                <label class="ph-label"><i class="bi bi-card-text"></i>{% translate "Description" %}</label>
                 <textarea class="ph-input" name="description" required>{{ Phase.description }}</textarea>
                 {% include 'authoringtool/_original_text.html' with text=original.description %}
-                <div class="ph-hint">What should students learn or accomplish in this phase?</div>
+                <div class="ph-hint">{% translate "What should students learn or accomplish in this phase?" %}</div>
               </div>
 
             </div>
@@ -150,10 +151,10 @@
           <div class="ph-actions mb-4">
             <a href="{% url 'phase' scenario_id=scenario_id phase_id=Phase.id %}"
                class="btn btn-outline-secondary px-4">
-              <i class="bi bi-arrow-left me-1"></i> Back to Phase
+              <i class="bi bi-arrow-left me-1"></i> {% translate "Back to Phase" %}
             </a>
             <button type="submit" class="btn btn-primary px-5" id="submitBtn">
-              <i class="bi bi-check-circle me-1"></i> Save Changes
+              <i class="bi bi-check-circle me-1"></i> {% translate "Save Changes" %}
             </button>
           </div>
 
@@ -176,7 +177,12 @@ document.getElementById('submitBtn').addEventListener('click', function (event) 
     return;
   }
   setTimeout(function () {
-    btn.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2" role="status" aria-hidden="true"></span> Saving…';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner-grow spinner-grow-sm me-2';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+    btn.textContent = ' ' + "{% translate 'Saving…' as s %}{{ s|escapejs }}";
+    btn.insertBefore(spinner, btn.firstChild);
     btn.disabled = true;
   }, 100);
 });

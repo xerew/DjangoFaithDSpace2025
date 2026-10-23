@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-23 22:19+0300\n"
+"POT-Creation-Date: 2026-10-23 22:49+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -106,7 +106,13 @@ msgstr ""
 
 #: .\accounts\templates\accounts\login.html
 #: .\accounts\templates\accounts\profile.html
-#: .\accounts\templates\accounts\register.html .\templates\main.html
+#: .\accounts\templates\accounts\register.html
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\templates\main.html
 msgid "Close"
 msgstr ""
 
@@ -300,6 +306,9 @@ msgid "A short bio…"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
 msgid "Save Changes"
 msgstr ""
 
@@ -544,10 +553,2645 @@ msgstr ""
 msgid "Admin"
 msgstr ""
 
+#: .\authoringtool\machine_translation\collaborators.py
+msgid "You have been asked to review a translation"
+msgstr ""
+
+#: .\authoringtool\machine_translation\collaborators.py
+#, python-format
+msgid ""
+"%(sender)s asked you to review the %(language)s translation \"%(name)s\" on "
+"Trust AI Lab. Open it here: %(link)s"
+msgstr ""
+
+#: .\authoringtool\machine_translation\editing.py .\authoringtool\views.py
+msgid "This translation is still being prepared."
+msgstr ""
+
+#: .\authoringtool\machine_translation\editing.py
+msgid ""
+"Machine translations keep the original structure. Only text and media can be "
+"changed."
+msgstr ""
+
+#: .\authoringtool\middleware.py
+#, python-brace-format
+msgid "Your {language} translation of <a href=\"{url}\">{name}</a> is ready."
+msgstr ""
+
+#: .\authoringtool\middleware.py
+#, python-format
+msgid ""
+"Your %(language)s translation of %(name)s failed. Open your scenarios to "
+"retry."
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Private (In-Progress)"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Organization Users Only"
+msgstr ""
+
+#: .\authoringtool\models.py
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Public"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Canonical"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Official translation"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Teacher adaptation"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Waiting"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Translating"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Done"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Failed"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Translation reviewer"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Co-author"
+msgstr ""
+
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
 #: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
 #: .\home\templates\home\home.html .\templates\head.html
 msgid "Home"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid "Assign reviewer for"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid "Search teachers by name, username or email"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid ""
+"Teachers in organizations using the translation's language are listed first."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\templates\confirm_removal.html
+msgid "Cancel"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid "Assign"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid "Same language"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+msgid "No teachers found."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_original_text.html
+msgid "Original:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+msgid "Reviewers:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+#, python-format
+msgid "Remove %(username)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Assign reviewer"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+msgid "Mark translation verified"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+msgid "Undo verification"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+#, python-format
+msgid "Translating… %(done)s / %(total)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+msgid "Waiting — translation service unavailable"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+msgid "Waiting in queue"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+msgid "Translation failed"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+msgid "Translation verified"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+#, python-format
+msgid "Verified by %(username)s on %(date)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\_translation_tag.html
+msgid "Machine-translated"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid "Trust AI Lab — Archived Scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid "Archived scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid ""
+"Scenarios that students had used are archived instead of deleted. They are "
+"hidden from every list, and all student work is kept. Restore one to use it "
+"again."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid "Back to scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+#, python-format
+msgid "Archived %(date)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgctxt "archived by user"
+msgid "by"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+#, python-format
+msgid "owner %(username)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid "Restore"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\archived_scenarios.html
+msgid "No archived scenarios."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "Trust AI Lab — Create Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "New Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "Fill in the details below to create an activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Basic Information"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Activity Name"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Enter activity name…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Content"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "— supports rich text, images, links, tables"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "Type the activity content here…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Activity Settings"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Evaluatable Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Check if this activity evaluates the student's performance"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Activity Type"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Experiment Type"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select Experiment Type…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Simulation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Remote Lab"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "VR/AR Lab"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Helping Quote"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Optional hint shown to the student…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select Simulation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select Simulation…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Search simulations…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Clear selection"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select Remote Lab"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select Remote Lab…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Search remote labs…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Preview"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Can't see the simulation?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Open in a new tab ↗"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select VR/AR Lab"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select VR/AR Lab…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Search VR/AR labs…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "Please select a VR/AR Lab"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Activities Being Evaluated"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid ""
+"Select all activities whose answers are scored together in this evaluation."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid ""
+"<strong>This activity</strong> will always be automatically included by the "
+"system."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Activities to Evaluate"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Select activities…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\includes\next_activity_picker.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Search activities…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#, python-format
+msgid "%(name)s — Current Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "No other activities in this phase yet"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Primary Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Mark this as the main evaluation activity for this phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Next Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid ""
+"Choose the activity that follows this one, or create a new placeholder "
+"automatically."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Following Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\includes\next_activity_picker.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Select Next Activity (Optional)…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\includes\next_activity_picker.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "(Current)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\includes\next_activity_picker.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Create New Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\includes\next_activity_picker.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Clear — no next activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Back to Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+msgid "Create Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "QR Code"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+msgid "Creating…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "1 activity selected"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#, python-brace-format
+msgid "{count} activities selected"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Upload failed"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Image upload failed. Check file size (max 8 MB)."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+msgid "Trust AI Lab — Create Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\templates\head.html
+msgid "Authoring Tool"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Create Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+msgid "Add answer options — exactly one must be marked correct"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Back"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#, python-format
+msgid "Answer %(n)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Answer Text"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Enter the answer option…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Answer Weight"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Select weight…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Mark as Correct"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Add Another Answer"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Exactly one answer must be marked as correct."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#, python-brace-format
+msgid "Answer {n}"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Remove"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Saving…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+msgid "Trust AI Lab - Create Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+msgid "Create Evaluation Criterion"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#, python-format
+msgid ""
+"%(name)s - Route students to different activities based on their performance "
+"score."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+msgid "Create Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "High Performers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "- Best scoring students"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Select Activity…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "No activities available"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Select Activity..."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Performance Threshold"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Min. avg weight to reach this group (1-3)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Moderate Performers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "- Average scoring students"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Low Performers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "- Lowest scoring students"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Fallback - students below Moderate go here"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Please select a next activity for at least one performer group."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "How it works"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid ""
+"After students complete the evaluation, their <strong>average answer weight</"
+"strong> (1-3) across all activities in the group is compared against your "
+"thresholds:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid ""
+"<span class=\"fw-semibold text-success\">High</span> - avg weight ≥ High "
+"threshold"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid ""
+"<span class=\"fw-semibold text-warning\">Moderate</span> - avg weight ≥ "
+"Moderate threshold"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid ""
+"<span class=\"fw-semibold text-danger\">Low</span> - everyone else "
+"(fallback, threshold not used)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid ""
+"Recommended defaults: High = <strong>2.5</strong>, Moderate = <strong>1.5</"
+"strong>."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "Trust AI Lab — New Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "New Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "Add a phase to this scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Phase Details"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Phase Name"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "e.g. Introduction, Lab Session, Assessment…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Give this phase a clear, descriptive name."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Description"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "Briefly describe what this phase covers and its learning objectives…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "What should students learn or accomplish in this phase?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "Back to Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createPhase.html
+msgid "Create Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+msgid "Trust AI Lab — New Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+msgid "New Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+msgid "Create a new learning scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Scenario Name"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "e.g. Pendulum Physics, Climate Change…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "A brief overview of this scenario and what it covers…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Summarise the scenario topic for teachers and students."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Learning Goals"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid ""
+"What will students learn or be able to do after completing this scenario?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "List the key competencies and outcomes."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Audience &amp; Curriculum"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Student Age Range"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Min age"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Minimum age"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Max age"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Maximum age"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Subjects"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Language"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Select language…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Suggested Learning Time"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "minutes"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Cover Image"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+msgid "Required"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Click to upload"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "or drag & drop"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "PNG, JPG, GIF, WEBP — recommended 1200×630px"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\home\templates\home\home.html
+msgid "Create Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\lms_lti_launch.html
+#: .\authoringtool\templates\authoringtool\lti_integration.html
+#: .\authoringtool\templates\authoringtool\lti_launch_form.html
+msgid "LTI Launch"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\lms_lti_launch.html
+msgid "Sending LTI Launch Request..."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\lti_integration.html
+#: .\authoringtool\templates\authoringtool\lti_launch_form.html
+msgid "Launching LTI Request..."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Trust AI Lab — Authoring Tool"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Browse, filter and manage your learning scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Archived"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Create New"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Filter Scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Search"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Name, description, creator…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "From"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "To"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "All"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Visibility"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Org-Only"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Private"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Show My Scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Reset"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Subject"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Retry"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\home\templates\home\home.html
+msgid "View"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Translations (%(total)s)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid "%(name)s Copy Made by %(username)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Adapt"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Translate"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Edit"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Delete"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid "%(name)s: all languages"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"Confirmed 1:1 translations. Their students' answers are combined for AI "
+"proposals."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Owner"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Students"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Actions"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Not set"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Open as student"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid "%(counter)s more version is private to another teacher."
+msgid_plural "%(counter)s more versions are private to another teacher."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Delete Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid ""
+"Delete <strong>%(name)s</strong>? On the next page you will see whether "
+"students have used it. If they have, it is archived instead, and all of "
+"their work is kept."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Continue"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "No scenarios found. Try adjusting your filters or"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "create a new one"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Scenario pages"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid "Page %(number)s of %(pages)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-format
+msgid "%(counter)s scenario"
+msgid_plural "%(counter)s scenarios"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Name of your copy"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "What gets copied"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"The scenario details: learning goals, description, subjects, language and "
+"image"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "All phases and activities, in the same order"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "The answers, with their correct and wrong marks and feedback"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "The activity flow and branching"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Linked simulations, remote labs and VR experiments"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"The copy is private and belongs to you. Only you can see it until you share "
+"it. You'll go straight to its edit page."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Creating your copy…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "This can take a few seconds for large scenarios."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Create copy"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Written in"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Choose a language"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Translate into"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"The new scenario keeps exactly the same structure and starts private. It is "
+"translated in the background, so you can leave this page."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Start translation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-brace-format
+msgid "Translating… {done} / {total}"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Create New Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Upload Template"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Manual Setup"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Fix these errors and re-upload:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Template File"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "What can I upload?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Option A — Excel template only (.xlsx)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Fill in the blank template and upload it. Images will not be included."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Option B — ZIP file with images (.zip)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"Upload a ZIP exported from this platform, or build your own with this "
+"structure:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"The <code style=\"background:#e0f2fe;border-radius:3px;padding:1px 4px;\">."
+"xlsx</code> must be at the root of the ZIP. Images in the <code style="
+"\"background:#e0f2fe;border-radius:3px;padding:1px 4px;\">images/</code> "
+"folder are automatically linked to the activities."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Click to browse or drag & drop"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid ""
+"Accepts <strong>.xlsx</strong> (template only) or <strong>.zip</strong> "
+"(template + images)"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Optional"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "PNG, JPG, WEBP — recommended 1200×630px"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Download blank template"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Fill it in, then upload it here."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Import"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Importing…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Build your scenario step-by-step using the authoring tool."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Start Manual Setup"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Only .xlsx or .zip files are supported"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\views.py
+msgctxt "import error location"
+msgid "File"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgctxt "import error location"
+msgid "Network"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Please select a file first."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Request failed. Please try again."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-brace-format
+msgid "Sheet \"{sheet}\", row {row}, column \"{column}\""
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#, python-brace-format
+msgid "Sheet \"{sheet}\""
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Trust AI Lab — Edit Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "Edit Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid ""
+"<strong>This activity</strong> is always included automatically by the "
+"system."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid "always included"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+msgid ""
+"Choose the activity that follows this one in the scenario flow, or create a "
+"new placeholder."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Updating…"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Trust AI Lab — Edit Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Edit Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#, python-format
+msgid "%(name)s — exactly one answer must be marked correct"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+msgid "Update Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Trust AI Lab - Edit Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Edit Evaluation Criterion"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#, python-format
+msgid ""
+"%(name)s - Update how students are routed based on their performance score."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Edit Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+msgid "Update Evaluation"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Trust AI Lab — Edit Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+msgid "Edit Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Trust AI Lab — Edit Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Edit Scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Published evidence is protected"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid ""
+"This scenario already has student implementations. Open a revision draft "
+"before editing it. Student access is paused while a draft is open, then "
+"resumes on the newly published revision."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Start Revision Draft"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Revision draft in progress"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#, python-format
+msgid ""
+"Based on published version %(version)s. Student access is paused while the "
+"draft is open. Save this form and all activity changes before publishing."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Change summary"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "What changed in this revision?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Validate &amp; Publish"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Current cover"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Replace image"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Click to replace"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Visibility &amp; Sharing"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Private — only you"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Organization — selected orgs"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Public — everyone"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Control who can see and use this scenario."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Select Organizations"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "You are not a member of any organizations."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Editable by Org?"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Allow organization members to edit this scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+msgid "Only the scenario owner can change who can see and edit this scenario."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Trust AI Lab — Activity Details"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Evaluatable"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "First activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Answers"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Criterion"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid ""
+"Make this the first activity? New students will begin the scenario here."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Make this the first activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Activity Info"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Type"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Created On"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Last updated"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "End"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Evaluating"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "None"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\views.py
+msgid "High"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Not Set"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Mid"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\views.py
+msgid "Low"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "LLM Evaluation Context"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Experiment Preview"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Simulation:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Remote Lab:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "VR/AR Experiment:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Scan with a VR/AR-enabled device"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "No QR Code available for this experiment."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "No experiment configured for this activity."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Correct"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Incorrect"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#, python-format
+msgid "Weight: %(weight)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Next:"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "No next activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "Delete Answer"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#, python-format
+msgid ""
+"Are you sure you want to delete <strong>Answer %(n)s</strong>? This action "
+"cannot be undone."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgid "No answers found for this activity."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Trust AI Lab — %(name)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s activity"
+msgid_plural "%(counter)s activities"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Phase Information"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "No description provided."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#, python-format
+msgid "Created %(date)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#, python-format
+msgid "Last updated %(date)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgctxt "updated by user"
+msgid "by"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Activities"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#, python-format
+msgid "%(total)s total"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Name"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Text"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Primary"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Helper"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Created"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "By"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Yes"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "No"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Move up"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Move %(name)s up"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Move down"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Move %(name)s down"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "No activities yet"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Add the first activity to this phase to get started."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Create First Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Delete Activity"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#, python-format
+msgid ""
+"Are you sure you want to delete <strong>%(name)s</strong>? This action "
+"cannot be undone."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s phase"
+msgid_plural "%(counter)s phases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(minutes)s min"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Export"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Continue Draft"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Maximum of 5 phases reached"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Start a revision draft before changing this scenario"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Metrics &amp; AI"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Scenario Info"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Age Range"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(min)s–%(max)s years"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Evidence Version"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Version %(version)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Learning Time"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(minutes)s minutes"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Created By"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Origin"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Original Creator"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Compatible Evidence Pool"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s version"
+msgid_plural "%(counter)s versions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "this scenario's language"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"Correctness evidence may be combined across approved, structurally "
+"compatible variants. Response-time evidence remains restricted to <strong>"
+"%(language)s</strong>."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s implementation"
+msgid_plural "%(counter)s implementations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid ""
+"No eligible implementations have been collected for the current compatible "
+"versions yet."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "from %(counter)s restricted source"
+msgid_plural "from %(counter)s restricted sources"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid ""
+"also contribute. Source details are hidden because you cannot access those "
+"scenarios."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Evidence History"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Version %(number)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Current"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Compatible"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Needs review"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Excluded"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Scenario evidence snapshot"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid ""
+"Historical versions remain auditable. Only the current compatible version is "
+"used for Metrics and AI proposals."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "RAG Documents"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s file"
+msgid_plural "%(counter)s files"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Upload"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Download"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "No documents uploaded yet."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Phases"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(total)s of 5"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "No activities yet —"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "create one"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "none added"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "No phases yet"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Add the first phase to start building this scenario."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Create First Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Activity Flow Chart"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Flow chart layout"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Vertical"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Horizontal"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "High branch"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Moderate branch"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Low branch"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "Translations of %(name)s"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid ""
+"Confirmed 1:1 translations: the same activities, answers and routes in "
+"another language."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid "%(counter)s more translation is private to another teacher."
+msgid_plural "%(counter)s more translations are private to another teacher."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Current Version Needs Data"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"Version %(version)s has <strong>%(counter)s</strong> compatible student "
+"implementation across approved family variants."
+msgid_plural ""
+"Version %(version)s has <strong>%(counter)s</strong> compatible student "
+"implementations across approved family variants."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"This scenario and its confirmed translations have <strong>%(counter)s</"
+"strong> student implementation together (%(here)s in this scenario)."
+msgid_plural ""
+"This scenario and its confirmed translations have <strong>%(counter)s</"
+"strong> student implementations together (%(here)s in this scenario)."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"This scenario has <strong>%(counter)s</strong> student implementation, "
+"including historical data."
+msgid_plural ""
+"This scenario has <strong>%(counter)s</strong> student implementations, "
+"including historical data."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"For accurate AI metrics and reliable proposals you need at least <strong>"
+"%(minimum)s</strong>."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid ""
+"Proceeding with limited data means the AI recommendations and metrics charts "
+"may not reflect real learning patterns and could be misleading."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"<strong>%(counter)s</strong> older implementation remains available under "
+"Historical Analytics. It is excluded from AI proposals because it cannot be "
+"safely tied to the current scenario structure."
+msgid_plural ""
+"<strong>%(counter)s</strong> older implementations remain available under "
+"Historical Analytics. They are excluded from AI proposals because they "
+"cannot be safely tied to the current scenario structure."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Historical Analytics"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Continue Anyway"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "Delete Phase"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#, python-format
+msgid ""
+"Are you sure you want to delete <strong>%(name)s</strong>? All activities in "
+"this phase will also be deleted. This cannot be undone."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+msgid "The flow chart could not be rendered."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "%(count)d student"
+msgid_plural "%(count)d students"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "%(count)d answer"
+msgid_plural "%(count)d answers"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\views.py
+msgid "You cannot view this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You can only analyse your own groups."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid ""
+"This scenario already has student implementations. Start a revision draft "
+"before changing its content or structure."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Moderate"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Answer: %(text)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "END"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "A scenario with this name already exists among your scenarios."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "An image is required."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Scenario '%(name)s' created successfully."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You cannot edit this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Revision drafts are switched off. Edit the scenario directly."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"Revision draft opened from published version %(version)s. Student access is "
+"paused until the draft is published."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "This scenario has no revision draft."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "The draft cannot be published until its graph is valid: %(issues)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Scenario revision %(version)s was published."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid ""
+"You must select at least one organization if the visibility is set to "
+"Organization."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "A scenario with this name already exists."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only the scenario owner can do this."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"%(count)d student used this scenario. It will be archived instead of "
+"deleted: hidden from every list, with all of their work kept. You can "
+"restore it from Archived scenarios."
+msgid_plural ""
+"%(count)d students used this scenario. It will be archived instead of "
+"deleted: hidden from every list, with all of their work kept. You can "
+"restore it from Archived scenarios."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Delete “%(name)s”?"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "The scenario, its phases and its activities will be removed."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Archive scenario"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Delete scenario"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"“%(name)s” was archived. Students' work is kept and you can restore it from "
+"Archived scenarios."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "“%(name)s” was deleted."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "“%(name)s” was restored."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only PDF files can be uploaded."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Uploaded RAG PDF: %(name)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only the scenario owner can delete RAG PDFs."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Invalid path"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Deleted %(name)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "File not found."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "A scenario cannot have more than 5 phases."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "A scenario must have at least 1 phase."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"%(students)s answered this phase (%(answers)s). If you delete it anyway, "
+"their answers are kept for research but no longer appear in this scenario's "
+"charts."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Delete phase “%(name)s”?"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "This cannot be undone."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Delete anyway"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Delete phase"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"%(students)s answered this activity (%(answers)s). If you delete it anyway, "
+"their answers are kept for research but no longer appear in this scenario's "
+"charts."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Delete activity “%(name)s”?"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Delete activity"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"\"%(name)s\" is now the first activity. New students start here; students "
+"already part-way through continue where they are."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"\"%(name)s\" does not lead to another activity yet, so students would stop "
+"after it. Set its next activity (or its answers' next activities) to the "
+"activity that used to come first."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"%(students)s answered this answer option (%(answers)s). If you delete it "
+"anyway, their answers are kept for research but no longer appear in this "
+"scenario's charts."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Delete answer option “%(text)s”?"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Delete answer option"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Answers updated successfully!"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You cannot copy this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "The copy couldn't be created. Nothing was changed. (%(error)s)"
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "Successfully duplicated scenario: %(name)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid ""
+"The translation service can't be reached right now. Machine translation is "
+"paused. Please try again later."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only the teacher who asked for this translation can retry it."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Translation queued again."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only admins can assign reviewers."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only admins can assign reviewers, and only to teachers."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid "%(username)s can now review “%(name)s”."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only the scenario's creator or an admin can do this."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Collaborator removed."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only the assigned reviewer or an admin can verify this translation."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Translation marked as verified."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only admins can undo a verification."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Verification removed."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Machine translation is available to admins only for now."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You cannot translate this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Choose the language the scenario is written in."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Choose a language different from the scenario's own."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Translation queued. You can leave this page."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-brace-format
+msgid "Your personalised scenario <a href=\"{url}\">{name}</a> is ready."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"Your personalised scenario could not be created: %(reasons)s No changes were "
+"made."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Your personalised scenario could not be created. No changes were made."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid ""
+"The evidence pool changed. The previous proposals were archived; the "
+"scenario owner can generate a current set."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You cannot review this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+#, python-format
+msgid ""
+"This proposal cannot be accepted until its structure is fixed: %(error)s"
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "You cannot use this scenario."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid ""
+"Your personalized scenario is being created. Reload this page in a moment to "
+"see the result."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "No file uploaded."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only .xlsx or .zip files are supported."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "No file provided."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Only image files are allowed."
+msgstr ""
+
+#: .\authoringtool\views.py
+msgid "Image exceeds the 8 MB size limit."
 msgstr ""
 
 #: .\home\templates\home\home.html
@@ -629,19 +3273,11 @@ msgid "Ages %(ages)s"
 msgstr ""
 
 #: .\home\templates\home\home.html
-msgid "View"
-msgstr ""
-
-#: .\home\templates\home\home.html
 msgid "No public scenarios yet."
 msgstr ""
 
 #: .\home\templates\home\home.html
 msgid "Quick Actions"
-msgstr ""
-
-#: .\home\templates\home\home.html
-msgid "Create Scenario"
 msgstr ""
 
 #: .\home\templates\home\home.html
@@ -725,10 +3361,6 @@ msgstr ""
 msgid "Django administration"
 msgstr ""
 
-#: .\templates\confirm_removal.html
-msgid "Cancel"
-msgstr ""
-
 #: .\templates\footer.html
 msgid ""
 "Τhis application was developed as part of the FAITH and DSPACE projects, "
@@ -767,10 +3399,6 @@ msgstr ""
 
 #: .\templates\head.html
 msgid "Dashboard"
-msgstr ""
-
-#: .\templates\head.html
-msgid "Authoring Tool"
 msgstr ""
 
 #: .\templates\head.html

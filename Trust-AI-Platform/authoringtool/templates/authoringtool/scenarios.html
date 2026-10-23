@@ -1,6 +1,6 @@
 {% extends "main.html" %}
-{% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — Authoring Tool</title>{% endblock %}
+{% load profile_tags i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Authoring Tool" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -143,21 +143,21 @@
       <div class="sc-hero-icon"><i class="bi bi-pencil-square"></i></div>
       <div class="flex-grow-1">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">
-          Authoring Tool
+          {% translate "Authoring Tool" %}
         </div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Scenarios</h2>
-        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">Browse, filter and manage your learning scenarios</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Scenarios" %}</h2>
+        <div style="font-size:12.5px;opacity:0.75;margin-top:4px;">{% translate "Browse, filter and manage your learning scenarios" %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item">Authoring Tool</li>
-          <li class="breadcrumb-item active">Scenarios</li>
+          <li class="breadcrumb-item">{% translate "Authoring Tool" %}</li>
+          <li class="breadcrumb-item active">{% translate "Scenarios" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a class="hero-btn-solid" href="{% url 'archived_scenarios' %}" style="text-decoration:none;background:rgba(255,255,255,0.15);color:#fff;">
-          <i class="bi bi-archive"></i> Archived
+          <i class="bi bi-archive"></i> {% translate "Archived" %}
         </a>
         <button class="hero-btn-solid" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
-          <i class="bi bi-plus-lg"></i> Create New
+          <i class="bi bi-plus-lg"></i> {% translate "Create New" %}
         </button>
       </div>
     </div>
@@ -166,32 +166,32 @@
   <!-- ── Filter Card ── -->
   <div class="filter-card">
     <div class="filter-card-header">
-      <i class="bi bi-funnel"></i> Filter Scenarios
+      <i class="bi bi-funnel"></i> {% translate "Filter Scenarios" %}
     </div>
     <div class="filter-card-body">
       <form id="search-form" method="get" action="{% url 'scenarios' %}">
         <div class="row g-3 align-items-end">
 
           <div class="col-12 col-md-4 col-lg-3">
-            <label for="search-input" class="f-label"><i class="bi bi-search"></i>Search</label>
+            <label for="search-input" class="f-label"><i class="bi bi-search"></i>{% translate "Search" %}</label>
             <input type="text" class="f-input" name="q" id="search-input"
-                   placeholder="Name, description, creator…" value="{{ query }}">
+                   placeholder="{% translate 'Name, description, creator…' %}" value="{{ query }}">
           </div>
 
           <div class="col-6 col-md-3 col-lg-2">
-            <label for="start-date-input" class="f-label"><i class="bi bi-calendar-event"></i>From</label>
+            <label for="start-date-input" class="f-label"><i class="bi bi-calendar-event"></i>{% translate "From" %}</label>
             <input type="date" class="f-input" name="start_date" id="start-date-input" value="{{ start_date }}">
           </div>
 
           <div class="col-6 col-md-3 col-lg-2">
-            <label for="end-date-input" class="f-label"><i class="bi bi-calendar-check"></i>To</label>
+            <label for="end-date-input" class="f-label"><i class="bi bi-calendar-check"></i>{% translate "To" %}</label>
             <input type="date" class="f-input" name="end_date" id="end-date-input" value="{{ end_date }}">
           </div>
 
           <div class="col-6 col-md-3 col-lg-2">
-            <label for="language-select" class="f-label"><i class="bi bi-translate"></i>Language</label>
+            <label for="language-select" class="f-label"><i class="bi bi-translate"></i>{% translate "Language" %}</label>
             <select class="f-input" name="language" id="language-select">
-              <option value="">All</option>
+              <option value="">{% translate "All" %}</option>
               {% for lang in languages %}
                 <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
               {% endfor %}
@@ -199,12 +199,12 @@
           </div>
 
           <div class="col-6 col-md-3 col-lg-2">
-            <label for="visibility-select" class="f-label"><i class="bi bi-eye"></i>Visibility</label>
+            <label for="visibility-select" class="f-label"><i class="bi bi-eye"></i>{% translate "Visibility" %}</label>
             <select class="f-input" name="visibility" id="visibility-select">
-              <option value="all"     {% if visibility_filter == 'all'     %}selected{% endif %}>All</option>
-              <option value="public"  {% if visibility_filter == 'public'  %}selected{% endif %}>Public</option>
-              <option value="org"     {% if visibility_filter == 'org'     %}selected{% endif %}>Org-Only</option>
-              <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>Private</option>
+              <option value="all"     {% if visibility_filter == 'all'     %}selected{% endif %}>{% translate "All" %}</option>
+              <option value="public"  {% if visibility_filter == 'public'  %}selected{% endif %}>{% translate "Public" %}</option>
+              <option value="org"     {% if visibility_filter == 'org'     %}selected{% endif %}>{% translate "Org-Only" %}</option>
+              <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>{% translate "Private" %}</option>
             </select>
           </div>
 
@@ -213,16 +213,16 @@
               <input type="checkbox" class="form-check-input" role="switch"
                      name="show_mine" id="show-mine-switch"
                      {% if show_mine %}checked{% endif %}>
-              <label class="f-switch-label" for="show-mine-switch">Show My Scenarios</label>
+              <label class="f-switch-label" for="show-mine-switch">{% translate "Show My Scenarios" %}</label>
             </div>
             <button type="button" id="reset-button" class="f-reset">
-              <i class="bi bi-arrow-counterclockwise"></i> Reset
+              <i class="bi bi-arrow-counterclockwise"></i> {% translate "Reset" %}
             </button>
           </div>
 
           {% if all_subjects %}
           <div class="col-12">
-            <label class="f-label"><i class="bi bi-journals"></i>Subject</label>
+            <label class="f-label"><i class="bi bi-journals"></i>{% translate "Subject" %}</label>
             <div class="subject-filter-chips">
               {% for subject in all_subjects %}
               <label class="sf-chip">
@@ -251,11 +251,11 @@
             <div class="scenario-img-wrapper">
               <img src="{% if scenario.image %}{{ scenario.image.url }}{% else %}/static/img/card.jpg{% endif %}" class="scenario-thumb" alt="{{ scenario.name }}">
               {% if scenario.visibility_status == 'public' %}
-                <span class="img-badge bg-success">Public</span>
+                <span class="img-badge bg-success">{% translate "Public" %}</span>
               {% elif scenario.visibility_status == 'org' %}
-                <span class="img-badge bg-warning">Org-Only</span>
+                <span class="img-badge bg-warning">{% translate "Org-Only" %}</span>
               {% elif scenario.visibility_status == 'private' %}
-                <span class="img-badge bg-danger">Private</span>
+                <span class="img-badge bg-danger">{% translate "Private" %}</span>
               {% endif %}
             </div>
             <div class="card-body d-flex flex-column" style="padding:16px 18px 14px;">
@@ -270,25 +270,25 @@
                 {% if scenario.mt_can_retry %}
                 <form method="post" action="{% url 'retry_machine_translation' job_id=scenario.mt_job.id %}" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="sc-btn sc-btn-edit"><i class="bi bi-arrow-clockwise"></i> Retry</button>
+                  <button type="submit" class="sc-btn sc-btn-edit"><i class="bi bi-arrow-clockwise"></i> {% translate "Retry" %}</button>
                 </form>
                 {% endif %}
                 {% if not scenario.mt_pending %}
                 <a class="sc-btn sc-btn-view" href="{% url 'viewScenario' id=scenario.id %}">
-                  <i class="bi bi-eye"></i> View
+                  <i class="bi bi-eye"></i> {% translate "View" %}
                 </a>
                 {% if scenario.translation_count %}
                 <button type="button" class="sc-btn sc-btn-view"
                         data-bs-toggle="modal" data-bs-target="#trModal{{ scenario.id }}">
-                  <i class="bi bi-globe2"></i> Translations ({{ scenario.translation_count }})
+                  <i class="bi bi-globe2"></i> {% blocktranslate trimmed with total=scenario.translation_count %}Translations ({{ total }}){% endblocktranslate %}
                 </button>
                 {% endif %}
                 <button type="button" class="sc-btn sc-btn-copy"
                         data-bs-toggle="modal" data-bs-target="#adaptModal"
                         data-action="{% url 'duplicate_scenario' scenario_id=scenario.id %}"
                         data-name="{{ scenario.name }}"
-                        data-default-name="{{ scenario.name }} Copy Made by {{ request.user.username }}">
-                  <i class="bi bi-copy"></i> Adapt
+                        data-default-name="{% blocktranslate trimmed with name=scenario.name username=request.user.username %}{{ name }} Copy Made by {{ username }}{% endblocktranslate %}">
+                  <i class="bi bi-copy"></i> {% translate "Adapt" %}
                 </button>
                 {% if can_machine_translate %}
                 <button type="button" class="sc-btn sc-btn-copy js-translate"
@@ -296,7 +296,7 @@
                         data-action="{% url 'start_machine_translation' scenario_id=scenario.id %}"
                         data-name="{{ scenario.name }}"
                         data-language="{{ scenario.language }}">
-                  <i class="bi bi-translate"></i> Translate
+                  <i class="bi bi-translate"></i> {% translate "Translate" %}
                 </button>
                 {% endif %}
                 {% if scenario.mt_job and request.user.is_staff or scenario.mt_job and request.user.is_superuser %}
@@ -305,19 +305,19 @@
                         data-action="{% url 'assign_translation_reviewer' scenario_id=scenario.id %}"
                         data-candidates="{% url 'translation_reviewer_candidates' scenario_id=scenario.id %}"
                         data-name="{{ scenario.name }}">
-                  <i class="bi bi-person-plus"></i> Assign reviewer
+                  <i class="bi bi-person-plus"></i> {% translate "Assign reviewer" %}
                 </button>
                 {% endif %}
                 {% endif %}
                 {% if request.user == scenario.created_by or scenario.can_edit %}
                   {% if not scenario.mt_pending %}
                   <a class="sc-btn sc-btn-edit" href="{% url 'updateScenario' id=scenario.id %}">
-                    <i class="bi bi-pencil"></i> Edit
+                    <i class="bi bi-pencil"></i> {% translate "Edit" %}
                   </a>
                   {% endif %}
                   <button type="button" class="sc-btn sc-btn-delete"
                           data-bs-toggle="modal" data-bs-target="#delModal{{ scenario.id }}">
-                    <i class="bi bi-trash"></i> Delete
+                    <i class="bi bi-trash"></i> {% translate "Delete" %}
                   </button>
                 {% endif %}
               </div>
@@ -331,24 +331,24 @@
             <div class="modal-content" style="border-radius:12px;overflow:hidden;">
               <div class="modal-header">
                 <h5 class="modal-title" id="trModalLabel{{ scenario.id }}">
-                  <i class="bi bi-globe2 me-2" style="color:#1a56db;"></i>{{ scenario.name }}: all languages
+                  <i class="bi bi-globe2 me-2" style="color:#1a56db;"></i>{% blocktranslate trimmed with name=scenario.name %}{{ name }}: all languages{% endblocktranslate %}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
               </div>
               <div class="modal-body">
                 <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
-                  Confirmed 1:1 translations. Their students' answers are combined for AI proposals.
+                  {% translate "Confirmed 1:1 translations. Their students' answers are combined for AI proposals." %}
                 </p>
                 <div class="table-responsive">
                   <table class="table table-sm align-middle mb-0" style="font-size:13.5px;">
                     <thead>
                       <tr>
-                        <th scope="col">Scenario</th>
-                        <th scope="col">Language</th>
-                        <th scope="col">Visibility</th>
-                        <th scope="col">Owner</th>
-                        <th scope="col" class="text-end">Students</th>
-                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                        <th scope="col">{% translate "Scenario" %}</th>
+                        <th scope="col">{% translate "Language" %}</th>
+                        <th scope="col">{% translate "Visibility" %}</th>
+                        <th scope="col">{% translate "Owner" %}</th>
+                        <th scope="col" class="text-end">{% translate "Students" %}</th>
+                        <th scope="col"><span class="visually-hidden">{% translate "Actions" %}</span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -357,13 +357,13 @@
                         <td style="font-weight:600;">{{ version.name }}
                           {% if version.mt_job %}<div>{% include 'authoringtool/_translation_tag.html' with job=version.mt_job %}</div>{% endif %}
                         </td>
-                        <td>{{ version.language|default:"Not set" }}</td>
+                        <td>{{ version.language|default:_("Not set") }}</td>
                         <td>{{ version.get_visibility_status_display }}</td>
                         <td>{% user_link version.created_by %}</td>
                         <td class="text-end">{{ version.student_count }}</td>
                         <td class="text-end" style="white-space:nowrap;">
-                          <a href="{% url 'viewScenario' id=version.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                          <a href="{% url 'studentView' scenario_id=version.id %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Open as student</a>
+                          <a href="{% url 'viewScenario' id=version.id %}" class="btn btn-sm btn-outline-primary">{% translate "View" %}</a>
+                          <a href="{% url 'studentView' scenario_id=version.id %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{% translate "Open as student" %}</a>
                         </td>
                       </tr>
                       {% endfor %}
@@ -372,8 +372,7 @@
                 </div>
                 {% if scenario.hidden_translation_count %}
                 <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:12.5px;color:#6b7280;">
-                  {{ scenario.hidden_translation_count }} more version{{ scenario.hidden_translation_count|pluralize }}
-                  {{ scenario.hidden_translation_count|pluralize:"is,are" }} private to another teacher.
+                  {% blocktranslate trimmed count counter=scenario.hidden_translation_count %}{{ counter }} more version is private to another teacher.{% plural %}{{ counter }} more versions are private to another teacher.{% endblocktranslate %}
                 </div>
                 {% endif %}
               </div>
@@ -389,19 +388,17 @@
             <div class="modal-content" style="border-radius:12px;overflow:hidden;">
               <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
                 <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
-                  <i class="bi bi-exclamation-triangle me-2"></i>Delete Scenario
+                  <i class="bi bi-exclamation-triangle me-2"></i>{% translate "Delete Scenario" %}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
               </div>
               <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-                Delete <strong>{{ scenario.name }}</strong>? On the next page you will
-                see whether students have used it. If they have, it is archived instead,
-                and all of their work is kept.
+                {% blocktranslate trimmed with name=scenario.name %}Delete <strong>{{ name }}</strong>? On the next page you will see whether students have used it. If they have, it is archived instead, and all of their work is kept.{% endblocktranslate %}
               </div>
               <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
                 <a type="button" class="btn btn-danger btn-sm" href="{% url 'deleteScenario' id=scenario.id %}">
-                  <i class="bi bi-trash me-1"></i> Continue
+                  <i class="bi bi-trash me-1"></i> {% translate "Continue" %}
                 </a>
               </div>
             </div>
@@ -413,7 +410,7 @@
         <div class="col-12">
           <div class="sc-empty">
             <i class="bi bi-folder2-open"></i>
-            <p>No scenarios found. Try adjusting your filters or <a href="#" style="color:#1a56db;" data-bs-toggle="modal" data-bs-target="#createScenarioModal">create a new one</a>.</p>
+            <p>{% translate "No scenarios found. Try adjusting your filters or" %} <a href="#" style="color:#1a56db;" data-bs-toggle="modal" data-bs-target="#createScenarioModal">{% translate "create a new one" %}</a>.</p>
           </div>
         </div>
       {% endfor %}
@@ -421,7 +418,7 @@
 
     <!-- ── Pagination ── -->
     {% if page_obj.paginator.num_pages > 1 %}
-    <nav id="pagination-container" class="mt-4" aria-label="Scenario pages">
+    <nav id="pagination-container" class="mt-4" aria-label="{% translate 'Scenario pages' %}">
       <ul class="pagination justify-content-center flex-wrap">
         {% if page_obj.has_previous %}
           <li class="page-item">
@@ -450,8 +447,8 @@
         {% endif %}
       </ul>
       <p class="text-center text-muted small">
-        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        &mdash; {{ page_obj.paginator.count }} scenario{{ page_obj.paginator.count|pluralize }}
+        {% blocktranslate trimmed with number=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ number }} of {{ pages }}{% endblocktranslate %}
+        &mdash; {% blocktranslate trimmed count counter=page_obj.paginator.count %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}
       </p>
     </nav>
     {% endif %}
@@ -466,34 +463,33 @@
       <input type="hidden" name="variant" value="adaptation">
       <div class="modal-header">
         <h5 class="modal-title" id="adaptModalLabel">
-          <i class="bi bi-copy me-2" style="color:#1a56db;"></i>Adapt <span id="adaptName"></span>
+          <i class="bi bi-copy me-2" style="color:#1a56db;"></i>{% translate "Adapt" %} <span id="adaptName"></span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="adaptClose"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}" id="adaptClose"></button>
       </div>
       <div class="modal-body" id="adaptChoose">
-        <label class="form-label fw-semibold" for="adaptNewName">Name of your copy</label>
+        <label class="form-label fw-semibold" for="adaptNewName">{% translate "Name of your copy" %}</label>
         <input type="text" class="form-control" name="name" id="adaptNewName" maxlength="255">
-        <p class="fw-semibold mt-3 mb-1">What gets copied</p>
+        <p class="fw-semibold mt-3 mb-1">{% translate "What gets copied" %}</p>
         <ul class="small text-muted mb-3 ps-3">
-          <li>The scenario details: learning goals, description, subjects, language and image</li>
-          <li>All phases and activities, in the same order</li>
-          <li>The answers, with their correct and wrong marks and feedback</li>
-          <li>The activity flow and branching</li>
-          <li>Linked simulations, remote labs and VR experiments</li>
+          <li>{% translate "The scenario details: learning goals, description, subjects, language and image" %}</li>
+          <li>{% translate "All phases and activities, in the same order" %}</li>
+          <li>{% translate "The answers, with their correct and wrong marks and feedback" %}</li>
+          <li>{% translate "The activity flow and branching" %}</li>
+          <li>{% translate "Linked simulations, remote labs and VR experiments" %}</li>
         </ul>
         <p class="small mb-0">
-          <i class="bi bi-lock me-1"></i>The copy is private and belongs to you. Only you
-          can see it until you share it. You'll go straight to its edit page.
+          <i class="bi bi-lock me-1"></i>{% translate "The copy is private and belongs to you. Only you can see it until you share it. You'll go straight to its edit page." %}
         </p>
       </div>
       <div class="modal-body text-center py-5 d-none" id="adaptWorking" role="status">
         <span class="spinner-border text-primary mb-3" aria-hidden="true"></span>
-        <p class="fw-semibold mb-1">Creating your copy…</p>
-        <p class="small text-muted mb-0">This can take a few seconds for large scenarios.</p>
+        <p class="fw-semibold mb-1">{% translate "Creating your copy…" %}</p>
+        <p class="small text-muted mb-0">{% translate "This can take a few seconds for large scenarios." %}</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="adaptCancel">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="adaptCreate">Create copy</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="adaptCancel">{% translate "Cancel" %}</button>
+        <button type="submit" class="btn btn-primary" id="adaptCreate">{% translate "Create copy" %}</button>
       </div>
     </form>
   </div>
@@ -542,34 +538,33 @@
       {% csrf_token %}
       <div class="modal-header">
         <h5 class="modal-title" id="translateModalLabel">
-          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>Translate <span id="translateName"></span>
+          <i class="bi bi-translate me-2" style="color:#1a56db;"></i>{% translate "Translate" %} <span id="translateName"></span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning d-none" id="translateDown" role="alert">
           <i class="bi bi-exclamation-triangle me-1"></i>{{ translation_service_down }}
         </div>
         <div class="mb-3 d-none" id="translateSourceGroup">
-          <label class="form-label fw-semibold" for="translateSource">Written in</label>
+          <label class="form-label fw-semibold" for="translateSource">{% translate "Written in" %}</label>
           <select class="form-select" name="source_language" id="translateSource">
-            <option value="">Choose a language</option>
+            <option value="">{% translate "Choose a language" %}</option>
             {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
           </select>
         </div>
-        <label class="form-label fw-semibold" for="translateTarget">Translate into</label>
+        <label class="form-label fw-semibold" for="translateTarget">{% translate "Translate into" %}</label>
         <select class="form-select" name="target_language" id="translateTarget" required>
-          <option value="">Choose a language</option>
+          <option value="">{% translate "Choose a language" %}</option>
           {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
         </select>
         <p class="small text-muted mt-2 mb-0">
-          The new scenario keeps exactly the same structure and starts private.
-          It is translated in the background, so you can leave this page.
+          {% translate "The new scenario keeps exactly the same structure and starts private. It is translated in the background, so you can leave this page." %}
         </p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="translateStart">Start translation</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
+        <button type="submit" class="btn btn-primary" id="translateStart">{% translate "Start translation" %}</button>
       </div>
     </form>
   </div>
@@ -612,6 +607,7 @@
   // Badges of translations in progress update every 15 seconds; the page
   // reloads when one finishes so its buttons and tag change.
   (function () {
+    const translatingText = "{% translate 'Translating… {done} / {total}' as s %}{{ s|escapejs }}";
     function pendingTags() {
       return Array.from(document.querySelectorAll('[data-mt-job][data-mt-status]'));
     }
@@ -629,7 +625,7 @@
             if (job.status === 'done' || job.status === 'failed') { finished = true; return; }
             if (job.status === 'translating') {
               tag.querySelector('.mt-tag-text').textContent =
-                'Translating… ' + job.units_done + ' / ' + job.units_total;
+                translatingText.replace('{done}', () => job.units_done).replace('{total}', () => job.units_total);
             }
           });
           if (finished) { window.location.reload(); }
@@ -713,9 +709,9 @@
     <div class="modal-content" style="border-radius:14px;overflow:hidden;">
       <div class="modal-header" style="background:#1D4ED8;padding:16px 24px;">
         <h5 class="modal-title" id="createScenarioModalLabel" style="color:#fff;font-size:16px;font-weight:700;margin:0;">
-          <i class="bi bi-plus-circle me-2"></i>Create New Scenario
+          <i class="bi bi-plus-circle me-2"></i>{% translate "Create New Scenario" %}
         </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
 
       <!-- Tab navigation -->
@@ -723,13 +719,13 @@
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#uploadPane"
                   type="button" role="tab" style="font-size:14px;font-weight:600;">
-            <i class="bi bi-upload me-1"></i>Upload Template
+            <i class="bi bi-upload me-1"></i>{% translate "Upload Template" %}
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manualPane"
                   type="button" role="tab" style="font-size:14px;font-weight:600;">
-            <i class="bi bi-pencil-square me-1"></i>Manual Setup
+            <i class="bi bi-pencil-square me-1"></i>{% translate "Manual Setup" %}
           </button>
         </li>
       </ul>
@@ -742,7 +738,7 @@
             <div id="importErrors" class="d-none mb-3">
               <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;max-height:240px;overflow-y:auto;">
                 <p style="font-size:13px;font-weight:700;color:#dc2626;margin:0 0 8px;">
-                  <i class="bi bi-exclamation-circle me-1"></i>Fix these errors and re-upload:
+                  <i class="bi bi-exclamation-circle me-1"></i>{% translate "Fix these errors and re-upload:" %}
                 </p>
                 <ul id="importErrorList" style="font-size:12.5px;color:#7f1d1d;margin:0;padding-left:16px;"></ul>
               </div>
@@ -751,26 +747,26 @@
             <!-- Drop zone header -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:12.5px;font-weight:700;color:#374151;">
-                <i class="bi bi-file-earmark-arrow-up me-1" style="color:#1a56db;"></i>Template File
+                <i class="bi bi-file-earmark-arrow-up me-1" style="color:#1a56db;"></i>{% translate "Template File" %}
               </span>
               <button type="button" id="zipInfoBtn"
                       style="background:none;border:none;padding:0;cursor:pointer;color:#6b7280;font-size:13px;display:flex;align-items:center;gap:4px;">
-                <i class="bi bi-info-circle"></i> What can I upload?
+                <i class="bi bi-info-circle"></i> {% translate "What can I upload?" %}
               </button>
             </div>
 
             <!-- Info panel (hidden by default) -->
             <div id="zipInfoPanel" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:12.5px;color:#0c4a6e;line-height:1.6;">
-              <strong>Option A — Excel template only (.xlsx)</strong><br>
-              Fill in the blank template and upload it. Images will not be included.<br><br>
-              <strong>Option B — ZIP file with images (.zip)</strong><br>
-              Upload a ZIP exported from this platform, or build your own with this structure:
+              <strong>{% translate "Option A — Excel template only (.xlsx)" %}</strong><br>
+              {% translate "Fill in the blank template and upload it. Images will not be included." %}<br><br>
+              <strong>{% translate "Option B — ZIP file with images (.zip)" %}</strong><br>
+              {% translate "Upload a ZIP exported from this platform, or build your own with this structure:" %}
               <pre style="background:#e0f2fe;border-radius:6px;padding:8px 10px;margin:8px 0 0;font-size:11.5px;color:#075985;overflow-x:auto;">your_scenario_zip.zip
 ├── scenario_template.xlsx
 └── images/
     ├── phase_engagement_activity_intro_image_1.png
     └── phase_exploration_activity_quiz_image_1.jpg</pre>
-              The <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">.xlsx</code> must be at the root of the ZIP. Images in the <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">images/</code> folder are automatically linked to the activities.
+              {% blocktranslate trimmed %}The <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">.xlsx</code> must be at the root of the ZIP. Images in the <code style="background:#e0f2fe;border-radius:3px;padding:1px 4px;">images/</code> folder are automatically linked to the activities.{% endblocktranslate %}
             </div>
 
             <!-- Drop zone -->
@@ -779,30 +775,30 @@
                    id="dropZoneLabel">
               <i class="bi bi-file-earmark-zip" style="font-size:2rem;color:#2563eb;display:block;margin-bottom:8px;"></i>
               <span style="font-size:14px;color:#1e40af;font-weight:600;" id="dropZoneText">
-                Click to browse or drag &amp; drop
+                {% translate "Click to browse or drag & drop" %}
               </span>
-              <span style="display:block;font-size:12px;color:#6b7280;margin-top:4px;">Accepts <strong>.xlsx</strong> (template only) or <strong>.zip</strong> (template + images)</span>
+              <span style="display:block;font-size:12px;color:#6b7280;margin-top:4px;">{% blocktranslate trimmed %}Accepts <strong>.xlsx</strong> (template only) or <strong>.zip</strong> (template + images){% endblocktranslate %}</span>
             </label>
             <input type="file" id="templateFileInput" accept=".xlsx,.zip" class="d-none">
 
             <!-- Cover image (optional) -->
             <div style="margin-top:20px;">
               <label style="font-size:12.5px;font-weight:700;color:#374151;display:block;margin-bottom:8px;">
-                <i class="bi bi-image me-1" style="color:#1a56db;"></i>Cover Image
-                <span style="font-size:11.5px;font-weight:400;color:#9ca3af;margin-left:4px;">Optional</span>
+                <i class="bi bi-image me-1" style="color:#1a56db;"></i>{% translate "Cover Image" %}
+                <span style="font-size:11.5px;font-weight:400;color:#9ca3af;margin-left:4px;">{% translate "Optional" %}</span>
               </label>
               <label for="scenarioImageInput"
                      style="display:block;border:2px dashed #d1d9e0;border-radius:10px;padding:18px 16px;text-align:center;cursor:pointer;background:#f9fafb;transition:background 0.15s,border-color 0.15s;"
                      id="imgModalDropLabel">
                 <i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
                 <span style="font-size:13px;color:#6b7280;" id="imgModalDropText">
-                  <strong style="color:#1a56db;">Click to upload</strong> or drag &amp; drop<br>
-                  <span style="font-size:11.5px;color:#9ca3af;">PNG, JPG, WEBP — recommended 1200×630px</span>
+                  <strong style="color:#1a56db;">{% translate "Click to upload" %}</strong> {% translate "or drag & drop" %}<br>
+                  <span style="font-size:11.5px;color:#9ca3af;">{% translate "PNG, JPG, WEBP — recommended 1200×630px" %}</span>
                 </span>
               </label>
               <input type="file" id="scenarioImageInput" accept="image/*" class="d-none">
               <div id="imgModalPreviewWrap" style="display:none;margin-top:10px;text-align:center;">
-                <img id="imgModalPreview" src="" alt="Preview"
+                <img id="imgModalPreview" src="" alt="{% translate 'Preview' %}"
                      style="max-height:120px;border-radius:8px;border:1px solid #e8edf5;object-fit:cover;">
                 <div style="margin-top:4px;font-size:12px;color:#6b7280;" id="imgModalFileName"></div>
               </div>
@@ -811,17 +807,17 @@
             <!-- Download link -->
             <p class="mt-3 mb-0" style="font-size:13px;text-align:center;color:#6b7280;">
               <a href="{% url 'download_template' %}" style="color:#2563eb;font-weight:600;">
-                <i class="bi bi-download me-1"></i>Download blank template
+                <i class="bi bi-download me-1"></i>{% translate "Download blank template" %}
               </a>
-              &nbsp;·&nbsp; Fill it in, then upload it here.
+              &nbsp;·&nbsp; {% translate "Fill it in, then upload it here." %}
             </p>
           </div>
           <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;justify-content:space-between;">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
             <button type="button" class="btn btn-primary btn-sm" id="importBtn" style="min-width:100px;">
-              <span id="importBtnText"><i class="bi bi-upload me-1"></i>Import</span>
+              <span id="importBtnText"><i class="bi bi-upload me-1"></i>{% translate "Import" %}</span>
               <span id="importBtnSpinner" class="d-none">
-                <span class="spinner-border spinner-border-sm me-1"></span>Importing…
+                <span class="spinner-border spinner-border-sm me-1"></span>{% translate "Importing…" %}
               </span>
             </button>
           </div>
@@ -832,10 +828,10 @@
           <div class="modal-body" style="padding:32px 24px;text-align:center;">
             <i class="bi bi-pencil-square" style="font-size:2.5rem;color:#6b7280;display:block;margin-bottom:12px;"></i>
             <p style="font-size:14px;color:#374151;margin-bottom:20px;">
-              Build your scenario step-by-step using the authoring tool.
+              {% translate "Build your scenario step-by-step using the authoring tool." %}
             </p>
             <a href="{% url 'createScenario' %}" class="btn btn-primary btn-sm">
-              <i class="bi bi-arrow-right me-1"></i>Start Manual Setup
+              <i class="bi bi-arrow-right me-1"></i>{% translate "Start Manual Setup" %}
             </a>
           </div>
         </div>
@@ -846,6 +842,24 @@
 
 <script>
 (function () {
+  const i18n = {
+    dropDefault: "{% translate 'Click to browse or drag & drop' as s %}{{ s|escapejs }}",
+    onlyTypes: "{% translate 'Only .xlsx or .zip files are supported' as s %}{{ s|escapejs }}",
+    clickUpload: "{% translate 'Click to upload' as s %}{{ s|escapejs }}",
+    orDrag: "{% translate 'or drag & drop' as s %}{{ s|escapejs }}",
+    imageHint: "{% translate 'PNG, JPG, WEBP — recommended 1200×630px' as s %}{{ s|escapejs }}",
+    sheetFile: "{% translate 'File' context 'import error location' as s %}{{ s|escapejs }}",
+    sheetNetwork: "{% translate 'Network' context 'import error location' as s %}{{ s|escapejs }}",
+    selectFirst: "{% translate 'Please select a file first.' as s %}{{ s|escapejs }}",
+    requestFailed: "{% translate 'Request failed. Please try again.' as s %}{{ s|escapejs }}",
+    locationFull: "{% translate 'Sheet "{sheet}", row {row}, column "{column}"' as s %}{{ s|escapejs }}",
+    locationSheet: "{% translate 'Sheet "{sheet}"' as s %}{{ s|escapejs }}"
+  };
+  function fill(template, values) {
+    return Object.keys(values).reduce(function (text, key) {
+      return text.replace('{' + key + '}', function () { return values[key]; });
+    }, template);
+  }
   const fileInput   = document.getElementById('templateFileInput');
   const dropLabel   = document.getElementById('dropZoneLabel');
   const dropText    = document.getElementById('dropZoneText');
@@ -898,7 +912,7 @@
     if (ext !== 'xlsx' && ext !== 'zip') {
       dropLabel.style.background = '#fee2e2';
       dropLabel.style.borderColor = '#fca5a5';
-      dropText.textContent = 'Only .xlsx or .zip files are supported';
+      dropText.textContent = i18n.onlyTypes;
       return;
     }
     // Assign to the file input so FormData picks it up
@@ -914,7 +928,11 @@
   imgInput.addEventListener('change', function () {
     if (!imgInput.files.length) return;
     const f = imgInput.files[0];
-    imgDropTxt.innerHTML = '<strong style="color:#1a56db;">' + f.name + '</strong>';
+    imgDropTxt.textContent = '';
+    const picked = document.createElement('strong');
+    picked.style.color = '#1a56db';
+    picked.textContent = f.name;
+    imgDropTxt.appendChild(picked);
     imgDropLbl.style.background    = '#d1fae5';
     imgDropLbl.style.borderColor   = '#6ee7b7';
     const reader = new FileReader();
@@ -933,11 +951,21 @@
     fileInput.value = '';
     document.getElementById('zipInfoPanel').style.display = 'none';
     document.getElementById('zipInfoBtn').style.color = '#6b7280';
-    dropText.textContent = 'Click to browse or drag & drop';
+    dropText.textContent = i18n.dropDefault;
     dropLabel.style.background = '#eff6ff';
     dropLabel.style.borderColor = '#93c5fd';
     imgInput.value = '';
-    imgDropTxt.innerHTML = '<strong style="color:#1a56db;">Click to upload</strong> or drag &amp; drop<br><span style="font-size:11.5px;color:#9ca3af;">PNG, JPG, WEBP — recommended 1200×630px</span>';
+    imgDropTxt.textContent = '';
+    const upload = document.createElement('strong');
+    upload.style.color = '#1a56db';
+    upload.textContent = i18n.clickUpload;
+    const hint = document.createElement('span');
+    hint.style.cssText = 'font-size:11.5px;color:#9ca3af;';
+    hint.textContent = i18n.imageHint;
+    imgDropTxt.appendChild(upload);
+    imgDropTxt.appendChild(document.createTextNode(' ' + i18n.orDrag));
+    imgDropTxt.appendChild(document.createElement('br'));
+    imgDropTxt.appendChild(hint);
     imgDropLbl.style.background  = '#f9fafb';
     imgDropLbl.style.borderColor = '#d1d9e0';
     imgPreviewW.style.display = 'none';
@@ -951,7 +979,7 @@
 
     const file = fileInput.files[0];
     if (!file) {
-      _showErrors([{sheet: 'File', row: 0, column: '-', message: 'Please select a file first.'}]);
+      _showErrors([{sheet: i18n.sheetFile, row: 0, column: '-', message: i18n.selectFirst}]);
       return;
     }
 
@@ -977,7 +1005,7 @@
         }
       })
       .catch(() => {
-        _showErrors([{sheet: 'Network', row: 0, column: '-', message: 'Request failed. Please try again.'}]);
+        _showErrors([{sheet: i18n.sheetNetwork, row: 0, column: '-', message: i18n.requestFailed}]);
       })
       .finally(() => {
         btnText.classList.remove('d-none');
@@ -992,8 +1020,8 @@
       const li = document.createElement('li');
       li.style.marginBottom = '4px';
       const loc = e.row > 0
-        ? `Sheet "${e.sheet}", row ${e.row}, column "${e.column}"`
-        : `Sheet "${e.sheet}"`;
+        ? fill(i18n.locationFull, {sheet: e.sheet, row: e.row, column: e.column})
+        : fill(i18n.locationSheet, {sheet: e.sheet});
       li.textContent = `${loc}: ${e.message}`;
       errList.appendChild(li);
     });

@@ -1,6 +1,6 @@
 {% extends "main.html" %}
-{% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — Archived Scenarios</title>{% endblock %}
+{% load profile_tags i18n %}
+{% block page_title %}<title>{% translate "Trust AI Lab — Archived Scenarios" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -33,9 +33,9 @@
 </style>
 
 <div class="ar-hero">
-  <h2><i class="bi bi-archive me-2"></i>Archived scenarios</h2>
-  <p>Scenarios that students had used are archived instead of deleted. They are hidden from every list, and all student work is kept. Restore one to use it again.</p>
-  <a href="{% url 'scenarios' %}"><i class="bi bi-arrow-left"></i> Back to scenarios</a>
+  <h2><i class="bi bi-archive me-2"></i>{% translate "Archived scenarios" %}</h2>
+  <p>{% translate "Scenarios that students had used are archived instead of deleted. They are hidden from every list, and all student work is kept. Restore one to use it again." %}</p>
+  <a href="{% url 'scenarios' %}"><i class="bi bi-arrow-left"></i> {% translate "Back to scenarios" %}</a>
 </div>
 
 <div class="ar-card">
@@ -44,20 +44,20 @@
       <div class="flex-grow-1">
         <div class="ar-name">{{ scenario.name }}</div>
         <div class="ar-meta">
-          Archived {{ scenario.archived_at|date:"j M Y, H:i" }}
-          {% if scenario.archived_by %}by {% user_link scenario.archived_by %}{% endif %}
-          {% if scenario.created_by_id != request.user.id %} · owner {{ scenario.created_by.username }}{% endif %}
+          {% blocktranslate trimmed with date=scenario.archived_at|date:"j M Y, H:i" %}Archived {{ date }}{% endblocktranslate %}
+          {% if scenario.archived_by %}{% translate "by" context "archived by user" %} {% user_link scenario.archived_by %}{% endif %}
+          {% if scenario.created_by_id != request.user.id %} · {% blocktranslate trimmed with username=scenario.created_by.username %}owner {{ username }}{% endblocktranslate %}{% endif %}
         </div>
       </div>
       <form method="post" action="{% url 'restore_scenario' scenario.id %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
+          <i class="bi bi-arrow-counterclockwise me-1"></i>{% translate "Restore" %}
         </button>
       </form>
     </div>
   {% empty %}
-    <div class="ar-empty">No archived scenarios.</div>
+    <div class="ar-empty">{% translate "No archived scenarios." %}</div>
   {% endfor %}
 </div>
 

@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+{% load i18n %}<!DOCTYPE html>
 <html>
 <head>
-    <title>LTI Launch</title>
+    <title>{% translate "LTI Launch" %}</title>
 </head>
 <body>
-    <h1>Launching LTI Request...</h1>
+    <h1>{% translate "Launching LTI Request..." %}</h1>
 
     <form id="ltiLaunchForm" action="{{ launch_url }}" method="POST">
         {% for key, value in params.items %}
