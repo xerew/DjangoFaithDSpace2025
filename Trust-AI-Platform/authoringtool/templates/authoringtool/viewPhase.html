@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load profile_tags i18n %}
+{% load profile_tags i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% blocktranslate trimmed with name=myPhase.name %}Trust AI Lab — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -269,7 +269,7 @@
                   {% elif t == 'Guidance' %}<i class="bi bi-compass"></i>
                   {% elif t == 'Explanation' %}<i class="bi bi-book"></i>
                   {% else %}<i class="bi bi-circle"></i>{% endif %}
-                  {{ t }}
+                  {{ t|ui_label }}
                 </span>
                 {% endwith %}
               </td>

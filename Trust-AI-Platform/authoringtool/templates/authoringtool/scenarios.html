@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load profile_tags i18n %}
+{% load profile_tags i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% translate "Trust AI Lab — Authoring Tool" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -229,7 +229,7 @@
                 <input type="checkbox" name="subject" value="{{ subject.id }}"
                        {% if subject.id in selected_subject_ids %}checked{% endif %}>
                 <span class="sf-chip-inner" style="--chip-color:{{ subject.color }};">
-                  <i class="bi {{ subject.icon }}"></i> {{ subject.name }}
+                  <i class="bi {{ subject.icon }}"></i> {{ subject.name|ui_label }}
                 </span>
               </label>
               {% endfor %}
@@ -357,7 +357,7 @@
                         <td style="font-weight:600;">{{ version.name }}
                           {% if version.mt_job %}<div>{% include 'authoringtool/_translation_tag.html' with job=version.mt_job %}</div>{% endif %}
                         </td>
-                        <td>{{ version.language|default:_("Not set") }}</td>
+                        <td>{{ version.language|ui_label|default:_("Not set") }}</td>
                         <td>{{ version.get_visibility_status_display }}</td>
                         <td>{% user_link version.created_by %}</td>
                         <td class="text-end">{{ version.student_count }}</td>

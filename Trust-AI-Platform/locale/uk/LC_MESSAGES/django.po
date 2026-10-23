@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 00:51+0300\n"
+"POT-Creation-Date: 2026-10-24 01:08+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1054,7 +1054,7 @@ msgstr ""
 msgid "Add Lab"
 msgstr ""
 
-#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\admin_dashboard.html .\authoringtool\models.py
 msgid "— Select Language —"
 msgstr ""
 
@@ -2467,6 +2467,59 @@ msgstr ""
 msgid "Co-author"
 msgstr ""
 
+#: .\authoringtool\models.py
+#: .\studentview\templates\studentview\scenarioForm.html
+msgid "English"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Greek"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Spanish"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "French"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "German"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Italian"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Portuguese"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Dutch"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Polish"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Romanian"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Turkish"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Arabic"
+msgstr ""
+
+#: .\authoringtool\models.py
+msgid "Other"
+msgstr ""
+
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
 msgid "Review rules"
 msgstr ""
@@ -3348,6 +3401,24 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "View Proposals Anyway"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\localization\reference_labels.py
+msgctxt "performance group"
+msgid "High"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\localization\reference_labels.py
+msgctxt "performance group"
+msgid "Moderate"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\localization\reference_labels.py
+msgctxt "performance group"
+msgid "Low"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
@@ -7133,6 +7204,96 @@ msgstr ""
 msgid "View student performance and scenario analytics"
 msgstr ""
 
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Physics"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Mathematics"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Chemistry"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Biology"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Computer Science"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Environmental Science"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Earth & Space Science"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Engineering & Technology"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject"
+msgid "Statistics & Data Science"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject category"
+msgid "STEM"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject category"
+msgid "Humanities"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject category"
+msgid "Social Sciences"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject category"
+msgid "Arts"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "subject category"
+msgid "Other"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "activity type"
+msgid "Explanation"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "activity type"
+msgid "Experiment"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "activity type"
+msgid "Guidance"
+msgstr ""
+
+#: .\localization\reference_labels.py
+msgctxt "activity type"
+msgid "Question"
+msgstr ""
+
 #: .\messaging\templates\messaging\thread.html
 msgid "View profile"
 msgstr ""
@@ -7657,10 +7818,6 @@ msgstr ""
 #: .\studentview\templates\studentview\scenarioForm.html
 #, python-format
 msgid "Showing in English (no %(language)s translation)"
-msgstr ""
-
-#: .\studentview\templates\studentview\scenarioForm.html
-msgid "English"
 msgstr ""
 
 #: .\studentview\templates\studentview\scenarioForm.html

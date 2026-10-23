@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load profile_tags i18n %}
+{% load profile_tags i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -209,7 +209,7 @@
         {% include 'authoringtool/_translation_review_panel.html' %}
         {% endif %}
         <div style="font-size:12.5px; opacity:0.75; margin-top:4px;">
-          {% blocktranslate trimmed count counter=phase_count %}{{ counter }} phase{% plural %}{{ counter }} phases{% endblocktranslate %} &middot; {{ myScenario.language }}
+          {% blocktranslate trimmed count counter=phase_count %}{{ counter }} phase{% plural %}{{ counter }} phases{% endblocktranslate %} &middot; {{ myScenario.language|ui_label }}
           {% if myScenario.suggested_learning_time %}&middot; {% blocktranslate trimmed with minutes=myScenario.suggested_learning_time %}{{ minutes }} min{% endblocktranslate %}{% endif %}
         </div>
         <nav>
@@ -301,7 +301,7 @@
               </div>
               <div class="meta-row">
                 <div class="meta-lbl"><i class="bi bi-translate"></i> {% translate "Language" %}</div>
-                <div class="meta-val">{{ myScenario.language }}</div>
+                <div class="meta-val">{{ myScenario.language|ui_label }}</div>
               </div>
               {% if current_scenario_version and show_version_details %}
               <div class="meta-row">
@@ -354,7 +354,7 @@
           </div>
           <div class="sc-card-body">
             <div style="font-size:12.5px; color:#374151; line-height:1.6;">
-              {% blocktranslate trimmed with language=myScenario.language|default:_("this scenario's language") %}Correctness evidence may be combined across approved, structurally compatible variants. Response-time evidence remains restricted to <strong>{{ language }}</strong>.{% endblocktranslate %}
+              {% blocktranslate trimmed with language=myScenario.language|ui_label|default:_("this scenario's language") %}Correctness evidence may be combined across approved, structurally compatible variants. Response-time evidence remains restricted to <strong>{{ language }}</strong>.{% endblocktranslate %}
             </div>
             {% if evidence_context.sources %}
             <div style="margin-top:12px; border-top:1px solid #eef1f6;">
@@ -364,7 +364,7 @@
                   <div style="font-size:12.5px;font-weight:600;color:#1f2937;">
                     {{ source.scenario_name }} &middot; v{{ source.version_number }}
                   </div>
-                  <div style="font-size:11.5px;color:#9ca3af;">{{ source.language }}</div>
+                  <div style="font-size:11.5px;color:#9ca3af;">{{ source.language|ui_label }}</div>
                 </div>
                 <div style="font-size:12px;color:#4b5563;white-space:nowrap;">
                   {% blocktranslate trimmed count counter=source.implementation_count %}{{ counter }} implementation{% plural %}{{ counter }} implementations{% endblocktranslate %}
@@ -603,7 +603,7 @@
                         {% elif t == 'Experiment' %}type-e
                         {% elif t == 'Guidance' %}type-g
                         {% elif t == 'Explanation' %}type-ex
-                        {% else %}type-d{% endif %}">{{ t }}</span>
+                        {% else %}type-d{% endif %}">{{ t|ui_label }}</span>
                       {% endwith %}
                     </li>
                     {% endfor %}
@@ -720,7 +720,7 @@
               {% for translation in translations %}
               <tr>
                 <td style="font-weight:600;">{{ translation.name }}</td>
-                <td>{{ translation.language|default:_("Not set") }}</td>
+                <td>{{ translation.language|ui_label|default:_("Not set") }}</td>
                 <td>{{ translation.get_visibility_status_display }}</td>
                 <td>{% user_link translation.created_by %}</td>
                 <td class="text-end">{{ translation.student_count }}</td>

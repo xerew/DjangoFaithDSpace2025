@@ -1557,20 +1557,20 @@ class ActivityType(models.Model):
 
 class Simulation(models.Model):
     LANGUAGE_CHOICES = [
-        ('', '— Select Language —'),
-        ('English', 'English'),
-        ('Greek', 'Greek'),
-        ('Spanish', 'Spanish'),
-        ('French', 'French'),
-        ('German', 'German'),
-        ('Italian', 'Italian'),
-        ('Portuguese', 'Portuguese'),
-        ('Dutch', 'Dutch'),
-        ('Polish', 'Polish'),
-        ('Romanian', 'Romanian'),
-        ('Turkish', 'Turkish'),
-        ('Arabic', 'Arabic'),
-        ('Other', 'Other'),
+        ('', _('— Select Language —')),
+        ('English', _('English')),
+        ('Greek', _('Greek')),
+        ('Spanish', _('Spanish')),
+        ('French', _('French')),
+        ('German', _('German')),
+        ('Italian', _('Italian')),
+        ('Portuguese', _('Portuguese')),
+        ('Dutch', _('Dutch')),
+        ('Polish', _('Polish')),
+        ('Romanian', _('Romanian')),
+        ('Turkish', _('Turkish')),
+        ('Arabic', _('Arabic')),
+        ('Other', _('Other')),
     ]
 
     name = models.CharField(max_length=200)

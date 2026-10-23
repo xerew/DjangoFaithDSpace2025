@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>Trust AI Lab — {% translate "Organizations" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -192,7 +192,7 @@
             </div>
             <div class="org-card-body">
               <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
-              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|ui_label|default:"—" }}</div>
               <div class="org-meta"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=org.member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</div>
               <div class="d-flex gap-2 mt-3">
                 <a href="{% url 'organization_detail' org.id %}" class="btn btn-primary btn-sm flex-fill">
@@ -238,7 +238,7 @@
             </div>
             <div class="org-card-body">
               <div class="org-meta"><i class="bi bi-geo-alt"></i> {{ org.country|default:"—" }}</div>
-              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|default:"—" }}</div>
+              <div class="org-meta"><i class="bi bi-translate"></i> {{ org.language|ui_label|default:"—" }}</div>
               <div class="org-meta"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=org.member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</div>
               <div class="d-flex gap-2 mt-3">
                 <a href="{% url 'organization_detail' org.id %}" class="btn btn-outline-secondary btn-sm flex-fill">

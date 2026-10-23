@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load profile_tags i18n %}
+{% load profile_tags i18n %}{% load localization_tags %}
 {% load html_tags %}
 {% block page_title %}<title>{% translate "Trust AI Lab — Activity Details" %}</title>{% endblock %}
 {% block atcontent %}
@@ -198,7 +198,7 @@
           </div>
           <h2 style="margin:0; font-size:20px; font-weight:700; line-height:1.2;">{{ activity.name }}</h2>
           <div class="act-hero-badges">
-            <span class="act-type-badge">{{ activity.activity_type.name }}</span>
+            <span class="act-type-badge">{{ activity.activity_type.name|ui_label }}</span>
             {% if activity.is_evaluatable %}
               <span class="act-type-badge evaluatable"><i class="bi bi-check-circle me-1"></i>{% translate "Evaluatable" %}</span>
             {% endif %}
@@ -268,7 +268,7 @@
           <div class="info-card-header"><i class="bi bi-info-circle"></i> {% translate "Activity Info" %}</div>
           <div class="info-row">
             <div class="info-label"><i class="bi bi-tag"></i> {% translate "Type" %}</div>
-            <div class="info-value">{{ activity.activity_type.name }}</div>
+            <div class="info-value">{{ activity.activity_type.name|ui_label }}</div>
           </div>
           <div class="info-row">
             <div class="info-label"><i class="bi bi-speedometer2"></i> {% translate "Performance Threshold" %}</div>

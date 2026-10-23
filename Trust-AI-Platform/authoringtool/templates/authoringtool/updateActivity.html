@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% translate "Trust AI Lab — Edit Activity" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -291,7 +291,7 @@
             <select class="form-select" {% if not is_machine_translation %}name="activity_type"{% endif %} id="activityTypeSelect">
               {% for option in activityTypes %}
               <option value="{{ option.id }}" {% if option.id == current_activity_type_id %}selected{% endif %}>
-                {{ option.name }}
+                {{ option.name|ui_label }}
               </option>
               {% endfor %}
             </select>

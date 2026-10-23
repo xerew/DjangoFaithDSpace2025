@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>Trust AI Lab — Edit {{ organization.name }}</title>{% endblock %}
 {% block atcontent %}
 
@@ -108,7 +108,7 @@
                 <select class="form-select" name="language" required>
                   <option value="" disabled {% if not form.language.value %}selected{% endif %}>{% translate "Select a language…" %}</option>
                   {% for lang in languages %}
-                    <option value="{{ lang.name }}" {% if lang.name == form.language.value %}selected{% endif %}>{{ lang.name }}</option>
+                    <option value="{{ lang.name }}" {% if lang.name == form.language.value %}selected{% endif %}>{{ lang.name|ui_label }}</option>
                   {% endfor %}
                 </select>
               </div>

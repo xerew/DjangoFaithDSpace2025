@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load html_tags %}
+{% load html_tags %}{% load localization_tags %}
 {% load i18n %}
 {% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — Proposals — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
@@ -465,7 +465,7 @@
               <div class="view-field-label">{% translate "Categories at Risk" %}</div>
               <div style="white-space:normal;">
                 {% for cat in proposal.categories_in_risk.all %}
-                  <span class="cat-tag cat-{{ cat.name|lower }}">{{ cat.name }}</span>
+                  <span class="cat-tag cat-{{ cat.name|lower }}">{{ cat.name|ui_label }}</span>
                 {% endfor %}
               </div>
             </div>

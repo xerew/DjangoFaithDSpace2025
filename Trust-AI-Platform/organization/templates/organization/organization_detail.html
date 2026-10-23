@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% load profile_tags %}
 {% load group_tags %}
 {% block page_title %}<title>Trust AI Lab — {{ organization.name }}</title>{% endblock %}
@@ -97,7 +97,7 @@
             <span class="org-meta-pill"><i class="bi bi-geo-alt"></i> {{ organization.country }}</span>
           {% endif %}
           {% if organization.language %}
-            <span class="org-meta-pill"><i class="bi bi-translate"></i> {{ organization.language }}</span>
+            <span class="org-meta-pill"><i class="bi bi-translate"></i> {{ organization.language|ui_label }}</span>
           {% endif %}
           <span class="org-meta-pill"><i class="bi bi-people"></i> {% blocktranslate trimmed count counter=organization.members.count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</span>
         </div>
@@ -170,7 +170,7 @@
               {% if organization.language %}
               <div class="d-flex gap-2 align-items-center">
                 <span style="width:28px; text-align:center; color:#4154f1;"><i class="bi bi-translate"></i></span>
-                <span style="font-size:13px;"><strong>{% translate "Language:" %}</strong> {{ organization.language }}</span>
+                <span style="font-size:13px;"><strong>{% translate "Language:" %}</strong> {{ organization.language|ui_label }}</span>
               </div>
               {% endif %}
               <div class="d-flex gap-2 align-items-center">

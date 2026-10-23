@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% translate "Trust AI Lab — Edit Scenario" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -269,7 +269,7 @@
                       <input type="checkbox" name="subjects" value="{{ subject.id }}"
                              {% if subject.id in selected_subject_ids %}checked{% endif %}>
                       <span class="subject-chip-inner" style="--chip-color:{{ subject.color }};">
-                        <i class="bi {{ subject.icon }}"></i> {{ subject.name }}
+                        <i class="bi {{ subject.icon }}"></i> {{ subject.name|ui_label }}
                       </span>
                     </label>
                     {% endfor %}
@@ -280,7 +280,7 @@
                   <select class="sc-input" name="language" required>
                     <option value="">{% translate "Select language…" %}</option>
                     {% for lang in languages %}
-                    <option value="{{ lang.name }}" {% if Scenario.language == lang.name %}selected{% endif %}>{{ lang.name }}</option>
+                    <option value="{{ lang.name }}" {% if Scenario.language == lang.name %}selected{% endif %}>{{ lang.name|ui_label }}</option>
                     {% endfor %}
                   </select>
                 </div>

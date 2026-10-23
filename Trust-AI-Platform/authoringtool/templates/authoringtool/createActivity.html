@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% translate "Trust AI Lab — Create Activity" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -274,7 +274,7 @@
               <option value="{{ option.id }}"
                 {% if option.name == "Question" %}data-is-question="true"{% endif %}
                 {% if option.name == "Experiment" %}data-is-experiment="true"{% else %}data-is-experiment="false"{% endif %}>
-                {{ option.name }}
+                {{ option.name|ui_label }}
               </option>
               {% endfor %}
             </select>

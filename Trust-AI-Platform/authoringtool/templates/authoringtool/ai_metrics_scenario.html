@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — {{ name }} — Metrics &amp; AI{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -177,13 +177,13 @@
             {% if not myScenario.family_pooling_enabled and translation_count %}
               {% blocktranslate trimmed count counter=proposal_implementation_count %}<strong>{{ counter }}</strong> implementation together:{% plural %}<strong>{{ counter }}</strong> implementations together:{% endblocktranslate %}
               {% blocktranslate trimmed with own=compatible_implementation_count others=translation_implementation_count count counter=translation_count %}{{ own }} from this scenario and {{ others }} from {{ counter }} confirmed translation, including historical data.{% plural %}{{ own }} from this scenario and {{ others }} from {{ counter }} confirmed translations, including historical data.{% endblocktranslate %}
-              {% blocktranslate trimmed with language=myScenario.language|default:_("this scenario's language") %}Metrics and AI proposals use them all; average time uses {{ language }} students only.{% endblocktranslate %}
+              {% blocktranslate trimmed with language=myScenario.language|ui_label|default:_("this scenario's language") %}Metrics and AI proposals use them all; average time uses {{ language }} students only.{% endblocktranslate %}
             {% elif not myScenario.family_pooling_enabled %}
               {% blocktranslate trimmed count counter=implementation_count %}{{ counter }} implementation from this scenario, including its historical data. Other scenarios and family variants are not included.{% plural %}{{ counter }} implementations from this scenario, including its historical data. Other scenarios and family variants are not included.{% endblocktranslate %}
             {% elif evidence_scope == "compatible" %}
               {% blocktranslate trimmed count counter=evidence_context.implementation_count %}{{ counter }} implementation{% plural %}{{ counter }} implementations{% endblocktranslate %}
               {% blocktranslate trimmed count counter=evidence_context.scenario_count %}from {{ counter }} approved scenario variant{% plural %}from {{ counter }} approved scenario variants{% endblocktranslate %}.
-              {% blocktranslate trimmed with language=myScenario.language|default:_("the target language") %}Correctness is pooled; timing uses {{ language }} only.{% endblocktranslate %}
+              {% blocktranslate trimmed with language=myScenario.language|ui_label|default:_("the target language") %}Correctness is pooled; timing uses {{ language }} only.{% endblocktranslate %}
             {% elif evidence_scope == "historical" %}
               {% blocktranslate trimmed count counter=implementation_count %}{{ counter }} legacy implementation from this scenario. These records are descriptive only because they cannot be tied to an immutable scenario version.{% plural %}{{ counter }} legacy implementations from this scenario. These records are descriptive only because they cannot be tied to an immutable scenario version.{% endblocktranslate %}
             {% else %}
@@ -230,7 +230,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
         {% for source in evidence_context.sources %}
         <span class="badge rounded-pill" style="background:#eef4ff;color:#1e40af;border:1px solid #dbe7ff;font-weight:500;">
-          {{ source.language }} &middot; {{ source.scenario_name }} v{{ source.version_number }}:
+          {{ source.language|ui_label }} &middot; {{ source.scenario_name }} v{{ source.version_number }}:
           {{ source.implementation_count }}
         </span>
         {% endfor %}
@@ -404,9 +404,9 @@
                 {% for row in group.rows %}
                 <tr>
                   <td>
-                    {% if row.Category == "High" %}<span class="cat-high">{{ row.Category }}</span>
-                    {% elif row.Category == "Moderate" %}<span class="cat-moderate">{{ row.Category }}</span>
-                    {% elif row.Category == "Low" %}<span class="cat-low">{{ row.Category }}</span>
+                    {% if row.Category == "High" %}<span class="cat-high">{{ row.Category|ui_label }}</span>
+                    {% elif row.Category == "Moderate" %}<span class="cat-moderate">{{ row.Category|ui_label }}</span>
+                    {% elif row.Category == "Low" %}<span class="cat-low">{{ row.Category|ui_label }}</span>
                     {% else %}{{ row.Category }}{% endif %}
                   </td>
                   <td>{{ row.Total }}</td>
@@ -461,7 +461,7 @@
               <tbody>
                 {% for row in group.rows %}
                 <tr>
-                  <td><span class="risk-cat">{{ row.Category }}</span></td>
+                  <td><span class="risk-cat">{{ row.Category|ui_label }}</span></td>
                   <td style="font-weight:600;">{{ row.Flag }}</td>
                   <td style="color:#6b7280;">{{ row.Reason }}</td>
                 </tr>
@@ -526,6 +526,9 @@
 // Interface text, translated on the server.
 const T = {
   category: {% translate 'Category' as s %}"{{ s|escapejs }}",
+  groupHigh: {% translate 'High' context 'performance group' as s %}"{{ s|escapejs }}",
+  groupModerate: {% translate 'Moderate' context 'performance group' as s %}"{{ s|escapejs }}",
+  groupLow: {% translate 'Low' context 'performance group' as s %}"{{ s|escapejs }}",
   total: {% translate 'Total' as s %}"{{ s|escapejs }}",
   correct: {% translate 'Correct' as s %}"{{ s|escapejs }}",
   wrong: {% translate 'Wrong' as s %}"{{ s|escapejs }}",
@@ -595,6 +598,10 @@ function pollCategoryStatus(taskId, spinner) {
     });
 }
 
+function catLabel(cat) {
+  return {High: T.groupHigh, Moderate: T.groupModerate, Low: T.groupLow}[cat] || cat;
+}
+
 function renderCategoryTable(dataRows) {
   const container = document.getElementById('category-metrics-results');
   const grouped   = {};
@@ -607,9 +614,9 @@ function renderCategoryTable(dataRows) {
   }
 
   function catBadge(cat) {
-    if (cat === 'High')     return `<span class="cat-high">${cat}</span>`;
-    if (cat === 'Moderate') return `<span class="cat-moderate">${cat}</span>`;
-    if (cat === 'Low')      return `<span class="cat-low">${cat}</span>`;
+    if (cat === 'High')     return `<span class="cat-high">${T.groupHigh}</span>`;
+    if (cat === 'Moderate') return `<span class="cat-moderate">${T.groupModerate}</span>`;
+    if (cat === 'Low')      return `<span class="cat-low">${T.groupLow}</span>`;
     return cat;
   }
 
@@ -717,7 +724,7 @@ function renderRiskFlagsTable(dataRows) {
       <tbody>`;
     for (const row of rows) {
       html += `<tr>
-        <td><span class="risk-cat">${row.Category}</span></td>
+        <td><span class="risk-cat">${catLabel(row.Category)}</span></td>
         <td style="font-weight:600;">${row.Flag}</td>
         <td style="color:#6b7280;">${row.Reason}</td>
       </tr>`;

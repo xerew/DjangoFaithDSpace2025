@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -52,8 +52,8 @@
     {% translate "no language" as no_language %}
     {% with a=explanation.scenario_a b=explanation.scenario_b %}
       <p class="explain-summary">
-        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|default:no_language }}, {{ a.get_visibility_status_display }})
-        {% translate "and" context "between two scenarios" %} <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|default:no_language }}, {{ b.get_visibility_status_display }})
+        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|ui_label|default:no_language }}, {{ a.get_visibility_status_display }})
+        {% translate "and" context "between two scenarios" %} <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|ui_label|default:no_language }}, {{ b.get_visibility_status_display }})
       </p>
       <p class="explain-summary">
         {% if stopped_label %}

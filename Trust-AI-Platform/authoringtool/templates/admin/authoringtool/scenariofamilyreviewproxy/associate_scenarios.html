@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -250,7 +250,7 @@
             <h3>{% translate "Family that remains" %}</h3>
             <p>
               <b>{{ preview.target.name }}</b><br>
-              {{ preview.target.language|default:language_unspecified }} ·
+              {{ preview.target.language|ui_label|default:language_unspecified }} ·
               {{ preview.target.get_variant_type_display }} ·
               {% blocktranslate with number=preview.target_version.version_number trimmed %}revision v{{ number }}{% endblocktranslate %}
             </p>
@@ -262,7 +262,7 @@
             <ul>
               {% for variant in preview.target_variants %}
                 <li>
-                  {{ variant.name }} — {{ variant.language|default:unspecified }}
+                  {{ variant.name }} — {{ variant.language|ui_label|default:unspecified }}
                   ({{ variant.get_variant_type_display }})
                 </li>
               {% endfor %}
@@ -273,7 +273,7 @@
             <h3>{% translate "Selected scenario / source family" %}</h3>
             <p>
               <b>{{ preview.source.name }}</b><br>
-              {{ preview.source.language|default:language_unspecified }} ·
+              {{ preview.source.language|ui_label|default:language_unspecified }} ·
               {{ preview.source.get_variant_type_display }} ·
               {% blocktranslate with number=preview.source_version.version_number trimmed %}revision v{{ number }}{% endblocktranslate %}
             </p>
@@ -285,7 +285,7 @@
             <ul>
               {% for variant in preview.source_variants %}
                 <li>
-                  {{ variant.name }} — {{ variant.language|default:unspecified }}
+                  {{ variant.name }} — {{ variant.language|ui_label|default:unspecified }}
                   ({{ variant.get_variant_type_display }})
                 </li>
               {% endfor %}

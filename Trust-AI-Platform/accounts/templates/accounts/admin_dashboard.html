@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>Trust AI Lab — {% translate "Platform Administration" %}</title>{% endblock %}
 {% load static %}
 {% load profile_tags %}
@@ -507,7 +507,7 @@
                     <td style="padding:12px 16px;font-weight:600;font-size:13px;color:#012970;">{{ sim.name }}</td>
                     <td>
                       {% if sim.language %}
-                      <span class="badge bg-light text-dark border" style="font-size:11px;">{{ sim.language }}</span>
+                      <span class="badge bg-light text-dark border" style="font-size:11px;">{{ sim.language|ui_label }}</span>
                       {% else %}
                       <span style="color:#aaa;font-size:12px;">—</span>
                       {% endif %}
