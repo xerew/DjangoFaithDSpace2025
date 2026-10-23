@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Platform Administration</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Platform Administration" %}</title>{% endblock %}
 {% load static %}
 {% load profile_tags %}
 {% block atcontent %}
@@ -85,19 +86,19 @@
     <div class="d-flex align-items-start gap-3">
       <div class="admin-hero-icon"><i class="bi bi-shield-lock-fill"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Administration</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Platform Administration</h2>
-        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ stats.total }} user{{ stats.total|pluralize }} · {{ stats.active }} active</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Administration" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Platform Administration" %}</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{% blocktranslate count counter=stats.total trimmed %}{{ counter }} user{% plural %}{{ counter }} users{% endblocktranslate %} · {% blocktranslate with n=stats.active trimmed %}{{ n }} active{% endblocktranslate %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item active">Platform Administration</li>
+          <li class="breadcrumb-item active">{% translate "Platform Administration" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex flex-wrap justify-content-end gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'admin:index' %}" style="background:#fff;color:#1e3a8a;border:1.5px solid #fff;font-weight:700;font-size:13px;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;">
-          <i class="bi bi-box-arrow-up-right"></i> Django Admin
+          <i class="bi bi-box-arrow-up-right"></i> {% translate "Django Admin" %}
         </a>
         <a href="{% url 'feedback_form_list' %}" style="background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4);font-weight:600;font-size:13px;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;">
-          <i class="bi bi-clipboard-check"></i> Feedback Forms
+          <i class="bi bi-clipboard-check"></i> {% translate "Feedback Forms" %}
         </a>
       </div>
     </div>
@@ -110,37 +111,37 @@
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num">{{ stats.total }}</div>
-          <div class="stat-label">Total Users</div>
+          <div class="stat-label">{% translate "Total Users" %}</div>
         </div>
       </div>
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num" style="color:#16a34a;">{{ stats.active }}</div>
-          <div class="stat-label">Active</div>
+          <div class="stat-label">{% translate "Active" %}</div>
         </div>
       </div>
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num" style="color:#d97706;">{{ stats.staff }}</div>
-          <div class="stat-label">Staff / Admins</div>
+          <div class="stat-label">{% translate "Staff / Admins" %}</div>
         </div>
       </div>
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num" style="color:#6b7280;">{{ stats.inactive }}</div>
-          <div class="stat-label">Inactive</div>
+          <div class="stat-label">{% translate "Inactive" %}</div>
         </div>
       </div>
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num" style="color:#4154f1;">{{ stats.teachers }}</div>
-          <div class="stat-label">Teachers</div>
+          <div class="stat-label">{% translate "Teachers" %}</div>
         </div>
       </div>
       <div class="col-6 col-md-2">
         <div class="stat-card">
           <div class="stat-num" style="color:#0891b2;">{{ stats.no_role }}</div>
-          <div class="stat-label">Students</div>
+          <div class="stat-label">{% translate "Students" %}</div>
         </div>
       </div>
     </div>
@@ -149,37 +150,37 @@
     <ul class="nav nav-tabs mb-0" id="adminTabs" role="tablist" style="border-bottom:2px solid #e8edf5;">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-users-btn" data-bs-toggle="tab" data-bs-target="#tab-users" type="button" role="tab">
-          <i class="bi bi-people me-1"></i> Users
+          <i class="bi bi-people me-1"></i> {% translate "Users" %}
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ stats.total }}</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-roles-btn" data-bs-toggle="tab" data-bs-target="#tab-roles" type="button" role="tab">
-          <i class="bi bi-tag me-1"></i> Roles
+          <i class="bi bi-tag me-1"></i> {% translate "Roles" %}
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ groups|length }}</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-labs-btn" data-bs-toggle="tab" data-bs-target="#tab-labs" type="button" role="tab">
-          <i class="bi bi-flask me-1"></i> Labs
+          <i class="bi bi-flask me-1"></i> {% translate "Labs" %}
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ lab_count }}</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-email-btn" data-bs-toggle="tab" data-bs-target="#tab-email" type="button" role="tab">
-          <i class="bi bi-envelope-paper me-1"></i> Email
+          <i class="bi bi-envelope-paper me-1"></i> {% translate "Email" %}
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ email_teacher_count }}</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-maintenance-btn" data-bs-toggle="tab" data-bs-target="#tab-maintenance" type="button" role="tab">
-          <i class="bi bi-cone-striped me-1"></i> Maintenance
-          {% if active_maintenance_count %}<span class="badge bg-warning text-dark ms-1" style="font-size:11px;">{{ active_maintenance_count }} active</span>{% endif %}
+          <i class="bi bi-cone-striped me-1"></i> {% translate "Maintenance" %}
+          {% if active_maintenance_count %}<span class="badge bg-warning text-dark ms-1" style="font-size:11px;">{% blocktranslate with n=active_maintenance_count trimmed %}{{ n }} active{% endblocktranslate %}</span>{% endif %}
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-languages-btn" data-bs-toggle="tab" data-bs-target="#tab-languages" type="button" role="tab">
-          <i class="bi bi-translate me-1"></i> Languages
+          <i class="bi bi-translate me-1"></i> {% translate "Languages" %}
           <span class="badge bg-secondary ms-1" style="font-size:11px;">{{ languages|length }}</span>
         </button>
       </li>
@@ -193,7 +194,7 @@
         <!-- Search + filter row -->
         <div class="row g-2 mb-3 align-items-center">
           <div class="col-12 col-md-5">
-            <input type="text" id="userSearch" class="form-control" placeholder="Search name, username or email…">
+            <input type="text" id="userSearch" class="form-control" placeholder="{% translate "Search name, username or email…" %}">
           </div>
           <div class="col-12 col-md-4">
             <!-- Multi-select role filter -->
@@ -202,7 +203,7 @@
                       type="button" id="roleFilterBtn"
                       data-bs-toggle="dropdown" data-bs-auto-close="outside"
                       aria-expanded="false">
-                <span id="roleFilterLabel">All Roles</span>
+                <span id="roleFilterLabel">{% translate "All Roles" %}</span>
                 <i class="bi bi-chevron-down ms-2" style="font-size:11px;"></i>
               </button>
               <ul class="dropdown-menu role-filter-menu px-2 py-2 w-100">
@@ -211,7 +212,7 @@
                   <div class="form-check mb-1">
                     <input class="form-check-input role-filter-check" type="checkbox" value="__superuser__" id="rfSuperuser">
                     <label class="form-check-label" for="rfSuperuser" style="font-size:13px;">
-                      <span class="badge bg-danger me-1" style="font-size:10px;">SU</span>Superuser
+                      <span class="badge bg-danger me-1" style="font-size:10px;">{% translate "SU" %}</span>{% translate "Superuser" %}
                     </label>
                   </div>
                 </li>
@@ -219,7 +220,7 @@
                   <div class="form-check mb-1">
                     <input class="form-check-input role-filter-check" type="checkbox" value="__staff__" id="rfStaff">
                     <label class="form-check-label" for="rfStaff" style="font-size:13px;">
-                      <span class="badge bg-warning text-dark me-1" style="font-size:10px;">ST</span>Staff
+                      <span class="badge bg-warning text-dark me-1" style="font-size:10px;">{% translate "ST" %}</span>{% translate "Staff" %}
                     </label>
                   </div>
                 </li>
@@ -238,7 +239,7 @@
                 <li><hr class="dropdown-divider my-1"></li>
                 <li>
                   <button type="button" class="btn btn-link btn-sm p-0 text-muted" style="font-size:12px;"
-                          onclick="clearRoleFilter()">Clear filter</button>
+                          onclick="clearRoleFilter()">{% translate "Clear filter" %}</button>
                 </li>
               </ul>
             </div>
@@ -246,7 +247,7 @@
           <div class="col-12 col-md-3">
             <div class="form-check form-switch ms-1 mt-1">
               <input class="form-check-input" type="checkbox" id="showInactive">
-              <label class="form-check-label" for="showInactive" style="font-size:13px;">Show inactive</label>
+              <label class="form-check-label" for="showInactive" style="font-size:13px;">{% translate "Show inactive" %}</label>
             </div>
           </div>
         </div>
@@ -257,12 +258,12 @@
             <table class="table table-hover mb-0" id="userTable">
               <thead style="background:#f8faff;">
                 <tr>
-                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;" aria-sort="ascending"><button type="button" class="user-sort-btn" data-sort="name">User <i class="bi bi-sort-alpha-down user-sort-icon"></i></button></th>
-                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="email">Email <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
-                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="org">Organization <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
-                  <th style="font-size:12px;font-weight:600;color:#888;">Roles</th>
-                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="login">Last Login <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
-                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="status">Status <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;" aria-sort="ascending"><button type="button" class="user-sort-btn" data-sort="name">{% translate "User" %} <i class="bi bi-sort-alpha-down user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="email">{% translate "Email" %} <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="org">{% translate "Organization" %} <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Roles" %}</th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="login">{% translate "Last Login" %} <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
+                  <th style="font-size:12px;font-weight:600;color:#888;"><button type="button" class="user-sort-btn" data-sort="status">{% translate "Status" %} <i class="bi bi-arrow-down-up user-sort-icon"></i></button></th>
                   <th></th>
                 </tr>
               </thead>
@@ -298,7 +299,7 @@
                       {% endif %}
                       {% endwith %}
                       <div>
-                        <a href="{% url 'view_profile' u.pk %}" class="user-display-name d-block text-decoration-none" style="font-weight:600;font-size:13px;color:#012970;" title="Open profile">{{ u.get_full_name|default:u.username }}</a>
+                        <a href="{% url 'view_profile' u.pk %}" class="user-display-name d-block text-decoration-none" style="font-weight:600;font-size:13px;color:#012970;" title="{% translate "Open profile" %}">{{ u.get_full_name|default:u.username }}</a>
                         <div style="font-size:11px;color:#888;">@{{ u.username }}</div>
                       </div>
                     </div>
@@ -307,45 +308,45 @@
                   <td>
                     {% for row in u.organization_rows %}
                       <span class="badge bg-light text-dark border me-1"
-                            title="{{ row.org.name }}{% if row.is_admin %} (admin){% endif %}">{% if row.is_admin %}<i class="bi bi-shield-fill-check text-primary me-1"></i>{% endif %}{{ row.org.short_name }}</span>
+                            title="{{ row.org.name }}{% if row.is_admin %} {% translate "(admin)" %}{% endif %}">{% if row.is_admin %}<i class="bi bi-shield-fill-check text-primary me-1"></i>{% endif %}{{ row.org.short_name }}</span>
                     {% empty %}
                       <span class="no-org" style="font-size:12px;color:#aaa;">—</span>
                     {% endfor %}
                   </td>
                   <td>
-                    {% if u.is_superuser %}<span class="badge bg-danger me-1">Superuser</span>{% endif %}
-                    {% if u.is_staff and not u.is_superuser %}<span class="badge bg-warning text-dark me-1">Staff</span>{% endif %}
+                    {% if u.is_superuser %}<span class="badge bg-danger me-1">{% translate "Superuser" %}</span>{% endif %}
+                    {% if u.is_staff and not u.is_superuser %}<span class="badge bg-warning text-dark me-1">{% translate "Staff" %}</span>{% endif %}
                     {% for g in u.groups.all %}<span class="badge bg-primary me-1">{{ g.name }}</span>{% endfor %}
                     {% if not u.groups.exists and not u.is_staff and not u.is_superuser %}<span style="font-size:12px;color:#aaa;">—</span>{% endif %}
                   </td>
-                  <td>{% if u.last_login %}{{ u.last_login|date:"d M Y" }}{% else %}<span style="color:#aaa;">Never</span>{% endif %}</td>
+                  <td>{% if u.last_login %}{{ u.last_login|date:"d M Y" }}{% else %}<span style="color:#aaa;">{% translate "Never" %}</span>{% endif %}</td>
                   <td class="user-status-cell">
                     {% if u.is_active %}
-                    <span class="badge bg-success">Active</span>
+                    <span class="badge bg-success">{% translate "Active" %}</span>
                     {% else %}
-                    <span class="badge bg-secondary">Inactive</span>
+                    <span class="badge bg-secondary">{% translate "Inactive" %}</span>
                     {% endif %}
                   </td>
                   <td style="white-space:nowrap;">
                     <div class="d-flex gap-1">
-                      <button class="btn btn-sm btn-outline-primary" title="Edit"
+                      <button class="btn btn-sm btn-outline-primary" title="{% translate "Edit" %}"
                               onclick="openEditPanelFromRow(this.closest('tr'))">
                         <i class="bi bi-pencil"></i>
                       </button>
                       {% if u.id != request.user.id %}
                       <button class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
-                              title="{% if u.is_active %}Suspend{% else %}Activate{% endif %}"
+                              title="{% if u.is_active %}{% translate "Suspend" %}{% else %}{% translate "Activate" %}{% endif %}"
                               id="toggle-btn-{{ u.id }}"
                               onclick="toggleUser({{ u.id }})">
                         <i class="bi {% if u.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
                       </button>
                       {% if not u.is_superuser %}
-                      <button class="btn btn-sm btn-outline-secondary" title="Impersonate"
+                      <button class="btn btn-sm btn-outline-secondary" title="{% translate "Impersonate" %}"
                               onclick="impersonateUser({{ u.id }})">
                         <i class="bi bi-person-badge"></i>
                       </button>
                       {% endif %}
-                      <button class="btn btn-sm btn-outline-danger" title="Delete"
+                      <button class="btn btn-sm btn-outline-danger" title="{% translate "Delete" %}"
                               data-delete-id="{{ u.id }}"
                               data-delete-name="{{ u.get_full_name|default:u.username }}"
                               onclick="openDeleteModal(this)">
@@ -364,7 +365,7 @@
         <!-- User pagination -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
           <div style="font-size:13px;color:#888;" id="userPaginationInfo"></div>
-          <nav aria-label="User pages">
+          <nav aria-label="{% translate "User pages" %}">
             <ul class="pagination pagination-sm mb-0" id="userPagination"></ul>
           </nav>
         </div>
@@ -375,10 +376,10 @@
       <div class="tab-pane fade" id="tab-roles" role="tabpanel">
 
         <div class="d-flex gap-2 mb-4 align-items-center">
-          <input type="text" id="newRoleName" class="form-control" placeholder="New role name…" style="max-width:280px;"
+          <input type="text" id="newRoleName" class="form-control" placeholder="{% translate "New role name…" %}" style="max-width:280px;"
                  onkeydown="if(event.key==='Enter') createRole()">
           <button class="btn btn-primary" onclick="createRole()">
-            <i class="bi bi-plus-lg me-1"></i>Add Role
+            <i class="bi bi-plus-lg me-1"></i>{% translate "Add Role" %}
           </button>
         </div>
 
@@ -389,19 +390,19 @@
               <div class="card-body">
                 <div class="d-flex align-items-start justify-content-between mb-2">
                   <span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;"
-                        title="Click to rename"
+                        title="{% translate "Click to rename" %}"
                         onclick="startRenameRole({{ group.id }}, this)">{{ group.name }}</span>
                   <div class="d-flex gap-1 align-items-center">
                     <span class="badge bg-secondary">{{ group.member_count }}</span>
                     <button class="btn btn-sm btn-outline-danger"
-                            {% if group.member_count %}disabled title="Remove all members first"{% else %}onclick="deleteRole({{ group.id }})"{% endif %}>
+                            {% if group.member_count %}disabled title="{% translate "Remove all members first" %}"{% else %}onclick="deleteRole({{ group.id }})"{% endif %}>
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
                 {% if group.member_count %}
                 <div style="font-size:12px;color:#888;margin-top:4px;">
-                  {{ group.member_count }} member{{ group.member_count|pluralize }}
+                  {% blocktranslate count counter=group.member_count trimmed %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}
                 </div>
                 {% endif %}
                 <div class="form-check form-switch mt-2">
@@ -409,7 +410,7 @@
                          {% if group.can_generate_proposals %}checked{% endif %}
                          onchange="toggleRoleProposals({{ group.id }}, this)">
                   <label class="form-check-label" for="role-proposals-{{ group.id }}" style="font-size:13px;">
-                    Can generate AI proposals for any scenario
+                    {% translate "Can generate AI proposals for any scenario" %}
                   </label>
                 </div>
               </div>
@@ -426,25 +427,25 @@
         <!-- Labs search + type filter -->
         <div class="row g-2 mb-4 align-items-center">
           <div class="col-12 col-md-5">
-            <input type="text" id="labSearch" class="form-control" placeholder="Search labs by name…">
+            <input type="text" id="labSearch" class="form-control" placeholder="{% translate "Search labs by name…" %}">
           </div>
           <div class="col-12 col-md-7">
-            <div class="d-flex flex-wrap gap-1" role="group" aria-label="Lab type filter">
+            <div class="d-flex flex-wrap gap-1" role="group" aria-label="{% translate "Lab type filter" %}">
               <button type="button" class="btn btn-outline-primary lab-type-btn active" id="labFilterAll"
                       onclick="setLabFilter('all')">
-                <i class="bi bi-grid-3x3-gap me-1"></i>All
+                <i class="bi bi-grid-3x3-gap me-1"></i>{% translate "All" %}
               </button>
               <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterSim"
                       onclick="setLabFilter('simulation')">
-                <i class="bi bi-display me-1"></i>Simulations
+                <i class="bi bi-display me-1"></i>{% translate "Simulations" %}
               </button>
               <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterRemote"
                       onclick="setLabFilter('remote_lab')">
-                <i class="bi bi-hdd-network me-1"></i>Remote Labs
+                <i class="bi bi-hdd-network me-1"></i>{% translate "Remote Labs" %}
               </button>
               <button type="button" class="btn btn-outline-primary lab-type-btn" id="labFilterVR"
                       onclick="setLabFilter('vr_lab')">
-                <i class="bi bi-badge-vr me-1"></i>VR/AR
+                <i class="bi bi-badge-vr me-1"></i>{% translate "VR/AR" %}
               </button>
             </div>
           </div>
@@ -454,11 +455,11 @@
         <div id="simSection">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-              <i class="bi bi-display me-2 text-primary"></i>Simulations
+              <i class="bi bi-display me-2 text-primary"></i>{% translate "Simulations" %}
               <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ simulations|length }}</span>
             </h5>
             <button class="btn btn-sm btn-primary" onclick="openLabPanel('simulation', null)">
-              <i class="bi bi-plus-lg me-1"></i>Add Simulation
+              <i class="bi bi-plus-lg me-1"></i>{% translate "Add Simulation" %}
             </button>
           </div>
 
@@ -467,7 +468,7 @@
           <div class="mb-2">
             <select id="simLangFilter" class="form-select form-select-sm" style="max-width:200px;"
                     onchange="filterAndPaginateLabs()">
-              <option value="">All Languages</option>
+              <option value="">{% translate "All Languages" %}</option>
               {% for lang in sim_languages %}
               <option value="{{ lang|lower }}">{{ lang }}</option>
               {% endfor %}
@@ -482,14 +483,14 @@
               <table class="table table-hover mb-0">
                 <thead style="background:#f8faff;">
                   <tr>
-                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">{% translate "Name" %}</th>
                     <th style="font-size:12px;font-weight:600;color:#888;cursor:pointer;user-select:none;"
-                        onclick="sortSimsByLanguage()" title="Sort by language">
-                      Language <i class="bi bi-sort-alpha-down ms-1" id="simLangSortIcon" style="font-size:11px;"></i>
+                        onclick="sortSimsByLanguage()" title="{% translate "Sort by language" %}">
+                      {% translate "Language" %} <i class="bi bi-sort-alpha-down ms-1" id="simLangSortIcon" style="font-size:11px;"></i>
                     </th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Iframe URL</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Size</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Fullscreen</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Iframe URL" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Size" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Fullscreen" %}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -513,19 +514,19 @@
                     </td>
                     <td><span class="text-truncate d-inline-block" style="max-width:220px;font-size:12px;color:#666;" title="{{ sim.iframe_url }}">{{ sim.iframe_url }}</span></td>
                     <td style="font-size:13px;">{{ sim.width }}&times;{{ sim.height }}px</td>
-                    <td>{% if sim.allow_fullscreen %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                    <td>{% if sim.allow_fullscreen %}<span class="badge bg-success">{% translate "Yes" %}</span>{% else %}<span class="badge bg-secondary">{% translate "No" %}</span>{% endif %}</td>
                     <td style="white-space:nowrap;">
                       <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                        <button class="btn btn-sm btn-outline-primary" title="{% translate "Edit" %}"
                                 onclick="openLabPanel('simulation', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                        <button class="btn btn-sm btn-outline-danger" title="{% translate "Delete" %}"
                                 data-lab-type="simulation" data-lab-id="{{ sim.id }}" data-lab-name="{{ sim.name }}"
                                 onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
                       </div>
                     </td>
                   </tr>
                   {% empty %}
-                  <tr id="simEmptyRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:13px;">No simulations yet.</td></tr>
+                  <tr id="simEmptyRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:13px;">{% translate "No simulations yet." %}</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
@@ -542,11 +543,11 @@
         <div id="remoteLabSection">
           <div class="d-flex align-items-center justify-content-between mb-3">
             <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-              <i class="bi bi-hdd-network me-2" style="color:#0891b2;"></i>Remote Labs (LabsLand)
+              <i class="bi bi-hdd-network me-2" style="color:#0891b2;"></i>{% translate "Remote Labs (LabsLand)" %}
               <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ remote_labs|length }}</span>
             </h5>
             <button class="btn btn-sm" style="background:#0891b2;color:#fff;" onclick="openLabPanel('remote_lab', null)">
-              <i class="bi bi-plus-lg me-1"></i>Add Remote Lab
+              <i class="bi bi-plus-lg me-1"></i>{% translate "Add Remote Lab" %}
             </button>
           </div>
           <div class="card mb-2" style="border-radius:12px;overflow:hidden;">
@@ -554,10 +555,10 @@
               <table class="table table-hover mb-0">
                 <thead style="background:#f8faff;">
                   <tr>
-                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Consumer Key</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">{% translate "Name" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Description" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Launch URL" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Consumer Key" %}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -575,16 +576,16 @@
                     <td><code style="font-size:11px;">{{ lab.consumer_key }}</code></td>
                     <td style="white-space:nowrap;">
                       <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                        <button class="btn btn-sm btn-outline-primary" title="{% translate "Edit" %}"
                                 onclick="openLabPanel('remote_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                        <button class="btn btn-sm btn-outline-danger" title="{% translate "Delete" %}"
                                 data-lab-type="remote_lab" data-lab-id="{{ lab.id }}" data-lab-name="{{ lab.name }}"
                                 onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
                       </div>
                     </td>
                   </tr>
                   {% empty %}
-                  <tr id="remoteLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No remote labs yet.</td></tr>
+                  <tr id="remoteLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">{% translate "No remote labs yet." %}</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
@@ -601,11 +602,11 @@
         <div id="vrLabSection">
           <div class="d-flex align-items-center justify-content-between mb-3">
             <h5 class="mb-0" style="color:#012970;font-size:15px;font-weight:700;">
-              <i class="bi bi-badge-vr me-2 text-danger"></i>VR/AR Labs
+              <i class="bi bi-badge-vr me-2 text-danger"></i>{% translate "VR/AR Labs" %}
               <span class="badge bg-secondary ms-2" style="font-size:11px;">{{ vr_labs|length }}</span>
             </h5>
             <button class="btn btn-sm btn-danger" onclick="openLabPanel('vr_lab', null)">
-              <i class="bi bi-plus-lg me-1"></i>Add VR Lab
+              <i class="bi bi-plus-lg me-1"></i>{% translate "Add VR Lab" %}
             </button>
           </div>
           <div class="card mb-2" style="border-radius:12px;overflow:hidden;">
@@ -613,10 +614,10 @@
               <table class="table table-hover mb-0">
                 <thead style="background:#f8faff;">
                   <tr>
-                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">Name</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Description</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">Launch URL</th>
-                    <th style="font-size:12px;font-weight:600;color:#888;">QR Code</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;padding:12px 16px;">{% translate "Name" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Description" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "Launch URL" %}</th>
+                    <th style="font-size:12px;font-weight:600;color:#888;">{% translate "QR Code" %}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -642,16 +643,16 @@
                     </td>
                     <td style="white-space:nowrap;">
                       <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary" title="Edit"
+                        <button class="btn btn-sm btn-outline-primary" title="{% translate "Edit" %}"
                                 onclick="openLabPanel('vr_lab', this.closest('tr'))"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" title="Delete"
+                        <button class="btn btn-sm btn-outline-danger" title="{% translate "Delete" %}"
                                 data-lab-type="vr_lab" data-lab-id="{{ vr.id }}" data-lab-name="{{ vr.name }}"
                                 onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>
                       </div>
                     </td>
                   </tr>
                   {% empty %}
-                  <tr id="vrLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">No VR/AR labs yet.</td></tr>
+                  <tr id="vrLabEmptyRow"><td colspan="5" class="text-center text-muted py-4" style="font-size:13px;">{% translate "No VR/AR labs yet." %}</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
@@ -679,22 +680,22 @@
 <!-- Edit slide panel -->
 <div id="editPanel" class="edit-panel">
   <div class="edit-panel-header">
-    <h5 id="editPanelTitle">Edit User</h5>
+    <h5 id="editPanelTitle">{% translate "Edit User" %}</h5>
     <button type="button" class="btn-close" onclick="closeEditPanel()"></button>
   </div>
   <div class="edit-panel-body">
     <input type="hidden" id="editUserId">
 
     <div class="mb-3">
-      <label class="form-label fw-semibold" style="font-size:13px;">First Name</label>
+      <label class="form-label fw-semibold" style="font-size:13px;">{% translate "First Name" %}</label>
       <input type="text" id="editFirstName" class="form-control form-control-sm">
     </div>
     <div class="mb-3">
-      <label class="form-label fw-semibold" style="font-size:13px;">Last Name</label>
+      <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Last Name" %}</label>
       <input type="text" id="editLastName" class="form-control form-control-sm">
     </div>
     <div class="mb-3">
-      <label class="form-label fw-semibold" style="font-size:13px;">Email</label>
+      <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Email" %}</label>
       <input type="email" id="editEmail" class="form-control form-control-sm">
     </div>
 
@@ -703,14 +704,14 @@
     <div class="mb-2">
       <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" id="editIsStaff">
-        <label class="form-check-label" for="editIsStaff" style="font-size:13px;">Staff (can access admin)</label>
+        <label class="form-check-label" for="editIsStaff" style="font-size:13px;">{% translate "Staff (can access admin)" %}</label>
       </div>
     </div>
     {% if is_superuser %}
     <div class="mb-3">
       <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" id="editIsSuperuser">
-        <label class="form-check-label" for="editIsSuperuser" style="font-size:13px;">Superuser</label>
+        <label class="form-check-label" for="editIsSuperuser" style="font-size:13px;">{% translate "Superuser" %}</label>
       </div>
     </div>
     {% endif %}
@@ -718,7 +719,7 @@
     <hr>
 
     <div class="mb-4">
-      <label class="form-label fw-semibold" style="font-size:13px;">Roles</label>
+      <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Roles" %}</label>
       <div id="editGroupsContainer">
         {% for group in groups %}
         <div class="form-check">
@@ -731,7 +732,7 @@
     </div>
 
     <button class="btn btn-primary w-100" onclick="saveUser()">
-      <i class="bi bi-check-lg me-1"></i>Save Changes
+      <i class="bi bi-check-lg me-1"></i>{% translate "Save Changes" %}
     </button>
     <div id="editPanelError" class="text-danger mt-2" style="display:none;font-size:13px;"></div>
   </div>
@@ -741,7 +742,7 @@
 <!-- Lab slide panel -->
 <div id="labPanel" class="edit-panel">
   <div class="edit-panel-header">
-    <h5 id="labPanelTitle">Add Lab</h5>
+    <h5 id="labPanelTitle">{% translate "Add Lab" %}</h5>
     <button type="button" class="btn-close" onclick="closeLabPanel()"></button>
   </div>
   <div class="edit-panel-body">
@@ -751,13 +752,13 @@
     <!-- Simulation fields -->
     <div id="simFields">
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Name" %} <span class="text-danger">*</span></label>
         <input type="text" id="simName" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Language</label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Language" %}</label>
         <select id="simLanguage" class="form-select form-select-sm">
-          <option value="">— Select Language —</option>
+          <option value="">{% translate "— Select Language —" %}</option>
           <option value="English">English</option>
           <option value="Greek">Greek</option>
           <option value="Spanish">Spanish</option>
@@ -774,23 +775,23 @@
         </select>
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Iframe URL <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Iframe URL" %} <span class="text-danger">*</span></label>
         <input type="url" id="simIframeUrl" class="form-control form-control-sm">
       </div>
       <div class="row g-2 mb-3">
         <div class="col-6">
-          <label class="form-label fw-semibold" style="font-size:13px;">Width (px)</label>
+          <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Width (px)" %}</label>
           <input type="number" id="simWidth" class="form-control form-control-sm" value="800" min="100">
         </div>
         <div class="col-6">
-          <label class="form-label fw-semibold" style="font-size:13px;">Height (px)</label>
+          <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Height (px)" %}</label>
           <input type="number" id="simHeight" class="form-control form-control-sm" value="600" min="100">
         </div>
       </div>
       <div class="mb-3">
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="simAllowFullscreen" checked>
-          <label class="form-check-label" for="simAllowFullscreen" style="font-size:13px;">Allow Fullscreen</label>
+          <label class="form-check-label" for="simAllowFullscreen" style="font-size:13px;">{% translate "Allow Fullscreen" %}</label>
         </div>
       </div>
     </div>
@@ -798,23 +799,23 @@
     <!-- Remote Lab fields -->
     <div id="remoteLabFields" style="display:none;">
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Name" %} <span class="text-danger">*</span></label>
         <input type="text" id="rlName" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Description</label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Description" %}</label>
         <textarea id="rlDescription" class="form-control form-control-sm" rows="2"></textarea>
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Launch URL <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Launch URL" %} <span class="text-danger">*</span></label>
         <input type="url" id="rlLaunchUrl" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Consumer Key <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Consumer Key" %} <span class="text-danger">*</span></label>
         <input type="text" id="rlConsumerKey" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Shared Secret <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Shared Secret" %} <span class="text-danger">*</span></label>
         <div class="input-group input-group-sm">
           <input type="password" id="rlSharedSecret" class="form-control">
           <button class="btn btn-outline-secondary" type="button" onclick="toggleSecretVisibility()">
@@ -828,22 +829,22 @@
     <!-- VR/AR Lab fields -->
     <div id="vrLabFields" style="display:none;">
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Name <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Name" %} <span class="text-danger">*</span></label>
         <input type="text" id="vrName" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Description</label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Description" %}</label>
         <textarea id="vrDescription" class="form-control form-control-sm" rows="2"></textarea>
       </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold" style="font-size:13px;">Launch URL <span class="text-danger">*</span></label>
+        <label class="form-label fw-semibold" style="font-size:13px;">{% translate "Launch URL" %} <span class="text-danger">*</span></label>
         <input type="url" id="vrLaunchUrl" class="form-control form-control-sm">
-        <div class="form-text" style="font-size:11px;">QR code regenerates automatically on save</div>
+        <div class="form-text" style="font-size:11px;">{% translate "QR code regenerates automatically on save" %}</div>
       </div>
     </div>
 
     <button class="btn btn-primary w-100" onclick="saveLabPanel()">
-      <i class="bi bi-check-lg me-1"></i>Save
+      <i class="bi bi-check-lg me-1"></i>{% translate "Save" %}
     </button>
     <div id="labPanelError" class="text-danger mt-2" style="display:none;font-size:13px;"></div>
   </div>
@@ -856,17 +857,17 @@
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
       <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
         <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
-          <i class="bi bi-exclamation-triangle me-2"></i>Delete
+          <i class="bi bi-exclamation-triangle me-2"></i>{% translate "Delete" %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-        Delete <strong id="deleteLabName"></strong>? Activities using this will lose their experiment link.
+        {% blocktranslate trimmed %}Delete <strong id="deleteLabName"></strong>? Activities using this will lose their experiment link.{% endblocktranslate %}
       </div>
       <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <button type="button" class="btn btn-danger btn-sm" id="deleteLabConfirmBtn">
-          <i class="bi bi-trash me-1"></i>Delete
+          <i class="bi bi-trash me-1"></i>{% translate "Delete" %}
         </button>
       </div>
     </div>
@@ -879,17 +880,17 @@
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
       <div class="modal-header" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
         <h5 class="modal-title" style="color:#dc2626;font-size:15px;font-weight:700;">
-          <i class="bi bi-exclamation-triangle me-2"></i>Delete User
+          <i class="bi bi-exclamation-triangle me-2"></i>{% translate "Delete User" %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" style="font-size:14px;padding:20px 24px;">
-        Delete <strong id="deleteUserName"></strong>? This cannot be undone.
+        {% blocktranslate trimmed %}Delete <strong id="deleteUserName"></strong>? This cannot be undone.{% endblocktranslate %}
       </div>
       <div class="modal-footer" style="border-top:1px solid #f3f4f6;padding:12px 24px;">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
         <button type="button" class="btn btn-danger btn-sm" id="deleteConfirmBtn">
-          <i class="bi bi-trash me-1"></i>Delete
+          <i class="bi bi-trash me-1"></i>{% translate "Delete" %}
         </button>
       </div>
     </div>
@@ -911,8 +912,49 @@
   </div>
 </div>
 
+{{ plural_texts|json_script:"admin-plural-texts" }}
 <script>
 const CSRF = '{{ csrf_token }}';
+const ADMIN_T = {
+  allRoles: "{% translate 'All Roles' as s %}{{ s|escapejs }}",
+  oneSelected: "{% translate '1 selected' as s %}{{ s|escapejs }}",
+  noUsers: "{% translate 'No users found' as s %}{{ s|escapejs }}",
+  noResults: "{% translate 'No results' as s %}{{ s|escapejs }}",
+  userSaved: "{% translate 'User saved.' as s %}{{ s|escapejs }}",
+  userActivated: "{% translate 'User activated.' as s %}{{ s|escapejs }}",
+  userSuspended: "{% translate 'User suspended.' as s %}{{ s|escapejs }}",
+  userDeleted: "{% translate 'User deleted.' as s %}{{ s|escapejs }}",
+  impersonateConfirm: "{% translate 'You will be logged in as this user. Continue?' as s %}{{ s|escapejs }}",
+  roleCreated: "{% translate 'Role created.' as s %}{{ s|escapejs }}",
+  roleProposalsOn: "{% translate 'Role can now generate AI proposals.' as s %}{{ s|escapejs }}",
+  roleProposalsOff: "{% translate 'Role can no longer generate AI proposals.' as s %}{{ s|escapejs }}",
+  saveFailed: "{% translate 'Could not save the change.' as s %}{{ s|escapejs }}",
+  deleteRoleConfirm: "{% translate 'Delete this role?' as s %}{{ s|escapejs }}",
+  roleDeleted: "{% translate 'Role deleted.' as s %}{{ s|escapejs }}",
+  roleRenamed: "{% translate 'Role renamed.' as s %}{{ s|escapejs }}",
+  clickToRename: "{% translate 'Click to rename' as s %}{{ s|escapejs }}",
+  canGenerate: "{% translate 'Can generate AI proposals for any scenario' as s %}{{ s|escapejs }}",
+  active: "{% translate 'Active' as s %}{{ s|escapejs }}",
+  inactive: "{% translate 'Inactive' as s %}{{ s|escapejs }}",
+  suspend: "{% translate 'Suspend' as s %}{{ s|escapejs }}",
+  activate: "{% translate 'Activate' as s %}{{ s|escapejs }}",
+  yes: "{% translate 'Yes' as s %}{{ s|escapejs }}",
+  no: "{% translate 'No' as s %}{{ s|escapejs }}",
+  edit: "{% translate 'Edit' as s %}{{ s|escapejs }}",
+  delete: "{% translate 'Delete' as s %}{{ s|escapejs }}",
+  editSimulation: "{% translate 'Edit Simulation' as s %}{{ s|escapejs }}",
+  addSimulation: "{% translate 'Add Simulation' as s %}{{ s|escapejs }}",
+  editRemoteLab: "{% translate 'Edit Remote Lab' as s %}{{ s|escapejs }}",
+  addRemoteLab: "{% translate 'Add Remote Lab' as s %}{{ s|escapejs }}",
+  editVrLab: "{% translate 'Edit VR/AR Lab' as s %}{{ s|escapejs }}",
+  addVrLab: "{% translate 'Add VR/AR Lab' as s %}{{ s|escapejs }}",
+  keepSecret: "{% translate 'Leave blank to keep current secret.' as s %}{{ s|escapejs }}",
+  saved: "{% translate 'Saved.' as s %}{{ s|escapejs }}",
+  deleted: "{% translate 'Deleted.' as s %}{{ s|escapejs }}",
+  showingRange: "{% translate 'Showing {start}–{end} of {total}' as s %}{{ s|escapejs }}"
+};
+const ADMIN_PLURALS = JSON.parse(document.getElementById("admin-plural-texts").textContent);
+
 const USER_PAGE_SIZE = 20;
 const LAB_PAGE_SIZE = 20;
 
@@ -972,12 +1014,12 @@ function updateRoleFilterLabel() {
   const checked = [...document.querySelectorAll('.role-filter-check:checked')];
   const labelEl = document.getElementById('roleFilterLabel');
   if (checked.length === 0) {
-    labelEl.textContent = 'All Roles';
+    labelEl.textContent = ADMIN_T.allRoles;
   } else if (checked.length === 1) {
     const lbl = document.querySelector('label[for="' + checked[0].id + '"]');
-    labelEl.textContent = lbl ? lbl.textContent.trim() : '1 selected';
+    labelEl.textContent = lbl ? lbl.textContent.trim() : ADMIN_T.oneSelected;
   } else {
-    labelEl.textContent = checked.length + ' roles selected';
+    labelEl.textContent = ADMIN_PLURALS.rolesSelected[checked.length];
   }
 }
 
@@ -1069,8 +1111,10 @@ function renderUserPage(page) {
   const paginEl = document.getElementById('userPagination');
 
   infoEl.textContent = total === 0
-    ? 'No users found'
-    : 'Showing ' + (start + 1) + '–' + Math.min(end, total) + ' of ' + total + ' user' + (total === 1 ? '' : 's');
+    ? ADMIN_T.noUsers
+    : ADMIN_PLURALS.usersRange[total]
+        .replace('{start}', function () { return start + 1; })
+        .replace('{end}', function () { return Math.min(end, total); });
 
   paginEl.innerHTML = '';
   if (totalPages > 1) buildPagination(paginEl, page, totalPages, renderUserPage);
@@ -1128,7 +1172,7 @@ function saveUser() {
     groups: groupIds,
   }).then(function(data) {
     if (data.success) {
-      showToast('User saved.', false);
+      showToast(ADMIN_T.userSaved, false);
       closeEditPanel();
       const uid = document.getElementById('editUserId').value;
       const row = document.querySelector('[data-user-id="' + uid + '"]');
@@ -1158,19 +1202,19 @@ function saveUser() {
 function toggleUser(id) {
   postJSON('/accounts/admin/toggle_user/' + id + '/', {}).then(function(data) {
     if (data.success) {
-      showToast(data.is_active ? 'User activated.' : 'User suspended.', false);
+      showToast(data.is_active ? ADMIN_T.userActivated : ADMIN_T.userSuspended, false);
       const row = document.querySelector('[data-user-id="' + id + '"]');
       if (row) {
         row.dataset.isActive = data.is_active ? 'true' : 'false';
         row.classList.toggle('inactive-row', !data.is_active);
         const statusCell = row.querySelector('.user-status-cell');
         if (statusCell) statusCell.innerHTML = data.is_active
-          ? '<span class="badge bg-success">Active</span>'
-          : '<span class="badge bg-secondary">Inactive</span>';
+          ? '<span class="badge bg-success">' + ADMIN_T.active + '</span>'
+          : '<span class="badge bg-secondary">' + ADMIN_T.inactive + '</span>';
         const btn = document.getElementById('toggle-btn-' + id);
         if (btn) {
           btn.className = 'btn btn-sm ' + (data.is_active ? 'btn-outline-warning' : 'btn-outline-success');
-          btn.title = data.is_active ? 'Suspend' : 'Activate';
+          btn.title = data.is_active ? ADMIN_T.suspend : ADMIN_T.activate;
           btn.innerHTML = '<i class="bi ' + (data.is_active ? 'bi-pause-circle' : 'bi-play-circle') + '"></i>';
         }
       }
@@ -1194,7 +1238,7 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', function()
   postJSON('/accounts/admin/delete_user/' + _deleteId + '/', {}).then(function(data) {
     bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
     if (data.success) {
-      showToast('User deleted.', false);
+      showToast(ADMIN_T.userDeleted, false);
       const row = document.querySelector('[data-user-id="' + _deleteId + '"]');
       if (row) row.remove();
       filterUsers();
@@ -1208,7 +1252,7 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', function()
 // ── Impersonate ─────────────────────────────────────────────────────────────
 
 function impersonateUser(id) {
-  if (!confirm('You will be logged in as this user. Continue?')) return;
+  if (!confirm(ADMIN_T.impersonateConfirm)) return;
   postJSON('/accounts/admin/impersonate/' + id + '/', {}).then(function(data) {
     if (data.success) window.location.href = data.redirect;
     else showToast(data.error, true);
@@ -1260,7 +1304,7 @@ function createRole() {
   if (!name) return;
   postJSON('/accounts/admin/create_role/', {name: name}).then(function(data) {
     if (data.success) {
-      showToast('Role created.', false);
+      showToast(ADMIN_T.roleCreated, false);
       nameInput.value = '';
       const container = document.getElementById('roleCards');
       const col = document.createElement('div');
@@ -1268,13 +1312,13 @@ function createRole() {
       col.id = 'role-card-' + data.id;
       col.innerHTML = '<div class="card h-100" style="border-radius:12px;"><div class="card-body">' +
         '<div class="d-flex align-items-start justify-content-between mb-2">' +
-        '<span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="Click to rename" onclick="startRenameRole(' + data.id + ', this)">' + escHtml(data.name) + '</span>' +
+        '<span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="' + escHtml(ADMIN_T.clickToRename) + '" onclick="startRenameRole(' + data.id + ', this)">' + escHtml(data.name) + '</span>' +
         '<div class="d-flex gap-1 align-items-center"><span class="badge bg-secondary">0</span>' +
         '<button class="btn btn-sm btn-outline-danger" onclick="deleteRole(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
         '</div></div>' +
         '<div class="form-check form-switch mt-2">' +
         '<input class="form-check-input" type="checkbox" id="role-proposals-' + data.id + '" onchange="toggleRoleProposals(' + data.id + ', this)">' +
-        '<label class="form-check-label" for="role-proposals-' + data.id + '" style="font-size:13px;">Can generate AI proposals for any scenario</label>' +
+        '<label class="form-check-label" for="role-proposals-' + data.id + '" style="font-size:13px;">' + escHtml(ADMIN_T.canGenerate) + '</label>' +
         '</div></div></div>';
       container.appendChild(col);
     } else {
@@ -1286,22 +1330,22 @@ function createRole() {
 function toggleRoleProposals(id, checkbox) {
   postJSON('/accounts/admin/role_proposals/' + id + '/', {allowed: checkbox.checked ? '1' : '0'}).then(function(data) {
     if (data.success) {
-      showToast(data.allowed ? 'Role can now generate AI proposals.' : 'Role can no longer generate AI proposals.', false);
+      showToast(data.allowed ? ADMIN_T.roleProposalsOn : ADMIN_T.roleProposalsOff, false);
     } else {
       checkbox.checked = !checkbox.checked;
       showToast(data.error, true);
     }
   }).catch(function() {
     checkbox.checked = !checkbox.checked;
-    showToast('Could not save the change.', true);
+    showToast(ADMIN_T.saveFailed, true);
   });
 }
 
 function deleteRole(id) {
-  if (!confirm('Delete this role?')) return;
+  if (!confirm(ADMIN_T.deleteRoleConfirm)) return;
   postJSON('/accounts/admin/delete_role/' + id + '/', {}).then(function(data) {
     if (data.success) {
-      showToast('Role deleted.', false);
+      showToast(ADMIN_T.roleDeleted, false);
       const card = document.getElementById('role-card-' + id);
       if (card) card.remove();
     } else {
@@ -1327,7 +1371,7 @@ function startRenameRole(id, el) {
       if (data.success) {
         el.textContent = data.name;
         input.replaceWith(el);
-        showToast('Role renamed.', false);
+        showToast(ADMIN_T.roleRenamed, false);
       } else {
         showToast(data.error, true);
         input.replaceWith(el);
@@ -1421,10 +1465,13 @@ function renderLabPage(type) {
   if (!infoEl || !paginEl) return;
 
   infoEl.textContent = total === 0
-    ? 'No results'
+    ? ADMIN_T.noResults
     : total <= LAB_PAGE_SIZE
-      ? total + ' item' + (total === 1 ? '' : 's')
-      : 'Showing ' + (start + 1) + '–' + Math.min(end, total) + ' of ' + total;
+      ? ADMIN_PLURALS.items[total]
+      : ADMIN_T.showingRange
+          .replace('{start}', function () { return start + 1; })
+          .replace('{end}', function () { return Math.min(end, total); })
+          .replace('{total}', function () { return total; });
 
   paginEl.innerHTML = '';
   if (totalPages > 1) {
@@ -1457,7 +1504,11 @@ function openLabPanel(type, row) {
   document.getElementById('remoteLabFields').style.display = 'none';
   document.getElementById('vrLabFields').style.display = 'none';
 
-  const labels = {simulation: 'Simulation', remote_lab: 'Remote Lab', vr_lab: 'VR/AR Lab'};
+  const titles = {
+    simulation: [ADMIN_T.addSimulation, ADMIN_T.editSimulation],
+    remote_lab: [ADMIN_T.addRemoteLab, ADMIN_T.editRemoteLab],
+    vr_lab: [ADMIN_T.addVrLab, ADMIN_T.editVrLab],
+  };
 
   if (type === 'simulation') {
     document.getElementById('simFields').style.display = '';
@@ -1474,7 +1525,7 @@ function openLabPanel(type, row) {
     document.getElementById('rlLaunchUrl').value = isEdit ? row.dataset.launchUrl : '';
     document.getElementById('rlConsumerKey').value = isEdit ? row.dataset.consumerKey : '';
     document.getElementById('rlSharedSecret').value = '';
-    document.getElementById('rlSecretHint').textContent = isEdit ? 'Leave blank to keep current secret.' : '';
+    document.getElementById('rlSecretHint').textContent = isEdit ? ADMIN_T.keepSecret : '';
   } else {
     document.getElementById('vrLabFields').style.display = '';
     document.getElementById('vrName').value = isEdit ? row.dataset.name : '';
@@ -1482,7 +1533,7 @@ function openLabPanel(type, row) {
     document.getElementById('vrLaunchUrl').value = isEdit ? row.dataset.launchUrl : '';
   }
 
-  document.getElementById('labPanelTitle').textContent = (isEdit ? 'Edit ' : 'Add ') + labels[type];
+  document.getElementById('labPanelTitle').textContent = titles[type][isEdit ? 1 : 0];
   document.getElementById('labPanelError').style.display = 'none';
   document.getElementById('labPanel').classList.add('open');
   document.getElementById('labPanelOverlay').classList.add('open');
@@ -1540,7 +1591,7 @@ function saveLabPanel() {
       err.style.display = 'block';
       return;
     }
-    showToast('Saved.', false);
+    showToast(ADMIN_T.saved, false);
     closeLabPanel();
     if (id) { updateLabRow(type, res); } else { prependLabRow(type, res); }
     filterAndPaginateLabs();
@@ -1567,7 +1618,7 @@ function updateLabRow(type, res) {
     const urlSpan = cells[2].querySelector('span');
     if (urlSpan) { urlSpan.textContent = res.iframe_url; urlSpan.title = res.iframe_url; }
     cells[3].textContent = res.width + '\xd7' + res.height + 'px';
-    cells[4].innerHTML = res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+    cells[4].innerHTML = res.allow_fullscreen ? '<span class="badge bg-success">' + ADMIN_T.yes + '</span>' : '<span class="badge bg-secondary">' + ADMIN_T.no + '</span>';
   } else if (type === 'remote_lab') {
     row = document.querySelector('[data-rlab-id="' + res.id + '"]');
     if (!row) return;
@@ -1619,10 +1670,10 @@ function prependLabRow(type, res) {
       '<td>' + langBadge + '</td>' +
       '<td><span class="text-truncate d-inline-block" style="max-width:220px;font-size:12px;color:#666;" title="' + escHtml(res.iframe_url) + '">' + escHtml(res.iframe_url) + '</span></td>' +
       '<td style="font-size:13px;">' + res.width + '\xd7' + res.height + 'px</td>' +
-      '<td>' + (res.allow_fullscreen ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>') + '</td>' +
+      '<td>' + (res.allow_fullscreen ? '<span class="badge bg-success">' + ADMIN_T.yes + '</span>' : '<span class="badge bg-secondary">' + ADMIN_T.no + '</span>') + '</td>' +
       '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
-      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'simulation\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
-      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="simulation" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '<button class="btn btn-sm btn-outline-primary" title="' + escHtml(ADMIN_T.edit) + '" onclick="openLabPanel(\'simulation\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="' + escHtml(ADMIN_T.delete) + '" data-lab-type="simulation" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
       '</div></td></tr>';
 
   } else if (type === 'remote_lab') {
@@ -1637,8 +1688,8 @@ function prependLabRow(type, res) {
       '<td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="' + escHtml(res.launch_url) + '">' + escHtml(res.launch_url) + '</span></td>' +
       '<td><code style="font-size:11px;">' + escHtml(res.consumer_key) + '</code></td>' +
       '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
-      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'remote_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
-      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="remote_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '<button class="btn btn-sm btn-outline-primary" title="' + escHtml(ADMIN_T.edit) + '" onclick="openLabPanel(\'remote_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="' + escHtml(ADMIN_T.delete) + '" data-lab-type="remote_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
       '</div></td></tr>';
 
   } else {
@@ -1656,8 +1707,8 @@ function prependLabRow(type, res) {
       '<td><span class="text-truncate d-inline-block" style="max-width:200px;font-size:12px;color:#666;" title="' + escHtml(res.launch_url) + '">' + escHtml(res.launch_url) + '</span></td>' +
       '<td>' + qrHtml + '</td>' +
       '<td style="white-space:nowrap;"><div class="d-flex gap-1">' +
-      '<button class="btn btn-sm btn-outline-primary" title="Edit" onclick="openLabPanel(\'vr_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
-      '<button class="btn btn-sm btn-outline-danger" title="Delete" data-lab-type="vr_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
+      '<button class="btn btn-sm btn-outline-primary" title="' + escHtml(ADMIN_T.edit) + '" onclick="openLabPanel(\'vr_lab\', this.closest(\'tr\'))"><i class="bi bi-pencil"></i></button>' +
+      '<button class="btn btn-sm btn-outline-danger" title="' + escHtml(ADMIN_T.delete) + '" data-lab-type="vr_lab" data-lab-id="' + res.id + '" data-lab-name="' + escHtml(res.name) + '" onclick="openDeleteLabModal(this)"><i class="bi bi-trash"></i></button>' +
       '</div></td></tr>';
   }
 
@@ -1688,7 +1739,7 @@ document.getElementById('deleteLabConfirmBtn').addEventListener('click', functio
   postJSON(urlMap[_labDeleteType], {}).then(function(data) {
     bootstrap.Modal.getInstance(document.getElementById('deleteLabModal')).hide();
     if (data.success) {
-      showToast('Deleted.', false);
+      showToast(ADMIN_T.deleted, false);
       const row = document.querySelector(selMap[_labDeleteType]);
       if (row) row.remove();
       filterAndPaginateLabs();

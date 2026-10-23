@@ -1,4 +1,5 @@
 {% extends "admin/change_form.html" %}
+{% load i18n %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -43,12 +44,14 @@
   {{ block.super }}
   {% if original %}
     <div class="family-review-rules">
-      <h2>Review rules</h2>
+      <h2>{% translate "Review rules" %}</h2>
       <p>
-        A translation or adaptation decision performs a logical family merge.
-        Implementations stay on their original scenario records, and evidence
-        compatibility is recalculated conservatively. Topic-only and unrelated
-        decisions never change scenario families.
+        {% blocktranslate trimmed %}
+          A translation or adaptation decision performs a logical family merge.
+          Implementations stay on their original scenario records, and evidence
+          compatibility is recalculated conservatively. Topic-only and unrelated
+          decisions never change scenario families.
+        {% endblocktranslate %}
       </p>
     </div>
   {% endif %}
@@ -58,12 +61,12 @@
   {{ block.super }}
   {% if original and has_change_permission %}
     <div class="submit-row family-review-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <input type="submit" value="Ask Ollama for second opinion" name="_request_llm_review" style="background:#7c3aed;">
-      <input type="submit" value="Same family — translation" name="_classify_translation" style="background:#166534;">
-      <input type="submit" value="Same family — adaptation" name="_classify_adaptation" style="background:#1d4ed8;">
-      <input type="submit" value="Related topic only" name="_classify_related_topic" style="background:#7c3aed;">
-      <input type="submit" value="Not related" name="_classify_unrelated" style="background:#b91c1c;">
-      <input type="submit" value="Review later" name="_defer_review" style="background:#64748b;">
+      <input type="submit" value="{% translate "Ask Ollama for second opinion" %}" name="_request_llm_review" style="background:#7c3aed;">
+      <input type="submit" value="{% translate "Same family — translation" %}" name="_classify_translation" style="background:#166534;">
+      <input type="submit" value="{% translate "Same family — adaptation" %}" name="_classify_adaptation" style="background:#1d4ed8;">
+      <input type="submit" value="{% translate "Related topic only" %}" name="_classify_related_topic" style="background:#7c3aed;">
+      <input type="submit" value="{% translate "Not related" %}" name="_classify_unrelated" style="background:#b91c1c;">
+      <input type="submit" value="{% translate "Review later" %}" name="_defer_review" style="background:#64748b;">
     </div>
   {% endif %}
 {% endblock %}

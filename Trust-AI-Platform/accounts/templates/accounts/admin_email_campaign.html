@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Campaign recipients</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Campaign recipients" %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -15,20 +16,20 @@
 <main id="main" class="main">
 <div class="pagetitle mb-3">
   <a href="{% url 'admin_dashboard' %}?tab=email" class="text-decoration-none" style="font-size:13px;">
-    <i class="bi bi-arrow-left me-1"></i>Back to Email
+    <i class="bi bi-arrow-left me-1"></i>{% translate "Back to Email" %}
   </a>
 </div>
 
 {% if outbox_paused %}
 <div class="alert alert-warning" role="alert">
   <i class="bi bi-pause-circle me-1"></i>
-  Sending paused until {{ outbox_state.paused_until|date:"H:i" }}: {{ outbox_state.pause_reason }}
+  {% blocktranslate with until=outbox_state.paused_until|date:"H:i" reason=outbox_state.pause_reason trimmed %}Sending paused until {{ until }}: {{ reason }}{% endblocktranslate %}
 </div>
 {% endif %}
 
 {% if resent %}
 <div class="alert alert-success" role="alert">
-  <i class="bi bi-check-circle me-1"></i>Queued {{ resent }} email{{ resent|pluralize }} again.
+  <i class="bi bi-check-circle me-1"></i>{% blocktranslate count counter=resent trimmed %}Queued {{ counter }} email again.{% plural %}Queued {{ counter }} emails again.{% endblocktranslate %}
 </div>
 {% endif %}
 
@@ -39,20 +40,20 @@
         <h1 class="campaign-title">{{ campaign.subject }}</h1>
         <div class="campaign-meta">
           {{ campaign.target_summary }} ·
-          by {% if campaign.created_by %}{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}{% else %}Deleted admin{% endif %} ·
+          {% if campaign.created_by %}{% blocktranslate with name=campaign.created_by.get_full_name|default:campaign.created_by.username trimmed %}by {{ name }}{% endblocktranslate %}{% else %}{% translate "by Deleted admin" %}{% endif %} ·
           {{ campaign.created_at|date:"d M Y H:i" }}
         </div>
       </div>
       <div class="text-end">
-        {% if campaign.status == 'completed' %}<span class="badge bg-success">Completed</span>
-        {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">With errors</span>
-        {% elif campaign.status == 'failed' %}<span class="badge bg-danger">Failed</span>
-        {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
-        {% else %}<span class="badge bg-secondary">Queued</span>{% endif %}
+        {% if campaign.status == 'completed' %}<span class="badge bg-success">{% translate "Completed" %}</span>
+        {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">{% translate "With errors" %}</span>
+        {% elif campaign.status == 'failed' %}<span class="badge bg-danger">{% translate "Failed" %}</span>
+        {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">{% translate "Sending" %}</span>
+        {% else %}<span class="badge bg-secondary">{% translate "Queued" %}</span>{% endif %}
         <div class="campaign-meta mt-1">
-          <span class="text-success">{{ counts.sent }} sent</span> ·
-          {{ counts.waiting }} waiting ·
-          <span class="text-danger">{{ counts.failed }} failed</span>
+          <span class="text-success">{% blocktranslate with n=counts.sent trimmed %}{{ n }} sent{% endblocktranslate %}</span> ·
+          {% blocktranslate with n=counts.waiting trimmed %}{{ n }} waiting{% endblocktranslate %} ·
+          <span class="text-danger">{% blocktranslate with n=counts.failed trimmed %}{{ n }} failed{% endblocktranslate %}</span>
         </div>
       </div>
     </div>
@@ -61,23 +62,24 @@
 
 <div class="card campaign-card">
   <div class="card-header bg-white px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <div class="delivery-filters btn-group" role="group" aria-label="Filter recipients">
-      <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All ({{ counts.all }})</a>
-      <a href="?status=waiting" class="btn btn-sm {% if status_filter == 'waiting' %}btn-primary{% else %}btn-outline-primary{% endif %}">Waiting ({{ counts.waiting }})</a>
-      <a href="?status=sent" class="btn btn-sm {% if status_filter == 'sent' %}btn-primary{% else %}btn-outline-primary{% endif %}">Sent ({{ counts.sent }})</a>
-      <a href="?status=failed" class="btn btn-sm {% if status_filter == 'failed' %}btn-primary{% else %}btn-outline-primary{% endif %}">Failed ({{ counts.failed }})</a>
+    <div class="delivery-filters btn-group" role="group" aria-label="{% translate "Filter recipients" %}">
+      <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% blocktranslate with n=counts.all trimmed %}All ({{ n }}){% endblocktranslate %}</a>
+      <a href="?status=waiting" class="btn btn-sm {% if status_filter == 'waiting' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% blocktranslate with n=counts.waiting trimmed %}Waiting ({{ n }}){% endblocktranslate %}</a>
+      <a href="?status=sent" class="btn btn-sm {% if status_filter == 'sent' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% blocktranslate with n=counts.sent trimmed %}Sent ({{ n }}){% endblocktranslate %}</a>
+      <a href="?status=failed" class="btn btn-sm {% if status_filter == 'failed' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% blocktranslate with n=counts.failed trimmed %}Failed ({{ n }}){% endblocktranslate %}</a>
     </div>
     <div class="d-flex gap-2">
+      {% blocktranslate with n=counts.failed asvar confirm_failed trimmed %}Queue the email again for everyone who failed ({{ n }})?{% endblocktranslate %}
       <form method="post" action="{% url 'admin_bulk_email_resend' campaign.id %}"
-            onsubmit="return confirm('Queue the email again for everyone who failed ({{ counts.failed }})?');">
+            onsubmit="return confirm('{{ confirm_failed|escapejs }}');">
         {% csrf_token %}
         <input type="hidden" name="mode" value="failed">
         <button type="submit" class="btn btn-sm btn-outline-danger" {% if not counts.failed %}disabled{% endif %}>
-          <i class="bi bi-arrow-repeat me-1"></i>Resend to all failed ({{ counts.failed }})
+          <i class="bi bi-arrow-repeat me-1"></i>{% blocktranslate with n=counts.failed trimmed %}Resend to all failed ({{ n }}){% endblocktranslate %}
         </button>
       </form>
       <button type="submit" form="resendSelectedForm" class="btn btn-sm btn-primary">
-        <i class="bi bi-send me-1"></i>Resend to selected
+        <i class="bi bi-send me-1"></i>{% translate "Resend to selected" %}
       </button>
     </div>
   </div>
@@ -90,8 +92,8 @@
       <table class="table table-hover mb-0 delivery-table">
         <thead style="background:#f8faff;">
           <tr>
-            <th class="ps-4" style="width:36px;"><input type="checkbox" class="form-check-input" aria-label="Select all on this page" onclick="toggleAllDeliveries(this)"></th>
-            <th>Name</th><th>Email</th><th>Status</th><th>Sent</th><th>Reason</th>
+            <th class="ps-4" style="width:36px;"><input type="checkbox" class="form-check-input" aria-label="{% translate "Select all on this page" %}" onclick="toggleAllDeliveries(this)"></th>
+            <th>{% translate "Name" %}</th><th>{% translate "Email" %}</th><th>{% translate "Status" %}</th><th>{% translate "Sent" %}</th><th>{% translate "Reason" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -99,25 +101,25 @@
           <tr>
             <td class="ps-4">
               <input type="checkbox" class="form-check-input delivery-check" name="delivery_ids" value="{{ delivery.pk }}"
-                     data-status="{{ delivery.status }}" aria-label="Select {{ delivery.email }}"
-                     {% if not delivery.user_id %}disabled title="This account was deleted"{% endif %}>
+                     data-status="{{ delivery.status }}" aria-label="{% blocktranslate with email=delivery.email trimmed %}Select {{ email }}{% endblocktranslate %}"
+                     {% if not delivery.user_id %}disabled title="{% translate "This account was deleted" %}"{% endif %}>
             </td>
             <td>
               {{ delivery.recipient_name|default:"—" }}
-              {% if delivery.reconstructed %}<div class="reconstructed-note" title="Rebuilt from the campaign's totals, not recorded at sending time">reconstructed</div>{% endif %}
+              {% if delivery.reconstructed %}<div class="reconstructed-note" title="{% translate "Rebuilt from the campaign's totals, not recorded at sending time" %}">{% translate "reconstructed" %}</div>{% endif %}
             </td>
             <td>{{ delivery.email }}</td>
             <td>
-              {% if delivery.status == 'sent' %}<span class="badge bg-success">Sent</span>
-              {% elif delivery.status == 'failed' %}<span class="badge bg-danger">Failed</span>
-              {% elif delivery.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
-              {% else %}<span class="badge bg-secondary">Waiting</span>{% endif %}
+              {% if delivery.status == 'sent' %}<span class="badge bg-success">{% translate "Sent" %}</span>
+              {% elif delivery.status == 'failed' %}<span class="badge bg-danger">{% translate "Failed" %}</span>
+              {% elif delivery.status == 'sending' %}<span class="badge bg-info text-dark">{% translate "Sending" %}</span>
+              {% else %}<span class="badge bg-secondary">{% translate "Waiting" %}</span>{% endif %}
             </td>
             <td>{{ delivery.sent_at|date:"d M Y H:i"|default:"—" }}</td>
             <td class="delivery-error">{{ delivery.error }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-center text-muted py-4">No recipients match this filter.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">{% translate "No recipients match this filter." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -126,13 +128,13 @@
 
   {% if page_obj.paginator.num_pages > 1 %}
   <div class="card-footer bg-white d-flex justify-content-between align-items-center px-4 py-2" style="font-size:13px;">
-    <span class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="text-muted">{% blocktranslate with number=page_obj.number total=page_obj.paginator.num_pages trimmed %}Page {{ number }} of {{ total }}{% endblocktranslate %}</span>
     <div class="d-flex gap-2">
       {% if page_obj.has_previous %}
-      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.previous_page_number }}">{% translate "Previous" %}</a>
       {% endif %}
       {% if page_obj.has_next %}
-      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.next_page_number }}">Next</a>
+      <a class="btn btn-sm btn-outline-secondary" href="?status={{ status_filter }}&amp;page={{ page_obj.next_page_number }}">{% translate "Next" %}</a>
       {% endif %}
     </div>
   </div>
@@ -140,7 +142,10 @@
 </div>
 </main>
 
+{{ resend_confirm_texts|json_script:"resend-confirm-texts" }}
 <script>
+  var RESEND_TEXTS = JSON.parse(document.getElementById('resend-confirm-texts').textContent);
+  var NOTHING_TICKED = "{% translate 'Tick the people to send the email to again.' as s %}{{ s|escapejs }}";
   function toggleAllDeliveries(source) {
     document.querySelectorAll('.delivery-check:not(:disabled)').forEach(function (box) { box.checked = source.checked; });
   }
@@ -148,13 +153,13 @@
   function confirmResendSelected(form) {
     var ticked = Array.from(form.querySelectorAll('.delivery-check:checked'));
     if (!ticked.length) {
-      alert('Tick the people to send the email to again.');
+      alert(NOTHING_TICKED);
       return false;
     }
     var alreadySent = ticked.filter(function (box) { return box.dataset.status === 'sent'; }).length;
-    var message = 'Queue the email again for ' + ticked.length + (ticked.length === 1 ? ' person?' : ' people?');
+    var message = RESEND_TEXTS.queue[ticked.length];
     if (alreadySent) {
-      message += '\n' + alreadySent + ' of these people already received it.';
+      message += '\n' + RESEND_TEXTS.sent[alreadySent];
     }
     return confirm(message);
   }

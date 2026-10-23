@@ -5,6 +5,7 @@ import re
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.utils.translation import gettext
 
 from organization.models import Organization
 
@@ -65,7 +66,7 @@ def resolve_campaign_recipients(target_type, teacher_ids=None, organization_ids=
         ).order_by('name')
         queryset = teachers.filter(member_of_organizations__in=selected_organizations)
     else:
-        raise ValueError('Choose a valid recipient group.')
+        raise ValueError(gettext('Choose a valid recipient group.'))
 
     return unique_valid_email_users(queryset), selected_organizations
 

@@ -1,9 +1,9 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 
-{% block title %}Scenario Health Check{% endblock %}
+{% block title %}{% translate "Scenario Health Check" %}{% endblock %}
 
-{% block content_title %}<h1>Scenario Health Check</h1>{% endblock %}
+{% block content_title %}<h1>{% translate "Scenario Health Check" %}</h1>{% endblock %}
 
 {% block content %}
 <style>
@@ -39,28 +39,28 @@
 <div class="health-summary">
   <div class="health-card hc-total">
     <div class="hc-num">{{ total }}</div>
-    <div class="hc-label">Total Scenarios</div>
+    <div class="hc-label">{% translate "Total Scenarios" %}</div>
   </div>
   <div class="health-card hc-ok">
     <div class="hc-num">{{ healthy_count }}</div>
-    <div class="hc-label">No Issues</div>
+    <div class="hc-label">{% translate "No Issues" %}</div>
   </div>
   <div class="health-card hc-warn">
     <div class="hc-num">{{ warning_count }}</div>
-    <div class="hc-label">Warnings</div>
+    <div class="hc-label">{% translate "Warnings" %}</div>
   </div>
   <div class="health-card hc-crit">
     <div class="hc-num">{{ critical_count }}</div>
-    <div class="hc-label">Critical</div>
+    <div class="hc-label">{% translate "Critical" %}</div>
   </div>
 </div>
 
 <!-- Fewer than 5 phases (critical) -->
 <div class="health-section">
-  <h2 class="h2-crit">&#9888; Fewer than 5 Phases &mdash; {{ no_phases|length }} scenario{{ no_phases|length|pluralize }}</h2>
+  <h2 class="h2-crit">&#9888; {% translate "Fewer than 5 Phases" %} &mdash; {% blocktranslate count counter=no_phases|length trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}</h2>
   {% if no_phases %}
   <table class="health-table">
-    <thead><tr><th>Scenario</th><th>Phases</th><th>Visibility</th><th>Created By</th><th>Created</th></tr></thead>
+    <thead><tr><th>{% translate "Scenario" %}</th><th>{% translate "Phases" %}</th><th>{% translate "Visibility" %}</th><th>{% translate "Created By" %}</th><th>{% translate "Created" %}</th></tr></thead>
     <tbody>
       {% for s in no_phases %}
       <tr>
@@ -74,16 +74,16 @@
     </tbody>
   </table>
   {% else %}
-  <div class="all-clear">&#10003; All scenarios have all 5 phases.</div>
+  <div class="all-clear">&#10003; {% translate "All scenarios have all 5 phases." %}</div>
   {% endif %}
 </div>
 
 <!-- Has Phases but No Activities (critical) -->
 <div class="health-section">
-  <h2 class="h2-crit">&#9888; Phases with No Activities &mdash; {{ no_activities|length }} scenario{{ no_activities|length|pluralize }}</h2>
+  <h2 class="h2-crit">&#9888; {% translate "Phases with No Activities" %} &mdash; {% blocktranslate count counter=no_activities|length trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}</h2>
   {% if no_activities %}
   <table class="health-table">
-    <thead><tr><th>Scenario</th><th>Phases</th><th>Visibility</th><th>Created By</th></tr></thead>
+    <thead><tr><th>{% translate "Scenario" %}</th><th>{% translate "Phases" %}</th><th>{% translate "Visibility" %}</th><th>{% translate "Created By" %}</th></tr></thead>
     <tbody>
       {% for s in no_activities %}
       <tr>
@@ -96,16 +96,16 @@
     </tbody>
   </table>
   {% else %}
-  <div class="all-clear">&#10003; All scenarios with phases have at least one activity.</div>
+  <div class="all-clear">&#10003; {% translate "All scenarios with phases have at least one activity." %}</div>
   {% endif %}
 </div>
 
 <!-- No Evaluatable Activities (warning) -->
 <div class="health-section">
-  <h2 class="h2-warn">&#8505; No Evaluatable Activities &mdash; {{ no_ev_activities|length }} scenario{{ no_ev_activities|length|pluralize }}</h2>
+  <h2 class="h2-warn">&#8505; {% translate "No Evaluatable Activities" %} &mdash; {% blocktranslate count counter=no_ev_activities|length trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}</h2>
   {% if no_ev_activities %}
   <table class="health-table">
-    <thead><tr><th>Scenario</th><th>Total Activities</th><th>Visibility</th><th>Created By</th></tr></thead>
+    <thead><tr><th>{% translate "Scenario" %}</th><th>{% translate "Total Activities" %}</th><th>{% translate "Visibility" %}</th><th>{% translate "Created By" %}</th></tr></thead>
     <tbody>
       {% for s in no_ev_activities %}
       <tr>
@@ -118,16 +118,16 @@
     </tbody>
   </table>
   {% else %}
-  <div class="all-clear">&#10003; All scenarios have at least one evaluatable activity.</div>
+  <div class="all-clear">&#10003; {% translate "All scenarios have at least one evaluatable activity." %}</div>
   {% endif %}
 </div>
 
 <!-- Not Assigned to Any Group (warning) -->
 <div class="health-section">
-  <h2 class="h2-warn">&#8505; Not Assigned to Any Student Group &mdash; {{ no_groups|length }} scenario{{ no_groups|length|pluralize }}</h2>
+  <h2 class="h2-warn">&#8505; {% translate "Not Assigned to Any Student Group" %} &mdash; {% blocktranslate count counter=no_groups|length trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}</h2>
   {% if no_groups %}
   <table class="health-table">
-    <thead><tr><th>Scenario</th><th>Visibility</th><th>Implementations</th><th>Created By</th></tr></thead>
+    <thead><tr><th>{% translate "Scenario" %}</th><th>{% translate "Visibility" %}</th><th>{% translate "Implementations" %}</th><th>{% translate "Created By" %}</th></tr></thead>
     <tbody>
       {% for s in no_groups %}
       <tr>
@@ -140,7 +140,7 @@
     </tbody>
   </table>
   {% else %}
-  <div class="all-clear">&#10003; All scenarios are assigned to at least one student group.</div>
+  <div class="all-clear">&#10003; {% translate "All scenarios are assigned to at least one student group." %}</div>
   {% endif %}
 </div>
 

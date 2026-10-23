@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 00:22+0300\n"
+"POT-Creation-Date: 2026-10-24 00:39+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,1394 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
+
+#: .\accounts\admin_views.py
+msgid "Access denied."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(n)d role selected"
+msgid_plural "%(n)d roles selected"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format, python-brace-format
+msgid "Showing {start}–{end} of %(n)d user"
+msgid_plural "Showing {start}–{end} of %(n)d users"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(n)d item"
+msgid_plural "%(n)d items"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+msgid "Confirm the recipient count before sending."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Subject is required."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Subject must be 200 characters or fewer."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Subject contains invalid characters."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Message content is required."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "No active teachers with valid email addresses match this selection."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "Campaign queued for %(n)d recipient."
+msgid_plural "Campaign queued for %(n)d recipients."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "Queue the email again for %(n)d person?"
+msgid_plural "Queue the email again for %(n)d people?"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(n)d of these people already received it."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot remove your own staff status."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot delete your own account."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot delete a superuser."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid ""
+"This account has student work (answers, scores or feedback) that must be "
+"kept. Use Suspend to block the login instead."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot suspend your own account."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot suspend a superuser account."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Role name is required."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "A role with this name already exists."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Remove all members before deleting this role."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Language name is required."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "Language name must be at most %(max)d characters."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "A language called \"%(name)s\" already exists."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(n)d scenario"
+msgid_plural "%(n)d scenarios"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(n)d organization"
+msgid_plural "%(n)d organizations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid ""
+"\"%(name)s\" has built-in chat and help texts tied to its name, so it cannot "
+"be renamed."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid ""
+"Renamed to \"%(name)s\" and updated %(scenarios)s and %(organizations)s."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid ""
+"\"%(name)s\" is used by %(scenarios)s and %(organizations)s. Change their "
+"language first."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot impersonate while already impersonating."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot impersonate a superuser."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Staff can only impersonate non-staff users."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Cannot impersonate yourself."
+msgstr ""
+
+#: .\accounts\bulk_email.py
+msgid "Choose a valid recipient group."
+msgstr ""
+
+#: .\accounts\models.py .\accounts\templates\accounts\_admin_email_tab.html
+msgid "All teachers"
+msgstr ""
+
+#: .\accounts\models.py
+#, python-format
+msgid "%(n)d selected teacher(s)"
+msgstr ""
+
+#: .\accounts\models.py
+#, python-format
+msgid "Organizations: %(names)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid ""
+"Messages are sent individually to <strong>active users with the Teacher role "
+"and a valid email address</strong>. Recipient addresses are never shared, "
+"and duplicate email addresses receive only one copy."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Compose message"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "Subject"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "What should teachers know?"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Maximum 200 characters."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Message"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Write your message…"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Images, formatted text, tables, and links are supported."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Choose recipients"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#, python-format
+msgid "%(counter)s unique deliverable address"
+msgid_plural "%(counter)s unique deliverable addresses"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Selected teachers"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Search and choose individual teachers."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Selected organizations"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Email Teacher-role members of chosen organizations."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Search teacher, email, or organization"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Select visible"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Clear"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "No teachers with email addresses found."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Search name, country, or language"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "No organizations found."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Unique recipients"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Review and send"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Recent campaigns"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Sending paused until %(until)s: %(reason)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Audience"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Delivery"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Status"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\templates\admin\authoringtool\scenario_health.html
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Created"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "by %(name)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "by Deleted admin"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#, python-format
+msgid "%(counter)s recipient"
+msgid_plural "%(counter)s recipients"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "%(n)s sent"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "%(n)s waiting"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "%(n)s failed"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Completed"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "With errors"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\authoringtool\models.py
+msgid "Failed"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Sending"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Queued"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Details"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "No campaigns have been sent yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Confirm campaign"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Send <strong id=\"bulkEmailConfirmSubject\"></strong> to:"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "unique teacher recipients"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "This action queues individual emails and cannot be undone."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#, python-format
+msgid ""
+"Up to %(limit)s emails go out per hour; sending starts within 5 minutes."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\authoringtool\templates\authoringtool\createAnswer.html
+#: .\authoringtool\templates\authoringtool\createCriterion.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updateAnswers.html
+#: .\authoringtool\templates\authoringtool\updateCriterion.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\add_member.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\templates\confirm_removal.html
+#: .\usergroups\templates\usergroups\create_group.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\update_group.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Cancel"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Queue emails"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Could not count recipients."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Enter an email subject."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Write the email message."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "The selection has no deliverable teacher addresses."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Queueing…"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Could not queue campaign."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Campaign queued."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_email_tab.html
+msgid "Upload failed."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Languages"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid ""
+"The languages teachers can choose for scenarios and organizations. Renaming "
+"a language also renames it on every scenario and organization that uses it. "
+"Languages marked <i class=\"bi bi-lock-fill\"></i> have built-in chat and "
+"help texts tied to their name and cannot be renamed. A language in use "
+"cannot be removed."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "New language…"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "New language name"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Add language"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Has built-in chat and help texts"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Click to rename"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#, python-format
+msgid "Remove %(name)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "In use — change those scenarios and organizations first"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\templates\admin\authoringtool\scenario_health.html
+#, python-format
+msgid "%(counter)s scenario"
+msgid_plural "%(counter)s scenarios"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#, python-format
+msgid "%(counter)s organization"
+msgid_plural "%(counter)s organizations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "No languages yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Language added."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#, python-brace-format
+msgid "Remove {name}"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Remove this language?"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Language removed."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Maintenance notices"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid ""
+"The banner is automatically shown to everyone between the configured start "
+"and end times."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Manage all"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Add notice"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+msgid "Reason"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgctxt "start of a period"
+msgid "Start"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgctxt "end of a period"
+msgid "End"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\feedback\templates\feedback\form_list.html .\templates\head.html
+msgid "Active"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Scheduled"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Disabled"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Ended"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "Edit maintenance notice"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_maintenance_tab.html
+msgid "No maintenance notices have been scheduled."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html .\templates\head.html
+msgid "Platform Administration"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Administration"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#, python-format
+msgid "%(counter)s user"
+msgid_plural "%(counter)s users"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#, python-format
+msgid "%(n)s active"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Django Admin"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\feedback\templates\feedback\form_responses.html
+msgid "Feedback Forms"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Total Users"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Staff / Admins"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\feedback\templates\feedback\form_list.html
+msgid "Inactive"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Teachers"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\usergroups\templates\usergroups\list_groups.html
+#: .\usergroups\templates\usergroups\list_with_imp.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Students"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Users"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Roles"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Labs"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+msgid "Email"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Maintenance"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Search name, username or email…"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "All Roles"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "SU"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html .\accounts\views.py
+msgid "Superuser"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "ST"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Staff"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Clear filter"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Show inactive"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\profile.html
+msgid "User"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Organization"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Last Login"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Open profile"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "(admin)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Never"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\organization_detail.html
+#: .\usergroups\templates\usergroups\edit_group.html
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Edit"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Suspend"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Activate"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Impersonate"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\feedback\templates\feedback\form_list.html
+#: .\organization\templates\organization\announcement_detail.html
+#: .\organization\templates\organization\organization_detail.html
+msgid "Delete"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "User pages"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "New role name…"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add Role"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Remove all members first"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\organization\templates\organization\organization_detail.html
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Can generate AI proposals for any scenario"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Search labs by name…"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Lab type filter"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "All"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Simulations"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Remote Labs"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "VR/AR"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add Simulation"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgid "All Languages"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\usergroups\templates\usergroups\list_groups.html
+msgid "Name"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Sort by language"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\organization\templates\organization\list_organizations.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\usergroups\templates\usergroups\includes\scenario_choice.html
+msgid "Language"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Iframe URL"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Size"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Fullscreen"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Yes"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "No"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "No simulations yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Remote Labs (LabsLand)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add Remote Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\createPhase.html
+#: .\authoringtool\templates\authoringtool\createScenario.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\organization\templates\organization\create_organization.html
+#: .\organization\templates\organization\edit_organization.html
+msgid "Description"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Launch URL"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Consumer Key"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "No remote labs yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "VR/AR Labs"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add VR Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\authoringtool\templates\authoringtool\createActivity.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\studentview\templates\studentview\scenarioView.html
+msgid "QR Code"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "No VR/AR labs yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Edit User"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\organization\templates\organization\add_member.html
+msgid "First Name"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\organization\templates\organization\add_member.html
+msgid "Last Name"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Staff (can access admin)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\accounts\templates\accounts\profile.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\updateActivity.html
+#: .\authoringtool\templates\authoringtool\updatePhase.html
+#: .\authoringtool\templates\authoringtool\updateScenario.html
+#: .\feedback\templates\feedback\form_edit.html
+#: .\organization\templates\organization\edit_announcement.html
+#: .\organization\templates\organization\edit_organization.html
+#: .\usergroups\templates\usergroups\edit_group.html
+msgid "Save Changes"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "— Select Language —"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Width (px)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Height (px)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Allow Fullscreen"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Shared Secret"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "QR code regenerates automatically on save"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Save"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid ""
+"Delete <strong id=\"deleteLabName\"></strong>? Activities using this will "
+"lose their experiment link."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Delete User"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Delete <strong id=\"deleteUserName\"></strong>? This cannot be undone."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "1 selected"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#: .\organization\templates\organization\add_member.html
+msgid "No users found"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "No results"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "User saved."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "User activated."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "User suspended."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "User deleted."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "You will be logged in as this user. Continue?"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Role created."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Role can now generate AI proposals."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Role can no longer generate AI proposals."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Could not save the change."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Delete this role?"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Role deleted."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Role renamed."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Edit Simulation"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Edit Remote Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Edit VR/AR Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Add VR/AR Lab"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Leave blank to keep current secret."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Saved."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+msgid "Deleted."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_dashboard.html
+#, python-brace-format
+msgid "Showing {start}–{end} of {total}"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Campaign recipients"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Back to Email"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Queued %(counter)s email again."
+msgid_plural "Queued %(counter)s emails again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Filter recipients"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "All (%(n)s)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Waiting (%(n)s)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Sent (%(n)s)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Failed (%(n)s)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Queue the email again for everyone who failed (%(n)s)?"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Resend to all failed (%(n)s)"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Resend to selected"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Select all on this page"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Sent"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Select %(email)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "This account was deleted"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Rebuilt from the campaign's totals, not recorded at sending time"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "reconstructed"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\authoringtool\models.py
+msgid "Waiting"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "No recipients match this filter."
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+#, python-format
+msgid "Page %(number)s of %(total)s"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Previous"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Next"
+msgstr ""
+
+#: .\accounts\templates\accounts\admin_email_campaign.html
+msgid "Tick the people to send the email to again."
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html .\templates\head.html
+msgid "Documentation & Tutorials"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Help & Resources"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Guides, tutorials, external tools, and project information"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Guides"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "PDF Guide (English)"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Full platform user guide in English"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "VR/AR Lab Target Image"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Reference target image for VR/AR lab sessions"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Tools & External Links"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Platform Change Log"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Latest updates, fixes, and new features"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Issue Reporting Form"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Report a bug or problem with the platform"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Partner Resources"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Feature Request"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Submit ideas and feature requests for the platform"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Available Scenarios"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Browse all scenarios currently available in the platform"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Associated Projects"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid ""
+"Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation — "
+"Forward Looking project that aspires to develop a roadmap for the AI-"
+"Enhanced Classroom for Deeper Learning in STEM. It facilitates the "
+"transformation of the traditional classroom into an innovative environment "
+"that promotes scientific exploration and supports the development of key "
+"skills for all students."
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Visit Project's Site"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid ""
+"FAITH aims to provide the practitioners and stakeholders of AI systems not "
+"only with a comprehensive analysis of the foundations of AI trustworthiness, "
+"but also with an operational playbook for how to assess and build "
+"trustworthy AI systems and how to continuously measure their trustworthiness."
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "PDF Documentation (English)"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Download PDF"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+#: .\accounts\templates\accounts\login.html
+#: .\accounts\templates\accounts\profile.html
+#: .\accounts\templates\accounts\register.html
+#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
+#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
+#: .\authoringtool\templates\authoringtool\index.html
+#: .\authoringtool\templates\authoringtool\proposal_list.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+#: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+#: .\studentview\templates\studentview\scenarioView.html .\templates\main.html
+msgid "Close"
+msgstr ""
+
+#: .\accounts\templates\accounts\documentation.html
+msgid "Download Image"
+msgstr ""
 
 #: .\accounts\templates\accounts\login.html
 msgid "Login"
@@ -105,22 +1493,6 @@ msgstr ""
 #: .\accounts\templates\accounts\login.html
 #: .\accounts\templates\accounts\profile.html
 #: .\accounts\templates\accounts\register.html
-#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
-#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
-#: .\authoringtool\templates\authoringtool\index.html
-#: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\studentview\templates\studentview\scenarioSelection.html
-#: .\studentview\templates\studentview\scenarioView.html .\templates\main.html
-msgid "Close"
-msgstr ""
-
-#: .\accounts\templates\accounts\login.html
-#: .\accounts\templates\accounts\profile.html
-#: .\accounts\templates\accounts\register.html
 #: .\organization\templates\organization\add_member.html
 #: .\usergroups\templates\usergroups\view_group.html
 msgid "Username"
@@ -152,7 +1524,8 @@ msgid "EU Logo"
 msgstr ""
 
 #: .\accounts\templates\accounts\login.html
-#: .\accounts\templates\accounts\register.html .\templates\footer.html
+#: .\accounts\templates\accounts\register.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 #: .\templates\registration\password_reset_complete.html
 #: .\templates\registration\password_reset_confirm.html
 #: .\templates\registration\password_reset_done.html
@@ -172,7 +1545,8 @@ msgid ""
 msgstr ""
 
 #: .\accounts\templates\accounts\login.html
-#: .\accounts\templates\accounts\register.html .\templates\404.html
+#: .\accounts\templates\accounts\register.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\404.html
 #: .\templates\footer.html
 #: .\templates\registration\password_reset_complete.html
 #: .\templates\registration\password_reset_confirm.html
@@ -204,10 +1578,6 @@ msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
 msgid "Profile picture"
-msgstr ""
-
-#: .\accounts\templates\accounts\profile.html
-msgid "User"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
@@ -263,23 +1633,6 @@ msgid "Change Password"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
-#: .\accounts\templates\accounts\register.html
-#: .\organization\templates\organization\add_member.html
-msgid "First Name"
-msgstr ""
-
-#: .\accounts\templates\accounts\profile.html
-#: .\accounts\templates\accounts\register.html
-#: .\organization\templates\organization\add_member.html
-msgid "Last Name"
-msgstr ""
-
-#: .\accounts\templates\accounts\profile.html
-#: .\accounts\templates\accounts\register.html
-msgid "Email"
-msgstr ""
-
-#: .\accounts\templates\accounts\profile.html
 msgid "Username cannot be changed."
 msgstr ""
 
@@ -321,18 +1674,6 @@ msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
 msgid "A short bio…"
-msgstr ""
-
-#: .\accounts\templates\accounts\profile.html
-#: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\updateActivity.html
-#: .\authoringtool\templates\authoringtool\updatePhase.html
-#: .\authoringtool\templates\authoringtool\updateScenario.html
-#: .\feedback\templates\feedback\form_edit.html
-#: .\organization\templates\organization\edit_announcement.html
-#: .\organization\templates\organization\edit_organization.html
-#: .\usergroups\templates\usergroups\edit_group.html
-msgid "Save Changes"
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
@@ -412,6 +1753,7 @@ msgid "The picture could not be saved."
 msgstr ""
 
 #: .\accounts\templates\accounts\register.html
+#: .\accounts\templates\accounts\tos_public.html
 msgid "Register"
 msgstr ""
 
@@ -474,6 +1816,88 @@ msgstr ""
 
 #: .\accounts\templates\accounts\register.html
 msgid "Creating account…"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\head.html
+msgid "Terms of Service"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Legal"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid ""
+"Please read these terms carefully before using the Trust AI Lab platform."
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Contents"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Description of the Platform"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Acceptance of Terms"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "User Responsibilities"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Data and Privacy"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Intellectual Property"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Platform Availability"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Termination"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Modifications"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Communication & Consent"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "Contact Us"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+msgid "EU Funding"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos_public.html
+msgid "Please read these terms carefully before creating an account."
+msgstr ""
+
+#: .\accounts\templates\accounts\tos_public.html
+#: .\templates\registration\password_reset_done.html
+msgid "Back to Login"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos_public.html
+msgid ""
+"This application was developed as part of the FAITH and DSPACE projects, "
+"which have received funding from the European Union under grant agreement "
+"No. 101135932 and No. 101086701. Views and opinions expressed are however "
+"those of the author(s) only and do not necessarily reflect those of the "
+"European Union or the European Education and Culture Executive Agency "
+"(EACEA). Neither the European Union nor EACEA can be held responsible for "
+"them."
 msgstr ""
 
 #: .\accounts\views.py
@@ -567,10 +1991,6 @@ msgstr ""
 
 #: .\accounts\views.py
 msgid "DSpace Partner"
-msgstr ""
-
-#: .\accounts\views.py
-msgid "Superuser"
 msgstr ""
 
 #: .\accounts\views.py
@@ -859,19 +2279,11 @@ msgid "Teacher adaptation"
 msgstr ""
 
 #: .\authoringtool\models.py
-msgid "Waiting"
-msgstr ""
-
-#: .\authoringtool\models.py
 msgid "Translating"
 msgstr ""
 
 #: .\authoringtool\models.py
 msgid "Done"
-msgstr ""
-
-#: .\authoringtool\models.py
-msgid "Failed"
 msgstr ""
 
 #: .\authoringtool\models.py
@@ -882,11 +2294,290 @@ msgstr ""
 msgid "Co-author"
 msgstr ""
 
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Review rules"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid ""
+"A translation or adaptation decision performs a logical family merge. "
+"Implementations stay on their original scenario records, and evidence "
+"compatibility is recalculated conservatively. Topic-only and unrelated "
+"decisions never change scenario families."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Ask Ollama for second opinion"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Same family — translation"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Same family — adaptation"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Related topic only"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Not related"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Review later"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Associate scenarios manually"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Scan scenarios"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
+msgid "Force profile refresh"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Ask Ollama to review pending"
+msgstr ""
+
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
 #: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
 #: .\authoringtool\templates\authoringtool\index.html
 #: .\home\templates\home\home.html .\templates\head.html
 msgid "Home"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Scenario family review dashboard"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Revision or scenario association?"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid ""
+"A <b>revision</b> is a new immutable version of the same scenario record. Do "
+"not associate two separate scenarios as revisions. If a teacher copied a "
+"scenario and then changed it, classify that copy as <b>Adaptation / revised "
+"copy</b>."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid ""
+"Existing immutable revisions can be inspected under <a href=\"%(url)s"
+"\">Scenario versions</a>."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Choose scenarios and relationship"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Filter scenarios by name…"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Preview association"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "Confirm %(label)s"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Language unspecified"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Unspecified"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "Association preview: %(label)s"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Family that remains"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "revision v%(number)s"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "Family: <b>%(title)s</b>"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "%(counter)s variant"
+msgid_plural "%(counter)s variants"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid "%(counter)s student implementation"
+msgid_plural "%(counter)s student implementations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Selected scenario / source family"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Logical family merge:"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#, python-format
+msgid ""
+"all %(counter)s source-family variant will move into <b>%(title)s</b>. "
+"Implementations, answers, and immutable revisions remain on their original "
+"scenario records. Evidence compatibility is recalculated separately."
+msgid_plural ""
+"all %(counter)s source-family variants will move into <b>%(title)s</b>. "
+"Implementations, answers, and immutable revisions remain on their original "
+"scenario records. Evidence compatibility is recalculated separately."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "No family merge:"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid ""
+"this decision records the relationship for audit and future matching, but "
+"leaves both scenario families unchanged."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+msgid "Check before confirming:"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Scenario family governance"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid ""
+"This dashboard shows each shared scenario identity, its translations and "
+"adaptations, immutable revisions, and original student implementation "
+"totals. Discovery and Ollama output are suggestions only. Family membership "
+"changes only after an administrator confirms a candidate."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid ""
+"Use <b>Scan scenarios</b> after importing or creating translations. Then "
+"open the candidate inbox, compare the exact revisions, optionally request an "
+"Ollama second opinion, and record the final classification."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Open candidate inbox"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\change_list.html
+msgid "Scan for translations"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\change_list.html
+msgid "Why not matched?"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid ""
+"Enter the IDs of two scenarios you expect to be translations of each other. "
+"The page runs the same checks as \"Scan for translations\" and shows which "
+"one keeps the pair out of the list."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Scenario ID"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Check"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "no language"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgctxt "between two scenarios"
+msgid "and"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+#, python-format
+msgid "Stopped by: %(label)s"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Passes every check."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Open the match to review it"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Passes every check but is not listed yet."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Result"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "✓ pass"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "! check"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "✗ fails"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "– skipped"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Differences"
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "None: every reachable activity and route matches."
+msgstr ""
+
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
+msgid "Side-by-side flow"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\_ai_server_banner.html
@@ -908,31 +2599,6 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
 msgid ""
 "Teachers in organizations using the translation's language are listed first."
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
-#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
-#: .\authoringtool\templates\authoringtool\createAnswer.html
-#: .\authoringtool\templates\authoringtool\createCriterion.html
-#: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\updateActivity.html
-#: .\authoringtool\templates\authoringtool\updateAnswers.html
-#: .\authoringtool\templates\authoringtool\updateCriterion.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\organization\templates\organization\add_member.html
-#: .\organization\templates\organization\create_organization.html
-#: .\organization\templates\organization\edit_organization.html
-#: .\organization\templates\organization\organization_detail.html
-#: .\templates\confirm_removal.html
-#: .\usergroups\templates\usergroups\create_group.html
-#: .\usergroups\templates\usergroups\edit_group.html
-#: .\usergroups\templates\usergroups\list_groups.html
-#: .\usergroups\templates\usergroups\update_group.html
-#: .\usergroups\templates\usergroups\view_group.html
-msgid "Cancel"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\_assign_reviewer_modal.html
@@ -1170,19 +2836,6 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "Historical analytics"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
-#: .\authoringtool\templates\authoringtool\createScenario.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\updateScenario.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\organization\templates\organization\create_organization.html
-#: .\organization\templates\organization\edit_organization.html
-#: .\organization\templates\organization\list_organizations.html
-#: .\studentview\templates\studentview\scenarioSelection.html
-#: .\usergroups\templates\usergroups\includes\scenario_choice.html
-msgid "Language"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
@@ -1447,10 +3100,6 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "Flag Type"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
-msgid "Reason"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
@@ -1921,13 +3570,6 @@ msgid "Create Activity"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createActivity.html
-#: .\authoringtool\templates\authoringtool\updateActivity.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\studentview\templates\studentview\scenarioView.html
-msgid "QR Code"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\createCriterion.html
 #: .\authoringtool\templates\authoringtool\createPhase.html
 #: .\authoringtool\templates\authoringtool\createScenario.html
@@ -2232,15 +3874,6 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\createPhase.html
 #: .\authoringtool\templates\authoringtool\updatePhase.html
 msgid "Give this phase a clear, descriptive name."
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\createPhase.html
-#: .\authoringtool\templates\authoringtool\createScenario.html
-#: .\authoringtool\templates\authoringtool\updatePhase.html
-#: .\authoringtool\templates\authoringtool\updateScenario.html
-#: .\organization\templates\organization\create_organization.html
-#: .\organization\templates\organization\edit_organization.html
-msgid "Description"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\createPhase.html
@@ -2575,6 +4208,7 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\viewPhase.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 #: .\studentview\templates\studentview\scenarioForm.html
+#: .\templates\admin\authoringtool\scenario_health.html
 msgid "Scenario"
 msgstr ""
 
@@ -2694,6 +4328,7 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\templates\admin\authoringtool\scenario_health.html
 msgid "Phases"
 msgstr ""
 
@@ -3115,11 +4750,6 @@ msgid "Create Personalised Scenario"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-msgid "All"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\proposal_list.html
 msgid "Accept"
 msgstr ""
 
@@ -3134,23 +4764,6 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
 msgid "Undo Reject"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\updatePhase.html
-#: .\authoringtool\templates\authoringtool\updateScenario.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\feedback\templates\feedback\form_edit.html
-#: .\feedback\templates\feedback\form_list.html
-#: .\organization\templates\organization\announcement_detail.html
-#: .\organization\templates\organization\edit_organization.html
-#: .\organization\templates\organization\organization_detail.html
-#: .\usergroups\templates\usergroups\edit_group.html
-#: .\usergroups\templates\usergroups\list_groups.html
-msgid "Edit"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
@@ -3184,12 +4797,6 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
 msgid "removed"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\proposal_list.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\usergroups\templates\usergroups\list_groups.html
-msgid "Name"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\proposal_list.html
@@ -3345,6 +4952,7 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\updateScenario.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\templates\admin\authoringtool\scenario_health.html
 msgid "Visibility"
 msgstr ""
 
@@ -3364,11 +4972,6 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Show My Scenarios"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\studentview\templates\studentview\scenarioSelection.html
-msgid "Subject"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
@@ -3404,15 +5007,6 @@ msgid "Translate"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\feedback\templates\feedback\form_list.html
-#: .\organization\templates\organization\announcement_detail.html
-#: .\organization\templates\organization\organization_detail.html
-msgid "Delete"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\studentview\templates\studentview\scenarioSelection.html
 #, python-format
 msgid "%(name)s: all languages"
@@ -3427,15 +5021,6 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 msgid "Owner"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\organization\templates\organization\organization_detail.html
-#: .\usergroups\templates\usergroups\list_groups.html
-#: .\usergroups\templates\usergroups\list_with_imp.html
-#: .\usergroups\templates\usergroups\view_group.html
-msgid "Students"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
@@ -3499,14 +5084,6 @@ msgstr ""
 #, python-format
 msgid "Page %(number)s of %(pages)s"
 msgstr ""
-
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#, python-format
-msgid "%(counter)s scenario"
-msgid_plural "%(counter)s scenarios"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Name of your copy"
@@ -4083,22 +5660,7 @@ msgid "Helper"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewPhase.html
-#: .\authoringtool\templates\authoringtool\viewScenario.html
-#: .\feedback\templates\feedback\form_list.html
-#: .\usergroups\templates\usergroups\list_groups.html
-msgid "Created"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\viewPhase.html
 msgid "By"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-msgid "Yes"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-msgid "No"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewPhase.html
@@ -4208,6 +5770,7 @@ msgid "%(minutes)s minutes"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\templates\admin\authoringtool\scenario_health.html
 #: .\usergroups\templates\usergroups\view_group.html
 msgid "Created By"
 msgstr ""
@@ -4911,22 +6474,11 @@ msgid "Image exceeds the 8 MB size limit."
 msgstr ""
 
 #: .\feedback\templates\feedback\form_edit.html
-#: .\feedback\templates\feedback\form_list.html
-msgid "Administration"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_edit.html
 msgid "Edit Feedback Form"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_edit.html
 msgid "New Feedback Form"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_edit.html
-#: .\feedback\templates\feedback\form_list.html
-#: .\feedback\templates\feedback\form_responses.html
-msgid "Feedback Forms"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_edit.html
@@ -4949,11 +6501,6 @@ msgstr ""
 
 #: .\feedback\templates\feedback\form_edit.html
 msgid "Description (shown above the questions)"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_edit.html
-#: .\feedback\templates\feedback\form_list.html
-msgid "Audience"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_edit.html
@@ -5050,24 +6597,12 @@ msgid "New Form"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_list.html
-msgid "Status"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_list.html
 #: .\feedback\templates\feedback\form_responses.html
 msgid "Responses"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_list.html
 msgid "Student"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_list.html .\templates\head.html
-msgid "Active"
-msgstr ""
-
-#: .\feedback\templates\feedback\form_list.html
-msgid "Inactive"
 msgstr ""
 
 #: .\feedback\templates\feedback\form_list.html
@@ -5371,10 +6906,6 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: .\organization\templates\organization\add_member.html
-msgid "No users found"
-msgstr ""
-
-#: .\organization\templates\organization\add_member.html
 msgid "Already a member"
 msgstr ""
 
@@ -5512,11 +7043,6 @@ msgid "Name, short name, country…"
 msgstr ""
 
 #: .\organization\templates\organization\list_organizations.html
-#: .\studentview\templates\studentview\scenarioSelection.html
-msgid "All Languages"
-msgstr ""
-
-#: .\organization\templates\organization\list_organizations.html
 msgid "Sort By"
 msgstr ""
 
@@ -5549,15 +7075,6 @@ msgstr ""
 #: .\organization\templates\organization\organization_detail.html
 msgid "Member"
 msgstr ""
-
-#: .\organization\templates\organization\list_organizations.html
-#: .\organization\templates\organization\organization_detail.html
-#, python-format
-msgid "%(counter)s member"
-msgid_plural "%(counter)s members"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 #: .\organization\templates\organization\list_organizations.html
 #, python-format
@@ -5630,10 +7147,7 @@ msgid "Report"
 msgstr ""
 
 #: .\organization\templates\organization\organization_detail.html
-msgid "Teachers"
-msgstr ""
-
-#: .\organization\templates\organization\organization_detail.html
+#: .\templates\admin\authoringtool\scenario_health.html
 msgid "Implementations"
 msgstr ""
 
@@ -5686,10 +7200,6 @@ msgstr ""
 #: .\organization\templates\organization\organization_detail.html
 #, python-format
 msgid "%(count)s total"
-msgstr ""
-
-#: .\organization\templates\organization\organization_detail.html
-msgid "Message"
 msgstr ""
 
 #: .\organization\templates\organization\organization_detail.html
@@ -6047,12 +7557,72 @@ msgstr ""
 msgid "Page Not Found"
 msgstr ""
 
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Scenario Health Check"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Total Scenarios"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "No Issues"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Warnings"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Critical"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Fewer than 5 Phases"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "All scenarios have all 5 phases."
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Phases with No Activities"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "All scenarios with phases have at least one activity."
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "No Evaluatable Activities"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Total Activities"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "All scenarios have at least one evaluatable activity."
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "Not Assigned to Any Student Group"
+msgstr ""
+
+#: .\templates\admin\authoringtool\scenario_health.html
+msgid "All scenarios are assigned to at least one student group."
+msgstr ""
+
 #: .\templates\admin\base_site.html
 msgid "Django site admin"
 msgstr ""
 
 #: .\templates\admin\base_site.html
 msgid "Django administration"
+msgstr ""
+
+#: .\templates\admin\base_site.html
+msgid "Back to platform"
 msgstr ""
 
 #: .\templates\footer.html
@@ -6076,23 +7646,11 @@ msgid "Exit Impersonation"
 msgstr ""
 
 #: .\templates\head.html
-msgid "Platform Administration"
-msgstr ""
-
-#: .\templates\head.html
 msgid "Sign Out"
 msgstr ""
 
 #: .\templates\head.html
 msgid "Trust AI Lab Logo"
-msgstr ""
-
-#: .\templates\head.html
-msgid "Documentation & Tutorials"
-msgstr ""
-
-#: .\templates\head.html
-msgid "Terms of Service"
 msgstr ""
 
 #: .\templates\includes\maintenance_banner.html
@@ -6157,10 +7715,6 @@ msgstr ""
 
 #: .\templates\registration\password_reset_done.html
 msgid "If it doesn't arrive in a few minutes, please check your spam folder."
-msgstr ""
-
-#: .\templates\registration\password_reset_done.html
-msgid "Back to Login"
 msgstr ""
 
 #: .\templates\registration\password_reset_email.html
@@ -6420,10 +7974,6 @@ msgstr ""
 
 #: .\usergroups\templates\usergroups\list_groups.html
 msgid "All scenarios"
-msgstr ""
-
-#: .\usergroups\templates\usergroups\list_groups.html
-msgid "Clear"
 msgstr ""
 
 #: .\usergroups\templates\usergroups\list_groups.html

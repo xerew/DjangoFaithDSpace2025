@@ -1,4 +1,5 @@
 {% extends "admin/change_list.html" %}
+{% load i18n %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -50,7 +51,7 @@
   {% if has_change_permission %}
     <li>
       <a href="{% url 'admin:authoringtool_scenariofamilyreviewproxy_associate' %}">
-        Associate scenarios manually
+        {% translate "Associate scenarios manually" %}
       </a>
     </li>
   {% endif %}
@@ -58,7 +59,7 @@
     <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_scan' %}">
       {% csrf_token %}
       <button type="submit">
-        Scan scenarios
+        {% translate "Scan scenarios" %}
       </button>
     </form>
   </li>
@@ -67,7 +68,7 @@
       {% csrf_token %}
       <input type="hidden" name="force_profiles" value="1">
       <button type="submit">
-        Force profile refresh
+        {% translate "Force profile refresh" %}
       </button>
     </form>
   </li>
@@ -75,7 +76,7 @@
     <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_llm_review_pending' %}">
       {% csrf_token %}
       <button type="submit">
-        Ask Ollama to review pending
+        {% translate "Ask Ollama to review pending" %}
       </button>
     </form>
   </li>

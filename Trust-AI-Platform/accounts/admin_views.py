@@ -11,6 +11,7 @@ from django.db.models import Count, ProtectedError, Q
 from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils import timezone
+from django.utils.translation import gettext as _, ngettext
 from functools import wraps
 from authoringtool.models import Language, Scenario, Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
@@ -30,9 +31,38 @@ def staff_required(view_func):
     @login_required
     def _wrapped(request, *args, **kwargs):
         if not (request.user.is_staff or request.user.is_superuser):
-            return HttpResponseForbidden("Access denied.")
+            return HttpResponseForbidden(_("Access denied."))
         return view_func(request, *args, **kwargs)
     return _wrapped
+
+
+LAB_PAGE_SIZE = 20  # keep in step with LAB_PAGE_SIZE in admin_dashboard.html
+
+
+def _dashboard_plural_texts(user_count, role_count):
+    """Plural-correct texts for the dashboard script, one per possible count.
+
+    The script cannot call ngettext, so every count it can show is prepared
+    here; {start} and {end} are filled in by the script.
+    """
+    return {
+        'rolesSelected': {
+            n: ngettext('%(n)d role selected', '%(n)d roles selected', n) % {'n': n}
+            for n in range(2, role_count + 3)
+        },
+        'usersRange': {
+            n: ngettext(
+                'Showing {start}–{end} of %(n)d user',
+                'Showing {start}–{end} of %(n)d users',
+                n,
+            ) % {'n': n}
+            for n in range(1, user_count + 1)
+        },
+        'items': {
+            n: ngettext('%(n)d item', '%(n)d items', n) % {'n': n}
+            for n in range(1, LAB_PAGE_SIZE + 1)
+        },
+    }
 
 
 @staff_required
@@ -129,6 +159,7 @@ def admin_dashboard(request):
         'maintenance_notices': maintenance_notices,
         'active_maintenance_count': MaintenanceNotice.objects.active(now).count(),
         'languages': language_rows(),
+        'plural_texts': _dashboard_plural_texts(len(users), len(groups)),
     })
 
 
@@ -163,22 +194,22 @@ def admin_send_bulk_email(request):
     if request.POST.get('confirmed') != 'true':
         return JsonResponse({
             'success': False,
-            'error': 'Confirm the recipient count before sending.',
+            'error': _('Confirm the recipient count before sending.'),
         }, status=400)
 
     subject = request.POST.get('subject', '').strip()
     body_html = request.POST.get('body_html', '').strip()
     if not subject:
-        return JsonResponse({'success': False, 'error': 'Subject is required.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Subject is required.')}, status=400)
     if len(subject) > 200:
         return JsonResponse({
             'success': False,
-            'error': 'Subject must be 200 characters or fewer.',
+            'error': _('Subject must be 200 characters or fewer.'),
         }, status=400)
     if '\r' in subject or '\n' in subject:
-        return JsonResponse({'success': False, 'error': 'Subject contains invalid characters.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Subject contains invalid characters.')}, status=400)
     if not strip_tags(body_html).strip() and '<img' not in body_html.lower():
-        return JsonResponse({'success': False, 'error': 'Message content is required.'}, status=400)
+        return JsonResponse({'success': False, 'error': _('Message content is required.')}, status=400)
 
     try:
         target_type, recipients, organizations = _bulk_email_selection(request)
@@ -187,7 +218,7 @@ def admin_send_bulk_email(request):
     if not recipients:
         return JsonResponse({
             'success': False,
-            'error': 'No active teachers with valid email addresses match this selection.',
+            'error': _('No active teachers with valid email addresses match this selection.'),
         }, status=400)
 
     configured_site_url = getattr(settings, 'SITE_URL', '').strip()
@@ -218,6 +249,11 @@ def admin_send_bulk_email(request):
 
     return JsonResponse({
         'success': True,
+        'message': ngettext(
+            'Campaign queued for %(n)d recipient.',
+            'Campaign queued for %(n)d recipients.',
+            campaign.recipient_count,
+        ) % {'n': campaign.recipient_count},
         'campaign_id': campaign.id,
         'recipient_count': campaign.recipient_count,
         'status': campaign.status,
@@ -264,6 +300,20 @@ def admin_bulk_email_campaign(request, campaign_id):
         'outbox_state': outbox_state,
         'outbox_paused': outbox_state.is_paused(timezone.now()),
         'resent': resent,
+        'resend_confirm_texts': {
+            'queue': {
+                n: ngettext(
+                    'Queue the email again for %(n)d person?',
+                    'Queue the email again for %(n)d people?',
+                    n,
+                ) % {'n': n}
+                for n in range(1, page_obj.paginator.per_page + 1)
+            },
+            'sent': {
+                n: _('%(n)d of these people already received it.') % {'n': n}
+                for n in range(1, page_obj.paginator.per_page + 1)
+            },
+        },
     })
 
 
@@ -302,7 +352,7 @@ def admin_edit_user(request, user_id):
         is_superuser = False
 
     if user == request.user and not is_staff:
-        return JsonResponse({'success': False, 'error': 'Cannot remove your own staff status.'})
+        return JsonResponse({'success': False, 'error': _('Cannot remove your own staff status.')})
 
     user.first_name = first_name
     user.last_name = last_name
@@ -322,16 +372,16 @@ def admin_edit_user(request, user_id):
 def admin_delete_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user == request.user:
-        return JsonResponse({'success': False, 'error': 'Cannot delete your own account.'})
+        return JsonResponse({'success': False, 'error': _('Cannot delete your own account.')})
     if user.is_superuser and not request.user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Cannot delete a superuser.'})
+        return JsonResponse({'success': False, 'error': _('Cannot delete a superuser.')})
     try:
         with transaction.atomic():
             user.delete()
     except ProtectedError:
         return JsonResponse({
             'success': False,
-            'error': (
+            'error': _(
                 'This account has student work (answers, scores or feedback) that '
                 'must be kept. Use Suspend to block the login instead.'
             ),
@@ -344,9 +394,9 @@ def admin_delete_user(request, user_id):
 def admin_toggle_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user == request.user:
-        return JsonResponse({'success': False, 'error': 'Cannot suspend your own account.'})
+        return JsonResponse({'success': False, 'error': _('Cannot suspend your own account.')})
     if user.is_superuser and not request.user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Cannot suspend a superuser account.'})
+        return JsonResponse({'success': False, 'error': _('Cannot suspend a superuser account.')})
     user.is_active = not user.is_active
     user.save(update_fields=['is_active'])
     return JsonResponse({'success': True, 'is_active': user.is_active})
@@ -357,9 +407,9 @@ def admin_toggle_user(request, user_id):
 def admin_create_role(request):
     name = request.POST.get('name', '').strip()
     if not name:
-        return JsonResponse({'success': False, 'error': 'Role name is required.'})
+        return JsonResponse({'success': False, 'error': _('Role name is required.')})
     if Group.objects.filter(name__iexact=name).exists():
-        return JsonResponse({'success': False, 'error': 'A role with this name already exists.'})
+        return JsonResponse({'success': False, 'error': _('A role with this name already exists.')})
     group = Group.objects.create(name=name)
     return JsonResponse({'success': True, 'id': group.id, 'name': group.name})
 
@@ -370,9 +420,9 @@ def admin_rename_role(request, role_id):
     group = get_object_or_404(Group, id=role_id)
     name = request.POST.get('name', '').strip()
     if not name:
-        return JsonResponse({'success': False, 'error': 'Role name is required.'})
+        return JsonResponse({'success': False, 'error': _('Role name is required.')})
     if Group.objects.filter(name__iexact=name).exclude(id=role_id).exists():
-        return JsonResponse({'success': False, 'error': 'A role with this name already exists.'})
+        return JsonResponse({'success': False, 'error': _('A role with this name already exists.')})
     group.name = name
     group.save()
     return JsonResponse({'success': True, 'name': group.name})
@@ -404,7 +454,7 @@ def admin_toggle_role_proposals(request, role_id):
 def admin_delete_role(request, role_id):
     group = get_object_or_404(Group, id=role_id)
     if group.user_set.exists():
-        return JsonResponse({'success': False, 'error': 'Remove all members before deleting this role.'})
+        return JsonResponse({'success': False, 'error': _('Remove all members before deleting this role.')})
     group.delete()
     return JsonResponse({'success': True})
 
@@ -451,16 +501,20 @@ def _clean_language_name(raw, exclude_id=None):
     """Return (name, error)."""
     name = ' '.join((raw or '').split())
     if not name:
-        return None, 'Language name is required.'
+        return None, _('Language name is required.')
     if len(name) > LANGUAGE_NAME_MAX_LENGTH:
-        return None, f'Language name must be at most {LANGUAGE_NAME_MAX_LENGTH} characters.'
+        return None, _('Language name must be at most %(max)d characters.') % {'max': LANGUAGE_NAME_MAX_LENGTH}
     if Language.objects.filter(name__iexact=name).exclude(id=exclude_id).exists():
-        return None, f'A language called "{name}" already exists.'
+        return None, _('A language called "%(name)s" already exists.') % {'name': name}
     return name, None
 
 
-def _count(number, noun):
-    return f"{number} {noun}{'' if number == 1 else 's'}"
+def _scenarios(number):
+    return ngettext('%(n)d scenario', '%(n)d scenarios', number) % {'n': number}
+
+
+def _organizations(number):
+    return ngettext('%(n)d organization', '%(n)d organizations', number) % {'n': number}
 
 
 @require_POST
@@ -481,10 +535,10 @@ def admin_create_language(request):
 def admin_rename_language(request, language_id):
     language = get_object_or_404(Language, id=language_id)
     if _built_in(language.name):
-        return JsonResponse({'success': False, 'error': (
-            f'"{language.name}" has built-in chat and help texts tied to its name, '
+        return JsonResponse({'success': False, 'error': _(
+            '"%(name)s" has built-in chat and help texts tied to its name, '
             'so it cannot be renamed.'
-        )})
+        ) % {'name': language.name}})
     name, error = _clean_language_name(request.POST.get('name'), exclude_id=language.id)
     if error:
         return JsonResponse({'success': False, 'error': error})
@@ -496,10 +550,11 @@ def admin_rename_language(request, language_id):
         language.save(update_fields=['name'])
     return JsonResponse({
         'success': True, 'name': name,
-        'message': (
-            f'Renamed to "{name}" and updated {_count(scenarios, "scenario")} '
-            f'and {_count(organizations, "organization")}.'
-        ),
+        'message': _('Renamed to "%(name)s" and updated %(scenarios)s and %(organizations)s.') % {
+            'name': name,
+            'scenarios': _scenarios(scenarios),
+            'organizations': _organizations(organizations),
+        },
     })
 
 
@@ -510,10 +565,13 @@ def admin_delete_language(request, language_id):
     scenarios = Scenario.objects.filter(language__iexact=language.name).count()
     organizations = Organization.objects.filter(language__iexact=language.name).count()
     if scenarios or organizations:
-        return JsonResponse({'success': False, 'error': (
-            f'"{language.name}" is used by {_count(scenarios, "scenario")} and '
-            f'{_count(organizations, "organization")}. Change their language first.'
-        )})
+        return JsonResponse({'success': False, 'error': _(
+            '"%(name)s" is used by %(scenarios)s and %(organizations)s. Change their language first.'
+        ) % {
+            'name': language.name,
+            'scenarios': _scenarios(scenarios),
+            'organizations': _organizations(organizations),
+        }})
     language.delete()
     return JsonResponse({'success': True})
 
@@ -522,14 +580,14 @@ def admin_delete_language(request, language_id):
 @staff_required
 def admin_impersonate(request, user_id):
     if request.session.get('impersonator_id'):
-        return JsonResponse({'success': False, 'error': 'Cannot impersonate while already impersonating.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Cannot impersonate while already impersonating.')}, status=403)
     target = get_object_or_404(User, id=user_id)
     if target.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Cannot impersonate a superuser.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Cannot impersonate a superuser.')}, status=403)
     if target.is_staff and not request.user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Staff can only impersonate non-staff users.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Staff can only impersonate non-staff users.')}, status=403)
     if target == request.user:
-        return JsonResponse({'success': False, 'error': 'Cannot impersonate yourself.'}, status=403)
+        return JsonResponse({'success': False, 'error': _('Cannot impersonate yourself.')}, status=403)
     impersonator_id = request.user.id          # save before login() may flush session
     target.backend = 'django.contrib.auth.backends.ModelBackend'
     auth_login(request, target)                # switches session to target user

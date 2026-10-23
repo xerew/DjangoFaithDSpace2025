@@ -1,3 +1,4 @@
+{% load i18n %}
 <!-- Email campaigns tab -->
 <div class="tab-pane fade" id="tab-email" role="tabpanel">
   <style>
@@ -15,8 +16,10 @@
   <div class="alert alert-primary d-flex gap-2 align-items-start" style="font-size:13px;">
     <i class="bi bi-shield-check mt-1"></i>
     <div>
-      Messages are sent individually to <strong>active users with the Teacher role and a valid email address</strong>.
-      Recipient addresses are never shared, and duplicate email addresses receive only one copy.
+      {% blocktranslate trimmed %}
+        Messages are sent individually to <strong>active users with the Teacher role and a valid email address</strong>.
+        Recipient addresses are never shared, and duplicate email addresses receive only one copy.
+      {% endblocktranslate %}
     </div>
   </div>
 
@@ -27,19 +30,19 @@
         <div class="card h-100" style="border-radius:12px;">
           <div class="card-body p-4">
             <h5 style="color:#012970;font-size:16px;font-weight:700;margin-bottom:18px;">
-              <i class="bi bi-envelope-paper-fill me-2"></i>Compose message
+              <i class="bi bi-envelope-paper-fill me-2"></i>{% translate "Compose message" %}
             </h5>
             <div class="mb-3">
-              <label for="bulkEmailSubject" class="form-label fw-semibold" style="font-size:13px;">Subject</label>
+              <label for="bulkEmailSubject" class="form-label fw-semibold" style="font-size:13px;">{% translate "Subject" %}</label>
               <input id="bulkEmailSubject" name="subject" class="form-control" maxlength="200" required
-                     placeholder="What should teachers know?">
-              <div class="form-text">Maximum 200 characters.</div>
+                     placeholder="{% translate "What should teachers know?" %}">
+              <div class="form-text">{% translate "Maximum 200 characters." %}</div>
             </div>
             <div>
-              <label for="bulkEmailBody" class="form-label fw-semibold" style="font-size:13px;">Message</label>
+              <label for="bulkEmailBody" class="form-label fw-semibold" style="font-size:13px;">{% translate "Message" %}</label>
               <textarea id="bulkEmailBody" name="body_html" class="email-tinymce-editor"
-                        placeholder="Write your message…"></textarea>
-              <div class="form-text">Images, formatted text, tables, and links are supported.</div>
+                        placeholder="{% translate "Write your message…" %}"></textarea>
+              <div class="form-text">{% translate "Images, formatted text, tables, and links are supported." %}</div>
             </div>
           </div>
         </div>
@@ -49,7 +52,7 @@
         <div class="card h-100" style="border-radius:12px;">
           <div class="card-body p-4 d-flex flex-column">
             <h5 style="color:#012970;font-size:16px;font-weight:700;margin-bottom:16px;">
-              <i class="bi bi-people-fill me-2"></i>Choose recipients
+              <i class="bi bi-people-fill me-2"></i>{% translate "Choose recipients" %}
             </h5>
 
             <div class="d-grid gap-2 mb-3">
@@ -58,8 +61,8 @@
                   <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
                          value="all_teachers" checked>
                   <span>
-                    <strong style="font-size:13px;color:#012970;">All teachers</strong>
-                    <small class="d-block text-muted">{{ email_teacher_count }} unique deliverable address{{ email_teacher_count|pluralize:"es" }}</small>
+                    <strong style="font-size:13px;color:#012970;">{% translate "All teachers" %}</strong>
+                    <small class="d-block text-muted">{% blocktranslate count counter=email_teacher_count trimmed %}{{ counter }} unique deliverable address{% plural %}{{ counter }} unique deliverable addresses{% endblocktranslate %}</small>
                   </span>
                 </span>
               </label>
@@ -68,8 +71,8 @@
                   <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
                          value="selected_teachers">
                   <span>
-                    <strong style="font-size:13px;color:#012970;">Selected teachers</strong>
-                    <small class="d-block text-muted">Search and choose individual teachers.</small>
+                    <strong style="font-size:13px;color:#012970;">{% translate "Selected teachers" %}</strong>
+                    <small class="d-block text-muted">{% translate "Search and choose individual teachers." %}</small>
                   </span>
                 </span>
               </label>
@@ -78,8 +81,8 @@
                   <input class="form-check-input mt-1 email-target-radio" type="radio" name="target_type"
                          value="organizations">
                   <span>
-                    <strong style="font-size:13px;color:#012970;">Selected organizations</strong>
-                    <small class="d-block text-muted">Email Teacher-role members of chosen organizations.</small>
+                    <strong style="font-size:13px;color:#012970;">{% translate "Selected organizations" %}</strong>
+                    <small class="d-block text-muted">{% translate "Email Teacher-role members of chosen organizations." %}</small>
                   </span>
                 </span>
               </label>
@@ -88,11 +91,11 @@
             <div id="selectedTeachersPanel" class="email-target-panel d-none mb-3">
               <div class="input-group input-group-sm mb-2">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="search" id="emailTeacherSearch" class="form-control" placeholder="Search teacher, email, or organization">
+                <input type="search" id="emailTeacherSearch" class="form-control" placeholder="{% translate "Search teacher, email, or organization" %}">
               </div>
               <div class="d-flex gap-2 mb-2">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('teacher', true)">Select visible</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('teacher')">Clear</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('teacher', true)">{% translate "Select visible" %}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('teacher')">{% translate "Clear" %}</button>
               </div>
               <div class="email-selection-list" id="emailTeacherList">
                 {% for teacher in email_teachers %}
@@ -111,7 +114,7 @@
                   </label>
                 </div>
                 {% empty %}
-                <div class="text-muted text-center p-3" style="font-size:12px;">No teachers with email addresses found.</div>
+                <div class="text-muted text-center p-3" style="font-size:12px;">{% translate "No teachers with email addresses found." %}</div>
                 {% endfor %}
               </div>
             </div>
@@ -119,11 +122,11 @@
             <div id="organizationsPanel" class="email-target-panel d-none mb-3">
               <div class="input-group input-group-sm mb-2">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="search" id="emailOrganizationSearch" class="form-control" placeholder="Search name, country, or language">
+                <input type="search" id="emailOrganizationSearch" class="form-control" placeholder="{% translate "Search name, country, or language" %}">
               </div>
               <div class="d-flex gap-2 mb-2">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('organization', true)">Select visible</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('organization')">Clear</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setVisibleEmailOptions('organization', true)">{% translate "Select visible" %}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEmailOptions('organization')">{% translate "Clear" %}</button>
               </div>
               <div class="email-selection-list" id="emailOrganizationList">
                 {% for org in email_organizations %}
@@ -142,17 +145,17 @@
                   </label>
                 </div>
                 {% empty %}
-                <div class="text-muted text-center p-3" style="font-size:12px;">No organizations found.</div>
+                <div class="text-muted text-center p-3" style="font-size:12px;">{% translate "No organizations found." %}</div>
                 {% endfor %}
               </div>
             </div>
 
             <div class="alert alert-light border mt-auto mb-3 py-2 px-3 d-flex justify-content-between align-items-center">
-              <span style="font-size:12px;color:#555;">Unique recipients</span>
+              <span style="font-size:12px;color:#555;">{% translate "Unique recipients" %}</span>
               <strong id="bulkEmailRecipientCount" style="font-size:20px;color:#012970;">{{ email_teacher_count }}</strong>
             </div>
             <button type="button" id="reviewBulkEmailBtn" class="btn btn-primary w-100" onclick="reviewBulkEmail()">
-              <i class="bi bi-send-fill me-1"></i>Review and send
+              <i class="bi bi-send-fill me-1"></i>{% translate "Review and send" %}
             </button>
           </div>
         </div>
@@ -162,37 +165,37 @@
 
   <div class="card mt-4" style="border-radius:12px;overflow:hidden;">
     <div class="card-header bg-white px-4 py-3">
-      <h5 class="mb-0" style="font-size:15px;font-weight:700;color:#012970;"><i class="bi bi-clock-history me-2"></i>Recent campaigns</h5>
+      <h5 class="mb-0" style="font-size:15px;font-weight:700;color:#012970;"><i class="bi bi-clock-history me-2"></i>{% translate "Recent campaigns" %}</h5>
     </div>
     {% if outbox_paused %}
     <div class="alert alert-warning m-3 mb-0" role="alert" style="font-size:13px;">
       <i class="bi bi-pause-circle me-1"></i>
-      Sending paused until {{ outbox_state.paused_until|date:"H:i" }}: {{ outbox_state.pause_reason }}
+      {% blocktranslate with until=outbox_state.paused_until|date:"H:i" reason=outbox_state.pause_reason trimmed %}Sending paused until {{ until }}: {{ reason }}{% endblocktranslate %}
     </div>
     {% endif %}
     <div class="table-responsive">
       <table class="table table-hover mb-0 email-history">
         <thead style="background:#f8faff;">
-          <tr><th class="px-4">Subject</th><th>Audience</th><th>Delivery</th><th>Status</th><th>Created</th><th></th></tr>
+          <tr><th class="px-4">{% translate "Subject" %}</th><th>{% translate "Audience" %}</th><th>{% translate "Delivery" %}</th><th>{% translate "Status" %}</th><th>{% translate "Created" %}</th><th></th></tr>
         </thead>
         <tbody>
           {% for campaign in recent_email_campaigns %}
           <tr>
-            <td class="px-4"><strong style="color:#012970;">{{ campaign.subject }}</strong><br><span class="text-muted">by {% if campaign.created_by %}{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}{% else %}Deleted admin{% endif %}</span></td>
-            <td>{{ campaign.target_summary }}<br><span class="text-muted">{{ campaign.recipient_count }} recipient{{ campaign.recipient_count|pluralize }}</span></td>
-            <td><span class="text-success">{{ campaign.sent_count }} sent</span>{% with waiting=campaign.waiting_count %}{% if waiting %}<br><span class="text-muted">{{ waiting }} waiting</span>{% endif %}{% endwith %}{% if campaign.failed_count %}<br><span class="text-danger">{{ campaign.failed_count }} failed</span>{% endif %}</td>
+            <td class="px-4"><strong style="color:#012970;">{{ campaign.subject }}</strong><br><span class="text-muted">{% if campaign.created_by %}{% blocktranslate with name=campaign.created_by.get_full_name|default:campaign.created_by.username trimmed %}by {{ name }}{% endblocktranslate %}{% else %}{% translate "by Deleted admin" %}{% endif %}</span></td>
+            <td>{{ campaign.target_summary }}<br><span class="text-muted">{% blocktranslate count counter=campaign.recipient_count trimmed %}{{ counter }} recipient{% plural %}{{ counter }} recipients{% endblocktranslate %}</span></td>
+            <td><span class="text-success">{% blocktranslate with n=campaign.sent_count trimmed %}{{ n }} sent{% endblocktranslate %}</span>{% with waiting=campaign.waiting_count %}{% if waiting %}<br><span class="text-muted">{% blocktranslate with n=waiting trimmed %}{{ n }} waiting{% endblocktranslate %}</span>{% endif %}{% endwith %}{% if campaign.failed_count %}<br><span class="text-danger">{% blocktranslate with n=campaign.failed_count trimmed %}{{ n }} failed{% endblocktranslate %}</span>{% endif %}</td>
             <td>
-              {% if campaign.status == 'completed' %}<span class="badge bg-success">Completed</span>
-              {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">With errors</span>
-              {% elif campaign.status == 'failed' %}<span class="badge bg-danger">Failed</span>
-              {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">Sending</span>
-              {% else %}<span class="badge bg-secondary">Queued</span>{% endif %}
+              {% if campaign.status == 'completed' %}<span class="badge bg-success">{% translate "Completed" %}</span>
+              {% elif campaign.status == 'partial' %}<span class="badge bg-warning text-dark">{% translate "With errors" %}</span>
+              {% elif campaign.status == 'failed' %}<span class="badge bg-danger">{% translate "Failed" %}</span>
+              {% elif campaign.status == 'sending' %}<span class="badge bg-info text-dark">{% translate "Sending" %}</span>
+              {% else %}<span class="badge bg-secondary">{% translate "Queued" %}</span>{% endif %}
             </td>
             <td>{{ campaign.created_at|date:"d M Y H:i" }}</td>
-            <td class="text-end pe-4"><a href="{% url 'admin_bulk_email_campaign' campaign.id %}" class="btn btn-sm btn-outline-primary">Details</a></td>
+            <td class="text-end pe-4"><a href="{% url 'admin_bulk_email_campaign' campaign.id %}" class="btn btn-sm btn-outline-primary">{% translate "Details" %}</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-center text-muted py-4">No campaigns have been sent yet.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">{% translate "No campaigns have been sent yet." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -204,21 +207,21 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
       <div class="modal-header" style="background:#f8faff;">
-        <h5 class="modal-title" style="font-size:16px;font-weight:700;color:#012970;"><i class="bi bi-envelope-check me-2"></i>Confirm campaign</h5>
+        <h5 class="modal-title" style="font-size:16px;font-weight:700;color:#012970;"><i class="bi bi-envelope-check me-2"></i>{% translate "Confirm campaign" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <p class="mb-2">Send <strong id="bulkEmailConfirmSubject"></strong> to:</p>
+        <p class="mb-2">{% blocktranslate trimmed %}Send <strong id="bulkEmailConfirmSubject"></strong> to:{% endblocktranslate %}</p>
         <div class="text-center p-3 rounded" style="background:#f4f6ff;">
           <strong id="bulkEmailConfirmCount" style="display:block;font-size:30px;color:#012970;"></strong>
-          <span class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;">unique teacher recipients</span>
+          <span class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;">{% translate "unique teacher recipients" %}</span>
         </div>
-        <p class="text-muted mt-3 mb-0" style="font-size:12px;">This action queues individual emails and cannot be undone.</p>
-        <p class="text-muted mt-1 mb-0" style="font-size:12px;">Up to {{ email_hourly_limit }} emails go out per hour; sending starts within 5 minutes.</p>
+        <p class="text-muted mt-3 mb-0" style="font-size:12px;">{% translate "This action queues individual emails and cannot be undone." %}</p>
+        <p class="text-muted mt-1 mb-0" style="font-size:12px;">{% blocktranslate with limit=email_hourly_limit trimmed %}Up to {{ limit }} emails go out per hour; sending starts within 5 minutes.{% endblocktranslate %}</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirmBulkEmailBtn" onclick="sendBulkEmailCampaign()"><i class="bi bi-send-fill me-1"></i>Queue emails</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
+        <button type="button" class="btn btn-primary" id="confirmBulkEmailBtn" onclick="sendBulkEmailCampaign()"><i class="bi bi-send-fill me-1"></i>{% translate "Queue emails" %}</button>
       </div>
     </div>
   </div>
@@ -226,6 +229,17 @@
 
 <script>
 (function () {
+  const I18N = {
+    countFailed: "{% translate 'Could not count recipients.' as s %}{{ s|escapejs }}",
+    needSubject: "{% translate 'Enter an email subject.' as s %}{{ s|escapejs }}",
+    needBody: "{% translate 'Write the email message.' as s %}{{ s|escapejs }}",
+    noRecipients: "{% translate 'The selection has no deliverable teacher addresses.' as s %}{{ s|escapejs }}",
+    queueing: "{% translate 'Queueing…' as s %}{{ s|escapejs }}",
+    queueFailed: "{% translate 'Could not queue campaign.' as s %}{{ s|escapejs }}",
+    queued: "{% translate 'Campaign queued.' as s %}{{ s|escapejs }}",
+    queueEmails: "{% translate 'Queue emails' as s %}{{ s|escapejs }}",
+    uploadFailed: "{% translate 'Upload failed.' as s %}{{ s|escapejs }}"
+  };
   const countUrl = '{% url "admin_bulk_email_recipient_count" %}';
   const sendUrl = '{% url "admin_send_bulk_email" %}';
   let recipientCountTimer = null;
@@ -249,7 +263,7 @@
 
   window.refreshBulkEmailRecipientCount = function () {
     return postJSON(countUrl, selectionPayload()).then(function (data) {
-      if (!data.success) throw new Error(data.error || 'Could not count recipients.');
+      if (!data.success) throw new Error(data.error || I18N.countFailed);
       document.getElementById('bulkEmailRecipientCount').textContent = data.recipient_count;
       return data.recipient_count;
     }).catch(function (error) {
@@ -297,10 +311,10 @@
     if (window.tinymce) tinymce.triggerSave();
     const subject = document.getElementById('bulkEmailSubject').value.trim();
     const body = document.getElementById('bulkEmailBody').value.trim();
-    if (!subject) return showToast('Enter an email subject.', true);
-    if (!body) return showToast('Write the email message.', true);
+    if (!subject) return showToast(I18N.needSubject, true);
+    if (!body) return showToast(I18N.needBody, true);
     window.refreshBulkEmailRecipientCount().then(function (count) {
-      if (!count) return showToast('The selection has no deliverable teacher addresses.', true);
+      if (!count) return showToast(I18N.noRecipients, true);
       document.getElementById('bulkEmailConfirmSubject').textContent = '“' + subject + '”';
       document.getElementById('bulkEmailConfirmCount').textContent = count;
       bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkEmailConfirmModal')).show();
@@ -315,16 +329,16 @@
     payload.body_html = document.getElementById('bulkEmailBody').value;
     payload.confirmed = 'true';
     button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Queueing…';
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + I18N.queueing;
     postJSON(sendUrl, payload).then(function (data) {
-      if (!data.success) throw new Error(data.error || 'Could not queue campaign.');
+      if (!data.success) throw new Error(data.error || I18N.queueFailed);
       bootstrap.Modal.getInstance(document.getElementById('bulkEmailConfirmModal')).hide();
-      showToast('Campaign queued for ' + data.recipient_count + ' recipients.', false);
+      showToast(data.message || I18N.queued, false);
       window.setTimeout(function () { window.location.href = '{% url "admin_dashboard" %}?tab=email'; }, 900);
     }).catch(function (error) {
       showToast(error.message, true);
       button.disabled = false;
-      button.innerHTML = '<i class="bi bi-send-fill me-1"></i>Queue emails';
+      button.innerHTML = '<i class="bi bi-send-fill me-1"></i>' + I18N.queueEmails;
     });
   };
 
@@ -351,7 +365,7 @@
             fetch('{% url "tinymce_image_upload" %}', {
               method: 'POST', headers: {'X-CSRFToken': CSRF}, body: formData, credentials: 'same-origin'
             }).then(function (response) {
-              if (!response.ok) return response.json().then(function (data) { throw new Error(data.error || 'Upload failed.'); });
+              if (!response.ok) return response.json().then(function (data) { throw new Error(data.error || I18N.uploadFailed); });
               return response.json();
             }).then(function (data) { resolve(data.location); }).catch(function (error) { reject(error.message); });
           });

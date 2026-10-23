@@ -1,5 +1,6 @@
 {% extends "main.html" %}
-{% block page_title %}<title>Trust AI Lab — Documentation & Tutorials</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Documentation & Tutorials" %}</title>{% endblock %}
 {% load static %}
 {% block atcontent %}
 
@@ -95,11 +96,11 @@
     <div class="d-flex align-items-start gap-3">
       <div class="doc-hero-icon"><i class="bi bi-book"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Help & Resources</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Documentation & Tutorials</h2>
-        <div style="font-size:13px;opacity:0.82;margin-top:2px;">Guides, tutorials, external tools, and project information</div>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Help & Resources" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Documentation & Tutorials" %}</h2>
+        <div style="font-size:13px;opacity:0.82;margin-top:2px;">{% translate "Guides, tutorials, external tools, and project information" %}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item active">Documentation & Tutorials</li>
+          <li class="breadcrumb-item active">{% translate "Documentation & Tutorials" %}</li>
         </ol></nav>
       </div>
     </div>
@@ -108,14 +109,14 @@
   <section class="section">
 
     <!-- Guides -->
-    <div class="doc-section-label"><i class="bi bi-file-earmark-text me-1"></i>Guides</div>
+    <div class="doc-section-label"><i class="bi bi-file-earmark-text me-1"></i>{% translate "Guides" %}</div>
     <div class="resource-grid">
 
       <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#pdfModalEnglish">
         <div class="resource-tile-icon pdf"><i class="bi bi-file-earmark-pdf-fill"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">PDF Guide (English)</div>
-          <div class="resource-tile-desc">Full platform user guide in English</div>
+          <div class="resource-tile-title">{% translate "PDF Guide (English)" %}</div>
+          <div class="resource-tile-desc">{% translate "Full platform user guide in English" %}</div>
         </div>
       </a>
 
@@ -130,30 +131,30 @@
       <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#imageModal">
         <div class="resource-tile-icon image"><i class="bi bi-image-fill"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">VR/AR Lab Target Image</div>
-          <div class="resource-tile-desc">Reference target image for VR/AR lab sessions</div>
+          <div class="resource-tile-title">{% translate "VR/AR Lab Target Image" %}</div>
+          <div class="resource-tile-desc">{% translate "Reference target image for VR/AR lab sessions" %}</div>
         </div>
       </a>
 
     </div>
 
     <!-- Tools & External Links -->
-    <div class="doc-section-label"><i class="bi bi-tools me-1"></i>Tools & External Links</div>
+    <div class="doc-section-label"><i class="bi bi-tools me-1"></i>{% translate "Tools & External Links" %}</div>
     <div class="resource-grid">
 
       <a class="resource-tile" href="https://docs.google.com/document/d/1G5Wbvf_tgNXD0AeTzkEwTHV5zWF-fBjiU2EQxebfxv4/edit?tab=t.0#heading=h.anxocjpv03me" target="_blank">
         <div class="resource-tile-icon link"><i class="bi bi-calendar-week-fill"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">Platform Change Log</div>
-          <div class="resource-tile-desc">Latest updates, fixes, and new features</div>
+          <div class="resource-tile-title">{% translate "Platform Change Log" %}</div>
+          <div class="resource-tile-desc">{% translate "Latest updates, fixes, and new features" %}</div>
         </div>
       </a>
 
       <a class="resource-tile" href="https://forms.gle/wVamjq2yyJMFJqq8A" target="_blank">
         <div class="resource-tile-icon form"><i class="bi bi-chat-square-text-fill"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">Issue Reporting Form</div>
-          <div class="resource-tile-desc">Report a bug or problem with the platform</div>
+          <div class="resource-tile-title">{% translate "Issue Reporting Form" %}</div>
+          <div class="resource-tile-desc">{% translate "Report a bug or problem with the platform" %}</div>
         </div>
       </a>
 
@@ -161,22 +162,22 @@
 
     <!-- Partner Resources (dspace only) -->
     {% if is_dspace_partner %}
-    <div class="doc-section-label"><i class="bi bi-shield-check me-1"></i>Partner Resources</div>
+    <div class="doc-section-label"><i class="bi bi-shield-check me-1"></i>{% translate "Partner Resources" %}</div>
     <div class="resource-grid">
 
       <a class="resource-tile" href="https://docs.google.com/document/d/1jdpXgmWup-Y0jv44-qJ1UhyzLzuYDYsuOibJCGMdIHg/edit?tab=t.0" target="_blank">
         <div class="resource-tile-icon doc"><i class="bi bi-pencil-square"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">Feature Request</div>
-          <div class="resource-tile-desc">Submit ideas and feature requests for the platform</div>
+          <div class="resource-tile-title">{% translate "Feature Request" %}</div>
+          <div class="resource-tile-desc">{% translate "Submit ideas and feature requests for the platform" %}</div>
         </div>
       </a>
 
       <a class="resource-tile" href="https://docs.google.com/document/d/1Z9QiPyCPa0UZRa-0HYr6j6efFnh6lUSTDWsb6zlkapA/edit?tab=t.0" target="_blank">
         <div class="resource-tile-icon doc"><i class="bi bi-collection-fill"></i></div>
         <div class="resource-tile-body">
-          <div class="resource-tile-title">Available Scenarios</div>
-          <div class="resource-tile-desc">Browse all scenarios currently available in the platform</div>
+          <div class="resource-tile-title">{% translate "Available Scenarios" %}</div>
+          <div class="resource-tile-desc">{% translate "Browse all scenarios currently available in the platform" %}</div>
         </div>
       </a>
 
@@ -184,7 +185,7 @@
     {% endif %}
 
     <!-- Project Cards -->
-    <div class="doc-section-label"><i class="bi bi-diagram-3 me-1"></i>Associated Projects</div>
+    <div class="doc-section-label"><i class="bi bi-diagram-3 me-1"></i>{% translate "Associated Projects" %}</div>
     <div class="row g-3 mb-3">
 
       <div class="col-12 col-lg-6">
@@ -195,10 +196,12 @@
           <div class="project-card-body">
             <div class="project-card-title">Discovery Space</div>
             <p class="project-card-text">
-              Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation — Forward Looking project that aspires to develop a roadmap for the AI-Enhanced Classroom for Deeper Learning in STEM. It facilitates the transformation of the traditional classroom into an innovative environment that promotes scientific exploration and supports the development of key skills for all students.
+              {% blocktranslate trimmed %}
+                Discovery Space is an EU-funded Erasmus+ Partnerships for Innovation — Forward Looking project that aspires to develop a roadmap for the AI-Enhanced Classroom for Deeper Learning in STEM. It facilitates the transformation of the traditional classroom into an innovative environment that promotes scientific exploration and supports the development of key skills for all students.
+              {% endblocktranslate %}
             </p>
             <a href="https://discoveryspace.eu/" class="btn btn-primary project-card-btn" target="_blank">
-              <i class="bi bi-globe me-1"></i>Visit Project's Site
+              <i class="bi bi-globe me-1"></i>{% translate "Visit Project's Site" %}
             </a>
           </div>
         </div>
@@ -212,10 +215,12 @@
           <div class="project-card-body">
             <div class="project-card-title">FAITH — Fostering Artificial Intelligence Trust for Humans</div>
             <p class="project-card-text">
-              FAITH aims to provide the practitioners and stakeholders of AI systems not only with a comprehensive analysis of the foundations of AI trustworthiness, but also with an operational playbook for how to assess and build trustworthy AI systems and how to continuously measure their trustworthiness.
+              {% blocktranslate trimmed %}
+                FAITH aims to provide the practitioners and stakeholders of AI systems not only with a comprehensive analysis of the foundations of AI trustworthiness, but also with an operational playbook for how to assess and build trustworthy AI systems and how to continuously measure their trustworthiness.
+              {% endblocktranslate %}
             </p>
             <a href="https://faith-ec-project.eu/" class="btn btn-primary project-card-btn" target="_blank">
-              <i class="bi bi-globe me-1"></i>Visit Project's Site
+              <i class="bi bi-globe me-1"></i>{% translate "Visit Project's Site" %}
             </a>
           </div>
         </div>
@@ -231,7 +236,7 @@
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF Documentation (English)</h5>
+        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>{% translate "PDF Documentation (English)" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -239,9 +244,9 @@
       </div>
       <div class="modal-footer border-0">
         <a href="{% static 'pdfs/documentation_en.pdf' %}" class="btn btn-success" download>
-          <i class="bi bi-download me-1"></i>Download PDF
+          <i class="bi bi-download me-1"></i>{% translate "Download PDF" %}
         </a>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Close" %}</button>
       </div>
     </div>
   </div>
@@ -273,7 +278,7 @@
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title"><i class="bi bi-image text-purple me-2"></i>VR/AR Lab Target Image</h5>
+        <h5 class="modal-title"><i class="bi bi-image text-purple me-2"></i>{% translate "VR/AR Lab Target Image" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center">
@@ -281,9 +286,9 @@
       </div>
       <div class="modal-footer border-0">
         <a href="{% static 'img/dspace_target_image.jpg' %}" class="btn btn-success" download>
-          <i class="bi bi-download me-1"></i>Download Image
+          <i class="bi bi-download me-1"></i>{% translate "Download Image" %}
         </a>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Close" %}</button>
       </div>
     </div>
   </div>

@@ -1,4 +1,5 @@
 {% extends "admin/change_list.html" %}
+{% load i18n %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -79,17 +80,21 @@
 
 {% block content %}
   <div class="family-review-intro">
-    <h2>Scenario family governance</h2>
+    <h2>{% translate "Scenario family governance" %}</h2>
     <p>
-      This dashboard shows each shared scenario identity, its translations and
-      adaptations, immutable revisions, and original student implementation
-      totals. Discovery and Ollama output are suggestions only. Family
-      membership changes only after an administrator confirms a candidate.
+      {% blocktranslate trimmed %}
+        This dashboard shows each shared scenario identity, its translations and
+        adaptations, immutable revisions, and original student implementation
+        totals. Discovery and Ollama output are suggestions only. Family
+        membership changes only after an administrator confirms a candidate.
+      {% endblocktranslate %}
     </p>
     <p>
-      Use <b>Scan scenarios</b> after importing or creating translations. Then
-      open the candidate inbox, compare the exact revisions, optionally request
-      an Ollama second opinion, and record the final classification.
+      {% blocktranslate trimmed %}
+        Use <b>Scan scenarios</b> after importing or creating translations. Then
+        open the candidate inbox, compare the exact revisions, optionally request
+        an Ollama second opinion, and record the final classification.
+      {% endblocktranslate %}
     </p>
   </div>
   {{ block.super }}
@@ -99,7 +104,7 @@
   {% if can_associate_scenarios %}
     <li>
       <a href="{% url 'admin:authoringtool_scenariofamilyreviewproxy_associate' %}">
-        Associate scenarios manually
+        {% translate "Associate scenarios manually" %}
       </a>
     </li>
   {% endif %}
@@ -107,7 +112,7 @@
     <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_scan' %}">
       {% csrf_token %}
       <button type="submit">
-        Scan scenarios
+        {% translate "Scan scenarios" %}
       </button>
     </form>
   </li>
@@ -115,13 +120,13 @@
     <form method="post" action="{% url 'admin:authoringtool_scenariofamilycandidate_llm_review_pending' %}">
       {% csrf_token %}
       <button type="submit">
-        Ask Ollama to review pending
+        {% translate "Ask Ollama to review pending" %}
       </button>
     </form>
   </li>
   <li>
     <a href="{% url 'admin:authoringtool_scenariofamilycandidate_changelist' %}">
-      Open candidate inbox
+      {% translate "Open candidate inbox" %}
     </a>
   </li>
   {{ block.super }}

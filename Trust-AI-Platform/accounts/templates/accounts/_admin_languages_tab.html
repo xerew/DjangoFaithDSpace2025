@@ -1,20 +1,23 @@
+{% load i18n %}
 <div class="tab-pane fade" id="tab-languages" role="tabpanel">
   <div class="mb-3">
-    <h5 class="mb-1" style="color:#012970;font-size:16px;font-weight:700;">Languages</h5>
+    <h5 class="mb-1" style="color:#012970;font-size:16px;font-weight:700;">{% translate "Languages" %}</h5>
     <p class="text-muted mb-0" style="font-size:13px;">
-      The languages teachers can choose for scenarios and organizations. Renaming a language
-      also renames it on every scenario and organization that uses it. Languages marked
-      <i class="bi bi-lock-fill"></i> have built-in chat and help texts tied to their name and
-      cannot be renamed. A language in use cannot be removed.
+      {% blocktranslate trimmed %}
+        The languages teachers can choose for scenarios and organizations. Renaming a language
+        also renames it on every scenario and organization that uses it. Languages marked
+        <i class="bi bi-lock-fill"></i> have built-in chat and help texts tied to their name and
+        cannot be renamed. A language in use cannot be removed.
+      {% endblocktranslate %}
     </p>
   </div>
 
   <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
-    <input type="text" id="newLanguageName" class="form-control" placeholder="New language…"
-           maxlength="50" style="max-width:280px;" aria-label="New language name"
+    <input type="text" id="newLanguageName" class="form-control" placeholder="{% translate "New language…" %}"
+           maxlength="50" style="max-width:280px;" aria-label="{% translate "New language name" %}"
            onkeydown="if(event.key==='Enter') createLanguage()">
     <button class="btn btn-primary" onclick="createLanguage()">
-      <i class="bi bi-plus-lg me-1"></i>Add language
+      <i class="bi bi-plus-lg me-1"></i>{% translate "Add language" %}
     </button>
   </div>
 
@@ -26,60 +29,67 @@
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between gap-2">
             {% if row.built_in %}
-            <span class="fw-bold" style="font-size:15px;" title="Has built-in chat and help texts">
+            <span class="fw-bold" style="font-size:15px;" title="{% translate "Has built-in chat and help texts" %}">
               {{ language.name }} <i class="bi bi-lock-fill text-muted" style="font-size:12px;"></i>
             </span>
             {% else %}
             <span class="language-name-display fw-bold" style="cursor:pointer;font-size:15px;"
-                  title="Click to rename" onclick="startRenameLanguage({{ language.id }}, this)">{{ language.name }}</span>
+                  title="{% translate "Click to rename" %}" onclick="startRenameLanguage({{ language.id }}, this)">{{ language.name }}</span>
             {% endif %}
-            <button class="btn btn-sm btn-outline-danger" aria-label="Remove {{ language.name }}"
-                    {% if in_use %}disabled title="In use — change those scenarios and organizations first"{% else %}onclick="deleteLanguage({{ language.id }})"{% endif %}>
+            <button class="btn btn-sm btn-outline-danger" aria-label="{% blocktranslate with name=language.name %}Remove {{ name }}{% endblocktranslate %}"
+                    {% if in_use %}disabled title="{% translate "In use — change those scenarios and organizations first" %}"{% else %}onclick="deleteLanguage({{ language.id }})"{% endif %}>
               <i class="bi bi-trash"></i>
             </button>
           </div>
           <div style="font-size:12px;color:#888;margin-top:6px;">
-            {{ row.scenario_count }} scenario{{ row.scenario_count|pluralize }} ·
-            {{ row.organization_count }} organization{{ row.organization_count|pluralize }}
+            {% blocktranslate count counter=row.scenario_count trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %} ·
+            {% blocktranslate count counter=row.organization_count trimmed %}{{ counter }} organization{% plural %}{{ counter }} organizations{% endblocktranslate %}
           </div>
         </div>
       </div>
     </div>
     {% endwith %}
     {% empty %}
-    <p class="text-muted" style="font-size:13px;">No languages yet.</p>
+    <p class="text-muted" style="font-size:13px;">{% translate "No languages yet." %}</p>
     {% endfor %}
   </div>
 </div>
 
 <script>
+{% translate "Language added." as t_added %}
+{% translate "Remove {name}" as t_remove %}
+{% translate "Click to rename" as t_rename %}
+{% blocktranslate count counter=0 asvar t_zero_scenarios trimmed %}{{ counter }} scenario{% plural %}{{ counter }} scenarios{% endblocktranslate %}
+{% blocktranslate count counter=0 asvar t_zero_orgs trimmed %}{{ counter }} organization{% plural %}{{ counter }} organizations{% endblocktranslate %}
+{% translate "Remove this language?" as t_confirm %}
+{% translate "Language removed." as t_removed %}
 function createLanguage() {
   const input = document.getElementById('newLanguageName');
   const name = input.value.trim();
   if (!name) return;
   postJSON('{% url "admin_create_language" %}', {name: name}).then(function(data) {
     if (!data.success) { showToast(data.error, true); return; }
-    showToast('Language added.', false);
+    showToast('{{ t_added|escapejs }}', false);
     input.value = '';
     const col = document.createElement('div');
     col.className = 'col-12 col-md-6 col-lg-4';
     col.id = 'language-card-' + data.id;
     const label = data.built_in
       ? '<span class="fw-bold" style="font-size:15px;">' + escHtml(data.name) + ' <i class="bi bi-lock-fill text-muted" style="font-size:12px;"></i></span>'
-      : '<span class="language-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="Click to rename" onclick="startRenameLanguage(' + data.id + ', this)">' + escHtml(data.name) + '</span>';
+      : '<span class="language-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="' + escHtml('{{ t_rename|escapejs }}') + '" onclick="startRenameLanguage(' + data.id + ', this)">' + escHtml(data.name) + '</span>';
     col.innerHTML = '<div class="card h-100" style="border-radius:12px;"><div class="card-body">' +
       '<div class="d-flex align-items-start justify-content-between gap-2">' + label +
-      '<button class="btn btn-sm btn-outline-danger" aria-label="Remove ' + escHtml(data.name) + '" onclick="deleteLanguage(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
-      '</div><div style="font-size:12px;color:#888;margin-top:6px;">0 scenarios · 0 organizations</div></div></div>';
+      '<button class="btn btn-sm btn-outline-danger" aria-label="' + escHtml('{{ t_remove|escapejs }}'.replace('{name}', function () { return data.name; })) + '" onclick="deleteLanguage(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
+      '</div><div style="font-size:12px;color:#888;margin-top:6px;">{{ t_zero_scenarios|escapejs }} · {{ t_zero_orgs|escapejs }}</div></div></div>';
     document.getElementById('languageCards').appendChild(col);
   });
 }
 
 function deleteLanguage(id) {
-  if (!confirm('Remove this language?')) return;
+  if (!confirm('{{ t_confirm|escapejs }}')) return;
   postJSON('{% url "admin_delete_language" 0 %}'.replace('/0/', '/' + id + '/'), {}).then(function(data) {
     if (!data.success) { showToast(data.error, true); return; }
-    showToast('Language removed.', false);
+    showToast('{{ t_removed|escapejs }}', false);
     const card = document.getElementById('language-card-' + id);
     if (card) card.remove();
   });

@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load i18n %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -28,19 +29,19 @@
 {% endblock %}
 
 {% block content %}
-  <p>Enter the IDs of two scenarios you expect to be translations of each other.
-    The page runs the same checks as "Scan for translations" and shows which one keeps the pair out of the list.</p>
+  <p>{% blocktranslate trimmed %}Enter the IDs of two scenarios you expect to be translations of each other.
+    The page runs the same checks as "Scan for translations" and shows which one keeps the pair out of the list.{% endblocktranslate %}</p>
 
   <form method="get" class="explain-form">
     <div>
-      <label for="id_a">Scenario ID</label>
+      <label for="id_a">{% translate "Scenario ID" %}</label>
       <input type="number" min="1" name="a" id="id_a" value="{{ scenario_ids.0 }}" required>
     </div>
     <div>
-      <label for="id_b">Scenario ID</label>
+      <label for="id_b">{% translate "Scenario ID" %}</label>
       <input type="number" min="1" name="b" id="id_b" value="{{ scenario_ids.1 }}" required>
     </div>
-    <div><input type="submit" value="Check"></div>
+    <div><input type="submit" value="{% translate "Check" %}"></div>
   </form>
 
   {% if errors %}
@@ -48,31 +49,32 @@
   {% endif %}
 
   {% if explanation %}
+    {% translate "no language" as no_language %}
     {% with a=explanation.scenario_a b=explanation.scenario_b %}
       <p class="explain-summary">
-        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|default:"no language" }}, {{ a.visibility_status }})
-        and <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|default:"no language" }}, {{ b.visibility_status }})
+        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|default:no_language }}, {{ a.visibility_status }})
+        {% translate "and" context "between two scenarios" %} <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|default:no_language }}, {{ b.visibility_status }})
       </p>
       <p class="explain-summary">
         {% if stopped_label %}
-          <strong class="state-fail">Stopped by: {{ stopped_label }}</strong>
+          <strong class="state-fail">{% blocktranslate with label=stopped_label trimmed %}Stopped by: {{ label }}{% endblocktranslate %}</strong>
         {% elif explanation.match %}
-          <strong class="state-pass">Passes every check.</strong>
-          <a href="{{ match_url }}">Open the match to review it</a>.
+          <strong class="state-pass">{% translate "Passes every check." %}</strong>
+          <a href="{{ match_url }}">{% translate "Open the match to review it" %}</a>.
         {% else %}
-          <strong class="state-warn">Passes every check but is not listed yet.</strong>
+          <strong class="state-warn">{% translate "Passes every check but is not listed yet." %}</strong>
         {% endif %}
       </p>
     {% endwith %}
 
     <table class="explain-checks">
-      <thead><tr><th>Check</th><th>Result</th><th>Details</th></tr></thead>
+      <thead><tr><th>{% translate "Check" %}</th><th>{% translate "Result" %}</th><th>{% translate "Details" %}</th></tr></thead>
       <tbody>
         {% for check in explanation.checks %}
           <tr>
             <td>{{ check.label }}</td>
             <td class="state state-{{ check.state }}">
-              {% if check.state == 'pass' %}✓ pass{% elif check.state == 'warn' %}! check{% elif check.state == 'fail' %}✗ fails{% else %}– skipped{% endif %}
+              {% if check.state == 'pass' %}{% translate "✓ pass" %}{% elif check.state == 'warn' %}{% translate "! check" %}{% elif check.state == 'fail' %}{% translate "✗ fails" %}{% else %}{% translate "– skipped" %}{% endif %}
             </td>
             <td>{{ check.detail }}</td>
           </tr>
@@ -82,17 +84,17 @@
 
     {% if explanation.result %}
       <div class="explain-section">
-        <h2>Differences</h2>
+        <h2>{% translate "Differences" %}</h2>
         {% if explanation.result.differences %}
           <ul>{% for difference in explanation.result.differences %}<li>{{ difference }}</li>{% endfor %}</ul>
         {% else %}
-          <p>None: every reachable activity and route matches.</p>
+          <p>{% translate "None: every reachable activity and route matches." %}</p>
         {% endif %}
       </div>
     {% endif %}
 
     <div class="explain-section">
-      <h2>Side-by-side flow</h2>
+      <h2>{% translate "Side-by-side flow" %}</h2>
       {{ flow_table }}
     </div>
   {% endif %}

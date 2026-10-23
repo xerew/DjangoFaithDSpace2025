@@ -10,6 +10,8 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.utils.translation import gettext as _
+from django.utils import translation
+from django.template.loader import select_template
 from django.contrib.auth.views import PasswordResetView
 from django.conf import settings
 from faithDev.settings import TEACHER_ACCESS_CODE_HASHED
@@ -155,10 +157,16 @@ def documentation_view(request):
     return render(request, 'accounts/documentation.html', {'is_dspace_partner': is_dspace_partner})
 
 def tos_view(request):
-    if request.user.is_authenticated:
-        return render(request, 'accounts/tos.html')
-    else:
-        return render(request, 'accounts/tos_public.html')
+    """The Terms body lives in one template per language, English as fallback."""
+    language = translation.get_language() or 'en'
+    body = select_template([
+        f'accounts/tos/{language}.html',
+        f'accounts/tos/{language.split("-")[0]}.html',
+        'accounts/tos/en.html',
+    ])
+    page = 'accounts/tos.html' if request.user.is_authenticated else 'accounts/tos_public.html'
+    return render(request, page, {'tos_body_template': body.template.name})
+
 
 def _picture_error(picture):
     """Why an uploaded profile picture is refused, or '' when it is fine."""

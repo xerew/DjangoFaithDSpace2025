@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.translation import gettext
 
 COUNTRY_CHOICES = [
     ('', '— Select country —'),
@@ -203,13 +204,13 @@ class BulkEmailCampaign(models.Model):
     @property
     def target_summary(self):
         if self.target_type == self.TARGET_ALL_TEACHERS:
-            return 'All teachers'
+            return gettext('All teachers')
         if self.target_type == self.TARGET_SELECTED_TEACHERS:
-            return f'{self.recipient_count} selected teacher(s)'
+            return gettext('%(n)d selected teacher(s)') % {'n': self.recipient_count}
         organizations = list(self.organizations.all())
         names = [organization.short_name for organization in organizations[:3]]
         suffix = '…' if len(organizations) > 3 else ''
-        return f"Organizations: {', '.join(names)}{suffix}"
+        return gettext('Organizations: %(names)s') % {'names': ', '.join(names) + suffix}
 
     @property
     def waiting_count(self):

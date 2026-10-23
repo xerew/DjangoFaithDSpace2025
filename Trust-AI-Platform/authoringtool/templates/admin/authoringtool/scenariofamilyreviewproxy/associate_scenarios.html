@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load i18n %}
 {% load i18n admin_urls %}
 
 {% block extrastyle %}
@@ -127,31 +128,35 @@
     </a>
     &rsaquo;
     <a href="{% url 'admin:authoringtool_scenariofamilyreviewproxy_changelist' %}">
-      Scenario family review dashboard
+      {% translate "Scenario family review dashboard" %}
     </a>
-    &rsaquo; Associate scenarios manually
+    &rsaquo; {% translate "Associate scenarios manually" %}
   </div>
 {% endblock %}
 
 {% block content %}
   <div class="association-layout">
     <section class="association-panel association-revision-note">
-      <h2>Revision or scenario association?</h2>
+      <h2>{% translate "Revision or scenario association?" %}</h2>
       <p>
-        A <b>revision</b> is a new immutable version of the same scenario
-        record. Do not associate two separate scenarios as revisions.
-        If a teacher copied a scenario and then changed it, classify that copy
-        as <b>Adaptation / revised copy</b>.
+        {% blocktranslate trimmed %}
+          A <b>revision</b> is a new immutable version of the same scenario
+          record. Do not associate two separate scenarios as revisions.
+          If a teacher copied a scenario and then changed it, classify that copy
+          as <b>Adaptation / revised copy</b>.
+        {% endblocktranslate %}
       </p>
       <p>
-        Existing immutable revisions can be inspected under
-        <a href="{{ scenario_versions_url }}">Scenario versions</a>.
+        {% blocktranslate trimmed with url=scenario_versions_url %}
+          Existing immutable revisions can be inspected under
+          <a href="{{ url }}">Scenario versions</a>.
+        {% endblocktranslate %}
       </p>
     </section>
 
     <form method="post" class="association-panel">
       {% csrf_token %}
-      <h2>Choose scenarios and relationship</h2>
+      <h2>{% translate "Choose scenarios and relationship" %}</h2>
       {{ form.non_field_errors }}
 
       <div class="association-form-grid">
@@ -164,7 +169,7 @@
             type="search"
             class="association-search"
             data-filter-select="{{ form.target_scenario.id_for_label }}"
-            placeholder="Filter scenarios by name…"
+            placeholder="{% translate "Filter scenarios by name…" %}"
           >
           {{ form.target_scenario }}
           <span class="association-help">
@@ -181,7 +186,7 @@
             type="search"
             class="association-search"
             data-filter-select="{{ form.source_scenario.id_for_label }}"
-            placeholder="Filter scenarios by name…"
+            placeholder="{% translate "Filter scenarios by name…" %}"
           >
           {{ form.source_scenario }}
           <span class="association-help">
@@ -214,7 +219,7 @@
 
       <div class="association-actions">
         <button type="submit" name="action" value="preview">
-          Preview association
+          {% translate "Preview association" %}
         </button>
         {% if preview and confirmation_token %}
           <input
@@ -228,34 +233,36 @@
             value="confirm"
             class="confirm"
           >
-            Confirm {{ preview.relationship_label }}
+            {% blocktranslate with label=preview.relationship_label trimmed %}Confirm {{ label }}{% endblocktranslate %}
           </button>
         {% endif %}
       </div>
     </form>
 
     {% if preview %}
+      {% translate "Language unspecified" as language_unspecified %}
+      {% translate "Unspecified" as unspecified %}
       <section class="association-panel">
-        <h2>Association preview: {{ preview.relationship_label }}</h2>
+        <h2>{% blocktranslate with label=preview.relationship_label trimmed %}Association preview: {{ label }}{% endblocktranslate %}</h2>
 
         <div class="association-preview-grid">
           <article class="association-scenario-card">
-            <h3>Family that remains</h3>
+            <h3>{% translate "Family that remains" %}</h3>
             <p>
               <b>{{ preview.target.name }}</b><br>
-              {{ preview.target.language|default:"Language unspecified" }} ·
+              {{ preview.target.language|default:language_unspecified }} ·
               {{ preview.target.get_variant_type_display }} ·
-              revision v{{ preview.target_version.version_number }}
+              {% blocktranslate with number=preview.target_version.version_number trimmed %}revision v{{ number }}{% endblocktranslate %}
             </p>
             <p>
-              Family: <b>{{ preview.target_family.title }}</b><br>
-              {{ preview.target_variants|length }} variant{{ preview.target_variants|length|pluralize }} ·
-              {{ preview.target_implementations }} student implementation{{ preview.target_implementations|pluralize }}
+              {% blocktranslate with title=preview.target_family.title trimmed %}Family: <b>{{ title }}</b>{% endblocktranslate %}<br>
+              {% blocktranslate count counter=preview.target_variants|length trimmed %}{{ counter }} variant{% plural %}{{ counter }} variants{% endblocktranslate %} ·
+              {% blocktranslate count counter=preview.target_implementations trimmed %}{{ counter }} student implementation{% plural %}{{ counter }} student implementations{% endblocktranslate %}
             </p>
             <ul>
               {% for variant in preview.target_variants %}
                 <li>
-                  {{ variant.name }} — {{ variant.language|default:"Unspecified" }}
+                  {{ variant.name }} — {{ variant.language|default:unspecified }}
                   ({{ variant.get_variant_type_display }})
                 </li>
               {% endfor %}
@@ -263,22 +270,22 @@
           </article>
 
           <article class="association-scenario-card">
-            <h3>Selected scenario / source family</h3>
+            <h3>{% translate "Selected scenario / source family" %}</h3>
             <p>
               <b>{{ preview.source.name }}</b><br>
-              {{ preview.source.language|default:"Language unspecified" }} ·
+              {{ preview.source.language|default:language_unspecified }} ·
               {{ preview.source.get_variant_type_display }} ·
-              revision v{{ preview.source_version.version_number }}
+              {% blocktranslate with number=preview.source_version.version_number trimmed %}revision v{{ number }}{% endblocktranslate %}
             </p>
             <p>
-              Family: <b>{{ preview.source_family.title }}</b><br>
-              {{ preview.source_variants|length }} variant{{ preview.source_variants|length|pluralize }} ·
-              {{ preview.source_implementations }} student implementation{{ preview.source_implementations|pluralize }}
+              {% blocktranslate with title=preview.source_family.title trimmed %}Family: <b>{{ title }}</b>{% endblocktranslate %}<br>
+              {% blocktranslate count counter=preview.source_variants|length trimmed %}{{ counter }} variant{% plural %}{{ counter }} variants{% endblocktranslate %} ·
+              {% blocktranslate count counter=preview.source_implementations trimmed %}{{ counter }} student implementation{% plural %}{{ counter }} student implementations{% endblocktranslate %}
             </p>
             <ul>
               {% for variant in preview.source_variants %}
                 <li>
-                  {{ variant.name }} — {{ variant.language|default:"Unspecified" }}
+                  {{ variant.name }} — {{ variant.language|default:unspecified }}
                   ({{ variant.get_variant_type_display }})
                 </li>
               {% endfor %}
@@ -288,22 +295,28 @@
 
         <div class="association-impact">
           {% if preview.will_merge %}
-            <b>Logical family merge:</b>
-            all {{ preview.source_variants|length }} source-family
-            variant{{ preview.source_variants|length|pluralize }} will move
-            into <b>{{ preview.target_family.title }}</b>. Implementations,
-            answers, and immutable revisions remain on their original scenario
-            records. Evidence compatibility is recalculated separately.
+            <b>{% translate "Logical family merge:" %}</b>
+            {% blocktranslate count counter=preview.source_variants|length with title=preview.target_family.title trimmed %}
+              all {{ counter }} source-family variant will move into <b>{{ title }}</b>.
+              Implementations, answers, and immutable revisions remain on their original scenario
+              records. Evidence compatibility is recalculated separately.
+            {% plural %}
+              all {{ counter }} source-family variants will move into <b>{{ title }}</b>.
+              Implementations, answers, and immutable revisions remain on their original scenario
+              records. Evidence compatibility is recalculated separately.
+            {% endblocktranslate %}
           {% else %}
-            <b>No family merge:</b>
-            this decision records the relationship for audit and future
-            matching, but leaves both scenario families unchanged.
+            <b>{% translate "No family merge:" %}</b>
+            {% blocktranslate trimmed %}
+              this decision records the relationship for audit and future
+              matching, but leaves both scenario families unchanged.
+            {% endblocktranslate %}
           {% endif %}
         </div>
 
         {% for warning in preview.warnings %}
           <div class="association-warning">
-            <b>Check before confirming:</b> {{ warning }}
+            <b>{% translate "Check before confirming:" %}</b> {{ warning }}
           </div>
         {% endfor %}
       </section>
