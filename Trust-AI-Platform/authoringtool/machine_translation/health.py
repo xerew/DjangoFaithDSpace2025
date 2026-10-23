@@ -11,6 +11,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.translation import gettext as _, ngettext
 
 STATUS_KEY = 'authoringtool:translation-service-status'
 # Kept long so "offline since" survives; freshness is judged by checked_at.
@@ -105,26 +106,33 @@ def proposal_server_status(now=None):
     """Server state plus the banner text for the Metrics & AI page."""
     status = server_status(proposal_models(), now)
     if status['state'] == MISSING_MODELS:
-        noun = 'a model' if len(status['missing']) == 1 else 'models'
-        status['title'] = (
-            f"The AI server is missing {noun} proposals need: "
-            f"{', '.join(status['missing'])}."
-        )
+        status['title'] = ngettext(
+            'The AI server is missing a model proposals need: %(models)s.',
+            'The AI server is missing models proposals need: %(models)s.',
+            len(status['missing']),
+        ) % {'models': ', '.join(status['missing'])}
     else:
-        status['title'] = (
-            'The AI server is offline, so proposals and LLM context '
+        status['title'] = _(
+            "The AI server is offline, so proposals and LLM context "
             "can't be generated right now."
         )
 
-    parts = []
-    if status['state'] == OFFLINE and status['offline_since']:
-        parts.append(f"Offline since {_when(status['offline_since'])}")
-    if status['checked_at']:
-        parts.append(f"last checked {_when(status['checked_at'])}")
+    since = (
+        _when(status['offline_since'])
+        if status['state'] == OFFLINE and status['offline_since'] else None
+    )
+    checked = _when(status['checked_at']) if status['checked_at'] else None
+    if since and checked:
+        first = _('Offline since %(since)s · last checked %(checked)s.') % {
+            'since': since, 'checked': checked}
+    elif since:
+        first = _('Offline since %(since)s · not checked yet.') % {'since': since}
+    elif checked:
+        first = _('Last checked %(checked)s.') % {'checked': checked}
     else:
-        parts.append('not checked yet')
-    detail = ' · '.join(parts)
-    status['detail'] = f"{detail[0].upper()}{detail[1:]}. It's checked again every minute."
+        first = _('Not checked yet.')
+    again = _("It's checked again every minute.")
+    status['detail'] = f'{first} {again}'
     return status
 
 

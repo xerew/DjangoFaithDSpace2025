@@ -1,6 +1,7 @@
 {% extends "main.html" %}
 {% load group_tags %}
-{% block page_title %}<title>Trust AI Lab — Proposal History — {% if run %}{{ run.created_at|date:"d M Y" }}{% else %}Earlier proposals{% endif %} — {{ myScenario.name }}</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% if run %}{% blocktranslate trimmed with date=run.created_at|date:"d M Y" name=myScenario.name %}Trust AI Lab — Proposal History — {{ date }} — {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — Proposal History — Earlier proposals — {{ name }}{% endblocktranslate %}{% endif %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -51,51 +52,47 @@
     <div class="d-flex align-items-start gap-3">
       <div class="pr-hero-icon"><i class="bi bi-clock-history"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Proposals</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if run %}{{ run.created_at|date:"d M Y, H:i" }}{% else %}Earlier proposals{% endif %}</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Proposals" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% if run %}{{ run.created_at|date:"d M Y, H:i" }}{% else %}{% translate "Earlier proposals" %}{% endif %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">Proposals</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'proposal_history' myScenario.id %}">History</a></li>
-          <li class="breadcrumb-item active">{% if run %}{{ run.created_at|date:"d M Y" }}{% else %}Earlier proposals{% endif %}</li>
+          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">{% translate "Proposals" %}</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'proposal_history' myScenario.id %}">{% translate "History" %}</a></li>
+          <li class="breadcrumb-item active">{% if run %}{{ run.created_at|date:"d M Y" }}{% else %}{% translate "Earlier proposals" %}{% endif %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'proposal_history' myScenario.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
   </div>
 
   <div class="alert alert-secondary" role="status">
-    Saved recommendations for reference only. Reviewing this history does not apply changes to the scenario.
-    {% if not run or not run.scenario_version_id %}The original scenario version was not recorded.{% endif %}
+    {% translate "Saved recommendations for reference only. Reviewing this history does not apply changes to the scenario." %}
+    {% if not run or not run.scenario_version_id %}{% translate "The original scenario version was not recorded." %}{% endif %}
   </div>
 
   {% if evidence_context %}
   <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
     <i class="bi bi-diagram-3-fill mt-1"></i>
     <div>
-      <strong>Evidence used for this run:</strong>
-      {{ evidence_context.implementation_count }} eligible
-      implementation{{ evidence_context.implementation_count|pluralize }}
+      <strong>{% translate "Evidence used for this run:" %}</strong>
+      {% blocktranslate trimmed count counter=evidence_context.implementation_count %}{{ counter }} eligible implementation{% plural %}{{ counter }} eligible implementations{% endblocktranslate %}
       {% if evidence_context.scope == 'compatible' %}
-        from {{ evidence_context.scenario_count }} compatible scenario variant{{ evidence_context.scenario_count|pluralize }}
+        {% blocktranslate trimmed count counter=evidence_context.scenario_count %}from {{ counter }} compatible scenario variant{% plural %}from {{ counter }} compatible scenario variants{% endblocktranslate %}
       {% else %}
-        from this scenario, including its historical data
+        {% translate "from this scenario, including its historical data" %}
       {% endif %}
       {% if evidence_context.languages %}
         ({{ evidence_context.languages|join:", " }})
       {% endif %}.
       {% if evidence_context.scope == 'compatible' %}
-        Correctness was pooled across the approved versions; timing was restricted
-        to this scenario's language.
+        {% translate "Correctness was pooled across the approved versions; timing was restricted to this scenario's language." %}
       {% endif %}
       {% if evidence_context.restricted_source_count %}
-        {{ evidence_context.restricted_source_count }} restricted source
-        variant{{ evidence_context.restricted_source_count|pluralize }} contributed
-        without exposing its private details.
+        {% blocktranslate trimmed count counter=evidence_context.restricted_source_count %}{{ counter }} restricted source variant contributed without exposing its private details.{% plural %}{{ counter }} restricted source variants contributed without exposing their private details.{% endblocktranslate %}
       {% endif %}
     </div>
   </div>
@@ -106,20 +103,20 @@
     {% with review=user_reviews|dict_get:proposal.id %}
     <div class="proposal-card" data-status="{{ review.status|default:'new' }}">
       <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
-        <h6 class="proposal-card-title">{{ proposal.get_proposal_type_display }} — {{ proposal.activity.name }}</h6>
+        <h6 class="proposal-card-title">{% if proposal.proposal_type == "create" %}{% translate "Create New Activity" %}{% elif proposal.proposal_type == "revise" %}{% translate "Revise Activity" %}{% elif proposal.proposal_type == "skip" %}{% translate "Skip Activity" %}{% else %}{{ proposal.get_proposal_type_display }}{% endif %} — {{ proposal.activity.name }}</h6>
         <span class="status-badge {{ review.status|default:'new' }}">
-          {% if review.status == 'accepted' %}Accepted{% elif review.status == 'rejected' %}Rejected{% else %}Never decided{% endif %}
+          {% if review.status == 'accepted' %}{% translate "Accepted" %}{% elif review.status == 'rejected' %}{% translate "Rejected" %}{% else %}{% translate "Never decided" %}{% endif %}
         </span>
       </div>
       <div class="proposal-card-meta">
         {{ proposal.phase.name }}
-        {% if review.status == 'accepted' or review.status == 'rejected' %} · Decided {{ review.reviewed_at|date:"d M Y, H:i" }}{% endif %}
-        {% if review.was_edited %} · Edited {{ review.edit_count }} time{{ review.edit_count|pluralize }}{% endif %}
+        {% if review.status == 'accepted' or review.status == 'rejected' %} · {% blocktranslate trimmed with date=review.reviewed_at|date:"d M Y, H:i" %}Decided {{ date }}{% endblocktranslate %}{% endif %}
+        {% if review.was_edited %} · {% blocktranslate trimmed count counter=review.edit_count %}Edited {{ counter }} time{% plural %}Edited {{ counter }} times{% endblocktranslate %}{% endif %}
       </div>
       <div class="proposal-card-body">{{ proposal.suggested_action }}</div>
       {% if review.status == 'rejected' and review.rejection_reasons %}
       <div class="rejection-reasons">
-        <strong>Rejection reasons:</strong> {{ review.rejection_reasons|join:", " }}
+        <strong>{% translate "Rejection reasons:" %}</strong> {{ review.rejection_reasons|join:", " }}
       </div>
       {% endif %}
     </div>
@@ -127,7 +124,7 @@
     {% empty %}
     <div class="text-center text-muted py-5">
       <i class="bi bi-inbox" style="font-size:2.5rem;color:#d1d9e0;"></i>
-      <p class="mt-2 mb-0">No proposals in this run.</p>
+      <p class="mt-2 mb-0">{% translate "No proposals in this run." %}</p>
     </div>
     {% endfor %}
   </section>

@@ -3630,7 +3630,7 @@ def category_metrics_status(request, task_id):
             else ''
         )
         if not scenario_id:
-            return JsonResponse({'status': 'error', 'error': 'Missing scenario_id from result'})
+            return JsonResponse({'status': 'error', 'error': _('Missing scenario_id from result')})
 
         # csv_path = os.path.join(settings.BASE_DIR, 'ai_metrics_cache', f'scenario_{scenario_id}_combined_activity_metrics.csv')
         scenario = get_object_or_404(Scenario, id=scenario_id)
@@ -3643,7 +3643,7 @@ def category_metrics_status(request, task_id):
         )['metrics']
 
         if not os.path.exists(csv_path):
-            return JsonResponse({'status': 'error', 'error': 'CSV not found'})
+            return JsonResponse({'status': 'error', 'error': _('CSV not found')})
 
         data = []
         with open(csv_path, newline='', encoding='utf-8') as f:
@@ -3690,7 +3690,7 @@ def risk_flags_status(request, task_id):
             else ''
         )
         if not scenario_id:
-            return JsonResponse({'status': 'error', 'error': 'Missing scenario_id from result'})
+            return JsonResponse({'status': 'error', 'error': _('Missing scenario_id from result')})
 
         # Path for the risk flags CSV
         scenario = get_object_or_404(Scenario, id=scenario_id)
@@ -3702,7 +3702,7 @@ def risk_flags_status(request, task_id):
             language=evidence_language,
         )['flags']
         if not os.path.exists(flags_csv_path):
-            return JsonResponse({'status': 'error', 'error': 'Flags CSV not found'})
+            return JsonResponse({'status': 'error', 'error': _('Flags CSV not found')})
 
         data = []
         with open(flags_csv_path, newline='', encoding='utf-8') as f:
@@ -3762,7 +3762,7 @@ def trigger_llm_context_task(request, scenario_id):
             scenario = Scenario.objects.get(id=scenario_id)
             if not user_can_generate_proposals(request.user, scenario):
                 return JsonResponse({
-                    "error": (
+                    "error": _(
                         "Only the scenario creator, a platform admin or a "
                         "role allowed to generate proposals can do this."
                     )
@@ -3774,8 +3774,8 @@ def trigger_llm_context_task(request, scenario_id):
             task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
             return JsonResponse({"status": "started", "task_id": task.id})
         except Scenario.DoesNotExist:
-            return JsonResponse({"error": "Scenario not found"}, status=404)
-    return JsonResponse({"error": "Invalid request"}, status=400)
+            return JsonResponse({"error": _("Scenario not found")}, status=404)
+    return JsonResponse({"error": _("Invalid request")}, status=400)
 
 def _ai_server_json():
     status = proposal_server_status()
@@ -3823,7 +3823,7 @@ def _proposal_insertion_preview(proposal, data):
         return None
 
     flagged = proposal.activity
-    new_name = data.get("activity_name") or "New activity"
+    new_name = data.get("activity_name") or _("New activity")
     location = str(data.get("insert_location") or "after").lower()
 
     if "before" in location:
@@ -3838,9 +3838,9 @@ def _proposal_insertion_preview(proposal, data):
         ).values_list("activity__name", flat=True)
         predecessor_names.update(branch_sources)
         if proposal.scenario.start_activity_id == flagged.id:
-            predecessor_names.add("Scenario start")
+            predecessor_names.add(_("Scenario start"))
         return {
-            "left": " / ".join(sorted(predecessor_names)) or "Incoming path",
+            "left": " / ".join(sorted(predecessor_names)) or _("Incoming path"),
             "middle": new_name,
             "right": flagged.name,
             "location": "before",
@@ -3863,7 +3863,7 @@ def _proposal_insertion_preview(proposal, data):
     return {
         "left": flagged.name,
         "middle": new_name,
-        "right": " / ".join(sorted(target_names)) or "End",
+        "right": " / ".join(sorted(target_names)) or _("End"),
         "location": "after",
     }
 

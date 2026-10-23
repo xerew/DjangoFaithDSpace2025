@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
 AI server (Ollama on the NTUA machine) banner. Takes ai_server from
 machine_translation.health.proposal_server_status; shown only when it isn't ok.
@@ -30,7 +31,7 @@ machine_translation.health.proposal_server_status; shown only when it isn't ok.
     <div class="ai-server-detail" id="aiServerDetail">{{ ai_server.detail }}</div>
   </div>
   <button type="button" class="ai-server-check" id="aiServerCheckBtn">
-    <i class="bi bi-arrow-repeat me-1"></i>Check again
+    <i class="bi bi-arrow-repeat me-1"></i>{% translate "Check again" %}
   </button>
 </div>
 
@@ -65,7 +66,7 @@ machine_translation.health.proposal_server_status; shown only when it isn't ok.
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
     let polls = 0;
     button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Checking…';
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + {% translate 'Checking…' as s %}"{{ s|escapejs }}";
 
     // The check runs in the background worker; wait for a newer result.
     function waitForResult(data) {

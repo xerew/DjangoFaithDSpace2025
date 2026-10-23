@@ -1,6 +1,7 @@
 {% extends "main.html" %}
 {% load profile_tags %}
-{% block page_title %}<title>Trust AI Lab — Proposal History — {{ myScenario.name }}</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — Proposal History — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 
 <style>
@@ -69,48 +70,48 @@
     <div class="d-flex align-items-start gap-3">
       <div class="pr-hero-icon"><i class="bi bi-clock-history"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">Proposals</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Proposal History</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "Proposals" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Proposal History" %}</h2>
         <div style="font-size:13px;opacity:0.82;margin-top:2px;">{{ myScenario.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">Proposals</a></li>
-          <li class="breadcrumb-item active">History</li>
+          <li class="breadcrumb-item"><a href="{% url 'proposal_list' myScenario.id %}">{% translate "Proposals" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "History" %}</li>
         </ol></nav>
       </div>
       <div class="flex-shrink-0 d-flex gap-2 align-items-start" style="padding-top:4px;">
         <a href="{% url 'proposal_list' myScenario.id %}" class="hero-btn-ghost">
-          <i class="bi bi-arrow-left"></i> Back
+          <i class="bi bi-arrow-left"></i> {% translate "Back" %}
         </a>
       </div>
     </div>
   </div>
 
   <section class="section">
-    <p class="text-muted">All saved recommendation runs for this scenario are available here for reference, including earlier versions. Review decisions shown are yours.</p>
+    <p class="text-muted">{% translate "All saved recommendation runs for this scenario are available here for reference, including earlier versions. Review decisions shown are yours." %}</p>
     {% if legacy_summary.total %}
     <div class="run-card">
       <div class="run-head">
         <div>
-          <div class="run-card-date"><i class="bi bi-archive"></i> Earlier proposals</div>
-          <span class="run-badge older">Saved without a generation run</span>
+          <div class="run-card-date"><i class="bi bi-archive"></i> {% translate "Earlier proposals" %}</div>
+          <span class="run-badge older">{% translate "Saved without a generation run" %}</span>
         </div>
         <div class="run-actions">
           <a href="{% url 'proposal_history_legacy' myScenario.id %}" class="btn btn-sm btn-outline-primary">
-            View proposals <i class="bi bi-arrow-right ms-1"></i>
+            {% translate "View proposals" %} <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
       </div>
       <div class="run-body">
         <div>
-          <div class="run-fact-label">Proposals</div>
+          <div class="run-fact-label">{% translate "Proposals" %}</div>
           <div class="run-fact-value">{{ legacy_summary.total }}</div>
         </div>
         <div>
-          <div class="run-fact-label">Your decisions</div>
+          <div class="run-fact-label">{% translate "Your decisions" %}</div>
           <div class="run-stats">
-            <span class="run-stat accepted">{{ legacy_summary.accepted }} accepted</span>
-            <span class="run-stat rejected">{{ legacy_summary.rejected }} rejected</span>
-            <span class="run-stat pending">{{ legacy_summary.never_decided }} never decided</span>
+            <span class="run-stat accepted">{% blocktranslate trimmed with count=legacy_summary.accepted %}{{ count }} accepted{% endblocktranslate %}</span>
+            <span class="run-stat rejected">{% blocktranslate trimmed with count=legacy_summary.rejected %}{{ count }} rejected{% endblocktranslate %}</span>
+            <span class="run-stat pending">{% blocktranslate trimmed with count=legacy_summary.never_decided %}{{ count }} never decided{% endblocktranslate %}</span>
           </div>
         </div>
       </div>
@@ -123,50 +124,50 @@
         <div>
           <div class="run-card-date"><i class="bi bi-calendar-event"></i> {{ run.created_at|date:"d M Y, H:i" }}</div>
           {% if not run.scenario_version_id %}
-            <span class="run-badge older">Earlier run — scenario version not recorded</span>
+            <span class="run-badge older">{% translate "Earlier run — scenario version not recorded" %}</span>
           {% elif run.scenario_version_id != myScenario.current_version_id %}
-            <span class="run-badge older">Earlier scenario version (v{{ run.scenario_version.version_number }})</span>
+            <span class="run-badge older">{% blocktranslate trimmed with version=run.scenario_version.version_number %}Earlier scenario version (v{{ version }}){% endblocktranslate %}</span>
           {% elif run.is_current %}
-            <span class="run-badge current">Latest run for this scenario version</span>
+            <span class="run-badge current">{% translate "Latest run for this scenario version" %}</span>
           {% else %}
-            <span class="run-badge older">Archived run (v{{ run.scenario_version.version_number }})</span>
+            <span class="run-badge older">{% blocktranslate trimmed with version=run.scenario_version.version_number %}Archived run (v{{ version }}){% endblocktranslate %}</span>
           {% endif %}
         </div>
         <div class="run-actions">
           <a href="{% url 'proposal_history_run_detail' myScenario.id run.id %}" class="btn btn-sm btn-outline-primary">
-            View proposals <i class="bi bi-arrow-right ms-1"></i>
+            {% translate "View proposals" %} <i class="bi bi-arrow-right ms-1"></i>
           </a>
         </div>
       </div>
       <div class="run-body">
         <div>
-          <div class="run-fact-label">Triggered by</div>
-          <div class="run-fact-value run-person">{% if run.created_by %}{% user_link run.created_by %}{% else %}Unknown{% endif %}</div>
+          <div class="run-fact-label">{% translate "Triggered by" %}</div>
+          <div class="run-fact-value run-person">{% if run.created_by %}{% user_link run.created_by %}{% else %}{% translate "Unknown" %}{% endif %}</div>
         </div>
         <div>
-          <div class="run-fact-label">Proposals</div>
+          <div class="run-fact-label">{% translate "Proposals" %}</div>
           <div class="run-fact-value">{{ summary.total }}</div>
         </div>
         <div>
-          <div class="run-fact-label">Student data used</div>
+          <div class="run-fact-label">{% translate "Student data used" %}</div>
           {% if evidence.pooled_implementation_count %}
-            <div class="run-fact-value">{{ evidence.pooled_implementation_count }} eligible implementation{{ evidence.pooled_implementation_count|pluralize }}</div>
-            <div class="run-fact-sub">from this scenario and its {{ evidence.translation_count }} confirmed translation{{ evidence.translation_count|pluralize }}</div>
+            <div class="run-fact-value">{% blocktranslate trimmed count counter=evidence.pooled_implementation_count %}{{ counter }} eligible implementation{% plural %}{{ counter }} eligible implementations{% endblocktranslate %}</div>
+            <div class="run-fact-sub">{% blocktranslate trimmed count counter=evidence.translation_count %}from this scenario and its {{ counter }} confirmed translation{% plural %}from this scenario and its {{ counter }} confirmed translations{% endblocktranslate %}</div>
           {% elif evidence %}
-            <div class="run-fact-value">{{ evidence.implementation_count }} eligible implementation{{ evidence.implementation_count|pluralize }}</div>
+            <div class="run-fact-value">{% blocktranslate trimmed count counter=evidence.implementation_count %}{{ counter }} eligible implementation{% plural %}{{ counter }} eligible implementations{% endblocktranslate %}</div>
             <div class="run-fact-sub">
-              {% if evidence.scope == 'compatible' %}from {{ evidence.scenario_count }} compatible variant{{ evidence.scenario_count|pluralize }}{% else %}from this scenario{% endif %}{% if evidence.restricted_source_count %}, including {{ evidence.restricted_source_count }} restricted source{{ evidence.restricted_source_count|pluralize }}{% endif %}
+              {% if evidence.scope == 'compatible' %}{% blocktranslate trimmed count counter=evidence.scenario_count %}from {{ counter }} compatible variant{% plural %}from {{ counter }} compatible variants{% endblocktranslate %}{% else %}{% translate "from this scenario" %}{% endif %}{% if evidence.restricted_source_count %}, {% blocktranslate trimmed count counter=evidence.restricted_source_count %}including {{ counter }} restricted source{% plural %}including {{ counter }} restricted sources{% endblocktranslate %}{% endif %}
             </div>
           {% else %}
-            <div class="run-fact-value text-muted">Not recorded</div>
+            <div class="run-fact-value text-muted">{% translate "Not recorded" %}</div>
           {% endif %}
         </div>
         <div>
-          <div class="run-fact-label">Your decisions</div>
+          <div class="run-fact-label">{% translate "Your decisions" %}</div>
           <div class="run-stats">
-            <span class="run-stat accepted">{{ summary.accepted }} accepted</span>
-            <span class="run-stat rejected">{{ summary.rejected }} rejected</span>
-            <span class="run-stat pending">{{ summary.never_decided }} never decided</span>
+            <span class="run-stat accepted">{% blocktranslate trimmed with count=summary.accepted %}{{ count }} accepted{% endblocktranslate %}</span>
+            <span class="run-stat rejected">{% blocktranslate trimmed with count=summary.rejected %}{{ count }} rejected{% endblocktranslate %}</span>
+            <span class="run-stat pending">{% blocktranslate trimmed with count=summary.never_decided %}{{ count }} never decided{% endblocktranslate %}</span>
           </div>
         </div>
       </div>
@@ -176,8 +177,8 @@
     {% if not legacy_summary.total %}
     <div class="text-center text-muted py-5">
       <i class="bi bi-clock-history" style="font-size:2.5rem;color:#d1d9e0;"></i>
-      <p class="mt-2 mb-0">No saved proposals or generation runs for this scenario.</p>
-      <p class="small">If these proposals were generated on another scenario, open that scenario's Proposal History.</p>
+      <p class="mt-2 mb-0">{% translate "No saved proposals or generation runs for this scenario." %}</p>
+      <p class="small">{% translate "If these proposals were generated on another scenario, open that scenario's Proposal History." %}</p>
     </div>
     {% endif %}
     {% endfor %}

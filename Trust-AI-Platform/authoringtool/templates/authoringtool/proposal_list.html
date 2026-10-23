@@ -1,6 +1,7 @@
 {% extends "main.html" %}
 {% load html_tags %}
-{% block page_title %}<title>Trust AI Lab — Proposals — {{ myScenario.name }}</title>{% endblock %}
+{% load i18n %}
+{% block page_title %}<title>{% blocktranslate trimmed with name=myScenario.name %}Trust AI Lab — Proposals — {{ name }}{% endblocktranslate %}</title>{% endblock %}
 {% block atcontent %}
 {% load group_tags %}
 
@@ -261,40 +262,40 @@
     <div class="d-flex align-items-start gap-3">
       <div class="pr-hero-icon"><i class="bi bi-lightbulb"></i></div>
       <div class="flex-grow-1">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">AI Proposals</div>
-        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">Activity Proposals</h2>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:2px;">{% translate "AI Proposals" %}</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">{% translate "Activity Proposals" %}</h2>
         <div style="font-size:12.5px;opacity:0.75;margin-top:3px;">{{ myScenario.name }}</div>
         <nav><ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">Scenarios</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scenarios' %}">{% translate "Scenarios" %}</a></li>
           <li class="breadcrumb-item"><a href="{% url 'viewScenario' id=myScenario.id %}">{{ myScenario.name }}</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'ai_metrics' scenario_id=myScenario.id %}">Metrics &amp; AI</a></li>
-          <li class="breadcrumb-item active">Proposals</li>
+          <li class="breadcrumb-item"><a href="{% url 'ai_metrics' scenario_id=myScenario.id %}">{% translate "Metrics &amp; AI" %}</a></li>
+          <li class="breadcrumb-item active">{% translate "Proposals" %}</li>
         </ol></nav>
         <div class="hero-stats">
           <div class="hero-stat">
             <span class="hero-stat-num">{{ total_count }}</span>
-            <span class="hero-stat-lbl">Total</span>
+            <span class="hero-stat-lbl">{% translate "Total" %}</span>
           </div>
           <div class="hero-stat pending">
             <span class="hero-stat-num">{{ pending_count }}</span>
-            <span class="hero-stat-lbl">Pending</span>
+            <span class="hero-stat-lbl">{% translate "Pending" %}</span>
           </div>
           <div class="hero-stat accepted">
             <span class="hero-stat-num">{{ accepted_count }}</span>
-            <span class="hero-stat-lbl">Accepted</span>
+            <span class="hero-stat-lbl">{% translate "Accepted" %}</span>
           </div>
           <div class="hero-stat rejected">
             <span class="hero-stat-num">{{ rejected_count }}</span>
-            <span class="hero-stat-lbl">Rejected</span>
+            <span class="hero-stat-lbl">{% translate "Rejected" %}</span>
           </div>
         </div>
       </div>
       <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end" style="padding-top:4px;">
         <a href="{% url 'proposal_history' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
-          <i class="bi bi-clock-history me-1"></i> History
+          <i class="bi bi-clock-history me-1"></i> {% translate "History" %}
         </a>
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-sm hero-btn-ghost">
-          <i class="bi bi-arrow-left me-1"></i> Metrics &amp; AI
+          <i class="bi bi-arrow-left me-1"></i> {% translate "Metrics &amp; AI" %}
         </a>
       </div>
     </div>
@@ -303,35 +304,29 @@
   {% if not myScenario.family_pooling_enabled %}
   <div class="alert alert-info" role="status">
     {% if generation_run %}
-    Showing the proposals from the latest generation ({{ generation_run.created_at|date:"d M Y, H:i" }}).
+    {% blocktranslate trimmed with date=generation_run.created_at|date:"d M Y, H:i" %}Showing the proposals from the latest generation ({{ date }}).{% endblocktranslate %}
     {% else %}
-    Showing the proposals saved before generations were tracked.
+    {% translate "Showing the proposals saved before generations were tracked." %}
     {% endif %}
-    Earlier proposals and your decisions on them are kept in
-    <a href="{% url 'proposal_history' myScenario.id %}">Proposal History</a>.
-    Review the proposed content before applying it to a new copy.
+    {% url 'proposal_history' myScenario.id as history_url %}{% blocktranslate trimmed %}Earlier proposals and your decisions on them are kept in <a href="{{ history_url }}">Proposal History</a>. Review the proposed content before applying it to a new copy.{% endblocktranslate %}
   </div>
   {% elif generation_run %}
   <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
     <i class="bi bi-diagram-3-fill mt-1"></i>
     <div>
-      <strong>Proposal evidence:</strong>
-      {{ evidence_context.implementation_count }} eligible
-      implementation{{ evidence_context.implementation_count|pluralize }}
+      <strong>{% translate "Proposal evidence:" %}</strong>
+      {% blocktranslate trimmed count counter=evidence_context.implementation_count %}{{ counter }} eligible implementation{% plural %}{{ counter }} eligible implementations{% endblocktranslate %}
       {% if myScenario.family_pooling_enabled %}
-      from {{ evidence_context.scenario_count }} scenario variant{{ evidence_context.scenario_count|pluralize }}
+      {% blocktranslate trimmed count counter=evidence_context.scenario_count %}from {{ counter }} scenario variant{% plural %}from {{ counter }} scenario variants{% endblocktranslate %}
       {% else %}
-      from this scenario, including historical data
+      {% translate "from this scenario, including historical data" %}
       {% endif %}
       {% if evidence_context.languages %}
         ({{ evidence_context.languages|join:", " }})
       {% endif %}.
-      Correctness was pooled across approved versions; timing was restricted
-      to this scenario's language.
+      {% translate "Correctness was pooled across approved versions; timing was restricted to this scenario's language." %}
       {% if evidence_context.restricted_source_count %}
-        {{ evidence_context.restricted_source_count }} restricted source
-        variant{{ evidence_context.restricted_source_count|pluralize }} also
-        contributed without exposing its private details.
+        {% blocktranslate trimmed count counter=evidence_context.restricted_source_count %}{{ counter }} restricted source variant also contributed without exposing its private details.{% plural %}{{ counter }} restricted source variants also contributed without exposing their private details.{% endblocktranslate %}
       {% endif %}
     </div>
   </div>
@@ -346,13 +341,13 @@
     <div class="create-cta">
       <i class="bi bi-check-circle-fill"></i>
       <div class="create-cta-text">
-        <h6>All proposals reviewed!</h6>
-        <p>You can now create a personalised scenario incorporating your accepted proposals.</p>
+        <h6>{% translate "All proposals reviewed!" %}</h6>
+        <p>{% translate "You can now create a personalised scenario incorporating your accepted proposals." %}</p>
       </div>
       <form method="post" action="{% url 'create_personal_scenario' scenario_id=myScenario.id %}" style="margin-left:auto;">
         {% csrf_token %}
         <button type="submit" class="btn-create-scenario">
-          <i class="bi bi-stars"></i> Create Personalised Scenario
+          <i class="bi bi-stars"></i> {% translate "Create Personalised Scenario" %}
         </button>
       </form>
     </div>
@@ -361,16 +356,16 @@
     <!-- ── Filter tabs ── -->
     <div class="filter-tabs" id="filterTabs">
       <button class="filter-tab active" data-filter="all">
-        All <span class="badge-pill">{{ total_count }}</span>
+        {% translate "All" %} <span class="badge-pill">{{ total_count }}</span>
       </button>
       <button class="filter-tab f-pending" data-filter="new">
-        Pending <span class="badge-pill">{{ pending_count }}</span>
+        {% translate "Pending" %} <span class="badge-pill">{{ pending_count }}</span>
       </button>
       <button class="filter-tab f-accepted" data-filter="accepted">
-        <i class="bi bi-check-circle" style="font-size:12px;"></i> Accepted <span class="badge-pill">{{ accepted_count }}</span>
+        <i class="bi bi-check-circle" style="font-size:12px;"></i> {% translate "Accepted" %} <span class="badge-pill">{{ accepted_count }}</span>
       </button>
       <button class="filter-tab f-rejected" data-filter="rejected">
-        <i class="bi bi-x-circle" style="font-size:12px;"></i> Rejected <span class="badge-pill">{{ rejected_count }}</span>
+        <i class="bi bi-x-circle" style="font-size:12px;"></i> {% translate "Rejected" %} <span class="badge-pill">{{ rejected_count }}</span>
       </button>
     </div>
 
@@ -400,20 +395,20 @@
 
           <!-- Type badge -->
           {% if proposal.proposal_type == "create" %}
-            <span class="type-badge type-create"><i class="bi bi-plus-circle me-1"></i>Create New Activity</span>
+            <span class="type-badge type-create"><i class="bi bi-plus-circle me-1"></i>{% translate "Create New Activity" %}</span>
           {% elif proposal.proposal_type == "revise" %}
-            <span class="type-badge type-revise"><i class="bi bi-pencil me-1"></i>Revise Activity</span>
+            <span class="type-badge type-revise"><i class="bi bi-pencil me-1"></i>{% translate "Revise Activity" %}</span>
           {% else %}
-            <span class="type-badge type-skip"><i class="bi bi-skip-forward me-1"></i>{{ proposal.get_proposal_type_display }}</span>
+            <span class="type-badge type-skip"><i class="bi bi-skip-forward me-1"></i>{% if proposal.proposal_type == "skip" %}{% translate "Skip Activity" %}{% else %}{{ proposal.get_proposal_type_display }}{% endif %}</span>
           {% endif %}
 
           <!-- Status badge -->
           {% if review.status == "new" %}
-            <span class="status-badge status-new"><i class="bi bi-clock me-1"></i>Pending</span>
+            <span class="status-badge status-new"><i class="bi bi-clock me-1"></i>{% translate "Pending" %}</span>
           {% elif review.status == "accepted" %}
-            <span class="status-badge status-accepted"><i class="bi bi-check me-1"></i>Accepted</span>
+            <span class="status-badge status-accepted"><i class="bi bi-check me-1"></i>{% translate "Accepted" %}</span>
           {% elif review.status == "rejected" %}
-            <span class="status-badge status-rejected"><i class="bi bi-x me-1"></i>Rejected</span>
+            <span class="status-badge status-rejected"><i class="bi bi-x me-1"></i>{% translate "Rejected" %}</span>
           {% endif %}
 
           <!-- Actions — stop propagation so clicks don't toggle view panel -->
@@ -421,21 +416,21 @@
             {% if review.status == "new" %}
             <form method="post" action="{% url 'accept_proposal' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" class="btn-accept"><i class="bi bi-check-lg"></i> Accept</button>
+              <button type="submit" class="btn-accept"><i class="bi bi-check-lg"></i> {% translate "Accept" %}</button>
             </form>
             <button type="button" class="btn-reject"
                     onclick="openRejectModal('{% url 'reject_proposal' pk=proposal.pk scenario_id=myScenario.id %}')">
-              <i class="bi bi-x-lg"></i> Reject
+              <i class="bi bi-x-lg"></i> {% translate "Reject" %}
             </button>
             {% elif review.status == "accepted" %}
             <form method="post" action="{% url 'reset_proposal_review' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> Undo Accept</button>
+              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> {% translate "Undo Accept" %}</button>
             </form>
             {% elif review.status == "rejected" %}
             <form method="post" action="{% url 'reset_proposal_review' pk=proposal.pk scenario_id=myScenario.id %}" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> Undo Reject</button>
+              <button type="submit" class="btn-reset"><i class="bi bi-arrow-counterclockwise"></i> {% translate "Undo Reject" %}</button>
             </form>
             {% endif %}
 
@@ -446,7 +441,7 @@
                     aria-expanded="false"
                     aria-controls="edit-panel-{{ proposal.id }}"
                     onclick="initProposalForm({{ proposal.id }})">
-              <i class="bi bi-pencil-square"></i> Edit
+              <i class="bi bi-pencil-square"></i> {% translate "Edit" %}
             </button>
           </div>
         </div>
@@ -467,7 +462,7 @@
 
             {% if proposal.categories_in_risk.all %}
             <div class="view-field" style="padding:8px 14px;">
-              <div class="view-field-label">Categories at Risk</div>
+              <div class="view-field-label">{% translate "Categories at Risk" %}</div>
               <div style="white-space:normal;">
                 {% for cat in proposal.categories_in_risk.all %}
                   <span class="cat-tag cat-{{ cat.name|lower }}">{{ cat.name }}</span>
@@ -478,30 +473,30 @@
 
             {% if proposal.revision_changes %}
             <div class="view-field">
-              <div class="view-field-label">What changes</div>
+              <div class="view-field-label">{% translate "What changes" %}</div>
               <table class="rev-table">
                 <thead>
-                  <tr><th></th><th>Current activity</th><th>Proposed</th></tr>
+                  <tr><th></th><th>{% translate "Current activity" %}</th><th>{% translate "Proposed" %}</th></tr>
                 </thead>
                 <tbody>
                   {% for row in proposal.revision_changes %}
                   {% if row.label == 'Answers' %}
                   <tr class="{% if row.changed %}rev-changed{% else %}rev-same{% endif %}">
-                    <th>Answers{% if not row.changed %}<span class="rev-note">unchanged</span>{% endif %}</th>
+                    <th>{% translate "Answers" %}{% if not row.changed %}<span class="rev-note">{% translate "unchanged" %}</span>{% endif %}</th>
                     <td>
                       {% for answer in row.answers %}
-                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.current %}{{ answer.current }}{% if answer.current_correct %} <span class="rev-correct">✓ correct</span>{% endif %}{% else %}<span class="rev-empty">—</span>{% endif %}</div>
+                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.current %}{{ answer.current }}{% if answer.current_correct %} <span class="rev-correct">{% translate "✓ correct" %}</span>{% endif %}{% else %}<span class="rev-empty">—</span>{% endif %}</div>
                       {% endfor %}
                     </td>
                     <td>
                       {% for answer in row.answers %}
-                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.proposed %}{{ answer.proposed }}{% if answer.proposed_correct %} <span class="rev-correct">✓ correct</span>{% endif %}{% else %}<span class="rev-empty">removed</span>{% endif %}</div>
+                      <div class="rev-answer{% if answer.changed %} changed{% endif %}">{% if answer.proposed %}{{ answer.proposed }}{% if answer.proposed_correct %} <span class="rev-correct">{% translate "✓ correct" %}</span>{% endif %}{% else %}<span class="rev-empty">{% translate "removed" %}</span>{% endif %}</div>
                       {% endfor %}
                     </td>
                   </tr>
                   {% else %}
                   <tr class="{% if row.changed %}rev-changed{% else %}rev-same{% endif %}">
-                    <th>{{ row.label }}{% if not row.changed %}<span class="rev-note">unchanged</span>{% endif %}</th>
+                    <th>{% if row.label == 'Name' %}{% translate "Name" %}{% elif row.label == 'Content' %}{% translate "Content" %}{% else %}{{ row.label }}{% endif %}{% if not row.changed %}<span class="rev-note">{% translate "unchanged" %}</span>{% endif %}</th>
                     <td>{{ row.current|default:"—" }}</td>
                     <td>{% if row.changed %}{% for op, text in row.diff %}{% if op == 'add' %}<ins class="diff-add">{{ text }}</ins>{% elif op == 'del' %}<del class="diff-del">{{ text }}</del>{% else %}{{ text }}{% endif %} {% endfor %}{% else %}{{ row.proposed|default:"—" }}{% endif %}</td>
                   </tr>
@@ -514,7 +509,7 @@
 
             {% if proposal.insertion_preview %}
             <div class="view-field">
-              <div class="view-field-label">Insertion Preview</div>
+              <div class="view-field-label">{% translate "Insertion Preview" %}</div>
               <div class="insertion-preview">
                 <span class="insertion-node">{{ proposal.insertion_preview.left }}</span>
                 <span class="insertion-arrow">&rarr;</span>
@@ -526,25 +521,25 @@
             {% endif %}
 
             <div class="view-field">
-              <div class="view-field-label">Activity Name</div>
+              <div class="view-field-label">{% translate "Activity Name" %}</div>
               <div class="view-field-value" id="v-name-{{ proposal.id }}">—</div>
             </div>
             <div class="view-field">
-              <div class="view-field-label">Activity Type</div>
+              <div class="view-field-label">{% translate "Activity Type" %}</div>
               <div class="view-field-value" id="v-type-{{ proposal.id }}">—</div>
             </div>
             <div class="view-field">
-              <div class="view-field-label">Content</div>
+              <div class="view-field-label">{% translate "Content" %}</div>
               <div class="view-field-value" id="v-content-{{ proposal.id }}">—</div>
             </div>
             <div class="view-field" id="v-answers-wrapper-{{ proposal.id }}">
-              <div class="view-field-label">Answers</div>
+              <div class="view-field-label">{% translate "Answers" %}</div>
               <div class="view-field-value" id="v-answers-{{ proposal.id }}" style="white-space:normal;">
                 <span style="color:#9ca3af">—</span>
               </div>
             </div>
             <div class="view-field">
-              <div class="view-field-label">Explanation</div>
+              <div class="view-field-label">{% translate "Explanation" %}</div>
               <div class="view-field-value" id="v-explanation-{{ proposal.id }}">—</div>
             </div>
 
@@ -555,25 +550,25 @@
         <div class="collapse" id="edit-panel-{{ proposal.id }}"
              data-bs-parent="#accordion-{{ proposal.id }}">
           <div class="proposal-edit-panel">
-            <div class="edit-section-title"><i class="bi bi-pencil me-1"></i>Suggested Action</div>
+            <div class="edit-section-title"><i class="bi bi-pencil me-1"></i>{% translate "Suggested Action" %}</div>
             <form method="post" action="{% url 'edit_proposal_json' pk=proposal.pk scenario_id=myScenario.id %}">
               {% csrf_token %}
               <div class="row g-3">
                 <div class="col-12 col-md-6">
-                  <label class="form-label">Activity Name</label>
-                  <input name="activity_name" class="form-control" placeholder="Activity name…">
+                  <label class="form-label">{% translate "Activity Name" %}</label>
+                  <input name="activity_name" class="form-control" placeholder="{% translate "Activity name…" %}">
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Content</label>
-                  <textarea name="content" class="form-control" rows="4" placeholder="Activity content…"></textarea>
+                  <label class="form-label">{% translate "Content" %}</label>
+                  <textarea name="content" class="form-control" rows="4" placeholder="{% translate "Activity content…" %}"></textarea>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Answers</label>
+                  <label class="form-label">{% translate "Answers" %}</label>
                   <div id="answer-fields-{{ proposal.id }}" class="d-flex flex-column gap-2"></div>
                 </div>
                 <div class="col-12">
                   <button type="submit" class="btn-save-edit">
-                    <i class="bi bi-floppy"></i> Save Changes
+                    <i class="bi bi-floppy"></i> {% translate "Save Changes" %}
                   </button>
                 </div>
               </div>
@@ -589,7 +584,7 @@
     <!-- ── No-results within filter ── -->
     <div id="filterEmpty" style="display:none;" class="pr-empty">
       <i class="bi bi-funnel text-muted"></i>
-      <p>No proposals match this filter.</p>
+      <p>{% translate "No proposals match this filter." %}</p>
     </div>
 
     {% else %}
@@ -597,14 +592,14 @@
       <div class="card-body pr-empty">
         <i class="bi bi-lightbulb text-muted"></i>
         {% if myScenario.family_pooling_enabled %}
-          <h5 class="text-muted">No current proposals for this scenario version</h5>
-          <p>Previously saved recommendations are available in <a href="{% url 'proposal_history' myScenario.id %}">Proposal History</a>, including earlier scenario versions.</p>
+          <h5 class="text-muted">{% translate "No current proposals for this scenario version" %}</h5>
+          <p>{% url 'proposal_history' myScenario.id as history_url %}{% blocktranslate trimmed %}Previously saved recommendations are available in <a href="{{ history_url }}">Proposal History</a>, including earlier scenario versions.{% endblocktranslate %}</p>
         {% else %}
-          <h5 class="text-muted">No saved proposals for this scenario</h5>
+          <h5 class="text-muted">{% translate "No saved proposals for this scenario" %}</h5>
         {% endif %}
-        <p class="text-muted small">Run the LLM context generation from Metrics &amp; AI to generate activity proposals.</p>
+        <p class="text-muted small">{% translate "Run the LLM context generation from Metrics &amp; AI to generate activity proposals." %}</p>
         <a href="{% url 'ai_metrics' scenario_id=myScenario.id %}" class="btn btn-primary btn-sm">
-          <i class="bi bi-arrow-left me-1"></i> Go to Metrics &amp; AI
+          <i class="bi bi-arrow-left me-1"></i> {% translate "Go to Metrics &amp; AI" %}
         </a>
       </div>
     </div>
@@ -619,53 +614,53 @@
     <div class="modal-content" style="border-radius:12px;">
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-semibold" id="rejectReasonModalLabel">
-          <i class="bi bi-x-circle text-danger me-2"></i>Why are you rejecting this?
+          <i class="bi bi-x-circle text-danger me-2"></i>{% translate "Why are you rejecting this?" %}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate "Close" %}"></button>
       </div>
       <form id="rejectReasonForm" method="post" action="">
         {% csrf_token %}
         <div class="modal-body pt-2">
-          <p class="text-muted small mb-3">Select all that apply. Your feedback helps improve future recommendations.</p>
+          <p class="text-muted small mb-3">{% translate "Select all that apply. Your feedback helps improve future recommendations." %}</p>
           <div class="d-flex flex-column gap-2">
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="structural_invalid">
-              <span><strong>Malformed or structurally invalid</strong> (excluded from bandit learning)</span>
+              <span>{% blocktranslate trimmed %}<strong>Malformed or structurally invalid</strong> (excluded from bandit learning){% endblocktranslate %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="wrong_action_create">
-              <span>Wrong action — should be <strong>Create</strong></span>
+              <span>{% blocktranslate trimmed %}Wrong action — should be <strong>Create</strong>{% endblocktranslate %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="wrong_action_revise">
-              <span>Wrong action — should be <strong>Revise</strong></span>
+              <span>{% blocktranslate trimmed %}Wrong action — should be <strong>Revise</strong>{% endblocktranslate %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="wrong_action_skip">
-              <span>Wrong action — should be <strong>Skip</strong></span>
+              <span>{% blocktranslate trimmed %}Wrong action — should be <strong>Skip</strong>{% endblocktranslate %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="poor_content">
-              <span>Poor content quality</span>
+              <span>{% translate "Poor content quality" %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="not_relevant">
-              <span>Not relevant to this scenario</span>
+              <span>{% translate "Not relevant to this scenario" %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="already_covered">
-              <span>Already covered elsewhere</span>
+              <span>{% translate "Already covered elsewhere" %}</span>
             </label>
             <label class="rejection-reason-option">
               <input type="checkbox" name="rejection_reasons" value="difficulty_mismatch">
-              <span>Difficulty mismatch</span>
+              <span>{% translate "Difficulty mismatch" %}</span>
             </label>
           </div>
         </div>
         <div class="modal-footer border-0 pt-0">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
           <button type="submit" class="btn btn-sm btn-danger">
-            <i class="bi bi-x-lg me-1"></i>Reject
+            <i class="bi bi-x-lg me-1"></i>{% translate "Reject" %}
           </button>
         </div>
       </form>
@@ -796,7 +791,7 @@ function initProposalForm(proposalId) {
         }
         if (ans.is_correct) {
           const badge = document.createElement('span');
-          badge.textContent = '✓ Correct';
+          badge.textContent = "{% translate '✓ Correct' as s %}{{ s|escapejs }}";
           badge.style.cssText = 'font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;';
           wrap.appendChild(badge);
         }
@@ -855,7 +850,7 @@ document.querySelectorAll('.collapse').forEach(el => {
     <div class="modal-content" style="border-radius:14px;">
       <div class="modal-header" style="background:linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%);color:#fff;border-radius:14px 14px 0 0;">
         <h5 class="modal-title" id="feedbackModalTitle" style="font-size:16px;font-weight:700;"></h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{% translate "Close" %}"></button>
       </div>
       <div class="modal-body">
         <p class="text-muted" id="feedbackModalDesc" style="font-size:13.5px;"></p>
@@ -863,8 +858,8 @@ document.querySelectorAll('.collapse').forEach(el => {
         <div class="text-danger small" id="feedbackModalError" style="display:none;"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Skip</button>
-        <button type="button" class="btn btn-primary btn-sm" id="feedbackModalSubmit"><i class="bi bi-send me-1"></i>Submit</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{% translate "Skip" %}</button>
+        <button type="button" class="btn btn-primary btn-sm" id="feedbackModalSubmit"><i class="bi bi-send me-1"></i>{% translate "Submit" %}</button>
       </div>
     </div>
   </div>
@@ -934,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
       } else {
         const err = document.getElementById('feedbackModalError');
-        err.textContent = res.data.error || 'Something went wrong.';
+        err.textContent = res.data.error || "{% translate 'Something went wrong.' as s %}{{ s|escapejs }}";
         err.style.display = '';
       }
     });
