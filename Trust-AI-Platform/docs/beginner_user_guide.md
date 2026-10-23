@@ -402,7 +402,7 @@ Analytics show patterns, not motives. A long time on an activity may mean produc
 
 Open a scenario and choose **Metrics & AI**. Depending on your permission, the page provides up to four related actions:
 
-Any teacher who can access a public or organization-visible scenario can open its Metrics & AI page, view its metrics, review the current shared proposals, and create a personalised scenario from their own decisions. Proposal decisions and edits are stored separately for each teacher. Only the original scenario creator and platform administrators can use **Generate LLM Context** or **Regenerate All Context** to create a new proposal set.
+Any teacher who can access a public or organization-visible scenario can open its Metrics & AI page, view its metrics, review the current shared proposals, and create a personalised scenario from their own decisions. Proposal decisions and edits are stored separately for each teacher. Only the original scenario creator, platform administrators and members of a role that an administrator has allowed to generate proposals can use **Generate LLM Context** or **Regenerate All Context** to create a new proposal set.
 
 1. **Performance Metrics** — calculate category-level performance.
 2. **Activities in Risk** — identify activities with concerning patterns.

@@ -4,7 +4,7 @@ import json
 import openpyxl
 from unittest.mock import patch
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import TestCase, Client
@@ -805,6 +805,22 @@ class TriggerLlmContextTaskPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         mock_delay.assert_called_once()
 
+    def test_member_of_allowed_role_can_trigger(self):
+        from unittest.mock import patch
+        partners = Group.objects.create(name='faith_partners')
+        partners.permissions.add(Permission.objects.get(
+            content_type__app_label='authoringtool',
+            codename='generate_proposals',
+        ))
+        self.other_teacher.groups.add(partners)
+        self.client.login(username='gen_other', password='pass')
+        url = reverse('generate_llm_context', args=[self.scenario.id])
+        with patch('authoringtool.views.generate_llm_context_for_scenario.delay') as mock_delay:
+            mock_delay.return_value.id = 'fake-task-id'
+            response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        mock_delay.assert_called_once_with(self.scenario.id, force_rebuild=False, triggered_by_id=self.other_teacher.id)
+
 
 class PublicScenarioMetricsAiAccessTests(TestCase):
     def setUp(self):
@@ -966,6 +982,23 @@ class PublicScenarioMetricsAiAccessTests(TestCase):
             self.assertTrue(response.context['can_generate_proposals'])
             self.assertContains(response, 'id="btn-generate-context"')
             self.assertContains(response, 'id="btn-generate-context-force"')
+
+    def test_member_of_allowed_role_sees_generation_controls(self):
+        partners = Group.objects.create(name='faith_partners')
+        partners.permissions.add(Permission.objects.get(
+            content_type__app_label='authoringtool',
+            codename='generate_proposals',
+        ))
+        self.other_teacher.groups.add(partners)
+        self.login_other_teacher()
+
+        response = self.client.get(
+            reverse('ai_metrics', args=[self.scenario.id])
+        )
+
+        self.assertTrue(response.context['can_generate_proposals'])
+        self.assertContains(response, 'id="btn-generate-context"')
+        self.assertContains(response, 'id="btn-generate-context-force"')
 
     def test_non_owner_teacher_can_review_existing_proposal(self):
         self.login_other_teacher()

@@ -6,7 +6,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase, Client
 from django.test import override_settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.urls import reverse
 from django.utils import timezone
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
@@ -91,6 +91,33 @@ class AdminDashboardAccessTest(TestCase):
         data = r.json()
         self.assertTrue(data['success'])
         self.assertTrue(Group.objects.filter(name='TestRole').exists())
+
+    def test_toggle_role_proposal_generation(self):
+        self.client.login(username='staffuser', password='pass')
+        g = Group.objects.create(name='faith_partners')
+        permission = Permission.objects.get(
+            content_type__app_label='authoringtool',
+            codename='generate_proposals',
+        )
+        url = reverse('admin_toggle_role_proposals', args=[g.id])
+
+        r = self.client.post(url, {'allowed': '1'})
+        self.assertJSONEqual(r.content, {'success': True, 'allowed': True})
+        self.assertIn(permission, g.permissions.all())
+
+        r = self.client.post(url, {'allowed': '0'})
+        self.assertJSONEqual(r.content, {'success': True, 'allowed': False})
+        self.assertNotIn(permission, g.permissions.all())
+
+    def test_toggle_role_proposal_generation_requires_staff(self):
+        self.client.login(username='regular', password='pass')
+        g = Group.objects.create(name='faith_partners')
+        r = self.client.post(
+            reverse('admin_toggle_role_proposals', args=[g.id]),
+            {'allowed': '1'},
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(g.permissions.exists())
 
     def test_delete_role_with_members_blocked(self):
         self.client.login(username='staffuser', password='pass')

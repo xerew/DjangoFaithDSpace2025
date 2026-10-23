@@ -309,10 +309,14 @@ def clean_dashboard_filters(user, data):
 
 
 def user_can_generate_proposals(user, scenario):
-    """Only the original creator and platform admins may generate proposals."""
+    """The original creator, platform admins and roles granted the permission."""
     return (
         getattr(user, "is_authenticated", False)
-        and (is_admin_user(user) or scenario.created_by_id == user.id)
+        and (
+            is_admin_user(user)
+            or scenario.created_by_id == user.id
+            or user.has_perm('authoringtool.generate_proposals')
+        )
     )
 
 
@@ -3749,8 +3753,8 @@ def trigger_llm_context_task(request, scenario_id):
             if not user_can_generate_proposals(request.user, scenario):
                 return JsonResponse({
                     "error": (
-                        "Only the scenario creator or a platform admin can "
-                        "generate proposals."
+                        "Only the scenario creator, a platform admin or a "
+                        "role allowed to generate proposals can do this."
                     )
                 }, status=403)
             server = proposal_server_status()

@@ -2870,6 +2870,10 @@ class ActivityProposal(models.Model):
         verbose_name = "Activity Proposal"
         verbose_name_plural = "Activity Proposals"
         ordering = ['-created_at']
+        # Granted to roles from the admin dashboard's Roles tab.
+        permissions = [
+            ('generate_proposals', 'Can generate AI proposals for any scenario'),
+        ]
 
     def __str__(self):
         return f"{self.get_proposal_type_display()} for '{self.activity}' ({self.get_status_display()})"

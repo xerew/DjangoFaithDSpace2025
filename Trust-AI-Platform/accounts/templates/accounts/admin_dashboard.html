@@ -404,6 +404,14 @@
                   {{ group.member_count }} member{{ group.member_count|pluralize }}
                 </div>
                 {% endif %}
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="role-proposals-{{ group.id }}"
+                         {% if group.can_generate_proposals %}checked{% endif %}
+                         onchange="toggleRoleProposals({{ group.id }}, this)">
+                  <label class="form-check-label" for="role-proposals-{{ group.id }}" style="font-size:13px;">
+                    Can generate AI proposals for any scenario
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -1263,11 +1271,29 @@ function createRole() {
         '<span class="role-name-display fw-bold" style="cursor:pointer;font-size:15px;" title="Click to rename" onclick="startRenameRole(' + data.id + ', this)">' + escHtml(data.name) + '</span>' +
         '<div class="d-flex gap-1 align-items-center"><span class="badge bg-secondary">0</span>' +
         '<button class="btn btn-sm btn-outline-danger" onclick="deleteRole(' + data.id + ')"><i class="bi bi-trash"></i></button>' +
-        '</div></div></div></div>';
+        '</div></div>' +
+        '<div class="form-check form-switch mt-2">' +
+        '<input class="form-check-input" type="checkbox" id="role-proposals-' + data.id + '" onchange="toggleRoleProposals(' + data.id + ', this)">' +
+        '<label class="form-check-label" for="role-proposals-' + data.id + '" style="font-size:13px;">Can generate AI proposals for any scenario</label>' +
+        '</div></div></div>';
       container.appendChild(col);
     } else {
       showToast(data.error, true);
     }
+  });
+}
+
+function toggleRoleProposals(id, checkbox) {
+  postJSON('/accounts/admin/role_proposals/' + id + '/', {allowed: checkbox.checked ? '1' : '0'}).then(function(data) {
+    if (data.success) {
+      showToast(data.allowed ? 'Role can now generate AI proposals.' : 'Role can no longer generate AI proposals.', false);
+    } else {
+      checkbox.checked = !checkbox.checked;
+      showToast(data.error, true);
+    }
+  }).catch(function() {
+    checkbox.checked = !checkbox.checked;
+    showToast('Could not save the change.', true);
   });
 }
 

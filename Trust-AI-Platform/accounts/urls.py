@@ -33,6 +33,7 @@ urlpatterns = [
     path('admin/create_role/', admin_views.admin_create_role, name='admin_create_role'),
     path('admin/rename_role/<int:role_id>/', admin_views.admin_rename_role, name='admin_rename_role'),
     path('admin/delete_role/<int:role_id>/', admin_views.admin_delete_role, name='admin_delete_role'),
+    path('admin/role_proposals/<int:role_id>/', admin_views.admin_toggle_role_proposals, name='admin_toggle_role_proposals'),
     path('admin/languages/create/', admin_views.admin_create_language, name='admin_create_language'),
     path('admin/languages/<int:language_id>/rename/', admin_views.admin_rename_language, name='admin_rename_language'),
     path('admin/languages/<int:language_id>/delete/', admin_views.admin_delete_language, name='admin_delete_language'),

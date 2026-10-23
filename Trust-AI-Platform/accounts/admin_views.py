@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login as auth_login
 from django.http import JsonResponse, HttpResponseForbidden
@@ -54,7 +54,12 @@ def admin_dashboard(request):
             {'org': org, 'is_admin': org.id in admin_ids}
             for org in sorted(orgs.values(), key=lambda org: org.short_name.casefold())
         ]
-    groups = Group.objects.annotate(member_count=Count('user')).order_by('name')
+    groups = list(Group.objects.annotate(member_count=Count('user')).order_by('name'))
+    proposal_group_ids = set(
+        generate_proposals_permission().group_set.values_list('id', flat=True)
+    )
+    for group in groups:
+        group.can_generate_proposals = group.id in proposal_group_ids
     agg = User.objects.aggregate(
         total=Count('id'),
         active=Count('id', filter=Q(is_active=True)),
@@ -371,6 +376,27 @@ def admin_rename_role(request, role_id):
     group.name = name
     group.save()
     return JsonResponse({'success': True, 'name': group.name})
+
+
+def generate_proposals_permission():
+    return Permission.objects.get(
+        content_type__app_label='authoringtool',
+        codename='generate_proposals',
+    )
+
+
+@require_POST
+@staff_required
+def admin_toggle_role_proposals(request, role_id):
+    """Allow or stop a role's members generating proposals for any scenario."""
+    group = get_object_or_404(Group, id=role_id)
+    permission = generate_proposals_permission()
+    allowed = request.POST.get('allowed') == '1'
+    if allowed:
+        group.permissions.add(permission)
+    else:
+        group.permissions.remove(permission)
+    return JsonResponse({'success': True, 'allowed': allowed})
 
 
 @require_POST
