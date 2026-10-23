@@ -15,6 +15,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
+from django.utils.translation import gettext, gettext_lazy
 from django.urls import path, reverse
 from .models import (
     Scenario, ScenarioFamily, ScenarioFamilyReviewProxy,
@@ -103,16 +104,16 @@ def make_csv_export(filename, headers, row_fn):
 
 class ManualScenarioAssociationForm(forms.Form):
     RELATIONSHIP_CHOICES = (
-        ('translation', 'Official translation'),
-        ('adaptation', 'Adaptation / revised copy'),
-        ('related_topic', 'Related topic only'),
-        ('unrelated', 'Not related'),
+        ('translation', gettext_lazy('Official translation')),
+        ('adaptation', gettext_lazy('Adaptation / revised copy')),
+        ('related_topic', gettext_lazy('Related topic only')),
+        ('unrelated', gettext_lazy('Not related')),
     )
 
     target_scenario = forms.ModelChoiceField(
         queryset=Scenario.objects.none(),
-        label='Scenario whose family should remain',
-        help_text=(
+        label=gettext_lazy('Scenario whose family should remain'),
+        help_text=gettext_lazy(
             'For a translation or adaptation, this scenario’s family and '
             'canonical scenario will be kept.'
         ),
@@ -122,8 +123,8 @@ class ManualScenarioAssociationForm(forms.Form):
     )
     source_scenario = forms.ModelChoiceField(
         queryset=Scenario.objects.none(),
-        label='Scenario to associate',
-        help_text=(
+        label=gettext_lazy('Scenario to associate'),
+        help_text=gettext_lazy(
             'For a translation or adaptation, this scenario and its existing '
             'family variants will move into the family above.'
         ),
@@ -133,7 +134,7 @@ class ManualScenarioAssociationForm(forms.Form):
     )
     relationship = forms.ChoiceField(
         choices=RELATIONSHIP_CHOICES,
-        help_text=(
+        help_text=gettext_lazy(
             'A shared topic alone should be marked “Related topic only,” not '
             'as a translation or adaptation.'
         ),
@@ -141,7 +142,7 @@ class ManualScenarioAssociationForm(forms.Form):
     review_notes = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'rows': 4}),
-        help_text='Reason for this administrator decision.',
+        help_text=gettext_lazy('Reason for this administrator decision.'),
     )
 
     def __init__(self, *args, **kwargs):
@@ -161,19 +162,19 @@ class ManualScenarioAssociationForm(forms.Form):
         if not target or not source:
             return cleaned
         if target.pk == source.pk:
-            raise ValidationError(
+            raise ValidationError(gettext(
                 'Choose two different scenarios. Revisions belong to one '
                 'scenario and are created through its revision workflow.'
-            )
+            ))
         if (
             target.family_id
             and source.family_id
             and target.family_id == source.family_id
         ):
-            raise ValidationError(
+            raise ValidationError(gettext(
                 'These scenarios already belong to the same family. Use the '
                 'Scenario admin to correct a variant classification.'
-            )
+            ))
         return cleaned
 
 
@@ -343,29 +344,29 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
             == (source.language or '').strip().casefold()
         )
         if relationship == 'translation' and same_language:
-            warnings.append(
+            warnings.append(gettext(
                 'Both selected scenarios use the same language. Verify that '
                 '“Official translation” is the intended classification.'
-            )
+            ))
         if (
             relationship == 'translation'
             and target_version.structure_fingerprint
             != source_version.structure_fingerprint
         ):
-            warnings.append(
+            warnings.append(gettext(
                 'The current revisions have different graph structures. If '
                 'the teaching flow changed materially, classify the scenario '
                 'as an adaptation/revised copy instead.'
-            )
+            ))
         if (
             relationship == 'adaptation'
             and target_version.is_exactly_compatible_with(source_version)
         ):
-            warnings.append(
+            warnings.append(gettext(
                 'The current revisions have identical structure and content '
                 'fingerprints. Verify whether this is actually a translation '
                 'or an unchanged duplicate.'
-            )
+            ))
         will_merge = relationship in {'translation', 'adaptation'}
         return {
             'target': target,
@@ -413,10 +414,10 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
                 max_age=1800,
             )
         except signing.BadSignature:
-            raise ValidationError(
+            raise ValidationError(gettext(
                 'The preview expired or was changed. Preview the association '
                 'again before confirming.'
-            )
+            ))
         target.refresh_from_db(fields=['current_version'])
         source.refresh_from_db(fields=['current_version'])
         expected = {
@@ -427,10 +428,10 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
             'relationship': relationship,
         }
         if payload != expected:
-            raise ValidationError(
+            raise ValidationError(gettext(
                 'The selected scenarios or their current revisions changed '
                 'after the preview. Preview the association again.'
-            )
+            ))
 
     def associate_scenarios_view(self, request):
         if not self.can_associate_scenarios(request):
@@ -475,10 +476,9 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
                 else:
                     self.message_user(
                         request,
-                        (
-                            'Scenario association recorded as '
-                            f'{candidate.get_decision_display()}.'
-                        ),
+                        gettext('Scenario association recorded as %(decision)s.') % {
+                            'decision': candidate.get_decision_display(),
+                        },
                         level=messages.SUCCESS,
                     )
                     return HttpResponseRedirect(reverse(
@@ -493,7 +493,7 @@ class ScenarioFamilyReviewAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             'opts': self.model._meta,
-            'title': 'Associate scenarios manually',
+            'title': gettext('Associate scenarios manually'),
             'form': form,
             'preview': preview,
             'confirmation_token': confirmation_token,
@@ -2012,20 +2012,20 @@ class TranslationMatchAdmin(admin.ModelAdmin):
             scenarios = []
             for raw in raw_ids:
                 if not raw.isdigit():
-                    errors.append('Enter two scenario IDs.')
+                    errors.append(gettext('Enter two scenario IDs.'))
                     break
                 scenario = Scenario.objects.filter(pk=int(raw)).first()
                 if scenario is None:
-                    errors.append(f'Scenario {raw} does not exist.')
+                    errors.append(gettext('Scenario %(id)s does not exist.') % {'id': raw})
                 scenarios.append(scenario)
             if not errors and scenarios[0] == scenarios[1]:
-                errors.append('Pick two different scenarios.')
+                errors.append(gettext('Pick two different scenarios.'))
             if not errors:
                 explanation = explain_translation_pair(*scenarios)
         context = {
             **self.admin_site.each_context(request),
             'opts': self.model._meta,
-            'title': 'Why not matched?',
+            'title': gettext('Why not matched?'),
             'scenario_ids': raw_ids,
             'errors': errors,
             'explanation': explanation,
@@ -2137,10 +2137,10 @@ class TranslationMatchAdmin(admin.ModelAdmin):
         scenario_b = profile_b['scenario']
         marks = {
             'same': '✓',
-            'route differs': '✓ activity · ✗ route',
-            'differs': '✗ differs',
-            'only here': '✗ only in one',
-            'unreachable': 'unreachable',
+            'route differs': gettext('✓ activity · ✗ route'),
+            'differs': gettext('✗ differs'),
+            'only here': gettext('✗ only in one'),
+            'unreachable': gettext('unreachable'),
         }
 
         def cell(profile, index):
@@ -2158,14 +2158,14 @@ class TranslationMatchAdmin(admin.ModelAdmin):
                 return ''
             phase = profile['order'][index].phase
             rank = profile['fields'][index]['phase']
-            return f'Phase {rank} · {phase.name}' if phase else 'No phase'
+            return gettext('Phase %(rank)s · %(name)s') % {'rank': rank, 'name': phase.name} if phase else gettext('No phase')
 
         fragments = []
         current_group = None
         for index_a, index_b, status in align_flows(profile_a, profile_b):
             if status == 'unreachable':
                 group = 'unreachable'
-                labels = ('Not reachable from the start', '')
+                labels = (gettext('Not reachable from the start'), '')
             elif index_a is not None:
                 group = ('a', profile_a['fields'][index_a]['phase'])
                 labels = (phase_label(profile_a, index_a), phase_label(profile_b, index_b))
@@ -2188,13 +2188,16 @@ class TranslationMatchAdmin(admin.ModelAdmin):
             ))
         return format_html(
             '<table style="width:100%"><thead><tr>'
-            '<th>#</th><th>Type</th><th>{} · {}</th>'
-            '<th>#</th><th>Type</th><th>{} · {}</th><th>Match</th>'
+            '<th>#</th><th>{}</th><th>{} · {}</th>'
+            '<th>#</th><th>{}</th><th>{} · {}</th><th>{}</th>'
             '</tr></thead><tbody>{}</tbody></table>',
+            gettext('Type'),
             scenario_a.id,
             scenario_a.name,
+            gettext('Type'),
             scenario_b.id,
             scenario_b.name,
+            gettext('Match'),
             format_html_join('', '{}', ((fragment,) for fragment in fragments)),
         )
 

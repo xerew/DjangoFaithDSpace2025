@@ -224,6 +224,32 @@ SENTINELS = {
         '%(counter)s student implementation',
         '%(counter)s student implementations',
     ],
+    'family_admin_python': [
+        'Why not matched?',
+        'Pick two different scenarios.',
+        'Enter two scenario IDs.',
+        'Enough activities',
+        'Flow from the first activity',
+        'Different wording',
+        'In the review list',
+        'Official translation',
+        'Adaptation / revised copy',
+        'Scenario whose family should remain',
+        'Scenario to associate',
+        'Reason for this administrator decision.',
+        '✗ only in one',
+        'Not reachable from the start',
+        'No phase',
+    ],
+    'family_admin_python_msgids': [
+        'Scenario %(id)s does not exist.',
+        'Phase %(rank)s · %(name)s',
+        'Not listed: stopped by "%(label)s".',
+        'Confidence %(confidence)s%%; at least %(minimum)s%% is needed to be listed.',
+        '%(id)s has no activities to walk from a first activity.',
+        'activity %(id)s (%(kind)s "%(text)s")',
+        'Scenario association recorded as %(decision)s.',
+    ],
 }
 
 PYTHON_SENTINELS = [

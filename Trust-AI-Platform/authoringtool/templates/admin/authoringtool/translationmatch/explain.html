@@ -52,8 +52,8 @@
     {% translate "no language" as no_language %}
     {% with a=explanation.scenario_a b=explanation.scenario_b %}
       <p class="explain-summary">
-        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|default:no_language }}, {{ a.visibility_status }})
-        {% translate "and" context "between two scenarios" %} <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|default:no_language }}, {{ b.visibility_status }})
+        <strong>{{ a.id }} · {{ a.name }}</strong> ({{ a.language|default:no_language }}, {{ a.get_visibility_status_display }})
+        {% translate "and" context "between two scenarios" %} <strong>{{ b.id }} · {{ b.name }}</strong> ({{ b.language|default:no_language }}, {{ b.get_visibility_status_display }})
       </p>
       <p class="explain-summary">
         {% if stopped_label %}

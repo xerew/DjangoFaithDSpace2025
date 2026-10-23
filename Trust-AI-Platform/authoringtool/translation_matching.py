@@ -14,6 +14,7 @@ import json
 import re
 
 from django.db import transaction
+from django.utils.translation import gettext, gettext_lazy
 from django.db.models import Count, Max, Q
 
 from .models import (
@@ -568,31 +569,40 @@ def find_translation_candidates(scenarios=None):
 
 
 CHECK_LABELS = {
-    'activities': 'Enough activities',
-    'start': 'Flow from the first activity',
-    'size': 'Same number of activities',
-    'questions': 'Same number of questions',
-    'sequence': 'Same activity sequence',
-    'confidence': 'Confidence',
-    'wording': 'Different wording',
-    'listed': 'In the review list',
+    'activities': gettext_lazy('Enough activities'),
+    'start': gettext_lazy('Flow from the first activity'),
+    'size': gettext_lazy('Same number of activities'),
+    'questions': gettext_lazy('Same number of questions'),
+    'sequence': gettext_lazy('Same activity sequence'),
+    'confidence': gettext_lazy('Confidence'),
+    'wording': gettext_lazy('Different wording'),
+    'listed': gettext_lazy('In the review list'),
 }
 
 
 def _describe(activity):
     kind = activity.activity_type.name if activity.activity_type else 'Activity'
-    return f'activity {activity.id} ({kind} "{_short(activity)}")'
+    return gettext('activity %(id)s (%(kind)s "%(text)s")') % {
+        'id': activity.id, 'kind': kind, 'text': _short(activity),
+    }
 
 
 def _start_detail(profile):
     scenario = profile['scenario']
     if not profile['reachable']:
-        return 'fail', f'{scenario.id} has no activities to walk from a first activity.'
+        return 'fail', gettext(
+            '%(id)s has no activities to walk from a first activity.'
+        ) % {'id': scenario.id}
     linked = len(profile['order'])
-    detail = (
-        f'{scenario.id}: {profile["reachable"]} of {linked} linked activities '
-        f'are reachable from its first activity, {_describe(profile["order"][0])}.'
-    )
+    detail = gettext(
+        '%(id)s: %(reachable)s of %(linked)s linked activities '
+        'are reachable from its first activity, %(first)s.'
+    ) % {
+        'id': scenario.id,
+        'reachable': profile['reachable'],
+        'linked': linked,
+        'first': _describe(profile['order'][0]),
+    }
     if profile['reachable'] == linked:
         return 'pass', detail
     # Unreachable activities that nothing routes to are where the rest of
@@ -607,12 +617,10 @@ def _start_detail(profile):
         if index not in targets
     ]
     if entries:
-        detail += (
-            ' Nothing routes to ' + ', '.join(entries[:3])
-            + ('…' if len(entries) > 3 else '')
-            + '. If one of these is the real start, open it and use '
-            '"Make this the first activity".'
-        )
+        detail += ' ' + gettext(
+            'Nothing routes to %(entries)s. If one of these is the real '
+            'start, open it and use "Make this the first activity".'
+        ) % {'entries': ', '.join(entries[:3]) + ('…' if len(entries) > 3 else '')}
     return 'warn', detail
 
 
@@ -643,8 +651,14 @@ def explain_translation_pair(first, second):
     check(
         'activities',
         'pass' if min(counts) >= MIN_ACTIVITIES else 'fail',
-        f'{scenario_a.id} has {counts[0]} activities in phases and '
-        f'{scenario_b.id} has {counts[1]}; each needs at least {MIN_ACTIVITIES}.',
+        gettext(
+            '%(a)s has %(count_a)s activities in phases and '
+            '%(b)s has %(count_b)s; each needs at least %(minimum)s.'
+        ) % {
+            'a': scenario_a.id, 'count_a': counts[0],
+            'b': scenario_b.id, 'count_b': counts[1],
+            'minimum': MIN_ACTIVITIES,
+        },
     )
 
     starts = [_start_detail(profile_a), _start_detail(profile_b)]
@@ -659,25 +673,42 @@ def explain_translation_pair(first, second):
     check(
         'size',
         'pass' if abs(sizes[0] - sizes[1]) <= MAX_ACTIVITY_GAP else 'fail',
-        f'{scenario_a.id} has {sizes[0]} linked activities and '
-        f'{scenario_b.id} has {sizes[1]}; at most {MAX_ACTIVITY_GAP} apart.',
+        gettext(
+            '%(a)s has %(size_a)s linked activities and '
+            '%(b)s has %(size_b)s; at most %(gap)s apart.'
+        ) % {
+            'a': scenario_a.id, 'size_a': sizes[0],
+            'b': scenario_b.id, 'size_b': sizes[1],
+            'gap': MAX_ACTIVITY_GAP,
+        },
     )
 
     questions = [profile_a['question_count'], profile_b['question_count']]
     check(
         'questions',
         'pass' if abs(questions[0] - questions[1]) <= MAX_QUESTION_GAP else 'fail',
-        f'{scenario_a.id} has {questions[0]} questions and '
-        f'{scenario_b.id} has {questions[1]}; at most {MAX_QUESTION_GAP} apart.',
+        gettext(
+            '%(a)s has %(questions_a)s questions and '
+            '%(b)s has %(questions_b)s; at most %(gap)s apart.'
+        ) % {
+            'a': scenario_a.id, 'questions_a': questions[0],
+            'b': scenario_b.id, 'questions_b': questions[1],
+            'gap': MAX_QUESTION_GAP,
+        },
     )
 
     similarity = _sequence_similarity(profile_a, profile_b)
     check(
         'sequence',
         'pass' if similarity >= MIN_SEQUENCE_SIMILARITY else 'fail',
-        f'The activities agree {similarity:.0%} on type, answers, correct '
-        f'options and settings, in flow order; at least '
-        f'{MIN_SEQUENCE_SIMILARITY:.0%} is needed.',
+        gettext(
+            'The activities agree %(similarity)s on type, answers, correct '
+            'options and settings, in flow order; at least '
+            '%(minimum)s is needed.'
+        ) % {
+            'similarity': f'{similarity:.0%}',
+            'minimum': f'{MIN_SEQUENCE_SIMILARITY:.0%}',
+        },
     )
 
     result = None
@@ -686,20 +717,26 @@ def explain_translation_pair(first, second):
         check(
             'confidence',
             'pass' if result['confidence'] >= MIN_CONFIDENCE else 'fail',
-            f'Confidence {result["confidence"]}%; at least {MIN_CONFIDENCE}% '
-            'is needed to be listed.',
+            gettext(
+                'Confidence %(confidence)s%%; at least %(minimum)s%% '
+                'is needed to be listed.'
+            ) % {'confidence': result['confidence'], 'minimum': MIN_CONFIDENCE},
         )
         check(
             'wording',
             'pass' if result['lexical'] < SAME_LANGUAGE_WORD_OVERLAP else 'fail',
-            f'Matching activities share {result["lexical"]:.0%} of their '
-            f'words; a translation must share less than '
-            f'{SAME_LANGUAGE_WORD_OVERLAP:.0%}, or it is taken for a '
-            'same-language copy.',
+            gettext(
+                'Matching activities share %(shared)s of their '
+                'words; a translation must share less than '
+                '%(limit)s, or it is taken for a same-language copy.'
+            ) % {
+                'shared': f'{result["lexical"]:.0%}',
+                'limit': f'{SAME_LANGUAGE_WORD_OVERLAP:.0%}',
+            },
         )
     else:
         for key in ('confidence', 'wording'):
-            check(key, 'skip', 'Not scored: a scenario has no activities to compare.')
+            check(key, 'skip', gettext('Not scored: a scenario has no activities to compare.'))
 
     stopped_by = next(
         (item['key'] for item in checks if item['state'] == 'fail'),
@@ -713,23 +750,33 @@ def explain_translation_pair(first, second):
         check(
             'listed',
             'pass',
-            f'Listed as {match.get_status_display()} with '
-            f'{match.confidence}% confidence. The list\'s visibility filter '
-            f'shows it only when both {scenario_a.visibility_status} and '
-            f'{scenario_b.visibility_status} are ticked (or none).',
+            gettext(
+                'Listed as %(status)s with %(confidence)s%% confidence. '
+                'The list\'s visibility filter shows it only when both '
+                '%(visibility_a)s and %(visibility_b)s are ticked (or none).'
+            ) % {
+                'status': match.get_status_display(),
+                'confidence': match.confidence,
+                'visibility_a': scenario_a.get_visibility_status_display(),
+                'visibility_b': scenario_b.get_visibility_status_display(),
+            },
         )
     elif stopped_by is None:
         check(
             'listed',
             'warn',
-            'Not listed yet: the scenarios changed after the last scan, or '
-            'no scan has run since. Press "Scan for translations".',
+            gettext(
+                'Not listed yet: the scenarios changed after the last scan, or '
+                'no scan has run since. Press "Scan for translations".'
+            ),
         )
     else:
         check(
             'listed',
             'skip',
-            f'Not listed: stopped by "{CHECK_LABELS[stopped_by]}".',
+            gettext('Not listed: stopped by "%(label)s".') % {
+                'label': CHECK_LABELS[stopped_by],
+            },
         )
 
     return {

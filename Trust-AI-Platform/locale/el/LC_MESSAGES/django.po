@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 00:39+0300\n"
+"POT-Creation-Date: 2026-10-24 00:51+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1983,6 +1983,166 @@ msgstr ""
 msgid "Admin"
 msgstr ""
 
+#: .\authoringtool\admin.py .\authoringtool\models.py
+msgid "Official translation"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Adaptation / revised copy"
+msgstr ""
+
+#: .\authoringtool\admin.py
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Related topic only"
+msgstr ""
+
+#: .\authoringtool\admin.py
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
+msgid "Not related"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Scenario whose family should remain"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"For a translation or adaptation, this scenario’s family and canonical "
+"scenario will be kept."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Scenario to associate"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"For a translation or adaptation, this scenario and its existing family "
+"variants will move into the family above."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"A shared topic alone should be marked “Related topic only,” not as a "
+"translation or adaptation."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Reason for this administrator decision."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"Choose two different scenarios. Revisions belong to one scenario and are "
+"created through its revision workflow."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"These scenarios already belong to the same family. Use the Scenario admin to "
+"correct a variant classification."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"Both selected scenarios use the same language. Verify that “Official "
+"translation” is the intended classification."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"The current revisions have different graph structures. If the teaching flow "
+"changed materially, classify the scenario as an adaptation/revised copy "
+"instead."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"The current revisions have identical structure and content fingerprints. "
+"Verify whether this is actually a translation or an unchanged duplicate."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"The preview expired or was changed. Preview the association again before "
+"confirming."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid ""
+"The selected scenarios or their current revisions changed after the preview. "
+"Preview the association again."
+msgstr ""
+
+#: .\authoringtool\admin.py
+#, python-format
+msgid "Scenario association recorded as %(decision)s."
+msgstr ""
+
+#: .\authoringtool\admin.py
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
+#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
+msgid "Associate scenarios manually"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Enter two scenario IDs."
+msgstr ""
+
+#: .\authoringtool\admin.py
+#, python-format
+msgid "Scenario %(id)s does not exist."
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Pick two different scenarios."
+msgstr ""
+
+#: .\authoringtool\admin.py
+#: .\authoringtool\templates\admin\authoringtool\translationmatch\change_list.html
+msgid "Why not matched?"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "✓ activity · ✗ route"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "✗ differs"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "✗ only in one"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "unreachable"
+msgstr ""
+
+#: .\authoringtool\admin.py
+#, python-format
+msgid "Phase %(rank)s · %(name)s"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "No phase"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Not reachable from the start"
+msgstr ""
+
+#: .\authoringtool\admin.py
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+#: .\authoringtool\templates\authoringtool\viewPhase.html
+msgid "Type"
+msgstr ""
+
+#: .\authoringtool\admin.py
+msgid "Match"
+msgstr ""
+
 #: .\authoringtool\importer.py
 msgid "Cannot read ZIP file."
 msgstr ""
@@ -2255,10 +2415,6 @@ msgid "Canonical"
 msgstr ""
 
 #: .\authoringtool\models.py
-msgid "Official translation"
-msgstr ""
-
-#: .\authoringtool\models.py
 msgid "Teacher adaptation"
 msgstr ""
 
@@ -2303,21 +2459,7 @@ msgid "Same family — adaptation"
 msgstr ""
 
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
-msgid "Related topic only"
-msgstr ""
-
-#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
-msgid "Not related"
-msgstr ""
-
-#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
 msgid "Review later"
-msgstr ""
-
-#: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
-#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\associate_scenarios.html
-#: .\authoringtool\templates\admin\authoringtool\scenariofamilyreviewproxy\change_list.html
-msgid "Associate scenarios manually"
 msgstr ""
 
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_list.html
@@ -2482,10 +2624,6 @@ msgstr ""
 
 #: .\authoringtool\templates\admin\authoringtool\translationmatch\change_list.html
 msgid "Scan for translations"
-msgstr ""
-
-#: .\authoringtool\templates\admin\authoringtool\translationmatch\change_list.html
-msgid "Why not matched?"
 msgstr ""
 
 #: .\authoringtool\templates\admin\authoringtool\translationmatch\explain.html
@@ -5450,11 +5588,6 @@ msgid "Activity Info"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
-#: .\authoringtool\templates\authoringtool\viewPhase.html
-msgid "Type"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\viewActivity.html
 #: .\usergroups\templates\usergroups\view_group.html
 msgid "Created On"
 msgstr ""
@@ -5973,6 +6106,126 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 msgid "The flow chart could not be rendered."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Enough activities"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Flow from the first activity"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Same number of activities"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Same number of questions"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Same activity sequence"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Confidence"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Different wording"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "In the review list"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid "activity %(id)s (%(kind)s \"%(text)s\")"
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid "%(id)s has no activities to walk from a first activity."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"%(id)s: %(reachable)s of %(linked)s linked activities are reachable from its "
+"first activity, %(first)s."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"Nothing routes to %(entries)s. If one of these is the real start, open it "
+"and use \"Make this the first activity\"."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"%(a)s has %(count_a)s activities in phases and %(b)s has %(count_b)s; each "
+"needs at least %(minimum)s."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"%(a)s has %(size_a)s linked activities and %(b)s has %(size_b)s; at most "
+"%(gap)s apart."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"%(a)s has %(questions_a)s questions and %(b)s has %(questions_b)s; at most "
+"%(gap)s apart."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"The activities agree %(similarity)s on type, answers, correct options and "
+"settings, in flow order; at least %(minimum)s is needed."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"Confidence %(confidence)s%%; at least %(minimum)s%% is needed to be listed."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"Matching activities share %(shared)s of their words; a translation must "
+"share less than %(limit)s, or it is taken for a same-language copy."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid "Not scored: a scenario has no activities to compare."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid ""
+"Listed as %(status)s with %(confidence)s%% confidence. The list's visibility "
+"filter shows it only when both %(visibility_a)s and %(visibility_b)s are "
+"ticked (or none)."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+msgid ""
+"Not listed yet: the scenarios changed after the last scan, or no scan has "
+"run since. Press \"Scan for translations\"."
+msgstr ""
+
+#: .\authoringtool\translation_matching.py
+#, python-format
+msgid "Not listed: stopped by \"%(label)s\"."
 msgstr ""
 
 #: .\authoringtool\views.py
