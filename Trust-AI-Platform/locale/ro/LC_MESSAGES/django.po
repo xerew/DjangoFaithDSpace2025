@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-23 22:49+0300\n"
+"POT-Creation-Date: 2026-10-23 23:07+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -549,6 +549,188 @@ msgstr ""
 
 #: .\accounts\views.py
 msgid "Admin"
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Cannot read ZIP file."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "No .xlsx file found in the ZIP."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Cannot read ZIP file — the file may be corrupted."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Error reading ZIP: %(error)s"
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Cannot read file. Ensure it is a valid .xlsx file."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Missing required sheet: \"%(sheet)s\""
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Header row is empty."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Required column \"%(column)s\" not found in header row."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Scenario data row is missing."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Scenario Name is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "A scenario named \"%(name)s\" already exists among your scenarios."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Visibility must be \"private\", \"org\", or \"public\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "\"%(column)s\" must be a whole number."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Subject \"%(value)s\" not found in the database."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "At least one phase is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "At least one activity is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Activity Name is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Duplicate activity name: \"%(name)s\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Text is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Phase Name is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Phase \"%(phase)s\" not found in Phases sheet."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Activity Type is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Activity type \"%(activity_type)s\" not found in the database."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "\"%(column)s\" must be \"Yes\" or \"No\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Is Primary Evaluation = Yes requires Is Evaluatable = Yes."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "\"%(value)s\" not found in the database."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Activity \"%(activity)s\" not found in Activities sheet."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Answer Key is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Answer Text is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Duplicate answer key \"%(answer_key)s\" for activity \"%(activity)s\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Answer Weight must be a whole number."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Source Activity Name is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid ""
+"Duplicate routing rule for activity \"%(activity)s\" / answer key "
+"\"%(answer_key)s\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "(default)"
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Answer key \"%(answer_key)s\" not found for activity \"%(activity)s\"."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "Primary Activity Name is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Activity \"%(activity)s\" is not marked Is Evaluatable = Yes."
+msgstr ""
+
+#: .\authoringtool\importer.py
+msgid "At least one grouped activity is required."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid "Activity \"%(value)s\" not found in Activities sheet."
+msgstr ""
+
+#: .\authoringtool\importer.py
+#, python-format
+msgid ""
+"Activity \"%(name)s\" is marked Is Evaluatable = Yes but has no row in the "
+"Evaluation sheet."
 msgstr ""
 
 #: .\authoringtool\machine_translation\collaborators.py

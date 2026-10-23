@@ -8,6 +8,7 @@ import openpyxl
 import markdown2
 from django.conf import settings
 from django.utils.html import strip_tags
+from django.utils.translation import gettext as _
 from psycopg2.extras import NumericRange
 
 from .models import (
@@ -123,7 +124,7 @@ class ScenarioImporter:
             raw = self.file_obj.read()
             self.file_obj.seek(0)
         except Exception:
-            self._add_error('File', 0, '-', 'Cannot read ZIP file.')
+            self._add_error('File', 0, '-', _('Cannot read ZIP file.'))
             return
 
         try:
@@ -135,7 +136,7 @@ class ScenarioImporter:
                 if not xlsx_names:
                     xlsx_names = [n for n in names if n.lower().endswith('.xlsx')]
                 if not xlsx_names:
-                    self._add_error('File', 0, '-', 'No .xlsx file found in the ZIP.')
+                    self._add_error('File', 0, '-', _('No .xlsx file found in the ZIP.'))
                     return
                 xlsx_entry = xlsx_names[0]
                 self._wb_file = io.BytesIO(zf.read(xlsx_entry))
@@ -173,9 +174,9 @@ class ScenarioImporter:
                         prefix, num = m.group(1), int(m.group(2))
                         self._prefix_images.setdefault(prefix, []).append((num, server_url))
         except zipfile.BadZipFile:
-            self._add_error('File', 0, '-', 'Cannot read ZIP file — the file may be corrupted.')
+            self._add_error('File', 0, '-', _('Cannot read ZIP file — the file may be corrupted.'))
         except Exception as exc:
-            self._add_error('File', 0, '-', f'Error reading ZIP: {exc}')
+            self._add_error('File', 0, '-', _('Error reading ZIP: %(error)s') % {'error': exc})
 
     def _add_error(self, sheet, row, column, message):
         self.errors.append({'sheet': sheet, 'row': row, 'column': column, 'message': message})
@@ -186,13 +187,13 @@ class ScenarioImporter:
         try:
             wb = openpyxl.load_workbook(self._wb_file, read_only=True, data_only=True)
         except Exception:
-            self._add_error('File', 0, '-', 'Cannot read file. Ensure it is a valid .xlsx file.')
+            self._add_error('File', 0, '-', _('Cannot read file. Ensure it is a valid .xlsx file.'))
             return
 
         sheet_index = {ws.title.lower(): ws.title for ws in wb.worksheets}
         missing = [s for s in REQUIRED_SHEETS if s.lower() not in sheet_index]
         for s in missing:
-            self._add_error('File', 0, '-', f'Missing required sheet: "{s}"')
+            self._add_error('File', 0, '-', _('Missing required sheet: "%(sheet)s"') % {'sheet': s})
         if self.errors:
             return
 
@@ -215,7 +216,7 @@ class ScenarioImporter:
     def _read_headers(self, ws, sheet_name, required_cols):
         rows = list(ws.iter_rows(min_row=1, max_row=1, values_only=True))
         if not rows or all(v is None for v in rows[0]):
-            self._add_error(sheet_name, 1, '-', 'Header row is empty.')
+            self._add_error(sheet_name, 1, '-', _('Header row is empty.'))
             return None
         headers = {}
         for i, h in enumerate(rows[0]):
@@ -223,7 +224,7 @@ class ScenarioImporter:
                 headers[str(h).replace('*', '').strip()] = i
         missing = [c for c in required_cols if c not in headers]
         for c in missing:
-            self._add_error(sheet_name, 1, c, f'Required column "{c}" not found in header row.')
+            self._add_error(sheet_name, 1, c, _('Required column "%(column)s" not found in header row.') % {'column': c})
         return None if missing else headers
 
     def _parse_rows(self, ws, sheet_name, required_cols):
@@ -272,33 +273,33 @@ class ScenarioImporter:
 
     def _validate_scenario(self):
         if not self.scenario_data:
-            self._add_error('Scenario', 2, 'Name', 'Scenario data row is missing.')
+            self._add_error('Scenario', 2, 'Name', _('Scenario data row is missing.'))
             return
         name = self.scenario_data.get('Name', '').strip()
         if not name:
-            self._add_error('Scenario', 2, 'Name', 'Scenario Name is required.')
+            self._add_error('Scenario', 2, 'Name', _('Scenario Name is required.'))
         elif Scenario.objects.filter(name=name, created_by=self.user).exists():
-            self._add_error('Scenario', 2, 'Name', f'A scenario named "{name}" already exists among your scenarios.')
+            self._add_error('Scenario', 2, 'Name', _('A scenario named "%(name)s" already exists among your scenarios.') % {'name': name})
         vis = self.scenario_data.get('Visibility', '').strip().lower()
         if vis and vis not in ('private', 'org', 'public'):
-            self._add_error('Scenario', 2, 'Visibility', 'Visibility must be "private", "org", or "public".')
+            self._add_error('Scenario', 2, 'Visibility', _('Visibility must be "private", "org", or "public".'))
         for col in ('Age Min', 'Age Max', 'Suggested Time (min)'):
             v = self.scenario_data.get(col, '').strip()
             if v and _to_int(v) is None:
-                self._add_error('Scenario', 2, col, f'"{col}" must be a whole number.')
+                self._add_error('Scenario', 2, col, _('"%(column)s" must be a whole number.') % {'column': col})
         for i in range(1, 4):
             col = f'Subject {i}'
             v = self.scenario_data.get(col, '').strip()
             if v and v not in self._subjects:
-                self._add_error('Scenario', 2, col, f'Subject "{v}" not found in the database.')
+                self._add_error('Scenario', 2, col, _('Subject "%(value)s" not found in the database.') % {'value': v})
 
     def _validate_phases(self):
         if not self.phases:
-            self._add_error('Phases', 2, 'Phase Name', 'At least one phase is required.')
+            self._add_error('Phases', 2, 'Phase Name', _('At least one phase is required.'))
 
     def _validate_activities(self):
         if not self.activities:
-            self._add_error('Activities', 2, 'Activity Name', 'At least one activity is required.')
+            self._add_error('Activities', 2, 'Activity Name', _('At least one activity is required.'))
             return
         phase_names = {p['Phase Name'] for p in self.phases if p.get('Phase Name')}
         seen = set()
@@ -306,32 +307,32 @@ class ScenarioImporter:
             row = a['_row']
             name = a.get('Activity Name', '').strip()
             if not name:
-                self._add_error('Activities', row, 'Activity Name', 'Activity Name is required.')
+                self._add_error('Activities', row, 'Activity Name', _('Activity Name is required.'))
             elif name in seen:
-                self._add_error('Activities', row, 'Activity Name', f'Duplicate activity name: "{name}".')
+                self._add_error('Activities', row, 'Activity Name', _('Duplicate activity name: "%(name)s".') % {'name': name})
             else:
                 seen.add(name)
             if not a.get('Text', '').strip():
-                self._add_error('Activities', row, 'Text', 'Text is required.')
+                self._add_error('Activities', row, 'Text', _('Text is required.'))
             phase = a.get('Phase Name', '').strip()
             if not phase:
-                self._add_error('Activities', row, 'Phase Name', 'Phase Name is required.')
+                self._add_error('Activities', row, 'Phase Name', _('Phase Name is required.'))
             elif phase not in phase_names:
-                self._add_error('Activities', row, 'Phase Name', f'Phase "{phase}" not found in Phases sheet.')
+                self._add_error('Activities', row, 'Phase Name', _('Phase "%(phase)s" not found in Phases sheet.') % {'phase': phase})
             activity_type = a.get('Activity Type', '').strip()
             if not activity_type:
-                self._add_error('Activities', row, 'Activity Type', 'Activity Type is required.')
+                self._add_error('Activities', row, 'Activity Type', _('Activity Type is required.'))
             elif activity_type not in self._activity_types:
                 self._add_error('Activities', row, 'Activity Type',
-                                f'Activity type "{activity_type}" not found in the database.')
+                                _('Activity type "%(activity_type)s" not found in the database.') % {'activity_type': activity_type})
             for col in BOOL_COLS_ACTIVITIES:
                 v = a.get(col, '').strip().lower()
                 if v and v not in ('yes', 'no'):
-                    self._add_error('Activities', row, col, f'"{col}" must be "Yes" or "No".')
+                    self._add_error('Activities', row, col, _('"%(column)s" must be "Yes" or "No".') % {'column': col})
             if (_to_bool(a.get('Is Primary Evaluation', 'No'))
                     and not _to_bool(a.get('Is Evaluatable', 'No'))):
                 self._add_error('Activities', row, 'Is Primary Evaluation',
-                                'Is Primary Evaluation = Yes requires Is Evaluatable = Yes.')
+                                _('Is Primary Evaluation = Yes requires Is Evaluatable = Yes.'))
             for col, lookup in (
                 ('Simulation Name', self._simulations),
                 ('Remote Lab Name', self._remote_labs),
@@ -339,7 +340,7 @@ class ScenarioImporter:
             ):
                 v = a.get(col, '').strip()
                 if v and v not in lookup:
-                    self._add_error('Activities', row, col, f'"{v}" not found in the database.')
+                    self._add_error('Activities', row, col, _('"%(value)s" not found in the database.') % {'value': v})
 
     def _validate_answers(self):
         seen_answers = set()
@@ -350,24 +351,24 @@ class ScenarioImporter:
             ans_text = ans.get('Answer Text', '').strip()
             if act_name not in self.activity_map:
                 self._add_error('Answers', row, 'Activity Name',
-                                f'Activity "{act_name}" not found in Activities sheet.')
+                                _('Activity "%(activity)s" not found in Activities sheet.') % {'activity': act_name})
             if not ans_key:
-                self._add_error('Answers', row, 'Answer Key', 'Answer Key is required.')
+                self._add_error('Answers', row, 'Answer Key', _('Answer Key is required.'))
             if not ans_text:
-                self._add_error('Answers', row, 'Answer Text', 'Answer Text is required.')
+                self._add_error('Answers', row, 'Answer Text', _('Answer Text is required.'))
             pair = (act_name, ans_key)
             if pair in seen_answers:
                 self._add_error('Answers', row, 'Answer Key',
-                                f'Duplicate answer key "{ans_key}" for activity "{act_name}".')
+                                _('Duplicate answer key "%(answer_key)s" for activity "%(activity)s".') % {'answer_key': ans_key, 'activity': act_name})
             elif act_name and ans_key:
                 seen_answers.add(pair)
             for col in BOOL_COLS_ANSWERS:
                 v = ans.get(col, '').strip().lower()
                 if v and v not in ('yes', 'no'):
-                    self._add_error('Answers', row, col, f'"{col}" must be "Yes" or "No".')
+                    self._add_error('Answers', row, col, _('"%(column)s" must be "Yes" or "No".') % {'column': col})
             v = ans.get('Answer Weight', '').strip()
             if v and _to_int(v) is None:
-                self._add_error('Answers', row, 'Answer Weight', 'Answer Weight must be a whole number.')
+                self._add_error('Answers', row, 'Answer Weight', _('Answer Weight must be a whole number.'))
 
     def _validate_routing(self):
         seen_pairs = set()
@@ -376,26 +377,25 @@ class ScenarioImporter:
             src = r.get('Source Activity Name', '').strip()
             if not src:
                 self._add_error('Next Activity', row, 'Source Activity Name',
-                                'Source Activity Name is required.')
+                                _('Source Activity Name is required.'))
                 continue
             if src not in self.activity_map:
                 self._add_error('Next Activity', row, 'Source Activity Name',
-                                f'Activity "{src}" not found in Activities sheet.')
+                                _('Activity "%(activity)s" not found in Activities sheet.') % {'activity': src})
                 continue
             ans_key = r.get('Answer Key', '').strip()
             pair = (src, ans_key)
             if pair in seen_pairs:
                 self._add_error('Next Activity', row, 'Answer Key',
-                                f'Duplicate routing rule for activity "{src}" / '
-                                f'answer key "{ans_key or "(default)"}".')
+                                _('Duplicate routing rule for activity "%(activity)s" / answer key "%(answer_key)s".') % {'activity': src, 'answer_key': ans_key or _('(default)')})
             seen_pairs.add(pair)
             if ans_key and (src, ans_key) not in self.answer_map:
                 self._add_error('Next Activity', row, 'Answer Key',
-                                f'Answer key "{ans_key}" not found for activity "{src}".')
+                                _('Answer key "%(answer_key)s" not found for activity "%(activity)s".') % {'answer_key': ans_key, 'activity': src})
             next_act = r.get('Next Activity Name', '').strip()
             if next_act and next_act not in self.activity_map:
                 self._add_error('Next Activity', row, 'Next Activity Name',
-                                f'Activity "{next_act}" not found in Activities sheet.')
+                                _('Activity "%(activity)s" not found in Activities sheet.') % {'activity': next_act})
 
     def _validate_evaluation(self):
         evaluatable = {
@@ -409,36 +409,35 @@ class ScenarioImporter:
             primary = ev.get('Primary Activity Name', '').strip()
             if not primary:
                 self._add_error('Evaluation', row, 'Primary Activity Name',
-                                'Primary Activity Name is required.')
+                                _('Primary Activity Name is required.'))
                 continue
             if primary not in self.activity_map:
                 self._add_error('Evaluation', row, 'Primary Activity Name',
-                                f'Activity "{primary}" not found in Activities sheet.')
+                                _('Activity "%(activity)s" not found in Activities sheet.') % {'activity': primary})
                 continue
             if primary not in evaluatable:
                 self._add_error('Evaluation', row, 'Primary Activity Name',
-                                f'Activity "{primary}" is not marked Is Evaluatable = Yes.')
+                                _('Activity "%(activity)s" is not marked Is Evaluatable = Yes.') % {'activity': primary})
             ev_seen.add(primary)
             grouped = _grouped_acts(ev)
             if not grouped:
                 self._add_error('Evaluation', row, 'Grouped Activity 1',
-                                'At least one grouped activity is required.')
+                                _('At least one grouped activity is required.'))
             else:
                 for g in grouped:
                     if g not in self.activity_map:
                         self._add_error('Evaluation', row, 'Grouped Activity 1',
-                                        f'Activity "{g}" not found in Activities sheet.')
+                                        _('Activity "%(activity)s" not found in Activities sheet.') % {'activity': g})
             for col in ('High Performers Activity', 'Moderate Performers Activity', 'Low Performers Activity'):
                 v = ev.get(col, '').strip()
                 if v and v not in self.activity_map:
                     self._add_error('Evaluation', row, col,
-                                    f'Activity "{v}" not found in Activities sheet.')
+                                    _('Activity "%(value)s" not found in Activities sheet.') % {'value': v})
         for name in evaluatable:
             if name not in ev_seen:
                 a = self.activity_map[name]
                 self._add_error('Activities', a.get('_row', '?'), 'Is Evaluatable',
-                                f'Activity "{name}" is marked Is Evaluatable = Yes '
-                                f'but has no row in the Evaluation sheet.')
+                                _('Activity "%(name)s" is marked Is Evaluatable = Yes but has no row in the Evaluation sheet.') % {'name': name})
 
     def _create(self):
         from django.db import transaction, IntegrityError
