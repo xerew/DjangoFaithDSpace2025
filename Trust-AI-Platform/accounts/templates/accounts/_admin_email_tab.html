@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 <!-- Email campaigns tab -->
 <div class="tab-pane fade" id="tab-email" role="tabpanel">
   <style>
@@ -140,7 +140,7 @@
                       <span class="badge bg-primary rounded-pill">{{ org.email_teacher_count }}</span>
                     </span>
                     <span class="d-block text-muted" style="font-size:11px;">
-                      {{ org.short_name }}{% if org.country %} · {{ org.country }}{% endif %}{% if org.language %} · {{ org.language }}{% endif %}
+                      {{ org.short_name }}{% if org.country %} · {{ org.country }}{% endif %}{% if org.language %} · {{ org.language|ui_label }}{% endif %}
                     </span>
                   </label>
                 </div>

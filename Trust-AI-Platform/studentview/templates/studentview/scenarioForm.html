@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {% block page_title %}<title>Trust AI Lab — {% translate "Pre-Scenario Questions" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -85,9 +85,9 @@
             </div>
             <div class="text-end">
               {% if display_language != 'English' and display_language in "Ελληνικά Greek Português Portuguese German Deutsch Spanish French Italian Romanian Estonian Ukrainian Persian" %}
-                <span class="lang-badge"><i class="bi bi-translate me-1"></i>{{ display_language }}</span>
+                <span class="lang-badge"><i class="bi bi-translate me-1"></i>{{ display_language|ui_label }}</span>
               {% elif display_language != 'English' %}
-                <span class="lang-badge lang-badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>{% blocktranslate trimmed with language=display_language %}Showing in English (no {{ language }} translation){% endblocktranslate %}</span>
+                <span class="lang-badge lang-badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>{% blocktranslate trimmed with language=display_language|ui_label %}Showing in English (no {{ language }} translation){% endblocktranslate %}</span>
               {% else %}
                 <span class="lang-badge"><i class="bi bi-translate me-1"></i>{% translate "English" %}</span>
               {% endif %}

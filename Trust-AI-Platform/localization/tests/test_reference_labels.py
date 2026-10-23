@@ -58,3 +58,32 @@ class ScenariosPageTests(TestCase):
                         return_value='PHYSICS-LABEL'):
             response = self.client.get(reverse('scenarios'))
         self.assertContains(response, 'PHYSICS-LABEL')
+
+
+class VisibleLabelsKeepValuesTests(TestCase):
+    def setUp(self):
+        from organization.models import Organization  # noqa: F401
+        self.teacher = User.objects.create_user('ref_teacher2', password='pass')
+        self.teacher.groups.add(Group.objects.create(name='teachers'))
+        self.client.force_login(self.teacher)
+
+    def test_language_filter_label_translated_value_english(self):
+        Scenario.objects.create(name='Lang s', created_by=self.teacher,
+                                updated_by=self.teacher, language='Greek')
+        with mock.patch('localization.reference_labels.ui_label',
+                        side_effect=lambda v: 'LBL-' + v if v else v):
+            response = self.client.get(reverse('scenarios'))
+        self.assertContains(response, 'LBL-Greek')
+        self.assertContains(response, 'value="Greek"')
+
+    def test_create_simulation_json_has_language_label(self):
+        staff = User.objects.create_user('ref_staff', password='x', is_staff=True)
+        self.client.force_login(staff)
+        with mock.patch('localization.reference_labels.ui_label',
+                        return_value='GR-LABEL'):
+            r = self.client.post('/accounts/admin/simulations/create/', {
+                'name': 'S', 'iframe_url': 'https://x.com', 'width': '800',
+                'height': '600', 'allow_fullscreen': 'true', 'language': 'Greek'})
+        data = r.json()
+        self.assertEqual(data['language'], 'Greek')
+        self.assertEqual(data['language_label'], 'GR-LABEL')

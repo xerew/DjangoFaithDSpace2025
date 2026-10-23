@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from localization import reference_labels
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from authoringtool.models import Simulation, ExperimentLL, VRARExperiment
@@ -38,6 +39,7 @@ def admin_create_simulation(request):
         'iframe_url': sim.iframe_url, 'width': sim.width,
         'height': sim.height, 'allow_fullscreen': sim.allow_fullscreen,
         'language': sim.language,
+        'language_label': reference_labels.ui_label(sim.language),
     })
 
 
@@ -66,6 +68,7 @@ def admin_edit_simulation(request, sim_id):
         'iframe_url': sim.iframe_url, 'width': sim.width,
         'height': sim.height, 'allow_fullscreen': sim.allow_fullscreen,
         'language': sim.language,
+        'language_label': reference_labels.ui_label(sim.language),
     })
 
 

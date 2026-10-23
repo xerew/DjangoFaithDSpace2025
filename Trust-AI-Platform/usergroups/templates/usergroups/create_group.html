@@ -228,7 +228,7 @@
     const option = select.selectedOptions[0];
     const title = select.closest('.scenario-item').querySelector('.scenario-name');
     title.firstChild.nodeValue = option.dataset.name + ' ';
-    title.querySelector('.scenario-lang').textContent = '(' + option.dataset.language + ')';
+    title.querySelector('.scenario-lang').textContent = '(' + (option.dataset.languageLabel || option.dataset.language) + ')';
   }
 
   function updateCount() {

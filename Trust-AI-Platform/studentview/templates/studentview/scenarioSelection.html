@@ -157,7 +157,7 @@
             <select class="f-input" name="language" id="language-select">
               <option value="">{% translate "All Languages" %}</option>
               {% for lang in languages %}
-                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang|ui_label }}</option>
               {% endfor %}
             </select>
           </div>

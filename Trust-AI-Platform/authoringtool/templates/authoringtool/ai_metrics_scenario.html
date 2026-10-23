@@ -218,7 +218,7 @@
             {% for language in evidence_language_options %}
             <option value="{{ language }}"
                     {% if evidence_language == language %}selected{% endif %}>
-              {{ language }}
+              {{ language|ui_label }}
             </option>
             {% endfor %}
           </select>

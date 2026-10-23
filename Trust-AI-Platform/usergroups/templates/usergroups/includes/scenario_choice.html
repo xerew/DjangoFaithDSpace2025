@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n %}{% load localization_tags %}
 {# One scenario picker row. Confirmed translations share a row: tick it, then pick the language. #}
 {% with selected=row.selected %}
 <label class="scenario-item" data-name="{% for version in row.versions %}{{ version.name|lower }} {{ version.language|lower }} {% endfor %}">
@@ -9,11 +9,11 @@
   <input type="checkbox" name="assigned_scenarios" value="{{ selected.id }}"
          {% if row.assigned %}checked{% endif %} onchange="updateCount()">
   {% endif %}
-  <span class="scenario-name">{{ selected.name }} <span class="scenario-lang">({{ selected.language|default:"No language" }})</span></span>
+  <span class="scenario-name">{{ selected.name }} <span class="scenario-lang">({{ selected.language|ui_label|default:"No language" }})</span></span>
   {% if row.versions|length > 1 %}
   <select name="assigned_scenarios" class="form-select form-select-sm scenario-lang-select" aria-label="{% translate "Language" %}"{% if not row.assigned %} disabled{% endif %} onchange="updateBundleTitle(this)">
     {% for version in row.versions %}
-    <option value="{{ version.id }}"{% if version.id == selected.id %} selected{% endif %} data-name="{{ version.name }}" data-language="{{ version.language|default:'No language' }}">{{ version.language|default:"No language" }}</option>
+    <option value="{{ version.id }}"{% if version.id == selected.id %} selected{% endif %} data-name="{{ version.name }}" data-language="{{ version.language|default:'No language' }}" data-language-label="{{ version.language|ui_label|default:'No language' }}">{{ version.language|ui_label|default:"No language" }}</option>
     {% endfor %}
   </select>
   {% endif %}

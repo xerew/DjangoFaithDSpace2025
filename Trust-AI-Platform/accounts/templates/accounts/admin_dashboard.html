@@ -1613,7 +1613,7 @@ function updateLabRow(type, res) {
     cells[0].textContent = res.name;
     cells[0].style.cssText = 'padding:12px 16px;font-weight:600;font-size:13px;color:#012970;';
     cells[1].innerHTML = res.language
-      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language) + '</span>'
+      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language_label || res.language) + '</span>'
       : '<span style="color:#aaa;font-size:12px;">—</span>';
     const urlSpan = cells[2].querySelector('span');
     if (urlSpan) { urlSpan.textContent = res.iframe_url; urlSpan.title = res.iframe_url; }
@@ -1660,7 +1660,7 @@ function prependLabRow(type, res) {
     tbody   = document.getElementById('simTableBody');
     emptyId = 'simEmptyRow';
     const langBadge = res.language
-      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language) + '</span>'
+      ? '<span class="badge bg-light text-dark border" style="font-size:11px;">' + escHtml(res.language_label || res.language) + '</span>'
       : '<span style="color:#aaa;font-size:12px;">—</span>';
     html = '<tr class="sim-row" data-sim-id="' + res.id + '" data-name="' + escHtml(res.name) + '"' +
       ' data-iframe-url="' + escHtml(res.iframe_url) + '" data-width="' + res.width + '"' +

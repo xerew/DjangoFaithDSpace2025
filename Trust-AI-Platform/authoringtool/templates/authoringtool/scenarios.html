@@ -193,7 +193,7 @@
             <select class="f-input" name="language" id="language-select">
               <option value="">{% translate "All" %}</option>
               {% for lang in languages %}
-                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+                <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang|ui_label }}</option>
               {% endfor %}
             </select>
           </div>
@@ -550,13 +550,13 @@
           <label class="form-label fw-semibold" for="translateSource">{% translate "Written in" %}</label>
           <select class="form-select" name="source_language" id="translateSource">
             <option value="">{% translate "Choose a language" %}</option>
-            {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+            {% for name in translation_languages %}<option value="{{ name }}">{{ name|ui_label }}</option>{% endfor %}
           </select>
         </div>
         <label class="form-label fw-semibold" for="translateTarget">{% translate "Translate into" %}</label>
         <select class="form-select" name="target_language" id="translateTarget" required>
           <option value="">{% translate "Choose a language" %}</option>
-          {% for name in translation_languages %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+          {% for name in translation_languages %}<option value="{{ name }}">{{ name|ui_label }}</option>{% endfor %}
         </select>
         <p class="small text-muted mt-2 mb-0">
           {% translate "The new scenario keeps exactly the same structure and starts private. It is translated in the background, so you can leave this page." %}
