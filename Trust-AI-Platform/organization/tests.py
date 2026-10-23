@@ -494,6 +494,43 @@ class OrganizationStatisticsTests(TestCase):
         UserGroupMembership.objects.create(group=outsider_group, user=outsider_student)
         UserScenarioScore.objects.create(user=outsider_student, scenario=self.scenario_one)
 
+    def test_synthetic_uncategorized_row_is_flagged_and_real_names_are_not(self):
+        real = Subject.objects.create(name='Literal subject', category='Uncategorized')
+        self.scenario_two.subjects.add(real)
+        Scenario.objects.create(
+            name='Statistics Scenario Three', created_by=self.teacher,
+            updated_by=self.teacher, visibility_status='org', language='English',
+        ).assigned_groups.add(self.group)
+        self.client.login(username='stats_teacher', password='pass')
+        UserScenarioScore.objects.create(
+            user=self.student_one,
+            scenario=Scenario.objects.get(name='Statistics Scenario Three'),
+        )
+        response = self.client.get(reverse('organization_detail', args=[self.org.id]))
+
+        rows = response.context['organization_stats']['category_rows']
+        flagged = [r for r in rows if r.get('is_uncategorized')]
+        self.assertEqual(len(flagged), 1)
+        self.assertEqual(flagged[0]['category'], 'Uncategorized')
+        literal = [r for r in rows if r['category'] == 'Uncategorized' and not r.get('is_uncategorized')]
+        self.assertEqual(len(literal), 1)
+
+    def test_detail_page_renders_the_flagged_row_through_translate(self):
+        from unittest.mock import patch
+        from .statistics import get_organization_statistics
+        stats = get_organization_statistics(self.org)
+        stats['category_rows'] = [
+            {'category': 'RAW-ENGLISH-KEY', 'scenario_count': 1, 'is_uncategorized': True},
+            {'category': 'Real subject', 'scenario_count': 2},
+        ]
+        self.client.login(username='stats_teacher', password='pass')
+        with patch('organization.views.get_organization_statistics', return_value=stats):
+            response = self.client.get(reverse('organization_detail', args=[self.org.id]))
+
+        self.assertContains(response, 'Uncategorized <strong>1</strong>')
+        self.assertNotContains(response, 'RAW-ENGLISH-KEY')
+        self.assertContains(response, 'Real subject <strong>2</strong>')
+
     def test_detail_page_shows_organization_statistics(self):
         self.client.login(username='stats_teacher', password='pass')
         response = self.client.get(reverse('organization_detail', args=[self.org.id]))

@@ -67,6 +67,7 @@ def get_organization_statistics(organization, include_group_rows=False):
     if uncategorized_count:
         category_rows.append({
             'category': 'Uncategorized',
+            'is_uncategorized': True,
             'scenario_count': uncategorized_count,
         })
 

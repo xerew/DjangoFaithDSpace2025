@@ -135,6 +135,7 @@ SENTINELS = {
         'Reset',
     ],
     'organization_detail': [
+        'Uncategorized',
         'Organizations',
         'Back',
         'Organization Details',

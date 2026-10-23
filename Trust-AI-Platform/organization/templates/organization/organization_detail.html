@@ -224,7 +224,7 @@
             <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:15px;margin-bottom:7px;">{% translate "Scenario kinds" %}</div>
             <div class="d-flex flex-wrap gap-1">
               {% for row in organization_stats.category_rows %}
-              <span class="org-type-chip">{{ row.category }} <strong>{{ row.scenario_count }}</strong></span>
+              <span class="org-type-chip">{% if row.is_uncategorized %}{% translate "Uncategorized" %}{% else %}{{ row.category }}{% endif %} <strong>{{ row.scenario_count }}</strong></span>
               {% endfor %}
             </div>
             {% elif organization_stats.teacher_count == 0 %}
