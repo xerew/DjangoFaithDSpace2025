@@ -13,6 +13,9 @@ from accounts.models import UserProfile
 from authoringtool.machine_translation.health import check_ollama
 from authoringtool.models import Scenario
 from localization.models import TranslationOverride, TranslationOverrideLog, TranslationReviewer
+from localization.catalog import (
+    EXTRA_DOUBLE_QUOTE, STRAY_PERCENT, UNBALANCED_BRACKETS, UNEXPECTED_LINE_BREAK,
+)
 from localization.languages import recipient_language
 from localization.overrides import (
     apply_overrides, bump_overrides_version, ensure_overrides, reset_overrides,
@@ -215,6 +218,56 @@ class OverrideTests(ReviewTestBase):
         self.assertEqual(response.status_code, 400)
         self.assertTrue(any('script' in p for p in response.json()['problems']))
         self.assertFalse(TranslationOverride.objects.exists())
+
+    def assertRefused(self, response, problem):
+        self.assertEqual(response.status_code, 400, response.content)
+        result = response.json()
+        self.assertIn(problem, result['problems'])
+        self.assertEqual(len(result['messages']), len(result['problems']))
+        self.assertTrue(all(result['messages']))
+        self.assertFalse(TranslationOverride.objects.exists())
+
+    def test_override_cannot_add_an_unclosed_tag(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='Check again', msgstr='X <img src=x onerror=alert(1) ')
+        self.assertRefused(response, UNBALANCED_BRACKETS)
+
+    def test_override_cannot_add_attributes_to_a_source_tag(self):
+        self.client.force_login(self.reviewer)
+        msgid = 'The <strong>Trust AI Lab platform</strong> consists of the following components:'
+        response = self.save('el', msgid=msgid, msgstr=(
+            'Η <strong onmouseover=alert(1)>πλατφόρμα Trust AI Lab</strong> αποτελείται από:'))
+        self.assertRefused(response, 'unexpected <strong onmouseover=alert(1)>')
+
+    def test_override_cannot_break_out_of_an_attribute(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='Search source or translation…',
+                             msgstr='S" autofocus onfocus="alert(1)')
+        self.assertRefused(response, EXTRA_DOUBLE_QUOTE)
+
+    def test_override_cannot_add_a_line_break(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='Check again', msgstr='Έλεγξε\nξανά')
+        self.assertRefused(response, UNEXPECTED_LINE_BREAK)
+
+    def test_stray_percent_is_refused_only_in_formatted_texts(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='A language called "%(name)s" already exists.',
+                             msgstr='Η γλώσσα «%(name)s» υπάρχει ήδη 100%.')
+        self.assertRefused(response, STRAY_PERCENT)
+        response = self.save('el', msgid='Check again', msgstr='Έλεγξε ξανά 100%')
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_typographic_quotes_and_matching_tags_are_accepted(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='A language called "%(name)s" already exists.',
+                             msgstr='Υπάρχει ήδη γλώσσα με το όνομα «%(name)s».')
+        self.assertEqual(response.status_code, 200, response.content)
+        msgid = 'The <strong>Trust AI Lab platform</strong> consists of the following components:'
+        response = self.save('el', msgid=msgid, msgstr=(
+            'Η <strong>πλατφόρμα Trust AI Lab</strong> αποτελείται από τα εξής μέρη:'))
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(TranslationOverride.objects.count(), 2)
 
     def test_unknown_msgid_is_refused(self):
         self.client.force_login(self.reviewer)

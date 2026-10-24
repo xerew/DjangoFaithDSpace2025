@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 08:47+0300\n"
+"POT-Creation-Date: 2026-10-24 09:21+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7555,6 +7555,28 @@ msgid "You are not a translation reviewer."
 msgstr ""
 
 #: .\localization\views.py
+msgid ""
+"The angle brackets do not match the source text. Check for an unclosed HTML "
+"tag."
+msgstr ""
+
+#: .\localization\views.py
+msgid ""
+"The translation has more straight double quotes than the source text. Use "
+"typographic quotes such as « » or „ “ instead."
+msgstr ""
+
+#: .\localization\views.py
+msgid ""
+"A percent sign that is not part of a placeholder would break this text. "
+"Write two percent signs for a literal one."
+msgstr ""
+
+#: .\localization\views.py
+msgid "The source text has no line break, so the translation cannot have one."
+msgstr ""
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr ""
@@ -7575,8 +7597,7 @@ msgid ""
 msgstr ""
 
 #: .\localization\views.py
-msgid ""
-"Keep the placeholders and HTML tags of the source text exactly as they are."
+msgid "The translation was not saved:"
 msgstr ""
 
 #: .\localization\views.py

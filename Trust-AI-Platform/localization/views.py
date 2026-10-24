@@ -147,6 +147,20 @@ def review_translations(request, code):
 
 
 def _problem_text(problem):
+    fixed = {
+        catalog.UNBALANCED_BRACKETS: _(
+            'The angle brackets do not match the source text. Check for an unclosed HTML tag.'),
+        catalog.EXTRA_DOUBLE_QUOTE: _(
+            'The translation has more straight double quotes than the source text. '
+            'Use typographic quotes such as « » or „ “ instead.'),
+        catalog.STRAY_PERCENT: _(
+            'A percent sign that is not part of a placeholder would break this text. '
+            'Write two percent signs for a literal one.'),
+        catalog.UNEXPECTED_LINE_BREAK: _(
+            'The source text has no line break, so the translation cannot have one.'),
+    }
+    if problem in fixed:
+        return fixed[problem]
     kind, _sep, token = problem.partition(' ')
     if kind == 'missing':
         return _('Missing from your translation: %(token)s') % {'token': token}
@@ -195,13 +209,13 @@ def save_translation(request, code):
     problems = []
     for form in forms:
         if values[form['index']]:
-            problems += catalog.placeholder_problems(form['source'], values[form['index']])
+            problems += catalog.translation_problems(form['source'], values[form['index']])
     if problems:
         return JsonResponse({
             'success': False,
             'problems': problems,
             'messages': [_problem_text(p) for p in problems],
-            'error': _('Keep the placeholders and HTML tags of the source text exactly as they are.'),
+            'error': _('The translation was not saved:'),
         }, status=400)
 
     fuzzy = 'fuzzy' in entry.flags

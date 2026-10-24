@@ -40,6 +40,53 @@ def placeholder_problems(msgid, msgstr):
     return problems
 
 
+_FULL_TAG = re.compile(r'<[^<>]*>')
+
+# Problem texts translation_problems adds besides 'missing X' / 'unexpected X'.
+UNBALANCED_BRACKETS = 'unbalanced < and >'
+EXTRA_DOUBLE_QUOTE = 'extra straight double quote'
+STRAY_PERCENT = 'stray percent sign'
+UNEXPECTED_LINE_BREAK = 'unexpected line break'
+
+
+def _full_tags(text):
+    return Counter(' '.join(tag.split()) for tag in _FULL_TAG.findall(text or ''))
+
+
+def _is_python_format(text):
+    """True when Python %-formatting is applied to ``text`` (tokens or an escaped %%)."""
+    return '%%' in text or bool(_PY_FORMAT.search(text.replace('%%', '')))
+
+
+def translation_problems(msgid, msgstr):
+    """``placeholder_problems`` plus the checks that keep a translation safe to render.
+
+    Translations are output unescaped, and Python call sites %-format them,
+    so besides the placeholders a translation must keep every HTML tag whole
+    (attributes included), add no straight double quote (it could break out of
+    an HTML attribute), add no lone % when the text is %-formatted, and add no
+    line break.
+    """
+    msgid, msgstr = msgid or '', msgstr or ''
+    problems = placeholder_problems(msgid, msgstr)
+    source_tags, target_tags = _full_tags(msgid), _full_tags(msgstr)
+    for tag in sorted((source_tags - target_tags).elements()):
+        problems.append(f'missing {tag}')
+    for tag in sorted((target_tags - source_tags).elements()):
+        problems.append(f'unexpected {tag}')
+    if (msgstr.count('<'), msgstr.count('>')) != (msgid.count('<'), msgid.count('>')):
+        problems.append(UNBALANCED_BRACKETS)
+    if msgstr.count('"') > msgid.count('"'):
+        problems.append(EXTRA_DOUBLE_QUOTE)
+    if _is_python_format(msgid):
+        rest = _PY_FORMAT.sub('', msgstr.replace('%%', ''))
+        if '%' in rest:
+            problems.append(STRAY_PERCENT)
+    if '\n' in msgstr and '\n' not in msgid:
+        problems.append(UNEXPECTED_LINE_BREAK)
+    return problems
+
+
 def marked_msgids(code='el'):
     """Every msgid and msgid_plural in the catalog (cached per file mtime)."""
     path = po_path(code)
