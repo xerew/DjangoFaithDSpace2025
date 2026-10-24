@@ -250,6 +250,16 @@
         </li>
       </ul>
     {% endif %}
+    {% if request.user|can_review_translations %}
+      <ul class="sidebar-nav mt-auto">
+        <li class="nav-item">
+          <a class="nav-link collapsed" href="{% url 'review_index' %}">
+            <i class="bi bi-translate"></i>
+            <span>{% translate "Translations" %}</span>
+          </a>
+        </li>
+      </ul>
+    {% endif %}
 	
 	  <!-- ======= Maintenance Alert
 <div class="alert alert-warning alert-dismissible fade show text-center mb-0" role="alert">

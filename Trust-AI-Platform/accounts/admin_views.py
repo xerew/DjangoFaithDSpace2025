@@ -16,6 +16,8 @@ from functools import wraps
 from authoringtool.models import Language, Scenario, Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
 from localization.languages import LANGUAGE_META
+from localization.models import TranslationReviewer
+from localization.reviewers import REVIEW_LANGUAGES, can_be_reviewer
 
 from .bulk_email import (
     absolutize_content_urls,
@@ -159,6 +161,8 @@ def admin_dashboard(request):
         'maintenance_notices': maintenance_notices,
         'active_maintenance_count': MaintenanceNotice.objects.active(now).count(),
         'languages': language_rows(),
+        'translation_reviewer_rows': translation_reviewer_rows(),
+        'reviewer_candidates': reviewer_candidates(),
         'plural_texts': _dashboard_plural_texts(len(users), len(groups)),
     })
 
@@ -574,6 +578,55 @@ def admin_delete_language(request, language_id):
         }})
     language.delete()
     return JsonResponse({'success': True})
+
+
+# ── Translation reviewers ───────────────────────────────────────────────────
+# A reviewer corrects the interface translation of one language on the
+# Translations page (localization.views). Administrators review every language.
+
+def translation_reviewer_rows():
+    by_language = {}
+    for assignment in TranslationReviewer.objects.select_related('user'):
+        by_language.setdefault(assignment.language, []).append(assignment)
+    return [{'language': meta, 'reviewers': by_language.get(meta['code'], [])}
+            for meta in REVIEW_LANGUAGES]
+
+
+def reviewer_candidates():
+    return (User.objects.filter(is_active=True)
+            .filter(Q(groups__name='teachers') | Q(is_staff=True) | Q(is_superuser=True))
+            .distinct().order_by('username'))
+
+
+@require_POST
+@staff_required
+def admin_add_translation_reviewer(request):
+    language = request.POST.get('language', '')
+    meta = next((m for m in REVIEW_LANGUAGES if m['code'] == language), None)
+    if meta is None:
+        return JsonResponse({'success': False, 'error': _('Choose a language to review.')})
+    user_id = request.POST.get('user_id', '')
+    user = User.objects.filter(id=int(user_id)).first() if user_id.isdigit() else None
+    if user is None or not can_be_reviewer(user):
+        return JsonResponse({'success': False, 'error': _(
+            'Only active teachers and administrators can be translation reviewers.')})
+    assignment, created = TranslationReviewer.objects.get_or_create(user=user, language=language)
+    if not created:
+        return JsonResponse({'success': False, 'error': _(
+            '%(user)s already reviews %(language)s.') % {'user': user.username, 'language': meta['native']}})
+    return JsonResponse({
+        'success': True, 'id': assignment.id, 'language': language,
+        'username': user.username, 'name': user.get_full_name() or user.username,
+        'message': _('Reviewer assigned.'),
+    })
+
+
+@require_POST
+@staff_required
+def admin_remove_translation_reviewer(request, reviewer_id):
+    assignment = get_object_or_404(TranslationReviewer, id=reviewer_id)
+    assignment.delete()
+    return JsonResponse({'success': True, 'message': _('Reviewer removed.')})
 
 
 @require_POST

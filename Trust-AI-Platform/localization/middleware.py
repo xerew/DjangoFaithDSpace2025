@@ -46,3 +46,19 @@ class UserLanguageMiddleware:
                     samesite=settings.LANGUAGE_COOKIE_SAMESITE,
                 )
         return response
+
+
+class TranslationOverrideMiddleware:
+    """Make reviewers' corrections for the request's language current in this process.
+
+    Runs after UserLanguageMiddleware so the user's saved language is active.
+    Costs one cache read per request; see localization.overrides.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from .overrides import ensure_overrides
+        ensure_overrides(translation.get_language())
+        return self.get_response(request)

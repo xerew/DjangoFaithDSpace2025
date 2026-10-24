@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n static %}
 <div class="tab-pane fade" id="tab-languages" role="tabpanel">
   <div class="mb-3">
     <h5 class="mb-1" style="color:#012970;font-size:16px;font-weight:700;">{% translate "Languages" %}</h5>
@@ -53,6 +53,63 @@
     <p class="text-muted" style="font-size:13px;">{% translate "No languages yet." %}</p>
     {% endfor %}
   </div>
+
+  <hr class="my-4">
+
+  <div class="mb-3" id="translation-reviewers">
+    <h5 class="mb-1" style="color:#012970;font-size:16px;font-weight:700;">{% translate "Translation reviewers" %}</h5>
+    <p class="text-muted mb-0" style="font-size:13px;">
+      {% blocktranslate trimmed %}
+        Reviewers correct the interface translation of their language on the Translations page.
+        Corrections apply right away. Only teachers and administrators can be reviewers;
+        administrators can review every language.
+      {% endblocktranslate %}
+    </p>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+    <select id="reviewerLanguage" class="form-select" style="max-width:220px;" aria-label="{% translate "Language to review" %}">
+      {% for row in translation_reviewer_rows %}
+      <option value="{{ row.language.code }}">{{ row.language.native }}</option>
+      {% endfor %}
+    </select>
+    <select id="reviewerUser" class="form-select" style="max-width:320px;" aria-label="{% translate "Reviewer" %}">
+      {% for candidate in reviewer_candidates %}
+      <option value="{{ candidate.id }}">{{ candidate.username }}{% if candidate.get_full_name %} ({{ candidate.get_full_name }}){% endif %}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary" data-url="{% url 'admin_add_translation_reviewer' %}" onclick="addTranslationReviewer(this.dataset.url)">
+      <i class="bi bi-person-plus me-1"></i>{% translate "Assign reviewer" %}
+    </button>
+  </div>
+
+  <div class="row g-3">
+    {% for row in translation_reviewer_rows %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100" style="border-radius:12px;">
+        <div class="card-body">
+          <div class="fw-bold d-flex align-items-center gap-2" style="font-size:15px;">
+            <img src="{% static 'vendor/flag-icons/4x3/' %}{{ row.language.flag }}.svg" width="20" height="15" alt="">
+            {{ row.language.native }}
+          </div>
+          <ul class="list-unstyled mb-0 mt-2" id="reviewers-{{ row.language.code }}" style="font-size:13px;">
+            {% for assignment in row.reviewers %}
+            <li id="reviewer-{{ assignment.id }}" class="d-flex align-items-center justify-content-between gap-2 py-1">
+              <span>{{ assignment.user.username }}{% if assignment.user.get_full_name %} ({{ assignment.user.get_full_name }}){% endif %}</span>
+              <button class="btn btn-sm btn-outline-danger" onclick="removeTranslationReviewer({{ assignment.id }})"
+                      aria-label="{% blocktranslate with name=assignment.user.username %}Remove {{ name }}{% endblocktranslate %}">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </li>
+            {% empty %}
+            <li class="text-muted reviewers-empty">{% translate "No reviewers yet." %}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
 <script>
@@ -92,6 +149,49 @@ function deleteLanguage(id) {
     showToast('{{ t_removed|escapejs }}', false);
     const card = document.getElementById('language-card-' + id);
     if (card) card.remove();
+  });
+}
+
+{% translate "Remove this reviewer?" as t_confirm_reviewer %}
+{% translate "Remove {name}" as t_remove_reviewer %}
+{% translate "No reviewers yet." as t_no_reviewers %}
+function addTranslationReviewer(url) {
+  const language = document.getElementById('reviewerLanguage').value;
+  const userId = document.getElementById('reviewerUser').value;
+  if (!language || !userId) return;
+  postJSON(url, {language: language, user_id: userId}).then(function(data) {
+    if (!data.success) { showToast(data.error, true); return; }
+    showToast(data.message, false);
+    const list = document.getElementById('reviewers-' + data.language);
+    const empty = list.querySelector('.reviewers-empty');
+    if (empty) empty.remove();
+    const label = data.name && data.name !== data.username ? data.username + ' (' + data.name + ')' : data.username;
+    const item = document.createElement('li');
+    item.id = 'reviewer-' + data.id;
+    item.className = 'd-flex align-items-center justify-content-between gap-2 py-1';
+    item.innerHTML = '<span>' + escHtml(label) + '</span>' +
+      '<button class="btn btn-sm btn-outline-danger" onclick="removeTranslationReviewer(' + data.id + ')" aria-label="' +
+      escHtml('{{ t_remove_reviewer|escapejs }}'.replace('{name}', function () { return data.username; })) +
+      '"><i class="bi bi-x-lg"></i></button>';
+    list.appendChild(item);
+  });
+}
+
+function removeTranslationReviewer(id) {
+  if (!confirm('{{ t_confirm_reviewer|escapejs }}')) return;
+  postJSON('{% url "admin_remove_translation_reviewer" 0 %}'.replace('/0/', '/' + id + '/'), {}).then(function(data) {
+    if (!data.success) { showToast(data.error, true); return; }
+    showToast(data.message, false);
+    const item = document.getElementById('reviewer-' + id);
+    if (!item) return;
+    const list = item.parentElement;
+    item.remove();
+    if (!list.children.length) {
+      const empty = document.createElement('li');
+      empty.className = 'text-muted reviewers-empty';
+      empty.textContent = '{{ t_no_reviewers|escapejs }}';
+      list.appendChild(empty);
+    }
   });
 }
 

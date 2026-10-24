@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 08:20+0300\n"
+"POT-Creation-Date: 2026-10-24 08:47+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,7 +36,7 @@ msgid_plural "Showing {start}–{end} of %(n)d users"
 msgstr[0] ""
 msgstr[1] ""
 
-#: .\accounts\admin_views.py
+#: .\accounts\admin_views.py .\localization\tests\test_review.py
 #, python-format
 msgid "%(n)d item"
 msgid_plural "%(n)d items"
@@ -170,6 +170,27 @@ msgstr ""
 msgid ""
 "\"%(name)s\" is used by %(scenarios)s and %(organizations)s. Change their "
 "language first."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Choose a language to review."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Only active teachers and administrators can be translation reviewers."
+msgstr ""
+
+#: .\accounts\admin_views.py
+#, python-format
+msgid "%(user)s already reviews %(language)s."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Reviewer assigned."
+msgstr ""
+
+#: .\accounts\admin_views.py
+msgid "Reviewer removed."
 msgstr ""
 
 #: .\accounts\admin_views.py
@@ -505,6 +526,7 @@ msgstr ""
 
 #: .\accounts\templates\accounts\_admin_languages_tab.html
 #: .\accounts\templates\accounts\admin_dashboard.html
+#: .\localization\templates\localization\review.html
 msgid "Languages"
 msgstr ""
 
@@ -568,6 +590,35 @@ msgid "No languages yet."
 msgstr ""
 
 #: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Translation reviewers"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid ""
+"Reviewers correct the interface translation of their language on the "
+"Translations page. Corrections apply right away. Only teachers and "
+"administrators can be reviewers; administrators can review every language."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Language to review"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Reviewer"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
+#: .\authoringtool\templates\authoringtool\scenarios.html
+msgid "Assign reviewer"
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "No reviewers yet."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
 msgid "Language added."
 msgstr ""
 
@@ -582,6 +633,10 @@ msgstr ""
 
 #: .\accounts\templates\accounts\_admin_languages_tab.html
 msgid "Language removed."
+msgstr ""
+
+#: .\accounts\templates\accounts\_admin_languages_tab.html
+msgid "Remove this reviewer?"
 msgstr ""
 
 #: .\accounts\templates\accounts\_admin_maintenance_tab.html
@@ -1056,6 +1111,8 @@ msgid "QR code regenerates automatically on save"
 msgstr ""
 
 #: .\accounts\templates\accounts\admin_dashboard.html
+#: .\localization\templates\localization\review.html
+#: .\localization\tests\test_review.py
 msgid "Save"
 msgstr ""
 
@@ -1255,15 +1312,18 @@ msgid "No recipients match this filter."
 msgstr ""
 
 #: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\localization\templates\localization\review.html
 #, python-format
 msgid "Page %(number)s of %(total)s"
 msgstr ""
 
 #: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\localization\templates\localization\review.html
 msgid "Previous"
 msgstr ""
 
 #: .\accounts\templates\accounts\admin_email_campaign.html
+#: .\localization\templates\localization\review.html
 msgid "Next"
 msgstr ""
 
@@ -2874,6 +2934,7 @@ msgid "Side-by-side flow"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\_ai_server_banner.html
+#: .\localization\tests\test_review.py
 msgid "Check again"
 msgstr ""
 
@@ -2917,11 +2978,6 @@ msgstr ""
 #: .\authoringtool\templates\authoringtool\_translation_review_panel.html
 #, python-format
 msgid "Remove %(username)s"
-msgstr ""
-
-#: .\authoringtool\templates\authoringtool\_translation_review_panel.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-msgid "Assign reviewer"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\_translation_review_panel.html
@@ -5218,6 +5274,7 @@ msgid "Filter Scenarios"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\localization\templates\localization\review.html
 #: .\organization\templates\organization\list_organizations.html
 #: .\studentview\templates\studentview\scenarioSelection.html
 msgid "Search"
@@ -6110,6 +6167,7 @@ msgid "Compatible"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewScenario.html
+#: .\localization\templates\localization\review.html
 msgid "Needs review"
 msgstr ""
 
@@ -7298,6 +7356,114 @@ msgstr ""
 #: .\localization\reference_labels.py
 msgctxt "activity type"
 msgid "Question"
+msgstr ""
+
+#: .\localization\templates\localization\review.html .\templates\head.html
+msgid "Translations"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+#, python-format
+msgid "Interface translation: %(language)s"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+#, python-format
+msgid ""
+"Corrections apply right away, without a deploy. Keep placeholders such as "
+"%(a)s and %(b)s, and HTML tags, exactly as they are in the source text. "
+"Leave a box empty to go back to the translation from the catalog."
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Search source or translation…"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+#: .\usergroups\templates\usergroups\view_group.html
+msgid "Show"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "All texts"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+#, python-format
+msgid "%(counter)s text"
+msgid_plural "%(counter)s texts"
+msgstr[0] ""
+msgstr[1] ""
+
+#: .\localization\templates\localization\review.html
+#, python-format
+msgid "Context: %(ctx)s"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Corrected"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+#, python-format
+msgid "Plural form %(number)s (source: %(source)s)"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Not translated yet"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Translation"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "No texts match."
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Pages"
+msgstr ""
+
+#: .\localization\templates\localization\review.html
+msgid "Could not save the translation."
+msgstr ""
+
+#: .\localization\views.py
+msgid "You are not a translation reviewer for this language."
+msgstr ""
+
+#: .\localization\views.py
+msgid "You are not a translation reviewer."
+msgstr ""
+
+#: .\localization\views.py
+#, python-format
+msgid "Missing from your translation: %(token)s"
+msgstr ""
+
+#: .\localization\views.py
+#, python-format
+msgid "Not in the source text: %(token)s"
+msgstr ""
+
+#: .\localization\views.py
+msgid "This text is not in the interface catalog."
+msgstr ""
+
+#: .\localization\views.py
+msgid ""
+"Fill in every plural form, or leave them all empty to use the translation "
+"from the catalog."
+msgstr ""
+
+#: .\localization\views.py
+msgid ""
+"Keep the placeholders and HTML tags of the source text exactly as they are."
+msgstr ""
+
+#: .\localization\views.py
+msgid "Translation saved."
 msgstr ""
 
 #: .\messaging\templates\messaging\thread.html
@@ -8675,10 +8841,6 @@ msgstr ""
 
 #: .\usergroups\templates\usergroups\view_group.html
 msgid "Initial Password"
-msgstr ""
-
-#: .\usergroups\templates\usergroups\view_group.html
-msgid "Show"
 msgstr ""
 
 #: .\usergroups\templates\usergroups\view_group.html

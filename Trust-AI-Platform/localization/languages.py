@@ -24,12 +24,21 @@ def supported_codes():
 
 
 def recipient_language(user):
-    """The language to write to a user in: their profile language, else 'en'."""
+    """The language to write to a user in: their profile language, else 'en'.
+
+    Every email site picks the language here, so this also makes sure the
+    reviewers' corrections for it are loaded in this process: emails are often
+    rendered in Celery, where no request middleware runs.
+    """
     try:
         code = user.profile.language
     except (AttributeError, ObjectDoesNotExist):
         return 'en'
-    return code if code in supported_codes() else 'en'
+    if code not in supported_codes():
+        return 'en'
+    from .overrides import ensure_overrides
+    ensure_overrides(code)
+    return code
 
 
 def code_for_table_name(name):

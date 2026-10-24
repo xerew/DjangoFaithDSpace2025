@@ -1,0 +1,176 @@
+{% extends "main.html" %}
+{% load i18n static %}
+{% block page_title %}<title>Trust AI Lab — {% translate "Translations" %}</title>{% endblock %}
+{% block atcontent %}
+
+<style>
+  .tr-hero {
+    background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+    border-radius: 14px; padding: 26px 30px 20px; color: #fff;
+    margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,86,219,0.18);
+  }
+  .tr-hero-icon { background: rgba(255,255,255,0.18); border-radius: 10px; width: 50px; height: 50px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .tr-hero p { margin: 6px 0 0; font-size: 13px; opacity: 0.85; }
+  .tr-langs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .tr-lang { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; border:1px solid #d6dce8; background:#fff; color:#012970; font-size:13px; text-decoration:none; }
+  .tr-lang.active { background:#012970; color:#fff; border-color:#012970; }
+  .tr-entry { border:1px solid #e8edf5; border-radius:12px; padding:14px 16px; margin-bottom:12px; background:#fff; }
+  .tr-source { white-space:pre-wrap; word-break:break-word; font-weight:600; color:#012970; font-size:14px; }
+  .tr-meta { font-size:11.5px; color:#6b7280; margin-bottom:4px; }
+  .tr-badge { font-size:11px; font-weight:700; padding:2px 9px; border-radius:12px; margin-left:4px; }
+  .tr-badge.needs { background:#fef3c7; color:#92400e; }
+  .tr-badge.corrected { background:#dcfce7; color:#166534; }
+  .tr-form-label { font-size:12px; color:#555; margin:10px 0 4px; }
+  .tr-current { white-space:pre-wrap; word-break:break-word; font-size:13px; color:#333; background:#f8fafc; border-radius:8px; padding:6px 10px; margin-bottom:6px; }
+  .tr-current.empty { color:#9ca3af; font-style:italic; }
+  .tr-result { font-size:12.5px; margin-top:6px; }
+  .tr-result.error { color:#b91c1c; }
+  .tr-result.ok { color:#166534; }
+  @media (max-width: 575.98px) {
+    .tr-hero { padding: 14px 16px 12px; }
+    .tr-hero-icon { display: none; }
+    .tr-hero h2 { font-size: 16px !important; }
+  }
+</style>
+
+<main id="main" class="main">
+  <div class="tr-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div class="tr-hero-icon"><i class="bi bi-translate"></i></div>
+      <div class="flex-grow-1">
+        <h2 style="margin:0;font-size:20px;font-weight:700;line-height:1.2;">
+          {% blocktranslate trimmed with language=language.native %}Interface translation: {{ language }}{% endblocktranslate %}
+        </h2>
+        <p>
+          {% blocktranslate trimmed with a="%(name)s" b="{name}" %}
+            Corrections apply right away, without a deploy. Keep placeholders such as {{ a }} and {{ b }},
+            and HTML tags, exactly as they are in the source text. Leave a box empty to go back to the
+            translation from the catalog.
+          {% endblocktranslate %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {% if languages|length > 1 %}
+  <nav class="tr-langs" aria-label="{% translate "Languages" %}">
+    {% for lang in languages %}
+    <a class="tr-lang{% if lang.code == language.code %} active{% endif %}" href="{% url 'review_translations' lang.code %}">
+      <img src="{% static 'vendor/flag-icons/4x3/' %}{{ lang.flag }}.svg" width="20" height="15" alt="">
+      <span>{{ lang.native }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <input type="search" name="q" value="{{ query }}" class="form-control" style="max-width:320px;"
+           placeholder="{% translate "Search source or translation…" %}" aria-label="{% translate "Search" %}">
+    <select name="filter" class="form-select" style="max-width:220px;" aria-label="{% translate "Show" %}">
+      <option value="">{% translate "All texts" %}</option>
+      <option value="needs_review"{% if show == 'needs_review' %} selected{% endif %}>{% translate "Needs review" %}</option>
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>{% translate "Search" %}</button>
+    <span class="text-muted ms-auto" style="font-size:13px;">
+      {% blocktranslate count counter=page_obj.paginator.count trimmed %}{{ counter }} text{% plural %}{{ counter }} texts{% endblocktranslate %}
+    </span>
+  </form>
+
+  {% for row in page_obj %}
+  <div class="tr-entry" id="entry-{{ forloop.counter }}">
+    <div class="tr-meta">
+      {% if row.msgctxt %}{% blocktranslate with ctx=row.msgctxt %}Context: {{ ctx }}{% endblocktranslate %}{% endif %}
+      <span class="tr-badge needs"{% if not row.needs_review %} hidden{% endif %}>{% translate "Needs review" %}</span>
+      <span class="tr-badge corrected"{% if not row.corrected %} hidden{% endif %}>{% translate "Corrected" %}</span>
+    </div>
+    <div class="tr-source">{{ row.msgid }}</div>
+    {% if row.msgid_plural %}<div class="tr-source" style="font-weight:400;">{{ row.msgid_plural }}</div>{% endif %}
+
+    <form class="tr-form" method="post" action="{% url 'save_translation' language.code %}">
+      {% csrf_token %}
+      <input type="hidden" name="msgid" value="{{ row.msgid }}">
+      <input type="hidden" name="msgctxt" value="{{ row.msgctxt }}">
+      {% for form in row.forms %}
+        {% if row.msgid_plural %}
+        <div class="tr-form-label">
+          {% blocktranslate trimmed with number=form.index|add:1 source=form.source %}Plural form {{ number }} (source: {{ source }}){% endblocktranslate %}
+        </div>
+        {% endif %}
+        <div class="tr-current{% if not form.current %} empty{% endif %}" data-current="{{ form.index }}">{% if form.current %}{{ form.current }}{% else %}{% translate "Not translated yet" %}{% endif %}</div>
+        <textarea class="form-control" rows="2" aria-label="{% translate "Translation" %}"
+                  name="{% if row.msgid_plural %}msgstr_{{ form.index }}{% else %}msgstr{% endif %}">{{ form.current }}</textarea>
+      {% endfor %}
+      <div class="d-flex align-items-center gap-2 mt-2">
+        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>{% translate "Save" %}</button>
+        <div class="tr-result" role="status"></div>
+      </div>
+    </form>
+  </div>
+  {% empty %}
+  <p class="text-muted">{% translate "No texts match." %}</p>
+  {% endfor %}
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav aria-label="{% translate "Pages" %}">
+    <ul class="pagination flex-wrap">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&filter={% if show == 'needs_review' %}needs_review{% endif %}&page={{ page_obj.previous_page_number }}">{% translate "Previous" %}</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">
+        {% blocktranslate trimmed with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktranslate %}
+      </span></li>
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&filter={% if show == 'needs_review' %}needs_review{% endif %}&page={{ page_obj.next_page_number }}">{% translate "Next" %}</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</main>
+
+<script>
+(function () {
+  {% translate "Not translated yet" as t_empty %}
+  {% translate "Could not save the translation." as t_failed %}
+  const emptyText = "{{ t_empty|escapejs }}";
+  const failedText = "{{ t_failed|escapejs }}";
+
+  function showResult(box, text, ok) {
+    box.textContent = text;
+    box.className = 'tr-result ' + (ok ? 'ok' : 'error');
+  }
+
+  document.querySelectorAll('.tr-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const box = form.querySelector('.tr-result');
+      const data = new FormData(form);
+      fetch(form.action, {
+        method: 'POST',
+        headers: {'X-CSRFToken': data.get('csrfmiddlewaretoken')},
+        body: data,
+      }).then(function (response) {
+        return response.json();
+      }).then(function (result) {
+        if (!result.success) {
+          const details = (result.messages || []).join(' · ');
+          showResult(box, result.error + (details ? ' ' + details : ''), false);
+          return;
+        }
+        const entry = form.closest('.tr-entry');
+        result.forms.forEach(function (saved) {
+          const current = form.querySelector('[data-current="' + saved.index + '"]');
+          current.textContent = saved.current || emptyText;
+          current.classList.toggle('empty', !saved.current);
+        });
+        const corrected = result.forms.every(function (saved) { return saved.corrected; });
+        entry.querySelector('.tr-badge.corrected').hidden = !result.forms.some(function (saved) { return saved.corrected; });
+        if (corrected) entry.querySelector('.tr-badge.needs').hidden = true;
+        showResult(box, result.message, true);
+      }).catch(function () {
+        showResult(box, failedText, false);
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}
