@@ -27,6 +27,10 @@ locally (`xgettext`, `msgfmt` in `C:/Program Files/gettext-iconv/bin`),
 
 ## Global Constraints
 
+> **Scope change (2026-10-24):** only en, es, el, fr, de, ro and pt are offered.
+> Task 12-scope reduces the language list. Task 12 then translates es, el, fr,
+> de, ro and pt only. Basque stays in the repo, unused.
+
 - **Languages: 13, in this order:**
 
   | Code | Native name | Table name | Flag |

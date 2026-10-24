@@ -118,6 +118,18 @@ the platform already knows, with a language switcher showing flags and codes.
   ask Claude to translate it. The switcher therefore lists exactly the
   languages that have complete translation files, not the database table.
 
+## Scope change (admin, 2026-10-24)
+
+The interface offers only 7 languages for now: English, Spanish, Greek, French,
+German, Romanian and Portuguese.
+
+- **Basque:** already translated. Its catalog and Terms file are kept in the
+  repo, unused, for later.
+- **Not offered:** Catalan, Estonian, Italian, Turkish and Ukrainian. Adding
+  any of them later follows the same process as Basque.
+- **Language names:** still shown in their own language everywhere, for
+  example "Euskara" for a Basque scenario.
+
 ## How it works
 
 ### Languages and codes
