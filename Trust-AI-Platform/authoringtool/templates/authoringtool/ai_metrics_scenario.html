@@ -395,7 +395,7 @@
             <table class="am-table">
               <thead>
                 <tr>
-                  <th>{% translate "Category" %}</th><th>{% translate "Total" %}</th><th>{% translate "Correct" %}</th><th>{% translate "Wrong" %}</th>
+                  <th>{% translate "Category" %}</th><th>{% translate "Total" %}</th><th>{% translate "Correct" context "metrics column" %}</th><th>{% translate "Wrong" %}</th>
                   <th>{% translate "% Correct" %}</th><th>{% translate "% Wrong" %}</th><th>{% translate "Avg Time (s)" %}</th><th>{% translate "Timing Sample" %}</th>
                   <th>{% translate "Next Low" %}</th><th>{% translate "Next Moderate" %}</th><th>{% translate "Next High" %}</th>
                 </tr>
@@ -530,7 +530,7 @@ const T = {
   groupModerate: {% translate 'Moderate' context 'performance group' as s %}"{{ s|escapejs }}",
   groupLow: {% translate 'Low' context 'performance group' as s %}"{{ s|escapejs }}",
   total: {% translate 'Total' as s %}"{{ s|escapejs }}",
-  correct: {% translate 'Correct' as s %}"{{ s|escapejs }}",
+  correct: {% translate 'Correct' context 'metrics column' as s %}"{{ s|escapejs }}",
   wrong: {% translate 'Wrong' as s %}"{{ s|escapejs }}",
   pctCorrect: {% translate '% Correct' as s %}"{{ s|escapejs }}",
   pctWrong: {% translate '% Wrong' as s %}"{{ s|escapejs }}",

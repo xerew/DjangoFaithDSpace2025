@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 09:26+0300\n"
+"POT-Creation-Date: 2026-10-24 16:38+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -245,8 +245,7 @@ msgid "Compose message"
 msgstr ""
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\studentview\templates\studentview\scenarioSelection.html
+msgctxt "email subject"
 msgid "Subject"
 msgstr ""
 
@@ -259,7 +258,6 @@ msgid "Maximum 200 characters."
 msgstr ""
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
-#: .\organization\templates\organization\organization_detail.html
 msgid "Message"
 msgstr ""
 
@@ -1755,6 +1753,7 @@ msgid "Start a conversation with this teacher."
 msgstr ""
 
 #: .\accounts\templates\accounts\profile.html
+#: .\organization\templates\organization\organization_detail.html
 msgctxt "button"
 msgid "Message"
 msgstr ""
@@ -3390,7 +3389,7 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 #: .\authoringtool\templates\authoringtool\index.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "metrics column"
 msgid "Correct"
 msgstr ""
 
@@ -4452,7 +4451,7 @@ msgid "HTTP error! status: {status}"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\index.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "metrics column"
 msgid "Incorrect"
 msgstr ""
 
@@ -5324,6 +5323,12 @@ msgid "Show My Scenarios"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgctxt "school subject"
+msgid "Subject"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Retry"
 msgstr ""
 
@@ -5917,6 +5922,16 @@ msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 msgid "No experiment configured for this activity."
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "answer correctness"
+msgid "Correct"
+msgstr ""
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "answer correctness"
+msgid "Incorrect"
 msgstr ""
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html

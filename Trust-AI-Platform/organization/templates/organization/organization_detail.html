@@ -285,7 +285,7 @@
 
                 <!-- Message (any teacher, not self) -->
                 {% if member != request.user and request.user|has_group:"teachers" %}
-                <a href="{% url 'thread' member.id %}" class="action-btn" title="{% translate "Message" %}" style="flex-shrink:0;">
+                <a href="{% url 'thread' member.id %}" class="action-btn" title="{% translate "Message" context "button" %}" style="flex-shrink:0;">
                   <i class="bi bi-chat-dots"></i>
                 </a>
                 {% endif %}

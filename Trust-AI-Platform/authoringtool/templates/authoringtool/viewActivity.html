@@ -417,9 +417,9 @@
                   </div>
                   <span class="answer-status {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
                     {% if answer.is_correct %}
-                      <i class="bi bi-check-circle-fill me-1"></i>{% translate "Correct" %}
+                      <i class="bi bi-check-circle-fill me-1"></i>{% translate "Correct" context "answer correctness" %}
                     {% else %}
-                      <i class="bi bi-x-circle-fill me-1"></i>{% translate "Incorrect" %}
+                      <i class="bi bi-x-circle-fill me-1"></i>{% translate "Incorrect" context "answer correctness" %}
                     {% endif %}
                   </span>
                 </div>

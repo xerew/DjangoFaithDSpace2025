@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 09:26+0300\n"
+"POT-Creation-Date: 2026-10-24 16:35+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -269,10 +269,9 @@ msgid "Compose message"
 msgstr "Redactar mensaje"
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
-#: .\authoringtool\templates\authoringtool\scenarios.html
-#: .\studentview\templates\studentview\scenarioSelection.html
+msgctxt "email subject"
 msgid "Subject"
-msgstr "Tema"
+msgstr "Asunto"
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
 msgid "What should teachers know?"
@@ -283,7 +282,6 @@ msgid "Maximum 200 characters."
 msgstr "Máximo 200 caracteres."
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
-#: .\organization\templates\organization\organization_detail.html
 msgid "Message"
 msgstr "Mensaje"
 
@@ -1845,6 +1843,7 @@ msgid "Start a conversation with this teacher."
 msgstr "Inicie una conversación con este docente."
 
 #: .\accounts\templates\accounts\profile.html
+#: .\organization\templates\organization\organization_detail.html
 msgctxt "button"
 msgid "Message"
 msgstr "Enviar mensaje"
@@ -3724,13 +3723,13 @@ msgstr "Total"
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 #: .\authoringtool\templates\authoringtool\index.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "metrics column"
 msgid "Correct"
-msgstr "Correcta"
+msgstr "Correctas"
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "Wrong"
-msgstr "Incorrecta"
+msgstr "Incorrectas"
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 #, python-format
@@ -4850,9 +4849,9 @@ msgid "HTTP error! status: {status}"
 msgstr "Error HTTP. Estado: {status}"
 
 #: .\authoringtool\templates\authoringtool\index.html
-#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "metrics column"
 msgid "Incorrect"
-msgstr "Incorrecta"
+msgstr "Incorrectas"
 
 #: .\authoringtool\templates\authoringtool\index.html
 msgid "Average Score"
@@ -5786,6 +5785,12 @@ msgid "Show My Scenarios"
 msgstr "Mostrar mis escenarios"
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
+#: .\studentview\templates\studentview\scenarioSelection.html
+msgctxt "school subject"
+msgid "Subject"
+msgstr "Asignatura"
+
+#: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Retry"
 msgstr "Reintentar"
 
@@ -6421,6 +6426,16 @@ msgstr "No hay ningún código QR disponible para este experimento."
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 msgid "No experiment configured for this activity."
 msgstr "No hay ningún experimento configurado para esta actividad."
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "answer correctness"
+msgid "Correct"
+msgstr "Correcta"
+
+#: .\authoringtool\templates\authoringtool\viewActivity.html
+msgctxt "answer correctness"
+msgid "Incorrect"
+msgstr "Incorrecta"
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 #, python-format

@@ -33,7 +33,7 @@
               <i class="bi bi-envelope-paper-fill me-2"></i>{% translate "Compose message" %}
             </h5>
             <div class="mb-3">
-              <label for="bulkEmailSubject" class="form-label fw-semibold" style="font-size:13px;">{% translate "Subject" %}</label>
+              <label for="bulkEmailSubject" class="form-label fw-semibold" style="font-size:13px;">{% translate "Subject" context "email subject" %}</label>
               <input id="bulkEmailSubject" name="subject" class="form-control" maxlength="200" required
                      placeholder="{% translate "What should teachers know?" %}">
               <div class="form-text">{% translate "Maximum 200 characters." %}</div>
@@ -176,7 +176,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0 email-history">
         <thead style="background:#f8faff;">
-          <tr><th class="px-4">{% translate "Subject" %}</th><th>{% translate "Audience" %}</th><th>{% translate "Delivery" %}</th><th>{% translate "Status" %}</th><th>{% translate "Created" %}</th><th></th></tr>
+          <tr><th class="px-4">{% translate "Subject" context "email subject" %}</th><th>{% translate "Audience" %}</th><th>{% translate "Delivery" %}</th><th>{% translate "Status" %}</th><th>{% translate "Created" %}</th><th></th></tr>
         </thead>
         <tbody>
           {% for campaign in recent_email_campaigns %}
