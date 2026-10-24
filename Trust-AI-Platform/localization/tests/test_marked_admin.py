@@ -5,12 +5,16 @@ normal state. Keys ending in ``_msgids`` hold strings that only show in some
 states, sit inside loops, or have placeholders: they are msgids, not text
 every reader sees, so a later render-in-Greek check skips them.
 """
+import copy
+import tempfile
+from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth.models import User
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template, select_template
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.conf import settings
 from django.urls import reverse
 
 from localization.catalog import marked_msgids
@@ -358,3 +362,41 @@ class TermsLanguageTest(TestCase):
             self.client.cookies['django_language'] = 'de'
             self.client.get(reverse('tos'))
         self.assertEqual(patched.call_args[0][0][0], 'accounts/tos/de.html')
+
+
+BINDING_NOTE = 'This is a translation. The English version of these Terms is the binding one.'
+
+
+class TermsBindingNoteTest(TestCase):
+    def _get(self, language, signed_in):
+        if signed_in:
+            self.client.force_login(User.objects.create_user('noteuser', 'n@example.com', 'pw'))
+        self.client.cookies['django_language'] = language
+        return self.client.get(reverse('tos'), HTTP_ACCEPT_LANGUAGE=language)
+
+    def test_english_has_no_note(self):
+        for signed_in in (True, False):
+            with self.subTest(signed_in=signed_in):
+                self.assertNotContains(self._get('en', signed_in), '<p class="tos-binding-note">')
+
+    def test_german_without_body_has_no_note(self):
+        for signed_in in (True, False):
+            with self.subTest(signed_in=signed_in):
+                self.assertNotContains(self._get('de', signed_in), '<p class="tos-binding-note">')
+
+    def test_translated_body_shows_note(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            body = Path(tmp) / 'accounts' / 'tos'
+            body.mkdir(parents=True)
+            (body / 'de.html').write_text('<p>Nutzungsbedingungen DE</p>', encoding='utf-8')
+            templates = copy.deepcopy(settings.TEMPLATES)
+            templates[0]['DIRS'] = [tmp] + list(templates[0].get('DIRS', []))
+            with override_settings(TEMPLATES=templates):
+                for signed_in in (True, False):
+                    with self.subTest(signed_in=signed_in):
+                        response = self._get('de', signed_in)
+                        self.assertContains(response, 'Nutzungsbedingungen DE')
+                        self.assertContains(response, '<p class="tos-binding-note">')
+
+    def test_note_msgid_is_in_catalog(self):
+        self.assertIn(BINDING_NOTE, marked_msgids())

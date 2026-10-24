@@ -167,7 +167,10 @@ def tos_view(request):
         'accounts/tos/en.html',
     ])
     page = 'accounts/tos.html' if request.user.is_authenticated else 'accounts/tos_public.html'
-    return render(request, page, {'tos_body_template': body.template.name})
+    return render(request, page, {
+        'tos_body_template': body.template.name,
+        'tos_is_translation': body.template.name != 'accounts/tos/en.html',
+    })
 
 
 def _picture_error(picture):

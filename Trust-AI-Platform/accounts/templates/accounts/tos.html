@@ -67,6 +67,7 @@
 
   /* Content */
   .tos-body { flex: 1; min-width: 0; }
+  .tos-binding-note { font-size: 13px; font-style: italic; color: #6b7280; margin: 0 0 20px; }
   .tos-card {
     background: #fff;
     border: 1px solid #e8edf5;
@@ -194,6 +195,8 @@
       <!-- Main Content -->
       <div class="tos-body">
         <div class="tos-card">
+
+          {% if tos_is_translation %}<p class="tos-binding-note">{% translate "This is a translation. The English version of these Terms is the binding one." %}</p>{% endif %}
 
           {% include tos_body_template %}
 

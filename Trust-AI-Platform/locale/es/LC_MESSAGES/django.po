@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 09:21+0300\n"
+"POT-Creation-Date: 2026-10-24 09:26+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1944,6 +1944,12 @@ msgstr ""
 
 #: .\accounts\templates\accounts\tos.html
 msgid "EU Funding"
+msgstr ""
+
+#: .\accounts\templates\accounts\tos.html
+#: .\accounts\templates\accounts\tos_public.html
+msgid ""
+"This is a translation. The English version of these Terms is the binding one."
 msgstr ""
 
 #: .\accounts\templates\accounts\tos_public.html

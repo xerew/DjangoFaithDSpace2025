@@ -39,7 +39,8 @@
     .tos-hero p  { margin: 0; font-size: 13px; color: rgba(255,255,255,0.8); }
 
     /* Card */
-    .tos-card {
+    .tos-binding-note { font-size: 13px; font-style: italic; color: #6b7280; margin: 0 0 20px; }
+  .tos-card {
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 2px 16px rgba(1,41,112,0.08);
@@ -115,6 +116,8 @@
 
   <!-- Content card -->
   <div class="tos-card">
+
+    {% if tos_is_translation %}<p class="tos-binding-note">{% translate "This is a translation. The English version of these Terms is the binding one." %}</p>{% endif %}
 
     {% include tos_body_template %}
 
