@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 08:00+0300\n"
+"POT-Creation-Date: 2026-10-24 08:20+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -212,6 +212,12 @@ msgstr ""
 #: .\accounts\models.py
 #, python-format
 msgid "Organizations: %(names)s"
+msgstr ""
+
+#: .\accounts\outbox.py .\templates\email\admin_bulk_email.html
+#: .\templates\registration\password_reset_email.html
+#, python-format
+msgid "Hello %(name)s,"
 msgstr ""
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
@@ -8150,6 +8156,19 @@ msgstr ""
 msgid "Back to platform"
 msgstr ""
 
+#: .\templates\email\admin_bulk_email.html
+msgid "Platform Announcement"
+msgstr ""
+
+#: .\templates\email\admin_bulk_email.html
+#: .\templates\registration\password_reset_email.html
+msgid "ICCS Team — Information Management Unit"
+msgstr ""
+
+#: .\templates\email\admin_bulk_email.html
+msgid "This message was sent by a Trust AI Lab administrator."
+msgstr ""
+
 #: .\templates\footer.html
 msgid ""
 "Τhis application was developed as part of the FAITH and DSPACE projects, "
@@ -8252,11 +8271,6 @@ msgid "Password Reset Request"
 msgstr ""
 
 #: .\templates\registration\password_reset_email.html
-#, python-format
-msgid "Hello %(name)s,"
-msgstr ""
-
-#: .\templates\registration\password_reset_email.html
 msgid ""
 "We received a request to reset the password for your <strong>Trust AI Lab</"
 "strong> account. Click the button below to choose a new password."
@@ -8274,10 +8288,6 @@ msgstr ""
 msgid ""
 "If you didn't request a password reset, you can safely ignore this email — "
 "your password will remain unchanged."
-msgstr ""
-
-#: .\templates\registration\password_reset_email.html
-msgid "ICCS Team — Information Management Unit"
 msgstr ""
 
 #: .\templates\registration\password_reset_email.html

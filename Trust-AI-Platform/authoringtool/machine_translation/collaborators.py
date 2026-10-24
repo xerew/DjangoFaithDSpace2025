@@ -12,9 +12,11 @@ from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.encoding import force_str
 from django.utils.translation import gettext as _, gettext_lazy
 
+from localization.languages import recipient_language
 from authoringtool.models import ScenarioCollaborator, ScenarioTranslationJob
 
 logger = logging.getLogger(__name__)
@@ -36,17 +38,18 @@ def is_collaborator(user, scenario):
 
 def _send_review_email(scenario, job, reviewer, added_by):
     link = settings.SITE_URL + reverse('viewScenario', args=[scenario.id])
-    body = _(
-        '%(sender)s asked you to review the %(language)s translation '
-        '"%(name)s" on Trust AI Lab. Open it here: %(link)s'
-    ) % {
-        'sender': added_by.get_full_name() or added_by.username,
-        'language': job.target_language,
-        'name': scenario.name,
-        'link': link,
-    }
     try:
-        send_mail(str(REVIEW_SUBJECT), body, None, [reviewer.email])
+        with translation.override(recipient_language(reviewer)):
+            body = _(
+                '%(sender)s asked you to review the %(language)s translation '
+                '"%(name)s" on Trust AI Lab. Open it here: %(link)s'
+            ) % {
+                'sender': added_by.get_full_name() or added_by.username,
+                'language': job.target_language,
+                'name': scenario.name,
+                'link': link,
+            }
+            send_mail(force_str(REVIEW_SUBJECT), body, None, [reviewer.email])
     except Exception:  # the assignment stands even if the email fails
         logger.exception('Could not email translation reviewer %s', reviewer.pk)
 

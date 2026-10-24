@@ -17,8 +17,11 @@ from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db.models import F, Q
 from django.template.loader import render_to_string
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import gettext as _
 from django.utils.html import strip_tags
+
+from localization.languages import recipient_language
 
 from .models import BulkEmailCampaign, BulkEmailDelivery, EmailOutboxState
 from .outbox_rules import INTERRUPTED_REASON, is_rate_limit
@@ -42,8 +45,9 @@ _INTERRUPTED = 'interrupted'
 def plain_text_message(campaign, user):
     greeting_name = user.first_name or user.get_username()
     content = unescape(strip_tags(campaign.body_html)).strip()
+    greeting = _('Hello %(name)s,') % {'name': greeting_name}
     return (
-        f'Hello {greeting_name},\n\n'
+        f'{greeting}\n\n'
         f'{campaign.subject}\n\n'
         f'{content}\n\n'
         f'Trust AI Lab\n{campaign.site_url}'
@@ -52,18 +56,23 @@ def plain_text_message(campaign, user):
 
 def build_message(delivery, connection):
     campaign = delivery.campaign
+    # Only the frame follows the recipient's language; subject and body are
+    # the administrator's own text.
+    with translation.override(recipient_language(delivery.user)):
+        body = plain_text_message(campaign, delivery.user)
+        html = render_to_string('email/admin_bulk_email.html', {
+            'campaign': campaign,
+            'recipient': delivery.user,
+            'site_url': campaign.site_url,
+        })
     message = EmailMultiAlternatives(
         subject=campaign.subject,
-        body=plain_text_message(campaign, delivery.user),
+        body=body,
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
         to=[delivery.email],
         connection=connection,
     )
-    message.attach_alternative(render_to_string('email/admin_bulk_email.html', {
-        'campaign': campaign,
-        'recipient': delivery.user,
-        'site_url': campaign.site_url,
-    }), 'text/html')
+    message.attach_alternative(html, 'text/html')
     return message
 
 
@@ -149,7 +158,8 @@ def _send_one(delivery, connection, now):
         return _FAILED, None
 
     try:
-        build_message(delivery, connection).send()
+        with translation.override(recipient_language(user)):
+            build_message(delivery, connection).send()
     except Exception as exc:  # classified below; other recipients continue
         outcome = _classify(exc)
         if outcome == _PAUSE:

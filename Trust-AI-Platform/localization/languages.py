@@ -1,5 +1,7 @@
 """The interface languages of the platform, in display order."""
 
+from django.core.exceptions import ObjectDoesNotExist
+
 LANGUAGE_META = [
     {'code': 'en', 'native': 'English', 'table_name': 'English', 'flag': 'gb'},
     {'code': 'eu', 'native': 'Euskara', 'table_name': 'Basque', 'flag': 'es-pv'},
@@ -19,6 +21,15 @@ LANGUAGE_META = [
 
 def supported_codes():
     return {m['code'] for m in LANGUAGE_META}
+
+
+def recipient_language(user):
+    """The language to write to a user in: their profile language, else 'en'."""
+    try:
+        code = user.profile.language
+    except (AttributeError, ObjectDoesNotExist):
+        return 'en'
+    return code if code in supported_codes() else 'en'
 
 
 def code_for_table_name(name):

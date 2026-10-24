@@ -13,6 +13,7 @@ from django.utils.translation import gettext as _
 from django.utils import translation
 from django.template.loader import select_template
 from django.contrib.auth.views import PasswordResetView
+from .forms import LocalizedPasswordResetForm
 from django.conf import settings
 from faithDev.settings import TEACHER_ACCESS_CODE_HASHED
 from django.contrib.auth.models import Group
@@ -22,6 +23,7 @@ from functools import wraps
 
 # Create your views here.
 class CustomPasswordResetView(PasswordResetView):
+    form_class = LocalizedPasswordResetForm
     email_template_name = 'registration/password_reset_email.html'  # Plain text fallback
     html_email_template_name = 'registration/password_reset_email.html'  # HTML version of the email
 
