@@ -7200,8 +7200,9 @@ msgid ""
 "activity that used to come first."
 msgstr ""
 "«%(name)s» jarduerak ez darama oraindik beste jarduera batera; beraz, "
-"ikasleak haren ondoren geldituko lirateke. Ezarri haren hurrengo jarduera "
-"(edo haren erantzunen hurrengo jarduerak) lehen jarduera zenean."
+"ikasleak haren ondoren geldituko lirateke. Ezarri lehenago lehenengoa zen "
+"jarduera haren hurrengo jarduera gisa (edo haren erantzunen hurrengo "
+"jarduera gisa)."
 
 #: .\authoringtool\views.py
 #, python-format
