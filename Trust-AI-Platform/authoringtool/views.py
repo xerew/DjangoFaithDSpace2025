@@ -56,6 +56,7 @@ from .evidence import (
 )
 
 from .help_time import help_time_chart
+from .risk_flag_text import display_flag
 from .machine_translation.collaborators import (
     assign_reviewer,
     can_remove_collaborators,
@@ -3528,6 +3529,8 @@ def ai_metrics(request, scenario_id):
             if act not in seen:
                 seen[act] = {'activity': act, 'rows': []}
                 flags_grouped.append(seen[act])
+            row['FlagDisplay'], row['ReasonDisplay'] = display_flag(
+                row.get('Flag', ''), row.get('Reason', ''))
             seen[act]['rows'].append(row)
 
     current_version = scenario.ensure_current_version(
@@ -3708,6 +3711,8 @@ def risk_flags_status(request, task_id):
         with open(flags_csv_path, newline='', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                row['FlagDisplay'], row['ReasonDisplay'] = display_flag(
+                    row.get('Flag', ''), row.get('Reason', ''))
                 data.append(row)
 
         return JsonResponse({'status': 'done', 'data': data})

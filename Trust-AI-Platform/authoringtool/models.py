@@ -2600,6 +2600,10 @@ class ActivityFlag(models.Model):
     category = models.CharField(max_length=16, choices=FLAG_CATEGORIES)
     flag_type = models.CharField(max_length=128)        # e.g. "Dynamic correctness threshold"
     flag_reason = models.TextField()                    # e.g. "Moderate group 60% wrong > threshold"
+    # The English sentence above is what the AI prompt and QValue logic use;
+    # the code plus numbers let the pages show it in the reader's language.
+    reason_code = models.CharField(max_length=40, blank=True)
+    reason_params = models.JSONField(default=dict, blank=True)
     is_at_risk = models.BooleanField(default=True)
     value_at_risk = models.FloatField(null=True, blank=True)    # e.g. the actual %Wrong, AvgTime, etc
     threshold_used = models.FloatField(null=True, blank=True)   # e.g. mean+std threshold

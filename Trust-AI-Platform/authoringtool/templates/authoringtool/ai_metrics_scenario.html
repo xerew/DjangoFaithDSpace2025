@@ -462,8 +462,8 @@
                 {% for row in group.rows %}
                 <tr>
                   <td><span class="risk-cat">{{ row.Category|ui_label }}</span></td>
-                  <td style="font-weight:600;">{{ row.Flag }}</td>
-                  <td style="color:#6b7280;">{{ row.Reason }}</td>
+                  <td style="font-weight:600;">{{ row.FlagDisplay|default:row.Flag }}</td>
+                  <td style="color:#6b7280;">{{ row.ReasonDisplay|default:row.Reason }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -725,8 +725,8 @@ function renderRiskFlagsTable(dataRows) {
     for (const row of rows) {
       html += `<tr>
         <td><span class="risk-cat">${catLabel(row.Category)}</span></td>
-        <td style="font-weight:600;">${row.Flag}</td>
-        <td style="color:#6b7280;">${row.Reason}</td>
+        <td style="font-weight:600;">${row.FlagDisplay || row.Flag}</td>
+        <td style="color:#6b7280;">${row.ReasonDisplay || row.Reason}</td>
       </tr>`;
     }
     html += `</tbody></table></div>`;

@@ -33,6 +33,7 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
+from .risk_flag_text import parse_reason, reason_text
 from .translation_matching import (
     pooled_implementation_count,
     translation_activity_maps,
@@ -2459,6 +2460,20 @@ def compute_category_metrics_per_phase_activity(
         "evidence_language": evidence_language,
     }
 
+def _risk_flag(activity, category, flag_type, code, params):
+    """One risk flag. "Reason" is the English sentence (stored, used by the
+    AI prompt, written to the CSV); "Code" and "Params" let pages show it
+    in the reader's language."""
+    return {
+        "Activity": activity,
+        "Category": category,
+        "Flag": flag_type,
+        "Reason": reason_text(code, params, language='en'),
+        "Code": code,
+        "Params": params,
+    }
+
+
 @shared_task
 def calculate_activities_in_risk(
     scenario_id,
@@ -2557,27 +2572,27 @@ def calculate_activities_in_risk(
         lower = mean_time - std_time
         for cat, t in times.items():
             if t > upper:
-                results.append({
-                    "Activity": activity,
-                    "Category": cat,
-                    "Flag": f"Engagement risk (too slow, {activity_type})",
-                    "Reason": (
-                        f"Engagement risk: {cat} group's Avg Time ({t:.1f}s) is above mean+std "
-                        f"({mean_time:.1f}s ± {std_time:.1f}s, CV={cv:.2f}). "
-                        f"Significantly slower than the other groups — possible confusion or disengagement."
-                    )
-                })
+                results.append(_risk_flag(
+                    activity, cat,
+                    f"Engagement risk (too slow, {activity_type})",
+                    "engagement_slow",
+                    {
+                        "group": cat, "t": f"{t:.1f}",
+                        "mean": f"{mean_time:.1f}", "std": f"{std_time:.1f}",
+                        "cv": f"{cv:.2f}",
+                    },
+                ))
             elif t < lower:
-                results.append({
-                    "Activity": activity,
-                    "Category": cat,
-                    "Flag": f"Engagement risk (too fast, {activity_type})",
-                    "Reason": (
-                        f"Engagement risk: {cat} group's Avg Time ({t:.1f}s) is below mean-std "
-                        f"({mean_time:.1f}s ± {std_time:.1f}s, CV={cv:.2f}). "
-                        f"Suspiciously fast relative to other groups — may indicate guessing or skipping."
-                    )
-                })
+                results.append(_risk_flag(
+                    activity, cat,
+                    f"Engagement risk (too fast, {activity_type})",
+                    "engagement_fast",
+                    {
+                        "group": cat, "t": f"{t:.1f}",
+                        "mean": f"{mean_time:.1f}", "std": f"{std_time:.1f}",
+                        "cv": f"{cv:.2f}",
+                    },
+                ))
         return results
 
     # ====== 3. Part 1: Question Activities Risk Analysis ======
@@ -2610,41 +2625,36 @@ def calculate_activities_in_risk(
 
         # Case A: Moderate is the worst of all three (unexpected V-shape)
         if (M['% Wrong'] > H['% Wrong'] + MARGIN and M['% Wrong'] > L['% Wrong'] + MARGIN):
-            flags.append({
-                "Activity": activity,
-                "Category": "Moderate",
-                "Flag": "Extreme correctness pattern",
-                "Reason": (
-                    f"Unexpected V-shape: Moderate group ({wrongs['Moderate']}% wrong) performs worse than "
-                    f"both High ({wrongs['High']}%) and Low ({wrongs['Low']}%) groups. "
-                    f"Activity may be poorly calibrated for mid-range learners."
-                )
-            })
+            flags.append(_risk_flag(
+                activity, "Moderate", "Extreme correctness pattern",
+                "v_shape",
+                {
+                    "moderate": f"{wrongs['Moderate']}",
+                    "high": f"{wrongs['High']}",
+                    "low": f"{wrongs['Low']}",
+                },
+            ))
         else:
             # Case B: Low outperforms Moderate (Low has fewer errors than Moderate)
             if L['% Wrong'] < M['% Wrong'] - MARGIN and M['% Wrong'] > 40:
-                flags.append({
-                    "Activity": activity,
-                    "Category": "Moderate",
-                    "Flag": "Extreme correctness pattern",
-                    "Reason": (
-                        f"Low group ({wrongs['Low']}% wrong) outperforms Moderate ({wrongs['Moderate']}% wrong) "
-                        f"— unexpected reversal in performance order. "
-                        f"Activity content or answer choices may not align with the expected difficulty level."
-                    )
-                })
+                flags.append(_risk_flag(
+                    activity, "Moderate", "Extreme correctness pattern",
+                    "low_beats_moderate",
+                    {
+                        "low": f"{wrongs['Low']}",
+                        "moderate": f"{wrongs['Moderate']}",
+                    },
+                ))
             # Case C: High underperforms Moderate
             if H['% Wrong'] > M['% Wrong'] + MARGIN and H['% Wrong'] > 40:
-                flags.append({
-                    "Activity": activity,
-                    "Category": "High",
-                    "Flag": "Extreme correctness pattern",
-                    "Reason": (
-                        f"High group ({wrongs['High']}% wrong) performs worse than Moderate ({wrongs['Moderate']}% wrong). "
-                        f"High-category students should outperform Moderate — this reversal may indicate "
-                        f"activity miscalibration or a mismatch between the activity and the scoring rubric."
-                    )
-                })
+                flags.append(_risk_flag(
+                    activity, "High", "Extreme correctness pattern",
+                    "high_worse_than_moderate",
+                    {
+                        "high": f"{wrongs['High']}",
+                        "moderate": f"{wrongs['Moderate']}",
+                    },
+                ))
 
         # --- 2. Timing Discrepancy Under Extreme Correctness ---
         # Flags categories that scored at a performance extreme (0% or 100% wrong)
@@ -2666,31 +2676,18 @@ def calculate_activities_in_risk(
             if not (ratio_holds and gap_holds):
                 continue
 
-            if wrong == 100.0:
-                flag_type = "Timing discrepancy under extreme correctness"
-                interpretation = (
-                    f"{cat} group answered everything incorrectly (100% wrong) yet spent "
-                    f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
-                    f"({times[others[0]]}s, {times[others[1]]}s). "
-                    f"Prolonged time with total failure indicates active confusion or cognitive overload, "
-                    f"not disengagement."
-                )
-            else:  # wrong == 0.0
-                flag_type = "Timing discrepancy under extreme correctness"
-                interpretation = (
-                    f"{cat} group answered everything correctly (0% wrong) yet spent "
-                    f"{times[cat]}s — ≥{TAU_RATIO}x and ≥{TAU_ABS_GAP}s more than the other groups "
-                    f"({times[others[0]]}s, {times[others[1]]}s). "
-                    f"Perfect outcome with excessive time may indicate effortful retrieval at the boundary "
-                    f"of the group's ability range, rather than confident mastery."
-                )
-
-            flags.append({
-                "Activity": activity,
-                "Category": cat,
-                "Flag": flag_type,
-                "Reason": interpretation,
-            })
+            flags.append(_risk_flag(
+                activity, cat, "Timing discrepancy under extreme correctness",
+                "timing_all_wrong" if wrong == 100.0 else "timing_all_right",
+                {
+                    "group": cat,
+                    "time": f"{times[cat]}",
+                    "ratio": f"{TAU_RATIO}",
+                    "gap": f"{TAU_ABS_GAP}",
+                    "other1": f"{times[others[0]]}",
+                    "other2": f"{times[others[1]]}",
+                },
+            ))
 
         # --- 3. Dynamic Cutoff for Correctness (with systemic failure detection) ---
         wrong_arr  = np.array([H['% Wrong'], M['% Wrong'], L['% Wrong']])
@@ -2713,19 +2710,15 @@ def calculate_activities_in_risk(
         # an activity where all groups are above the baseline is universally too hard,
         # regardless of whether one group is slightly worse than the others.
         if H['% Wrong'] > TAU_BASE and M['% Wrong'] > TAU_BASE and L['% Wrong'] > TAU_BASE:
-            flags.append({
-                "Activity": activity,
-                "Category": "All",
-                "Flag": "Systemic failure",
-                "Reason": (
-                    f"All performance categories individually exceed the PISA Low-performance boundary "
-                    f"({TAU_BASE}% wrong): "
-                    f"High {wrongs['High']}%, Moderate {wrongs['Moderate']}%, Low {wrongs['Low']}% wrong. "
-                    f"All groups score below the Low-performance threshold on this activity, indicating a "
-                    f"content-level failure independent of learner category — "
-                    f"review the question wording, answer options, or prerequisite content."
-                )
-            })
+            flags.append(_risk_flag(
+                activity, "All", "Systemic failure", "systemic_failure",
+                {
+                    "base": f"{TAU_BASE}",
+                    "high": f"{wrongs['High']}",
+                    "moderate": f"{wrongs['Moderate']}",
+                    "low": f"{wrongs['Low']}",
+                },
+            ))
         else:
             # Per-category outlier: one group is notably worse than the others.
             # Guard 1 — minimum spread: if the max-min range is too small, the
@@ -2745,16 +2738,16 @@ def calculate_activities_in_risk(
                     if wrong < TAU_ABS_FLAG:
                         continue
                     if wrong > threshold:
-                        flags.append({
-                            "Activity": activity,
-                            "Category": cat,
-                            "Flag": "Dynamic correctness threshold",
-                            "Reason": (
-                                f"Dynamic correctness: {cat} group's %Wrong ({wrong}%) exceeds "
-                                f"mean+std threshold ({threshold:.2f}%) with a category spread of {spread:.1f}pp. "
-                                f"This group is struggling significantly more than the others on this activity."
-                            )
-                        })
+                        flags.append(_risk_flag(
+                            activity, cat, "Dynamic correctness threshold",
+                            "dynamic_correctness",
+                            {
+                                "group": cat,
+                                "wrong": f"{wrong}",
+                                "threshold": f"{threshold:.2f}",
+                                "spread": f"{spread:.1f}",
+                            },
+                        ))
 
     # ====== 4. Part 2: Non-Question Activities Engagement Analysis ======
     nonq_df = df[df['Type'].str.lower() != 'question']
@@ -2763,7 +2756,10 @@ def calculate_activities_in_risk(
         flags.extend(flag_timing_outliers(act_df, activity, activity_type="non-question"))
 
     # ====== 5. Output the results as a DataFrame ======
-    flags_df = pd.DataFrame(flags)
+    flags_df = pd.DataFrame(
+        [{k: v for k, v in flag.items() if k not in ("Code", "Params")}
+         for flag in flags]
+    )
     (
         ActivityFlag.objects
         .filter(
@@ -2793,6 +2789,8 @@ def calculate_activities_in_risk(
             category=flag["Category"],
             flag_type=flag["Flag"],
             flag_reason=flag["Reason"],
+            reason_code=flag["Code"],
+            reason_params=flag["Params"],
             is_at_risk=True,
             auto_flagged=True,
             evidence_scope=evidence_scope,
@@ -2819,19 +2817,36 @@ def get_data_insight(flag):
     category = flag.category
     activity = flag.activity.name
 
-    # Try to parse numeric values
+    # The numbers come from the stored params (older rows: parsed from the
+    # English sentence). The insight text stays English: it feeds AI prompts.
+    code = getattr(flag, 'reason_code', '') or ''
+    params = getattr(flag, 'reason_params', None) or {}
+    if not (code and params):
+        parsed = parse_reason(flag_type, reason)
+        code, params = parsed if parsed else ('', {})
+
     percent_wrong = None
-    if "group's %Wrong (" in reason:
+    if code == 'dynamic_correctness':
+        try:
+            percent_wrong = float(params['wrong'])
+        except (KeyError, TypeError, ValueError):
+            pass
+    elif "group's %Wrong (" in reason:
         try:
             percent_wrong = float(reason.split("group's %Wrong (")[1].split('%')[0])
-        except:
+        except Exception:
             pass
 
     avg_time = None
-    if "Avg Time (" in reason:
+    if code in ('engagement_slow', 'engagement_fast'):
+        try:
+            avg_time = float(params['t'])
+        except (KeyError, TypeError, ValueError):
+            pass
+    elif "Avg Time (" in reason:
         try:
             avg_time = float(reason.split("Avg Time (")[1].split('s)')[0])
-        except:
+        except Exception:
             pass
 
     insights = []

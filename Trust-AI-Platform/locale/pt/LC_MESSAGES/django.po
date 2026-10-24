@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 01:08+0300\n"
+"POT-Creation-Date: 2026-10-24 08:00+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2485,6 +2485,121 @@ msgstr ""
 
 #: .\authoringtool\models.py
 msgid "Other"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"Engagement risk: %(group)s group's Avg Time (%(t)ss) is above mean+std "
+"(%(mean)ss ± %(std)ss, CV=%(cv)s). Significantly slower than the other "
+"groups — possible confusion or disengagement."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"Engagement risk: %(group)s group's Avg Time (%(t)ss) is below mean-std "
+"(%(mean)ss ± %(std)ss, CV=%(cv)s). Suspiciously fast relative to other "
+"groups — may indicate guessing or skipping."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"Unexpected V-shape: Moderate group (%(moderate)s%% wrong) performs worse "
+"than both High (%(high)s%%) and Low (%(low)s%%) groups. Activity may be "
+"poorly calibrated for mid-range learners."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"Low group (%(low)s%% wrong) outperforms Moderate (%(moderate)s%% wrong) — "
+"unexpected reversal in performance order. Activity content or answer choices "
+"may not align with the expected difficulty level."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"High group (%(high)s%% wrong) performs worse than Moderate (%(moderate)s%% "
+"wrong). High-category students should outperform Moderate — this reversal "
+"may indicate activity miscalibration or a mismatch between the activity and "
+"the scoring rubric."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"%(group)s group answered everything incorrectly (100%% wrong) yet spent "
+"%(time)ss — ≥%(ratio)sx and ≥%(gap)ss more than the other groups "
+"(%(other1)ss, %(other2)ss). Prolonged time with total failure indicates "
+"active confusion or cognitive overload, not disengagement."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"%(group)s group answered everything correctly (0%% wrong) yet spent "
+"%(time)ss — ≥%(ratio)sx and ≥%(gap)ss more than the other groups "
+"(%(other1)ss, %(other2)ss). Perfect outcome with excessive time may indicate "
+"effortful retrieval at the boundary of the group's ability range, rather "
+"than confident mastery."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"All performance categories individually exceed the PISA Low-performance "
+"boundary (%(base)s%% wrong): High %(high)s%%, Moderate %(moderate)s%%, Low "
+"%(low)s%% wrong. All groups score below the Low-performance threshold on "
+"this activity, indicating a content-level failure independent of learner "
+"category — review the question wording, answer options, or prerequisite "
+"content."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid ""
+"Dynamic correctness: %(group)s group's %%Wrong (%(wrong)s%%) exceeds mean"
+"+std threshold (%(threshold)s%%) with a category spread of %(spread)spp. "
+"This group is struggling significantly more than the others on this activity."
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgid "Dynamic correctness threshold"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgid "Extreme correctness pattern"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid "Engagement risk (too slow, %(activity_type)s)"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+#, python-format
+msgid "Engagement risk (too fast, %(activity_type)s)"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgid "Timing discrepancy under extreme correctness"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgid "Systemic failure"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgctxt "activity kind"
+msgid "question"
+msgstr ""
+
+#: .\authoringtool\risk_flag_text.py
+msgctxt "activity kind"
+msgid "non-question"
 msgstr ""
 
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
