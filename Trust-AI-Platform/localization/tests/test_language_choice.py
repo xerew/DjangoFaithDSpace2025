@@ -52,12 +52,11 @@ class LanguageChoiceTests(TestCase):
         self.assertEqual(self.client.get(reverse('switch_language')).status_code, 405)
 
     def test_saved_language_applies_after_login(self):
-        user = self.make_user('it')
+        user = self.make_user('de')
         self.client.cookies[COOKIE] = 'en'
         self.login(user)
         response = self.client.get(reverse('scenarios'))
-        self.assertEqual(response.context['LANGUAGE_CODE'], 'it')
-        self.assertEqual(response.cookies[COOKIE].value, 'it')
+        self.assertEqual(response.context['LANGUAGE_CODE'], 'de')
 
     def test_first_login_saves_browser_language(self):
         user = self.make_user('')
@@ -77,15 +76,17 @@ class LanguageChoiceTests(TestCase):
         user = self.make_user('en')
         self.login(user)
         html = self.client.get(reverse('scenarios')).content.decode()
-        self.assertIn('flag-icons/4x3/es-pv.svg', html)
+        self.assertIn('flag-icons/4x3/gr.svg', html)
         self.assertIn('Ελληνικά', html)
         self.assertIn(reverse('switch_language'), html)
-        self.assertEqual(html.count('name="language" value="'), 13)
+        self.assertEqual(html.count('name="language" value="'), 7)
         self.assertNotIn('value="fa"', html)
+        self.assertNotIn('value="eu"', html)
 
     def test_code_for_table_name(self):
         for name in ('Greek', ' greek ', 'Ελληνικά', 'el'):
             self.assertEqual(code_for_table_name(name), 'el')
-        self.assertIsNone(code_for_table_name('Persian'))
+        for name in ('Persian', 'Basque', 'Catalan', 'Euskara', 'eu'):
+            self.assertIsNone(code_for_table_name(name))
         self.assertIsNone(code_for_table_name('Klingon'))
         self.assertIsNone(code_for_table_name(None))

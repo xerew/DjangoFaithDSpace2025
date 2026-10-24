@@ -16,6 +16,7 @@ from functools import wraps
 from authoringtool.models import Language, Scenario, Simulation, ExperimentLL, VRARExperiment
 from organization.models import Organization
 from localization.languages import LANGUAGE_META
+from localization.reference_labels import EXTRA_LANGUAGE_NAMES
 from localization.models import TranslationReviewer
 from localization.reviewers import REVIEW_LANGUAGES, can_be_reviewer
 
@@ -472,7 +473,7 @@ def admin_delete_role(request, role_id):
 LANGUAGE_NAME_MAX_LENGTH = 50  # Organization.language is the shortest column
 
 
-_BUILT_IN_LANGUAGES = {meta['table_name'].casefold() for meta in LANGUAGE_META} | {'persian'}
+_BUILT_IN_LANGUAGES = {meta['table_name'].casefold() for meta in LANGUAGE_META} | set(EXTRA_LANGUAGE_NAMES)
 
 
 def _built_in(name):

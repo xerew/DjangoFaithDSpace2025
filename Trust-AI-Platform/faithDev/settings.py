@@ -174,18 +174,12 @@ LANGUAGE_CODE = 'en'
 
 LANGUAGES = [
     ('en', 'English'),
-    ('eu', 'Euskara'),
-    ('ca', 'Català'),
-    ('et', 'Eesti'),
     ('fr', 'Français'),
     ('de', 'Deutsch'),
     ('el', 'Ελληνικά'),
-    ('it', 'Italiano'),
     ('pt', 'Português'),
     ('ro', 'Română'),
     ('es', 'Español'),
-    ('tr', 'Türkçe'),
-    ('uk', 'Українська'),
 ]
 
 LOCALE_PATHS = [BASE_DIR / 'locale']

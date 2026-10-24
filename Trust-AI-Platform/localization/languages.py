@@ -4,18 +4,12 @@ from django.core.exceptions import ObjectDoesNotExist
 
 LANGUAGE_META = [
     {'code': 'en', 'native': 'English', 'table_name': 'English', 'flag': 'gb'},
-    {'code': 'eu', 'native': 'Euskara', 'table_name': 'Basque', 'flag': 'es-pv'},
-    {'code': 'ca', 'native': 'Català', 'table_name': 'Catalan', 'flag': 'es-ct'},
-    {'code': 'et', 'native': 'Eesti', 'table_name': 'Estonian', 'flag': 'ee'},
     {'code': 'fr', 'native': 'Français', 'table_name': 'French', 'flag': 'fr'},
     {'code': 'de', 'native': 'Deutsch', 'table_name': 'German', 'flag': 'de'},
     {'code': 'el', 'native': 'Ελληνικά', 'table_name': 'Greek', 'flag': 'gr'},
-    {'code': 'it', 'native': 'Italiano', 'table_name': 'Italian', 'flag': 'it'},
     {'code': 'pt', 'native': 'Português', 'table_name': 'Portuguese', 'flag': 'pt'},
     {'code': 'ro', 'native': 'Română', 'table_name': 'Romanian', 'flag': 'ro'},
     {'code': 'es', 'native': 'Español', 'table_name': 'Spanish', 'flag': 'es'},
-    {'code': 'tr', 'native': 'Türkçe', 'table_name': 'Turkish', 'flag': 'tr'},
-    {'code': 'uk', 'native': 'Українська', 'table_name': 'Ukrainian', 'flag': 'ua'},
 ]
 
 

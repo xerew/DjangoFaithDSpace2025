@@ -41,8 +41,17 @@ GROUPS = {
     'Low': pgettext_lazy('performance group', 'Low'),
 }
 
-# Persian is not an interface language but can still be a scenario language.
-EXTRA_LANGUAGE_NAMES = {'persian': 'فارسی'}
+# Scenario languages that are not interface languages still show their own
+# name, keyed by the casefolded table name.
+EXTRA_LANGUAGE_NAMES = {
+    'persian': 'فارسی',
+    'basque': 'Euskara',
+    'catalan': 'Català',
+    'estonian': 'Eesti',
+    'italian': 'Italiano',
+    'turkish': 'Türkçe',
+    'ukrainian': 'Українська',
+}
 
 _LOOKUPS = (SUBJECTS, CATEGORIES, ACTIVITY_TYPES, GROUPS)
 

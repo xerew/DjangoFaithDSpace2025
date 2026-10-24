@@ -68,6 +68,7 @@ class CatalogTests(SimpleTestCase):
 
     @skipUnless(shutil.which('xgettext'), 'GNU gettext is not installed')
     def test_update_translations_creates_po_for_all_languages(self):
+        self.assertEqual(sorted(NON_ENGLISH), ['de', 'el', 'es', 'fr', 'pt', 'ro'])
         call_command('update_translations', verbosity=0)
         for code in NON_ENGLISH:
             self.assertTrue(po_path(code).exists(), code)

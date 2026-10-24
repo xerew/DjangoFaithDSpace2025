@@ -32,6 +32,15 @@ class UiLabelTests(SimpleTestCase):
                 self.assertEqual(ui_label('Greek'), 'Ελληνικά')
                 self.assertEqual(ui_label('Persian'), 'فارسی')
 
+    def test_names_of_languages_not_offered_are_still_native(self):
+        names = {'Basque': 'Euskara', 'Catalan': 'Català', 'Estonian': 'Eesti',
+                 'Italian': 'Italiano', 'Turkish': 'Türkçe',
+                 'Ukrainian': 'Українська', 'Persian': 'فارسی'}
+        for code in ('en', 'de'):
+            with translation.override(code):
+                for table_name, native in names.items():
+                    self.assertEqual(ui_label(table_name), native)
+
     def test_unknown_value_unchanged(self):
         self.assertEqual(ui_label('Robotics'), 'Robotics')
         self.assertIsNone(ui_label(None))
