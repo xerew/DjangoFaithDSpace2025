@@ -13,7 +13,7 @@ from django.utils import translation
 
 from localization.catalog import load_po, po_path, translation_problems, untranslated
 
-DONE_LANGUAGES = ['es', 'el', 'fr']
+DONE_LANGUAGES = ['es', 'el', 'fr', 'de']
 
 BINDING_NOTE = 'This is a translation. The English version of these Terms is the binding one.'
 
