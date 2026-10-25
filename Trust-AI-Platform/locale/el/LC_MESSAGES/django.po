@@ -172,7 +172,7 @@ msgstr ""
 msgid ""
 "Renamed to \"%(name)s\" and updated %(scenarios)s and %(organizations)s."
 msgstr ""
-"Η γλώσσα μετονομάστηκε σε «%(name)s» και ενημερώθηκαν %(scenarios)s και "
+"Η γλώσσα μετονομάστηκε σε «%(name)s» και ενημερώθηκε σε %(scenarios)s και "
 "%(organizations)s."
 
 #: .\accounts\admin_views.py
@@ -1941,7 +1941,7 @@ msgstr "Οι κωδικοί πρόσβασης δεν ταιριάζουν."
 
 #: .\accounts\templates\accounts\register.html
 msgid "Access Code"
-msgstr "Κωδικός πρόσβασης εγγραφής"
+msgstr "Κωδικός εγγραφής"
 
 #: .\accounts\templates\accounts\register.html
 #, python-format
@@ -2075,11 +2075,11 @@ msgstr "Το email χρησιμοποιείται ήδη."
 
 #: .\accounts\views.py
 msgid "Invalid access code for Teacher registration."
-msgstr "Μη έγκυρος κωδικός πρόσβασης για εγγραφή εκπαιδευτικού."
+msgstr "Μη έγκυρος κωδικός εγγραφής εκπαιδευτικού."
 
 #: .\accounts\views.py
 msgid "Access code is required for Teacher registration."
-msgstr "Για την εγγραφή εκπαιδευτικού απαιτείται κωδικός πρόσβασης."
+msgstr "Για την εγγραφή εκπαιδευτικού απαιτείται κωδικός εγγραφής."
 
 #: .\accounts\views.py
 msgid "Account created successfully. Please log in."
@@ -3855,7 +3855,7 @@ msgstr "Χαμηλή"
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "No activities flagged as risky."
-msgstr "Καμία δραστηριότητα δεν επισημάνθηκε ως επικίνδυνη."
+msgstr "Δεν εντοπίστηκαν δραστηριότητες σε κίνδυνο."
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "Working…"
@@ -4200,7 +4200,7 @@ msgstr "Κύρια αξιολόγηση"
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\updateActivity.html
 msgid "Mark this as the main evaluation activity for this phase"
-msgstr "Ορίστε τη ως την κύρια δραστηριότητα αξιολόγησης αυτής της φάσης"
+msgstr "Ορίστε την ως την κύρια δραστηριότητα αξιολόγησης αυτής της φάσης"
 
 #: .\authoringtool\templates\authoringtool\createActivity.html
 #: .\authoringtool\templates\authoringtool\createAnswer.html
@@ -5729,7 +5729,7 @@ msgstr "Γνωστικό αντικείμενο"
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Retry"
-msgstr "Επανάληψη"
+msgstr "Νέα προσπάθεια"
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewPhase.html
@@ -8826,7 +8826,7 @@ msgid ""
 "This scenario is temporarily unavailable while its teacher prepares a new "
 "published revision. Please try again later."
 msgstr ""
-"Αυτό το σενάριο δεν είναι προσωρινά διαθέσιμο, επειδή ετοιμάζεται μια νέα "
+"Αυτό το σενάριο είναι προσωρινά μη διαθέσιμο, επειδή ετοιμάζεται μια νέα "
 "δημοσιευμένη αναθεώρησή του. Δοκίμασε ξανά αργότερα."
 
 #: .\studentview\views.py
@@ -8846,7 +8846,7 @@ msgid ""
 "This scenario is temporarily unavailable while a new revision is being "
 "prepared."
 msgstr ""
-"Αυτό το σενάριο δεν είναι προσωρινά διαθέσιμο, όσο ετοιμάζεται μια νέα "
+"Αυτό το σενάριο είναι προσωρινά μη διαθέσιμο, όσο ετοιμάζεται μια νέα "
 "αναθεώρηση."
 
 #: .\studentview\views.py
