@@ -3615,7 +3615,7 @@ msgstr "Nicht verfügbar, solange der KI-Server offline ist."
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid "Force Rebuild"
-msgstr "Neu aufbauen erzwingen"
+msgstr "Neuaufbau erzwingen"
 
 #: .\authoringtool\templates\authoringtool\ai_metrics_scenario.html
 msgid ""
@@ -4964,7 +4964,7 @@ msgstr "Letzte 6 Monate"
 
 #: .\authoringtool\templates\authoringtool\index.html
 msgid "Last 1 year"
-msgstr "Letztes Jahr"
+msgstr "Letzte 12 Monate"
 
 #: .\authoringtool\templates\authoringtool\index.html
 msgid "All time"
@@ -6995,8 +6995,8 @@ msgid ""
 msgstr ""
 "Aufgeführt als %(status)s mit %(confidence)s %% Konfidenz. Der "
 "Sichtbarkeitsfilter der Liste zeigt den Eintrag nur, wenn sowohl "
-"%(visibility_a)s als auch %(visibility_b)s angehakt sind (oder keines von "
-"beiden)."
+"%(visibility_a)s als auch %(visibility_b)s angehakt sind (oder gar keine "
+"Sichtbarkeit angehakt ist)."
 
 #: .\authoringtool\translation_matching.py
 msgid ""
@@ -9412,7 +9412,7 @@ msgid ""
 "These students cannot log in. Their work is kept; restoring a group lets "
 "them log in again."
 msgstr ""
-"Diese Lernenden können sich nicht anmelden. Ihre Arbeiten bleiben erhalten; "
+"Diese Lernenden können sich nicht anmelden. Deren Arbeiten bleiben erhalten; "
 "wenn Sie eine Gruppe wiederherstellen, können sich ihre Lernenden wieder "
 "anmelden."
 
