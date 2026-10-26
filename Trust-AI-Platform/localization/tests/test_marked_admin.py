@@ -331,11 +331,11 @@ class MarkedAdminTest(TestCase):
 
 class TermsLanguageTest(TestCase):
     def test_terms_fall_back_to_english(self):
-        # tos/de.html does not exist yet: the English body is shown, with a 200.
+        # Italian is not offered and has no body: the English body is shown, with a 200.
         with self.assertRaises(TemplateDoesNotExist):
-            get_template('accounts/tos/de.html')
-        self.client.cookies['django_language'] = 'de'
-        response = self.client.get(reverse('tos'), HTTP_ACCEPT_LANGUAGE='de')
+            get_template('accounts/tos/it.html')
+        self.client.cookies['django_language'] = 'it'
+        response = self.client.get(reverse('tos'), HTTP_ACCEPT_LANGUAGE='it')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Description of the Platform')
         self.assertContains(response, 'info@trust-ai-lab.eu')
@@ -379,10 +379,10 @@ class TermsBindingNoteTest(TestCase):
             with self.subTest(signed_in=signed_in):
                 self.assertNotContains(self._get('en', signed_in), '<p class="tos-binding-note">')
 
-    def test_german_without_body_has_no_note(self):
+    def test_language_without_body_has_no_note(self):
         for signed_in in (True, False):
             with self.subTest(signed_in=signed_in):
-                self.assertNotContains(self._get('de', signed_in), '<p class="tos-binding-note">')
+                self.assertNotContains(self._get('it', signed_in), '<p class="tos-binding-note">')
 
     def test_translated_body_shows_note(self):
         with tempfile.TemporaryDirectory() as tmp:

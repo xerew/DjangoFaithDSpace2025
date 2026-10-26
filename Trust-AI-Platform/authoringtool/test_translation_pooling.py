@@ -54,9 +54,11 @@ class PoolingBase(TestCase):
         )
         Answer.objects.create(
             activity=question, text='Right', is_correct=True, answer_weight=1,
+            created_by=owner, updated_by=owner,
         )
         Answer.objects.create(
             activity=question, text='Wrong', is_correct=False, answer_weight=0,
+            created_by=owner, updated_by=owner,
         )
         explanation = Activity.objects.create(
             name=f'{name} explanation', text='Because', plain_text='Because',

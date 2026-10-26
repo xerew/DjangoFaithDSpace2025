@@ -23,6 +23,7 @@ from localization.overrides import (
 
 LOCMEM = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 GREEK_CHECK_AGAIN = 'Έλεγξε ξανά'
+CATALOG_CHECK_AGAIN = 'Νέος έλεγχος'  # what the Greek catalog says without an override
 
 
 @override_settings(CACHES=LOCMEM)
@@ -146,7 +147,7 @@ class OverrideTests(ReviewTestBase):
         self.assertEqual(self.save('el', msgid='Check again', msgstr='  ').status_code, 200)
         self.assertFalse(TranslationOverride.objects.exists())
         with translation.override('el'):
-            self.assertEqual(gettext('Check again'), 'Check again')
+            self.assertEqual(gettext('Check again'), CATALOG_CHECK_AGAIN)
 
     def test_removed_override_restores_the_original_value(self):
         with translation.override('el'):
@@ -177,7 +178,7 @@ class OverrideTests(ReviewTestBase):
         TranslationOverride.objects.create(language='el', msgid='Check again', msgstr=GREEK_CHECK_AGAIN)
         ensure_overrides('el')
         with translation.override('el'):
-            self.assertEqual(gettext('Check again'), 'Check again')
+            self.assertEqual(gettext('Check again'), CATALOG_CHECK_AGAIN)
         # ... until the shared version moves on.
         bump_overrides_version()
         ensure_overrides('el')
@@ -261,11 +262,11 @@ class OverrideTests(ReviewTestBase):
     def test_typographic_quotes_and_matching_tags_are_accepted(self):
         self.client.force_login(self.reviewer)
         response = self.save('el', msgid='A language called "%(name)s" already exists.',
-                             msgstr='Υπάρχει ήδη γλώσσα με το όνομα «%(name)s».')
+                             msgstr='Υπάρχει ήδη μια γλώσσα με το όνομα «%(name)s».')
         self.assertEqual(response.status_code, 200, response.content)
         msgid = 'The <strong>Trust AI Lab platform</strong> consists of the following components:'
         response = self.save('el', msgid=msgid, msgstr=(
-            'Η <strong>πλατφόρμα Trust AI Lab</strong> αποτελείται από τα εξής μέρη:'))
+            'Η <strong>πλατφόρμα Trust AI Lab</strong> αποτελείται από τα ακόλουθα μέρη:'))
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(TranslationOverride.objects.count(), 2)
 
@@ -281,7 +282,7 @@ class OverrideTests(ReviewTestBase):
         self.save('el', msgid='Check again', msgstr=GREEK_CHECK_AGAIN)
         logs = list(TranslationOverrideLog.objects.order_by('at', 'id'))
         self.assertEqual(len(logs), 2)
-        self.assertEqual((logs[0].old, logs[0].new), ('', 'Ξαναέλεγξε'))
+        self.assertEqual((logs[0].old, logs[0].new), (CATALOG_CHECK_AGAIN, 'Ξαναέλεγξε'))
         self.assertEqual((logs[1].old, logs[1].new), ('Ξαναέλεγξε', GREEK_CHECK_AGAIN))
         override = TranslationOverride.objects.get()
         for log in logs:
