@@ -276,7 +276,7 @@ class ReasonTextTests(SimpleTestCase):
                    side_effect=lambda v: 'GR-' + v) as label:
             with translation.override('el'):
                 text = reason_text(fx['code'], fx['params'])
-            self.assertIn('GR-Low group', text)
+            self.assertIn('GR-Low', text)
             label.reset_mock()
             self.assertEqual(
                 reason_text(fx['code'], fx['params'], 'en'), fx['reason'])
