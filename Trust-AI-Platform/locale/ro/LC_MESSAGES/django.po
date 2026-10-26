@@ -446,7 +446,7 @@ msgstr "Cu erori"
 #: .\accounts\templates\accounts\admin_email_campaign.html
 #: .\authoringtool\models.py
 msgid "Failed"
-msgstr "Eșuată"
+msgstr "Eșec"
 
 #: .\accounts\templates\accounts\_admin_email_tab.html
 #: .\accounts\templates\accounts\admin_email_campaign.html
@@ -5846,7 +5846,7 @@ msgstr "Acțiuni"
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 msgid "Not set"
-msgstr "Nesetat"
+msgstr "Nespecificat"
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 #: .\authoringtool\templates\authoringtool\viewScenario.html
@@ -6378,7 +6378,7 @@ msgstr "Ridicat"
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 msgid "Not Set"
-msgstr "Nedefinit"
+msgstr "Nespecificat"
 
 #: .\authoringtool\templates\authoringtool\viewActivity.html
 msgid "Mid"
@@ -7063,7 +7063,8 @@ msgid ""
 msgstr ""
 "Listată ca: %(status)s, cu o încredere de %(confidence)s%%. Filtrul de "
 "vizibilitate al listei o afișează doar când sunt bifate atât "
-"%(visibility_a)s, cât și %(visibility_b)s (sau niciuna)."
+"%(visibility_a)s, cât și %(visibility_b)s, sau când nu este bifată nicio "
+"opțiune de vizibilitate."
 
 #: .\authoringtool\translation_matching.py
 msgid ""
@@ -9267,7 +9268,7 @@ msgstr "Selectați scenariile la care va avea acces acest grup."
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
 msgid "0 selected"
-msgstr "0 selectate"
+msgstr "Scenarii selectate: 0"
 
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
@@ -9288,7 +9289,7 @@ msgstr "Nu există scenarii disponibile."
 #: .\usergroups\templates\usergroups\edit_group.html
 #, python-brace-format
 msgid "{count} selected"
-msgstr "{count} selectate"
+msgstr "Scenarii selectate: {count}"
 
 #: .\usergroups\templates\usergroups\edit_group.html
 #: .\usergroups\templates\usergroups\view_group.html
@@ -9544,7 +9545,7 @@ msgstr "Niciun rezultat nu corespunde filtrului."
 #: .\usergroups\templates\usergroups\list_with_imp.html
 #, python-format
 msgid "+%(extra)s extra included"
-msgstr "+%(extra)s incluse suplimentar"
+msgstr "+%(extra)s în plus"
 
 #: .\usergroups\templates\usergroups\list_with_imp.html
 msgid "No data yet."
