@@ -2046,7 +2046,7 @@ msgstr "Lea atentamente estas condiciones antes de crear una cuenta."
 msgid "Back to Login"
 msgstr "Volver al inicio de sesión"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -2866,7 +2866,7 @@ msgstr "pregunta"
 #: .\authoringtool\risk_flag_text.py
 msgctxt "activity kind"
 msgid "non-question"
-msgstr "no pregunta"
+msgstr "sin pregunta"
 
 #: .\authoringtool\templates\admin\authoringtool\scenariofamilycandidate\change_form.html
 msgid "Review rules"
@@ -5862,9 +5862,9 @@ msgstr "Abrir como estudiante"
 #, python-format
 msgid "%(counter)s more version is private to another teacher."
 msgid_plural "%(counter)s more versions are private to another teacher."
-msgstr[0] "%(counter)s versión más es privada de otro docente."
-msgstr[1] "%(counter)s versiones más son privadas de otro docente."
-msgstr[2] "%(counter)s versiones más son privadas de otro docente."
+msgstr[0] "%(counter)s versión más pertenece a otro docente y es privada."
+msgstr[1] "%(counter)s versiones más pertenecen a otro docente y son privadas."
+msgstr[2] "%(counter)s versiones más pertenecen a otro docente y son privadas."
 
 #: .\authoringtool\templates\authoringtool\scenarios.html
 msgid "Delete Scenario"
@@ -6823,9 +6823,11 @@ msgstr ""
 #, python-format
 msgid "%(counter)s more translation is private to another teacher."
 msgid_plural "%(counter)s more translations are private to another teacher."
-msgstr[0] "%(counter)s traducción más es privada de otro docente."
-msgstr[1] "%(counter)s traducciones más son privadas de otro docente."
-msgstr[2] "%(counter)s traducciones más son privadas de otro docente."
+msgstr[0] "%(counter)s traducción más pertenece a otro docente y es privada."
+msgstr[1] ""
+"%(counter)s traducciones más pertenecen a otro docente y son privadas."
+msgstr[2] ""
+"%(counter)s traducciones más pertenecen a otro docente y son privadas."
 
 #: .\authoringtool\templates\authoringtool\viewScenario.html
 msgid "Current Version Needs Data"
@@ -9011,24 +9013,6 @@ msgstr "Equipo de ICCS — Information Management Unit"
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Este mensaje lo ha enviado un administrador de Trust AI Lab."
 
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Esta aplicación se desarrolló en el marco de los proyectos FAITH y DSPACE, "
-"que han recibido financiación de la Unión Europea en virtud de los acuerdos "
-"de subvención n.º 101135932 y n.º 101086701. No obstante, los puntos de "
-"vista y opiniones expresados son únicamente los del autor o autores y no "
-"reflejan necesariamente los de la Unión Europea o los de la Agencia "
-"Ejecutiva Europea de Educación y Cultura (EACEA). Ni la Unión Europea ni la "
-"EACEA pueden ser consideradas responsables de ellos."
-
 #: .\templates\head.html
 #, python-format
 msgid "Viewing as <strong>@%(username)s</strong> &mdash; not your account"
@@ -9273,7 +9257,7 @@ msgstr "Seleccione los escenarios a los que tendrá acceso este grupo."
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
 msgid "0 selected"
-msgstr "0 seleccionados"
+msgstr "Seleccionados: 0"
 
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
@@ -9294,7 +9278,7 @@ msgstr "No hay escenarios disponibles."
 #: .\usergroups\templates\usergroups\edit_group.html
 #, python-brace-format
 msgid "{count} selected"
-msgstr "{count} seleccionados"
+msgstr "Seleccionados: {count}"
 
 #: .\usergroups\templates\usergroups\edit_group.html
 #: .\usergroups\templates\usergroups\view_group.html

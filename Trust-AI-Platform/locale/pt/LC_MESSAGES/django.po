@@ -2034,7 +2034,7 @@ msgstr "Leia atentamente estes Termos antes de criar uma conta."
 msgid "Back to Login"
 msgstr "Voltar ao início de sessão"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -8901,24 +8901,6 @@ msgstr "Equipa do ICCS — Information Management Unit"
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Esta mensagem foi enviada por um administrador do Trust AI Lab."
 
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Esta aplicação foi desenvolvida no âmbito dos projetos FAITH e DSPACE, que "
-"receberam financiamento da União Europeia ao abrigo das convenções de "
-"subvenção n.º 101135932 e n.º 101086701. Os pontos de vista e as opiniões "
-"expressos são, no entanto, exclusivamente do(s) autor(es) e não refletem "
-"necessariamente a posição da União Europeia ou da Agência de Execução "
-"Europeia da Educação e da Cultura (EACEA). Nem a União Europeia nem a EACEA "
-"podem ser tidas como responsáveis por essas opiniões."
-
 #: .\templates\head.html
 #, python-format
 msgid "Viewing as <strong>@%(username)s</strong> &mdash; not your account"
@@ -9162,7 +9144,7 @@ msgstr "Selecione os cenários a que este grupo terá acesso."
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
 msgid "0 selected"
-msgstr "0 selecionados"
+msgstr "Selecionados: 0"
 
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html

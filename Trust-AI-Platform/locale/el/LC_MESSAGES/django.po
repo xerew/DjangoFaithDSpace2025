@@ -2043,7 +2043,7 @@ msgstr "Διαβάστε προσεκτικά αυτούς τους όρους �
 msgid "Back to Login"
 msgstr "Επιστροφή στη σύνδεση"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -8957,24 +8957,6 @@ msgstr "Ομάδα ICCS — Information Management Unit"
 #: .\templates\email\admin_bulk_email.html
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Αυτό το μήνυμα στάλθηκε από διαχειριστή του Trust AI Lab."
-
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Η παρούσα εφαρμογή αναπτύχθηκε στο πλαίσιο των έργων FAITH και DSPACE, τα "
-"οποία έχουν λάβει χρηματοδότηση από την Ευρωπαϊκή Ένωση βάσει των συμφωνιών "
-"επιχορήγησης αρ. 101135932 και αρ. 101086701. Ωστόσο, οι απόψεις και οι "
-"γνώμες που διατυπώνονται εκφράζουν αποκλειστικά τις απόψεις των συντακτών "
-"και δεν αντιπροσωπεύουν κατ’ ανάγκη τις απόψεις της Ευρωπαϊκής Ένωσης ή του "
-"Ευρωπαϊκού Εκτελεστικού Οργανισμού Εκπαίδευσης και Πολιτισμού (EACEA). Ούτε "
-"η Ευρωπαϊκή Ένωση ούτε ο EACEA μπορούν να θεωρηθούν υπεύθυνοι γι’ αυτές."
 
 #: .\templates\head.html
 #, python-format

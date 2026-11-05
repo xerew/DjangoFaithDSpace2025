@@ -2020,7 +2020,7 @@ msgstr "Irakurri arretaz baldintza hauek kontu bat sortu aurretik."
 msgid "Back to Login"
 msgstr "Itzuli saio-hasierara"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -8858,24 +8858,6 @@ msgstr "ICCS taldea — Information Management Unit"
 #: .\templates\email\admin_bulk_email.html
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Mezu hau Trust AI Lab plataformako administratzaile batek bidali du."
-
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Aplikazio hau FAITH eta DSPACE proiektuen barruan garatu da, eta proiektu "
-"horiek Europar Batasunaren finantzaketa jaso dute 101135932 eta 101086701 "
-"zenbakiko diru-laguntza hitzarmenen bidez. Hala ere, adierazitako iritziak "
-"eta ikuspegiak egilearenak (edo egileenak) baino ez dira, eta ez dute zertan "
-"Europar Batasunarenak edo Hezkuntza eta Kultura Exekutibo Agentzia "
-"Europarrarenak (EACEA) islatu. Ez Europar Batasuna ez EACEA ezin dira haien "
-"erantzule izan."
 
 #: .\templates\head.html
 #, python-format

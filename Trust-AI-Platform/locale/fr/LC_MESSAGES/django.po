@@ -2044,7 +2044,7 @@ msgstr "Veuillez lire attentivement ces conditions avant de créer un compte."
 msgid "Back to Login"
 msgstr "Retour à la connexion"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -2718,7 +2718,7 @@ msgid ""
 "(%(mean)ss ± %(std)ss, CV=%(cv)s). Significantly slower than the other "
 "groups — possible confusion or disengagement."
 msgstr ""
-"Risque d'engagement : le temps moyen du groupe %(group)s (%(t)s s) est "
+"Risque lié à l'engagement : le temps moyen du groupe %(group)s (%(t)s s) est "
 "supérieur à moyenne + écart-type (%(mean)s s ± %(std)s s, CV = %(cv)s). "
 "Nettement plus lent que les autres groupes — confusion ou désengagement "
 "possible."
@@ -2730,7 +2730,7 @@ msgid ""
 "(%(mean)ss ± %(std)ss, CV=%(cv)s). Suspiciously fast relative to other "
 "groups — may indicate guessing or skipping."
 msgstr ""
-"Risque d'engagement : le temps moyen du groupe %(group)s (%(t)s s) est "
+"Risque lié à l'engagement : le temps moyen du groupe %(group)s (%(t)s s) est "
 "inférieur à moyenne − écart-type (%(mean)s s ± %(std)s s, CV = %(cv)s). "
 "Étonnamment rapide par rapport aux autres groupes — peut indiquer des "
 "réponses au hasard ou des activités sautées."
@@ -2844,12 +2844,12 @@ msgstr "Profil de réussite extrême"
 #: .\authoringtool\risk_flag_text.py
 #, python-format
 msgid "Engagement risk (too slow, %(activity_type)s)"
-msgstr "Risque d'engagement (trop lent, %(activity_type)s)"
+msgstr "Risque lié à l'engagement (trop lent, %(activity_type)s)"
 
 #: .\authoringtool\risk_flag_text.py
 #, python-format
 msgid "Engagement risk (too fast, %(activity_type)s)"
-msgstr "Risque d'engagement (trop rapide, %(activity_type)s)"
+msgstr "Risque lié à l'engagement (trop rapide, %(activity_type)s)"
 
 #: .\authoringtool\risk_flag_text.py
 msgid "Timing discrepancy under extreme correctness"
@@ -8966,24 +8966,6 @@ msgstr "Équipe ICCS — Information Management Unit"
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Ce message a été envoyé par un administrateur de Trust AI Lab."
 
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Cette application a été développée dans le cadre des projets FAITH et "
-"DSPACE, qui ont reçu un financement de l'Union européenne au titre des "
-"conventions de subvention n° 101135932 et n° 101086701. Les points de vue et "
-"avis exprimés n'engagent toutefois que leur(s) auteur(s) et ne reflètent pas "
-"nécessairement ceux de l'Union européenne ou de l'Agence exécutive "
-"européenne pour l'éducation et la culture (EACEA). Ni l'Union européenne ni "
-"l'EACEA ne sauraient en être tenues pour responsables."
-
 #: .\templates\head.html
 #, python-format
 msgid "Viewing as <strong>@%(username)s</strong> &mdash; not your account"
@@ -9232,7 +9214,7 @@ msgstr "Choisissez les scénarios auxquels ce groupe aura accès."
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html
 msgid "0 selected"
-msgstr "0 sélectionné"
+msgstr "Sélectionnés : 0"
 
 #: .\usergroups\templates\usergroups\create_group.html
 #: .\usergroups\templates\usergroups\edit_group.html

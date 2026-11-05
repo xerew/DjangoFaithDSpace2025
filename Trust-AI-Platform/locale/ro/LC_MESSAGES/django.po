@@ -2043,7 +2043,7 @@ msgstr "Citiți cu atenție acești termeni înainte de a crea un cont."
 msgid "Back to Login"
 msgstr "Înapoi la autentificare"
 
-#: .\accounts\templates\accounts\tos_public.html
+#: .\accounts\templates\accounts\tos_public.html .\templates\footer.html
 msgid ""
 "This application was developed as part of the FAITH and DSPACE projects, "
 "which have received funding from the European Union under grant agreement "
@@ -9016,24 +9016,6 @@ msgstr "Echipa ICCS — Information Management Unit"
 #: .\templates\email\admin_bulk_email.html
 msgid "This message was sent by a Trust AI Lab administrator."
 msgstr "Acest mesaj a fost trimis de un administrator Trust AI Lab."
-
-#: .\templates\footer.html
-msgid ""
-"Τhis application was developed as part of the FAITH and DSPACE projects, "
-"which have received funding from the European Union under grant agreement "
-"No. 101135932 and No. 101086701. Views and opinions expressed are however "
-"those of the author(s) only and do not necessarily reflect those of the "
-"European Union or the European Education and Culture Executive Agency "
-"(EACEA). Neither the European Union nor EACEA can be held responsible for "
-"them."
-msgstr ""
-"Această aplicație a fost dezvoltată în cadrul proiectelor FAITH și DSPACE, "
-"care au primit finanțare din partea Uniunii Europene prin acordurile de "
-"grant nr. 101135932 și nr. 101086701. Punctele de vedere și opiniile "
-"exprimate aparțin însă exclusiv autorului (autorilor) și nu reflectă "
-"neapărat punctele de vedere ale Uniunii Europene sau ale Agenției Executive "
-"pentru Educație și Cultură (EACEA). Nici Uniunea Europeană, nici EACEA nu "
-"pot fi considerate responsabile pentru acestea."
 
 #: .\templates\head.html
 #, python-format
