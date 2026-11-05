@@ -31,15 +31,22 @@ or when Django has rebuilt the translation object since. It is called:
 
 When the cache gives no value (the dummy cache used by tests, or Redis down),
 the layer is reloaded on every call: overrides are few, so this stays cheap.
+When the database cannot be read, the failure is logged and the process keeps
+what it has (the catalogs alone if nothing was loaded yet), and tries again on
+the next call.
 English is the source language and is never overridden.
 """
 import gettext as gettext_module
+import logging
 import threading
-import time
+import uuid
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import DatabaseError, transaction
 from django.utils.translation import trans_real
+
+logger = logging.getLogger(__name__)
 
 VERSION_KEY = 'localization:overrides-version'
 CONTEXT_SEPARATOR = '\x04'
@@ -57,7 +64,7 @@ def overrides_version():
         if version is None:
             # First use or the cache was emptied: start a fresh value no
             # process has applied yet, so every process reloads once.
-            cache.add(VERSION_KEY, time.time_ns(), timeout=None)
+            cache.add(VERSION_KEY, uuid.uuid4().hex, timeout=None)
             version = cache.get(VERSION_KEY)
     except Exception:  # cache server unreachable: reload on every call
         return None
@@ -66,7 +73,7 @@ def overrides_version():
 
 def bump_overrides_version():
     try:
-        cache.set(VERSION_KEY, time.time_ns(), timeout=None)
+        cache.set(VERSION_KEY, uuid.uuid4().hex, timeout=None)
     except Exception:
         pass
 
@@ -140,7 +147,14 @@ def apply_overrides(language, version=None):
         state = _layer_for(code)
         if state is None:
             return
-        wanted = _wanted(code)
+        try:
+            # Its own savepoint: a caller may be inside a transaction, which a
+            # failed query would otherwise break on PostgreSQL.
+            with transaction.atomic():
+                wanted = _wanted(code)
+        except DatabaseError:
+            logger.exception('Could not load the translation corrections for %s', code)
+            return
         layer = state['layer']
         for key in [k for k in layer if k not in wanted]:
             layer.pop(key, None)

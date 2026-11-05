@@ -9,6 +9,7 @@ from contextlib import nullcontext
 from django.utils import translation
 from django.utils.translation import gettext as _
 from localization.languages import code_for_table_name, supported_codes
+from localization.overrides import ensure_overrides
 from authoringtool.models import (
     Scenario,
     Activity,
@@ -59,6 +60,8 @@ def scenario_language(scenario):
     """
     code = code_for_table_name(scenario.language)
     if code in supported_codes():
+        # The middleware only loads corrections for the user's own language.
+        ensure_overrides(code)
         return translation.override(code)
     return nullcontext()
 

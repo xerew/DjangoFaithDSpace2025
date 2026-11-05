@@ -1,11 +1,16 @@
 from django.conf import settings
 from django.contrib.auth.models import Group, User
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import UserProfile
 from authoringtool.models import Activity, ActivityType, Phase, Scenario
+from localization.models import TranslationOverride
+from localization.overrides import reset_overrides
 from usergroups.models import UserGroup, UserGroupMembership
+
+LOCMEM = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 
 
 @override_settings(SCENARIO_REVISION_PROTECTION=False)
@@ -80,3 +85,18 @@ class ScenarioLanguageTests(TestCase):
 
         self.assertEqual(response.context['LANGUAGE_CODE'], 'de')
         self.assertContains(response, '<html lang="de"')
+
+    @override_settings(CACHES=LOCMEM)
+    def test_correction_shows_without_an_earlier_request_in_that_language(self):
+        cache.clear()
+        reset_overrides()
+        self.addCleanup(cache.clear)
+        self.addCleanup(reset_overrides)
+        UserProfile.objects.filter(user=self.student).update(language='en')
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = 'en'
+        TranslationOverride.objects.create(language='el', msgid='Ask for help', msgstr='ΔΙΟΡΘΩΣΗ')
+
+        response = self.open_scenario('Greek')
+
+        self.assertEqual(response.context['LANGUAGE_CODE'], 'el')
+        self.assertContains(response, 'ΔΙΟΡΘΩΣΗ')

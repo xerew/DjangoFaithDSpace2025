@@ -1,6 +1,10 @@
 """The interface languages of the platform, in display order."""
+import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError, transaction
+
+logger = logging.getLogger(__name__)
 
 LANGUAGE_META = [
     {'code': 'en', 'native': 'English', 'table_name': 'English', 'flag': 'gb'},
@@ -23,10 +27,18 @@ def recipient_language(user):
     Every email site picks the language here, so this also makes sure the
     reviewers' corrections for it are loaded in this process: emails are often
     rendered in Celery, where no request middleware runs.
+
+    A database failure must not lose the email, so it gives 'en'. The query has
+    its own savepoint because a caller may be inside a transaction, which a
+    failed query would otherwise break on PostgreSQL.
     """
     try:
-        code = user.profile.language
+        with transaction.atomic():
+            code = user.profile.language
     except (AttributeError, ObjectDoesNotExist):
+        return 'en'
+    except DatabaseError:
+        logger.exception('Could not load the language of user %s', getattr(user, 'pk', None))
         return 'en'
     if code not in supported_codes():
         return 'en'

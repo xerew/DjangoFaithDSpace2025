@@ -1,7 +1,12 @@
+import logging
+
 from django.conf import settings
+from django.db import DatabaseError
 from django.utils import translation
 
 from .languages import supported_codes
+
+logger = logging.getLogger(__name__)
 
 
 class UserLanguageMiddleware:
@@ -15,21 +20,26 @@ class UserLanguageMiddleware:
         user = getattr(request, 'user', None)
         if user is not None and user.is_authenticated:
             from accounts.models import UserProfile
-            profile = UserProfile.objects.filter(user=user).first()
-            saved = profile.language if profile else ''
-            if saved in supported_codes():
-                saved_language = saved
-                translation.activate(saved)
-                request.LANGUAGE_CODE = saved
-            else:
-                current = translation.get_language() or settings.LANGUAGE_CODE
-                current = current.split('-')[0]
-                if current not in supported_codes():
-                    current = 'en'
-                if profile is None:
-                    profile = UserProfile(user=user)
-                profile.language = current
-                profile.save()
+            # No transaction is open here: middleware runs outside ATOMIC_REQUESTS.
+            try:
+                profile = UserProfile.objects.filter(user=user).first()
+                saved = profile.language if profile else ''
+                if saved in supported_codes():
+                    saved_language = saved
+                    translation.activate(saved)
+                    request.LANGUAGE_CODE = saved
+                else:
+                    current = translation.get_language() or settings.LANGUAGE_CODE
+                    current = current.split('-')[0]
+                    if current not in supported_codes():
+                        current = 'en'
+                    if profile is None:
+                        profile = UserProfile(user=user)
+                    profile.language = current
+                    profile.save()
+            except DatabaseError:
+                # The request keeps the language it already has (cookie or browser).
+                logger.exception('Could not load the language profile of user %s', user.pk)
 
         response = self.get_response(request)
 
