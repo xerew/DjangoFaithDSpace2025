@@ -1,5 +1,6 @@
 {% extends "main.html" %}
 {% load i18n %}
+{% load l10n %}
 {% block page_title %}<title>{% translate "Trust AI Lab - Edit Evaluation" %}</title>{% endblock %}
 {% block atcontent %}
 
@@ -235,7 +236,7 @@
                 </div>
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-success"></i>{% translate "Performance Threshold" %}</div>
-                  <input type="number" class="form-control" name="high_score_limit" value="{{ high_activity.score_limit }}" step="0.01" required>
+                  <input type="number" class="form-control" name="high_score_limit" value="{{ high_activity.score_limit|unlocalize }}" step="0.01" required>
                   <div class="score-help">{% translate "Min. avg weight to reach this group (1-3)" %}</div>
                 </div>
               </div>
@@ -288,7 +289,7 @@
                 </div>
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-warning"></i>{% translate "Performance Threshold" %}</div>
-                  <input type="number" class="form-control" name="mid_score_limit" value="{{ mid_activity.score_limit }}" step="0.01" required>
+                  <input type="number" class="form-control" name="mid_score_limit" value="{{ mid_activity.score_limit|unlocalize }}" step="0.01" required>
                   <div class="score-help">{% translate "Min. avg weight to reach this group (1-3)" %}</div>
                 </div>
               </div>
@@ -341,7 +342,7 @@
                 </div>
                 <div class="col-sm-4">
                   <div class="field-label"><i class="bi bi-speedometer2 me-1 text-danger"></i>{% translate "Performance Threshold" %}</div>
-                  <input type="number" class="form-control" name="low_score_limit" value="{{ low_activity.score_limit }}" step="0.01" required>
+                  <input type="number" class="form-control" name="low_score_limit" value="{{ low_activity.score_limit|unlocalize }}" step="0.01" required>
                   <div class="score-help">{% translate "Fallback - students below Moderate go here" %}</div>
                 </div>
               </div>
