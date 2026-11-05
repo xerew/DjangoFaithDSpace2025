@@ -39,6 +39,8 @@ class EmailLanguageTests(TestCase):
         queue(make_campaign(), users)
         drain_outbox()
         self.assertEqual([m.recorded_language for m in mail.outbox], ['de', 'en'])
+        self.assertIn('<html lang="de">', mail.outbox[0].alternatives[0][0])
+        self.assertIn('<html lang="en">', mail.outbox[1].alternatives[0][0])
 
     def test_reviewer_email_in_reviewers_language(self):
         reviewer = make_user('rev', 'fr')

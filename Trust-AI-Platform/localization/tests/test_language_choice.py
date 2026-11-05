@@ -57,6 +57,7 @@ class LanguageChoiceTests(TestCase):
         self.login(user)
         response = self.client.get(reverse('scenarios'))
         self.assertEqual(response.context['LANGUAGE_CODE'], 'de')
+        self.assertEqual(response.cookies[COOKIE].value, 'de')
 
     def test_first_login_saves_browser_language(self):
         user = self.make_user('')

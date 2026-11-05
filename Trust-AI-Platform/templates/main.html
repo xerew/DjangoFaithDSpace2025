@@ -37,7 +37,7 @@
     toast.style.cursor = 'pointer';
 
     const strong = document.createElement('strong');
-    strong.textContent = newMessageText.replace('{name}', latest.sender_name);
+    strong.textContent = newMessageText.replace('{name}', () => latest.sender_name);
     toast.appendChild(strong);
     toast.appendChild(document.createElement('br'));
     toast.appendChild(document.createTextNode(latest.snippet));
