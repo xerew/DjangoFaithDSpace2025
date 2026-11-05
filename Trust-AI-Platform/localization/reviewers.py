@@ -20,7 +20,7 @@ def can_be_reviewer(user):
 
 def reviewable_codes(user):
     """The languages ``user`` may review, in display order (all of them for staff)."""
-    if not getattr(user, 'is_authenticated', False):
+    if not getattr(user, 'is_authenticated', False) or not can_be_reviewer(user):
         return []
     if is_admin(user):
         return list(REVIEW_CODES)

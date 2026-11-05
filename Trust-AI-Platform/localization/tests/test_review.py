@@ -14,16 +14,18 @@ from authoringtool.machine_translation.health import check_ollama
 from authoringtool.models import Scenario
 from localization.models import TranslationOverride, TranslationOverrideLog, TranslationReviewer
 from localization.catalog import (
-    EXTRA_DOUBLE_QUOTE, STRAY_PERCENT, UNBALANCED_BRACKETS, UNEXPECTED_LINE_BREAK,
+    EXTRA_DOUBLE_QUOTE, STRAY_PERCENT, UNBALANCED_BRACKETS, UNEXPECTED_LINE_BREAK, UNSAFE_BRACES,
 )
 from localization.languages import recipient_language
 from localization.overrides import (
     apply_overrides, bump_overrides_version, ensure_overrides, reset_overrides,
 )
+from localization.reviewers import REVIEW_CODES, reviewable_codes
 
 LOCMEM = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 GREEK_CHECK_AGAIN = 'Έλεγξε ξανά'
 CATALOG_CHECK_AGAIN = 'Νέος έλεγχος'  # what the Greek catalog says without an override
+BINDING_NOTE = 'This is a translation. The English version of these Terms is the binding one.'
 
 
 @override_settings(CACHES=LOCMEM)
@@ -71,6 +73,27 @@ class ReviewPermissionTests(ReviewTestBase):
         self.assertEqual(self.client.get(el_page).status_code, 200)
         self.assertEqual(self.client.get(de_page).status_code, 200)
 
+    def test_review_rights_end_with_the_teacher_role(self):
+        page = reverse('review_translations', args=['el'])
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.get(page).status_code, 200)
+
+        self.reviewer.groups.remove(self.teachers)
+
+        self.assertEqual(reviewable_codes(self.reviewer), [])
+        self.assertEqual(self.client.get(page).status_code, 403)
+        self.assertEqual(self.save('el', msgid='Check again', msgstr=GREEK_CHECK_AGAIN).status_code, 403)
+        self.assertFalse(TranslationOverride.objects.exists())
+
+    def test_deactivated_users_review_nothing(self):
+        self.reviewer.is_active = False
+        self.assertEqual(reviewable_codes(self.reviewer), [])
+        self.staff.is_active = False
+        self.assertEqual(reviewable_codes(self.staff), [])
+
+    def test_staff_review_every_language_without_an_assignment(self):
+        self.assertEqual(reviewable_codes(self.staff), REVIEW_CODES)
+
     def test_english_cannot_be_reviewed(self):
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(reverse('review_translations', args=['en'])).status_code, 404)
@@ -114,6 +137,43 @@ class ReviewPageTests(ReviewTestBase):
         self.assertGreater(everything, 100)
         self.assertLessEqual(needs_review, everything)
         self.assertEqual(len(self.client.get(url).context['page_obj'].object_list), 100)
+
+
+class TermsOfServiceTests(ReviewTestBase):
+    """The legal text is not reviewers' to change, the wrappers around it included."""
+
+    def listed(self, query):
+        response = self.client.get(reverse('review_translations', args=['el']), {'q': query})
+        return [row['msgid'] for row in response.context['page_obj'].object_list]
+
+    def test_terms_only_text_is_not_listed(self):
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.listed('binding one'), [])
+        self.assertEqual(self.listed('Please read these terms carefully'), [])
+
+    def test_terms_only_text_cannot_be_saved(self):
+        self.client.force_login(self.reviewer)
+        for msgid in (BINDING_NOTE, 'Contents'):
+            with self.subTest(msgid=msgid):
+                response = self.save('el', msgid=msgid, msgstr='Η ελληνική εκδοχή είναι η δεσμευτική.')
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(response.json()['success'])
+        self.assertFalse(TranslationOverride.objects.exists())
+
+    def test_staff_cannot_save_terms_only_text_either(self):
+        self.client.force_login(self.staff)
+        self.assertEqual(self.save('el', msgid=BINDING_NOTE, msgstr='Κάτι άλλο.').status_code, 400)
+
+    def test_text_also_used_elsewhere_stays_editable(self):
+        self.client.force_login(self.reviewer)
+        self.assertIn('Terms of Service', self.listed('Terms of Service'))
+        response = self.save('el', msgid='Terms of Service', msgstr='Όροι παροχής υπηρεσιών')
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_other_text_can_still_be_saved(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='Check again', msgstr=GREEK_CHECK_AGAIN)
+        self.assertEqual(response.status_code, 200, response.content)
 
 
 class OverrideTests(ReviewTestBase):
@@ -259,6 +319,23 @@ class OverrideTests(ReviewTestBase):
         response = self.save('el', msgid='Check again', msgstr='Έλεγξε ξανά 100%')
         self.assertEqual(response.status_code, 200, response.content)
 
+    def test_override_cannot_change_brace_fields(self):
+        self.client.force_login(self.reviewer)
+        msgid = 'Your personalised scenario <a href="{url}">{name}</a> is ready.'
+        for msgstr in (
+            'Το σενάριο <a href="{url}">{name}</a> {όνομα} είναι έτοιμο.',
+            'Το σενάριο <a href="{url}">{name}</a> {name.__class__.__mro__} είναι έτοιμο.',
+            'Το σενάριο <a href="{url}">{name}</a> { είναι έτοιμο.',
+        ):
+            with self.subTest(msgstr=msgstr):
+                self.assertRefused(self.save('el', msgid=msgid, msgstr=msgstr), UNSAFE_BRACES)
+
+    def test_override_can_reorder_brace_fields(self):
+        self.client.force_login(self.reviewer)
+        response = self.save('el', msgid='Your {language} translation of <a href="{url}">{name}</a> is ready.',
+                             msgstr='Το <a href="{url}">{name}</a> είναι έτοιμο στα {language}.')
+        self.assertEqual(response.status_code, 200, response.content)
+
     def test_typographic_quotes_and_matching_tags_are_accepted(self):
         self.client.force_login(self.reviewer)
         response = self.save('el', msgid='A language called "%(name)s" already exists.',
@@ -333,3 +410,62 @@ class AdminReviewerTests(ReviewTestBase):
         response = self.post('admin_remove_translation_reviewer', assignment.id)
         self.assertEqual(response.status_code, 403)
         self.assertTrue(TranslationReviewer.objects.filter(id=assignment.id).exists())
+
+
+class AdminOverrideTests(ReviewTestBase):
+    """Corrections are changed on the reviewer page only, so they are validated and logged."""
+
+    def setUp(self):
+        super().setUp()
+        self.superuser = User.objects.create_superuser('override_admin', password='pass')
+        self.client.force_login(self.superuser)
+        self.override = TranslationOverride.objects.create(
+            language='el', msgid='Check again', msgstr=GREEK_CHECK_AGAIN)
+        self.log = TranslationOverrideLog.objects.create(
+            override=self.override, language='el', msgid='Check again', old='a', new='b')
+
+    def models(self):
+        return (('translationoverride', self.override), ('translationoverridelog', self.log))
+
+    def test_list_and_detail_pages_still_load(self):
+        for name, obj in self.models():
+            with self.subTest(model=name):
+                self.assertEqual(self.client.get(
+                    reverse(f'admin:localization_{name}_changelist')).status_code, 200)
+                self.assertEqual(self.client.get(
+                    reverse(f'admin:localization_{name}_change', args=[obj.pk])).status_code, 200)
+
+    def test_change_is_refused(self):
+        url = reverse('admin:localization_translationoverride_change', args=[self.override.pk])
+        response = self.client.post(url, {
+            'language': 'el', 'msgid': 'Check again', 'msgctxt': '', 'plural_index': 0,
+            'msgstr': 'Χωρίς έλεγχο',
+        })
+        self.assertEqual(response.status_code, 403)
+        self.override.refresh_from_db()
+        self.assertEqual(self.override.msgstr, GREEK_CHECK_AGAIN)
+
+    def test_add_and_delete_are_refused(self):
+        for name, obj in self.models():
+            with self.subTest(model=name):
+                add = reverse(f'admin:localization_{name}_add')
+                self.assertEqual(self.client.post(add, {}).status_code, 403)
+                delete = reverse(f'admin:localization_{name}_delete', args=[obj.pk])
+                self.assertEqual(self.client.post(delete, {'post': 'yes'}).status_code, 403)
+                self.assertTrue(type(obj).objects.filter(pk=obj.pk).exists())
+
+    def test_bulk_delete_does_nothing(self):
+        for name, obj in self.models():
+            with self.subTest(model=name):
+                url = reverse(f'admin:localization_{name}_changelist')
+                self.assertNotContains(self.client.get(url), 'delete_selected')
+                self.client.post(url, {
+                    'action': 'delete_selected', '_selected_action': [obj.pk], 'post': 'yes',
+                })
+                self.assertTrue(type(obj).objects.filter(pk=obj.pk).exists())
+
+    def test_reviewer_admin_can_still_change_assignments(self):
+        add = reverse('admin:localization_translationreviewer_add')
+        response = self.client.post(add, {'user': self.teacher.pk, 'language': 'de'})
+        self.assertEqual(response.status_code, 302, response.content)
+        self.assertTrue(TranslationReviewer.objects.filter(user=self.teacher, language='de').exists())

@@ -8099,6 +8099,14 @@ msgstr ""
 "donc pas en contenir."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"Les accolades ne correspondent pas au texte source. Conservez chaque espace "
+"réservé tel quel et n'ajoutez pas d'autres accolades."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Absent de votre traduction : %(token)s"

@@ -8091,6 +8091,14 @@ msgstr ""
 "μετάφραση."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"Τα άγκιστρα δεν αντιστοιχούν στο αρχικό κείμενο. Διατηρήστε κάθε σύμβολο "
+"κράτησης θέσης ακριβώς όπως είναι και μην προσθέτετε άλλα άγκιστρα."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Λείπει από τη μετάφρασή σας: %(token)s"

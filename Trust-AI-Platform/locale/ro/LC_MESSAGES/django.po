@@ -8149,6 +8149,14 @@ msgstr ""
 "Textul sursă nu are niciun rând nou, așa că nici traducerea nu poate avea."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"Acoladele nu corespund textului sursă. Păstrați fiecare substituent exact "
+"așa cum este și nu adăugați alte acolade."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Lipsește din traducerea dumneavoastră: %(token)s"

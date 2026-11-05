@@ -8083,6 +8083,15 @@ msgstr ""
 "keinen haben."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"Die geschweiften Klammern stimmen nicht mit dem Ausgangstext überein. Lassen "
+"Sie jeden Platzhalter unverändert und fügen Sie keine weiteren geschweiften "
+"Klammern hinzu."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Fehlt in Ihrer Übersetzung: %(token)s"

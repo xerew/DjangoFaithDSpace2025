@@ -89,7 +89,7 @@ def _rows(code):
     needs_review = {(e.msgctxt or '', e.msgid) for e in catalog.untranslated(code)}
     rows = []
     for entry in catalog.load_po(code):
-        if entry.obsolete:
+        if entry.obsolete or catalog.is_terms_only(entry):
             continue
         forms = _forms(entry, overrides)
         corrected = all(f['override'] is not None for f in forms)
@@ -158,6 +158,9 @@ def _problem_text(problem):
             'Write two percent signs for a literal one.'),
         catalog.UNEXPECTED_LINE_BREAK: _(
             'The source text has no line break, so the translation cannot have one.'),
+        catalog.UNSAFE_BRACES: _(
+            'The curly braces do not match the source text. Keep every placeholder exactly '
+            'as it is and do not add other curly braces.'),
     }
     if problem in fixed:
         return fixed[problem]
@@ -169,7 +172,8 @@ def _problem_text(problem):
 
 def _find_entry(code, msgctxt, msgid):
     for entry in catalog.load_po(code):
-        if not entry.obsolete and entry.msgid == msgid and (entry.msgctxt or '') == msgctxt:
+        if (not entry.obsolete and entry.msgid == msgid and (entry.msgctxt or '') == msgctxt
+                and not catalog.is_terms_only(entry)):
             return entry
     return None
 

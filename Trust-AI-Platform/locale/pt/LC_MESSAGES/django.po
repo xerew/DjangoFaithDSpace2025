@@ -8039,6 +8039,14 @@ msgstr ""
 "pode ter."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"As chavetas não coincidem com o texto original. Mantenha cada marcador de "
+"posição tal como está e não acrescente outras chavetas."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Falta na sua tradução: %(token)s"

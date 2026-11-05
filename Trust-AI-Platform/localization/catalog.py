@@ -1,5 +1,6 @@
 """Helpers for reading and checking the gettext catalogs in ``locale/``."""
 import re
+import string
 from collections import Counter
 from pathlib import Path
 
@@ -47,6 +48,7 @@ UNBALANCED_BRACKETS = 'unbalanced < and >'
 EXTRA_DOUBLE_QUOTE = 'extra straight double quote'
 STRAY_PERCENT = 'stray percent sign'
 UNEXPECTED_LINE_BREAK = 'unexpected line break'
+UNSAFE_BRACES = 'curly braces differ from the source'
 
 
 def _full_tags(text):
@@ -58,14 +60,48 @@ def _is_python_format(text):
     return '%%' in text or bool(_PY_FORMAT.search(text.replace('%%', '')))
 
 
+def _brace_fields(text):
+    """The field names of ``text`` as a format string, or None if it has anything more.
+
+    None covers text the format syntax cannot read (a lone brace) and fields
+    with a format spec or a conversion. Attribute access and indexes stay in
+    the field name, so they can only match a source that has them.
+    """
+    try:
+        parsed = list(string.Formatter().parse(text))
+    except ValueError:
+        return None
+    fields = Counter()
+    for _literal, name, spec, conversion in parsed:
+        if name is None:
+            continue
+        if spec or conversion:
+            return None
+        fields[name] += 1
+    return fields
+
+
+def _braces_match(msgid, msgstr):
+    """True when ``msgstr`` has the source's brace fields, in any order, and no other braces.
+
+    Call sites such as format_html raise KeyError on an unknown field, and a
+    field like {name.__class__} prints internals. A source the format syntax
+    cannot read has literal braces only, so just their number has to match.
+    """
+    if (msgstr.count('{'), msgstr.count('}')) != (msgid.count('{'), msgid.count('}')):
+        return False
+    source = _brace_fields(msgid)
+    return source is None or _brace_fields(msgstr) == source
+
+
 def translation_problems(msgid, msgstr):
     """``placeholder_problems`` plus the checks that keep a translation safe to render.
 
     Translations are output unescaped, and Python call sites %-format them,
     so besides the placeholders a translation must keep every HTML tag whole
     (attributes included), add no straight double quote (it could break out of
-    an HTML attribute), add no lone % when the text is %-formatted, and add no
-    line break.
+    an HTML attribute), add no lone % when the text is %-formatted, add no
+    line break, and keep its curly braces as the source has them.
     """
     msgid, msgstr = msgid or '', msgstr or ''
     problems = placeholder_problems(msgid, msgstr)
@@ -84,7 +120,34 @@ def translation_problems(msgid, msgstr):
             problems.append(STRAY_PERCENT)
     if '\n' in msgstr and '\n' not in msgid:
         problems.append(UNEXPECTED_LINE_BREAK)
+    if not _braces_match(msgid, msgstr):
+        problems.append(UNSAFE_BRACES)
     return problems
+
+
+_TERMS_WRAPPERS = {
+    'accounts/templates/accounts/tos.html',
+    'accounts/templates/accounts/tos_public.html',
+}
+_TERMS_BODIES = 'accounts/templates/accounts/tos/'
+
+
+def _is_terms_template(path):
+    path = path.replace('\\', '/')
+    if path.startswith('./'):
+        path = path[2:]
+    return path in _TERMS_WRAPPERS or path.startswith(_TERMS_BODIES)
+
+
+def is_terms_only(entry):
+    """True when only Terms of Service templates use this text, going by its #: references.
+
+    makemessages writes those references for every new string, so new Terms
+    text is covered without a list to maintain. They use the separator of the
+    system that ran it, so both are accepted.
+    """
+    return bool(entry.occurrences) and all(
+        _is_terms_template(path) for path, _line in entry.occurrences)
 
 
 def marked_msgids(code='el'):

@@ -8000,6 +8000,12 @@ msgstr ""
 "Jatorrizko testuak ez du lerro-jauzirik; beraz, itzulpenak ere ezin du izan."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Zure itzulpenean falta da: %(token)s"

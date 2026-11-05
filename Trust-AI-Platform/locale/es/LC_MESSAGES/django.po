@@ -8144,6 +8144,14 @@ msgstr ""
 "tenerlo."
 
 #: .\localization\views.py
+msgid ""
+"The curly braces do not match the source text. Keep every placeholder "
+"exactly as it is and do not add other curly braces."
+msgstr ""
+"Las llaves no coinciden con el texto original. Mantenga cada marcador tal "
+"como está y no añada otras llaves."
+
+#: .\localization\views.py
 #, python-format
 msgid "Missing from your translation: %(token)s"
 msgstr "Falta en su traducción: %(token)s"
