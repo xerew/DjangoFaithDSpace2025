@@ -33,6 +33,13 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
+from .performance_formula import (
+    categorize,
+    phase_score,
+    phase_weights as formula_phase_weights,
+    scored_activity_ids,
+    weighted_percentage,
+)
 from .translation_matching import (
     pooled_implementation_count,
     translation_activity_maps,
@@ -390,10 +397,9 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
 
     phases = Phase.objects.filter(scenario=scenario).order_by('order', 'id')
     
-    # Define the weights for each phase in the order they come
-    phase_weights = [0.2, 0.2, 0.45, 0.15]
-    if len(phases) > 4:
-        phase_weights = [0.2, 0.2, 0.3, 0.15, 0.15]
+    # Weights by phase position (performance_formula). Indexed directly
+    # below, so a 6th scored phase still raises IndexError as before.
+    phase_weights = formula_phase_weights(len(phases))
 
     # Get the last answers (only the latest answer for each user/activity combination)
     last_answers = get_last_answers(scenario_id)
@@ -469,35 +475,24 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
     for act in all_scenario_activities:
         activities_by_phase[act.phase_id].append(act)
 
+    chosen_by_user = defaultdict(dict)
+    for (user_id, activity_id), user_answer in last_answer_map.items():
+        if user_answer.answer:
+            chosen_by_user[user_id][activity_id] = user_answer.answer.answer_weight
+
+    scored_ids_by_phase = {
+        phase.id: scored_activity_ids(
+            [a.id for a in activities_by_phase.get(phase.id, []) if a.is_evaluatable and a.is_primary_ev],
+            bunch_map,
+        )
+        for phase in phases
+    }
+
     for user in valid_users:
         for index, phase in enumerate(phases):
-            primary_total_score = 0
-            primary_max_score = 0
-            processed_activities = set()
-
-            # Handle primary evaluatable activities
-            primary_evaluatable_activities = [a for a in activities_by_phase.get(phase.id, []) if a.is_evaluatable and a.is_primary_ev]
-            primary_count = len(primary_evaluatable_activities)
-
-            if primary_count > 0:
-                primary_weight_share = 100 / primary_count  # Each primary activity contributes equally
-
-                for primary_activity in primary_evaluatable_activities:
-                    bunch_act_ids = bunch_map.get(primary_activity.id, [primary_activity.id])
-
-                    for act_id in bunch_act_ids:
-                        if act_id not in processed_activities:
-                            user_last_answer = last_answer_map.get((user.id, act_id))
-                            if user_last_answer and user_last_answer.answer:
-                                primary_total_score += (user_last_answer.answer.answer_weight * primary_weight_share) / 100
-
-                            # Calculate max score for each bunch activity
-                            max_weight = max_weight_map.get(act_id)
-                            if max_weight:
-                                primary_max_score += (max_weight * primary_weight_share) / 100
-
-                            # Mark the bunch activity as processed
-                            processed_activities.add(act_id)
+            primary_total_score, primary_max_score = phase_score(
+                scored_ids_by_phase[phase.id], chosen_by_user[user.id], max_weight_map,
+            )
 
             # Calculate weighted scores using the corresponding phase weight
             if primary_max_score > 0:
@@ -515,14 +510,7 @@ def compute_final_performance(scenario_id, group_ids, start_date, end_date):
         user_data = user_performance[user.id]
         if user_data['max_weighted_score'] > 0 and user_data['phases_completed'] > 0:
             percentage_score = (user_data['weighted_score'] / user_data['max_weighted_score']) * 100
-            if percentage_score >= 83.3:
-                performance_category = 'High'
-            elif percentage_score >= 49.7:
-                performance_category = 'Moderate'
-            else:
-                performance_category = 'Low'
-
-            performance_counts[performance_category] += 1
+            performance_counts[categorize(percentage_score)] += 1
     
     waterfall_data.append({'name': 'High', 'value': performance_counts['High']})
     waterfall_data.append({'name': 'Moderate', 'value': performance_counts['Moderate']})
@@ -1886,9 +1874,7 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     scenario = get_object_or_404(Scenario, id=scenario_id)
     phases = list(Phase.objects.filter(scenario=scenario).order_by('order', 'id'))
 
-    phase_weights = [0.2, 0.2, 0.45, 0.15]
-    if len(phases) > 4:
-        phase_weights = [0.2, 0.2, 0.3, 0.15, 0.15]
+    phase_weights = formula_phase_weights(len(phases))
 
     # Parse dates
     start_dt = end_dt = None
@@ -1954,6 +1940,15 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
                for b in QuestionBunch.objects.filter(activity_primary_id__in=primary_ids)}
     all_bunch_act_ids = {aid for ids in bunches.values() for aid in ids}
     bunch_activity_objs = {a.id: a for a in Activity.objects.filter(id__in=all_bunch_act_ids)}
+    # Bunch members that no longer exist are dropped; a primary without a
+    # bunch always counts (performance_formula.scored_activity_ids).
+    known_scored_ids = set(bunch_activity_objs) | set(primary_ids)
+    scored_ids_by_phase = {
+        phase.id: scored_activity_ids(
+            [act.id for act in phase_primary_map[phase.id]], bunches, known_ids=known_scored_ids,
+        )
+        for phase in phases
+    }
 
     # Pre-fetch max answer weight per activity (single query)
     max_weight_map = {
@@ -1984,6 +1979,11 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
     def active_time(user_id, activity_id, timing):
         return max(timing - help_by_pair.get((user_id, activity_id), 0), 0)
 
+    chosen_by_user = defaultdict(dict)
+    for (user_id, activity_id), user_answer in last_answers_dict.items():
+        if user_answer.answer:
+            chosen_by_user[user_id][activity_id] = user_answer.answer.answer_weight
+
     # Main loop -- no DB queries inside
     csv_data = []
     named_ids = None if named_user_ids is None else set(named_user_ids)
@@ -1995,14 +1995,11 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
             row = ['', f'Student {pseudonym_count}', scenario.name]
         else:
             row = [user.id, user.username, scenario.name]
-        total_weighted_score = 0
-        total_max_weighted_score = 0
+        chosen = chosen_by_user[user.id]
+        phase_scores = []
 
         for index, phase in enumerate(phases):
             phase_total_time = 0
-            phase_total_score = 0
-            phase_max_score = 0
-            processed_activities = set()
 
             phase_start_time = phase_start_map.get((user.id, phase.id))
 
@@ -2011,34 +2008,13 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
                 if ua and ua.timing:
                     phase_total_time += active_time(user.id, activity.id, ua.timing)
 
-            for primary_activity in phase_primary_map[phase.id]:
-                if primary_activity.id in bunches:
-                    bunch_acts = [bunch_activity_objs[aid]
-                                  for aid in bunches[primary_activity.id]
-                                  if aid in bunch_activity_objs]
-                else:
-                    bunch_acts = [primary_activity]
-
-                for bunch_activity in bunch_acts:
-                    if bunch_activity.id not in processed_activities:
-                        ua = last_answers_dict.get((user.id, bunch_activity.id))
-                        if ua and ua.answer:
-                            phase_total_score += ua.answer.answer_weight
-                        phase_max_score += max_weight_map.get(bunch_activity.id, 0)
-                        processed_activities.add(bunch_activity.id)
-
-            if phase_max_score > 0:
-                weight = phase_weights[index] if index < len(phase_weights) else 0
-                total_weighted_score += (phase_total_score / phase_max_score) * weight
-                total_max_weighted_score += weight
+            phase_total_score, phase_max_score = phase_score(
+                scored_ids_by_phase[phase.id], chosen, max_weight_map,
+            )
+            phase_scores.append((phase_total_score, phase_max_score))
 
             phase_percentage = (phase_total_score / phase_max_score) * 100 if phase_max_score > 0 else 0
-            if phase_percentage >= 83.3:
-                phase_categorization = 'High'
-            elif phase_percentage >= 49.7:
-                phase_categorization = 'Moderate'
-            else:
-                phase_categorization = 'Low'
+            phase_categorization = categorize(phase_percentage)
 
             row.extend([
                 phase_categorization,
@@ -2052,13 +2028,8 @@ def compute_student_performance_metrics(scenario_id, group_ids, start_date, end_
                 help['by_user_phase'].get((user.id, phase.id), 0),
             ])
 
-        final_percentage = (total_weighted_score / total_max_weighted_score) * 100 if total_max_weighted_score > 0 else 0
-        if final_percentage >= 83.3:
-            final_categorization = 'High'
-        elif final_percentage >= 49.7:
-            final_categorization = 'Moderate'
-        else:
-            final_categorization = 'Low'
+        final_percentage = weighted_percentage(phase_scores, phase_weights) or 0
+        final_categorization = categorize(final_percentage)
 
         row.append(final_categorization)
         user_help = help['by_user'].get(user.id, {'seconds': 0, 'requests': 0})
