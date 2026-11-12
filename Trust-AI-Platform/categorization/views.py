@@ -4,12 +4,13 @@ from functools import wraps
 
 from django.contrib import admin, messages
 from django.contrib.auth.views import redirect_to_login
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import redirect, render
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
+from .export import workbook
 from .models import TrainingAlreadyRunning, TrainingRun
 from .report import early_view, filter_options, final_view
 from .tasks import train_models_task
@@ -131,3 +132,17 @@ def status(request):
         'progress': run.progress,
         'error': run.error,
     })
+
+
+@admin_only
+def export(request, run_id, tab):
+    if tab not in ('final', 'early'):
+        raise Http404
+    run = get_object_or_404(TrainingRun, pk=run_id, status='finished')
+    content = workbook(run, tab, _filters(request), _int(request.GET.get('checkpoint')))
+    response = HttpResponse(
+        content,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="categorization-run-{run.id}-{tab}.xlsx"'
+    return response

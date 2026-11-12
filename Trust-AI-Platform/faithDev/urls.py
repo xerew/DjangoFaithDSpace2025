@@ -19,6 +19,11 @@ urlpatterns = [
     path('admin/student-categorization/', categorization_views.dashboard, name='categorization_dashboard'),
     path('admin/student-categorization/train/', categorization_views.train, name='categorization_train'),
     path('admin/student-categorization/status/', categorization_views.status, name='categorization_status'),
+    path(
+        'admin/student-categorization/<int:run_id>/export/<str:tab>/',
+        categorization_views.export,
+        name='categorization_export',
+    ),
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('/home/', permanent=True)),
     path('home/', include('home.urls')),
