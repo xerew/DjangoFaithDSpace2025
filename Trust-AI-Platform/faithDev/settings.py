@@ -345,6 +345,12 @@ OLLAMA_URL = os.environ.get(
     'OLLAMA_URL',
     'http://host.docker.internal:11434',
 ).rstrip('/')
+# Folder shared with the ollama-tunnel container: the admin's choice of NTUA
+# address goes in, the tunnel's status comes out (authoringtool/ollama_tunnel.py).
+OLLAMA_TUNNEL_CONTROL_DIR = os.environ.get(
+    'OLLAMA_TUNNEL_CONTROL_DIR',
+    '/ollama-control',
+)
 SCENARIO_FAMILY_REVIEW_LLM_MODEL = os.environ.get(
     'SCENARIO_FAMILY_REVIEW_LLM_MODEL',
     'qwen3.6:35b',

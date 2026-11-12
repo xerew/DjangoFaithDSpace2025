@@ -1,0 +1,94 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .ai-server { max-width: 760px; }
+    .ai-server-card {
+      margin: 0 0 18px;
+      padding: 16px;
+      color: var(--body-fg);
+      background: var(--darkened-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .ai-server-card h2 { margin-top: 0; color: var(--body-loud-color); }
+    .ai-server-card p:last-child { margin-bottom: 0; }
+    .ai-server-state { font-size: 1rem; font-weight: 600; }
+    .ai-server-state.success { color: var(--message-success-color, #2e7d32); }
+    .ai-server-state.warning { color: var(--message-warning-color, #b26a00); }
+    .ai-server-state.error { color: var(--error-fg, #ba2121); }
+    .ai-server-quiet { color: var(--body-quiet-color); }
+    .ai-server-choice { display: block; margin: 8px 0; }
+    .ai-server-choice small { display: block; margin-left: 22px; color: var(--body-quiet-color); }
+    .ai-server code { white-space: nowrap; }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; AI server connection
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="ai-server">
+  <div class="ai-server-card">
+    <h2>Tunnel to the NTUA machine</h2>
+    <p class="ai-server-state {{ summary.level }}">{{ summary.text }}</p>
+    {% if summary.hint %}<p class="ai-server-quiet">{{ summary.hint }}</p>{% endif %}
+    {% if last_message and summary.level != 'success' %}
+      <p>Last SSH error: <code>{{ last_message }}</code></p>
+    {% endif %}
+    {% if pending %}
+      <p class="ai-server-quiet">Your latest choice is being applied.</p>
+    {% endif %}
+    <p class="ai-server-quiet">
+      Ollama:
+      {% if ollama_ok %}answered the last check{% if ollama_checked_at %} ({{ ollama_checked_at }}){% endif %}.
+      {% else %}did not answer{% if ollama_offline_since %} since {{ ollama_offline_since }}{% endif %}.
+      {% endif %}
+      Checked every minute by the Celery worker.
+    </p>
+  </div>
+
+  <div class="ai-server-card">
+    <h2>Which address to use</h2>
+    <form method="post">
+      {% csrf_token %}
+      <label class="ai-server-choice">
+        <input type="radio" name="target" value="{{ auto }}" {% if target.target == auto %}checked{% endif %}>
+        Automatic (recommended)
+        <small>Tries the addresses in order and stays on the first one that connects. If the connection drops, it tries them again.</small>
+      </label>
+      {% for host in status.hosts %}
+        <label class="ai-server-choice">
+          <input type="radio" name="target" value="{{ host }}" {% if target.target == host %}checked{% endif %}>
+          Always use {{ host }}
+        </label>
+      {% empty %}
+        <p class="ai-server-quiet">The fixed addresses appear here once the tunnel reports them.</p>
+      {% endfor %}
+      <p>
+        <input type="submit" class="default" value="Save">
+      </p>
+    </form>
+    {% if target.changed_by %}
+      <p class="ai-server-quiet">Last changed by {{ target.changed_by }}{% if target_changed_at %} on {{ target_changed_at }}{% endif %}.</p>
+    {% endif %}
+  </div>
+
+  <div class="ai-server-card">
+    <h2>Adding an address</h2>
+    <p>
+      The addresses come from <code>OLLAMA_SSH_HOSTS</code> in the server's
+      <code>.env</code> file, separated by commas. After changing it, run
+      <code>docker compose run --rm ollama-tunnel setup</code> once, so the
+      tunnel knows the new address's SSH key, then
+      <code>docker compose up -d --no-deps ollama-tunnel</code>.
+    </p>
+  </div>
+</div>
+{% endblock %}

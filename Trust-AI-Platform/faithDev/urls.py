@@ -6,7 +6,15 @@ from django.contrib.auth import views as auth_views
 from django.conf.urls import handler404
 from django.shortcuts import redirect
 
+from authoringtool.ollama_tunnel_views import ai_server_connection_view
+
 urlpatterns = [
+    # Before admin.site.urls, which would otherwise treat it as an app label.
+    path(
+        'admin/ai-server/',
+        admin.site.admin_view(ai_server_connection_view),
+        name='ai_server_connection',
+    ),
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('/home/', permanent=True)),
     path('home/', include('home.urls')),

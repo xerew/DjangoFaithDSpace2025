@@ -40,14 +40,20 @@ services:
       context: ./deploy/ollama-tunnel
       dockerfile: Dockerfile
     environment:
-      SSH_HOST: ${OLLAMA_SSH_HOST:-147.102.17.66}
+      # Addresses of the NTUA machine, tried in this order. Admins can
+      # switch between them in Django admin (AI server connection).
+      SSH_HOSTS: ${OLLAMA_SSH_HOSTS:-147.102.17.66,147.102.23.222}
+      # Older single-address setting; added to the list if still set.
+      SSH_HOST: ${OLLAMA_SSH_HOST:-}
       SSH_PORT: ${OLLAMA_SSH_PORT:-22}
       SSH_USER: ${OLLAMA_SSH_USER:-ngrammatikos}
       REMOTE_OLLAMA_HOST: ${OLLAMA_REMOTE_HOST:-127.0.0.1}
       REMOTE_OLLAMA_PORT: ${OLLAMA_REMOTE_PORT:-11434}
       LOCAL_OLLAMA_PORT: "11434"
+      CONTROL_DIR: /control
     volumes:
       - ollama_ssh:/root/.ssh
+      - ollama_control:/control
     expose:
       - "11434"
     healthcheck:
@@ -69,10 +75,13 @@ services:
       python manage.py collectstatic --noinput &&
       gunicorn faithDev.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 4 --timeout 120
       "
+    environment:
+      OLLAMA_TUNNEL_CONTROL_DIR: /ollama-control
     volumes:
       - ./data/static:/app/staticfiles
       - ./data/media:/app/media
       - ./data:/data
+      - ollama_control:/ollama-control
     depends_on:
       - db
       - redis
@@ -183,3 +192,4 @@ services:
 volumes:
   pgdata:
   ollama_ssh:
+  ollama_control:
