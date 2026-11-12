@@ -25,6 +25,7 @@ Trust-AI-Platform/media/
 Trust-AI-Platform/staticfiles/
 Trust-AI-Platform/static/pdfs/
 Trust-AI-Platform/ai_metrics_cache/
+Trust-AI-Platform/categorization_models/
 Trust-AI-Platform/rag_pdfs/
 Trust-AI-Platform/rag_indexes/
 
