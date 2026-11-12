@@ -122,8 +122,22 @@ def _early_book(run, filters, checkpoint):
     return book
 
 
+def _text_only(book):
+    """Store text that looks like a formula ("=...") as text.
+
+    The export never writes formulas; scenario names are written by
+    teachers and the language filter comes from the URL.
+    """
+    for sheet in book.worksheets:
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.data_type == 'f':
+                    cell.data_type = 's'
+
+
 def workbook(run, tab, filters, checkpoint=None):
     book = _final_book(run, filters) if tab == 'final' else _early_book(run, filters, checkpoint)
+    _text_only(book)
     buffer = BytesIO()
     book.save(buffer)
     return buffer.getvalue()

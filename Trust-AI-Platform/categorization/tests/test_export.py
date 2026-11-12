@@ -49,6 +49,24 @@ class ExportTests(TestCase):
         self.assertIn(('Scenario filter', 'Beta'), values)
         self.assertIn(('Agreement with PISA', 1.0), values)
 
+    def test_scenario_names_are_never_formulas(self):
+        name = '=HYPERLINK("http://example.com","Alpha")'
+        data = results()
+        for row in data['final']['predictions']:
+            if row['scenario_name'] == 'Alpha':
+                row['scenario_name'] = name
+        self.run.results = data
+        self.run.save()
+        book = self.workbook('final')
+        for cell in (book['Per scenario']['A2'], book['Disagreements']['B2']):
+            self.assertEqual(cell.value, name)
+            self.assertEqual(cell.data_type, 's')
+        # The language filter is echoed from the query string.
+        summary = self.workbook('final', language='=1+1')['Summary']
+        echoed = [row[1] for row in summary.iter_rows() if row[0].value == 'Language filter'][0]
+        self.assertEqual(echoed.value, '=1+1')
+        self.assertEqual(echoed.data_type, 's')
+
     def test_teacher_cannot_export(self):
         self.client.force_login(User.objects.create_user('teacher', password='pass'))
         response = self.client.get(reverse('categorization_export', args=[self.run.id, 'final']))
