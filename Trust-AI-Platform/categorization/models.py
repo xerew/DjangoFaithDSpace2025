@@ -55,14 +55,18 @@ class TrainingRun(models.Model):
         return f'Training run {self.pk} ({self.status})'
 
     @classmethod
+    def expire_stale(cls):
+        """Mark runs that were lost (queued or running too long) as failed."""
+        cls.objects.filter(
+            status__in=cls.ACTIVE, created_at__lt=timezone.now() - cls.STALE_AFTER,
+        ).update(status='failed', error=cls.STALE_ERROR, finished_at=timezone.now())
+
+    @classmethod
     def start(cls, user):
         """Queue a new run, unless one is already queued or running."""
         with transaction.atomic():
-            active = cls.objects.select_for_update().filter(status__in=cls.ACTIVE)
-            active.filter(created_at__lt=timezone.now() - cls.STALE_AFTER).update(
-                status='failed', error=cls.STALE_ERROR, finished_at=timezone.now(),
-            )
-            if active.filter(status__in=cls.ACTIVE).exists():
+            cls.expire_stale()
+            if cls.objects.select_for_update().filter(status__in=cls.ACTIVE).exists():
                 raise TrainingAlreadyRunning()
             return cls.objects.create(started_by=user, status='queued')
 

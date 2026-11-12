@@ -4,6 +4,8 @@ from unittest import mock
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
+from datetime import timedelta
+
 from django.utils import timezone
 
 from categorization.models import TrainingRun
@@ -158,6 +160,30 @@ class DashboardTests(TestCase):
         self.assertEqual(early['rows'][0]['xgb']['accuracy'], 0.5)
         self.assertEqual(early['rows'][0]['baseline']['accuracy'], 0.5)
         self.assertEqual(early['loso'][0]['baseline_accuracy'], 0.5)
+
+    def test_lost_run_does_not_block_train_button(self):
+        lost = TrainingRun.objects.create(status='running')
+        TrainingRun.objects.filter(pk=lost.pk).update(created_at=timezone.now() - timedelta(hours=7))
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        self.assertIsNone(response.context['active'])
+        lost.refresh_from_db()
+        self.assertEqual(lost.status, 'failed')
+        self.assertContains(response, TrainingRun.STALE_ERROR)
+
+    def test_status_expires_lost_run(self):
+        lost = TrainingRun.objects.create(status='queued')
+        TrainingRun.objects.filter(pk=lost.pk).update(created_at=timezone.now() - timedelta(hours=7))
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse('categorization_status')).json()['status'], 'failed')
+
+    def test_run_dropdown_does_not_load_results(self):
+        self.finished_run()
+        self.finished_run()
+        self.client.force_login(self.staff)
+        runs = list(self.client.get(self.url).context['finished_runs'])
+        self.assertEqual(len(runs), 2)
+        self.assertIn('results', runs[0].get_deferred_fields())
 
     def test_status_json(self):
         self.client.force_login(self.staff)

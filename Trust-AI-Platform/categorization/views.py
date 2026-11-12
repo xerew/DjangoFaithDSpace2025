@@ -72,9 +72,11 @@ def selected_run(request):
 
 @admin_only
 def dashboard(request):
+    TrainingRun.expire_stale()
     selected = selected_run(request)
-    active = TrainingRun.objects.filter(status__in=TrainingRun.ACTIVE).first()
-    last_failed = TrainingRun.objects.filter(status='failed').first()
+    light = TrainingRun.objects.defer('results')
+    active = light.filter(status__in=TrainingRun.ACTIVE).first()
+    last_failed = light.filter(status='failed').first()
     if last_failed and selected and last_failed.created_at < selected.created_at:
         last_failed = None
     tab = 'early' if request.GET.get('tab') == 'early' else 'final'
@@ -85,7 +87,8 @@ def dashboard(request):
         # The admin's app sidebar adds nothing on this page.
         'is_nav_sidebar_enabled': False,
         'selected': selected,
-        'finished_runs': TrainingRun.objects.filter(status='finished')[:50],
+        # Only what the dropdown shows: each run's results can be megabytes.
+        'finished_runs': TrainingRun.objects.filter(status='finished').only('id', 'finished_at')[:50],
         'active': active,
         'last_failed': last_failed,
         'tab': tab,
@@ -123,7 +126,8 @@ def train(request):
 
 @admin_only
 def status(request):
-    run = TrainingRun.objects.first()
+    TrainingRun.expire_stale()
+    run = TrainingRun.objects.defer('results').first()
     if not run:
         return JsonResponse({})
     return JsonResponse({
