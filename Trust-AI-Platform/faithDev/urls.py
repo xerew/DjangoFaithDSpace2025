@@ -7,6 +7,7 @@ from django.conf.urls import handler404
 from django.shortcuts import redirect
 
 from authoringtool.ollama_tunnel_views import ai_server_connection_view
+from categorization import views as categorization_views
 
 urlpatterns = [
     # Before admin.site.urls, which would otherwise treat it as an app label.
@@ -15,6 +16,9 @@ urlpatterns = [
         admin.site.admin_view(ai_server_connection_view),
         name='ai_server_connection',
     ),
+    path('admin/student-categorization/', categorization_views.dashboard, name='categorization_dashboard'),
+    path('admin/student-categorization/train/', categorization_views.train, name='categorization_train'),
+    path('admin/student-categorization/status/', categorization_views.status, name='categorization_status'),
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('/home/', permanent=True)),
     path('home/', include('home.urls')),
