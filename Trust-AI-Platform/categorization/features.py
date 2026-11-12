@@ -19,6 +19,8 @@ from authoringtool.performance_formula import (
     weighted_percentage,
 )
 
+from .dataset import run_until
+
 MAX_POSITIONS = 6
 FAST_ANSWER_RATIO = 0.1
 FAST_ANSWER_RULE = (
@@ -171,15 +173,16 @@ def checkpoint_table(runs, norms):
         if run.label is None:
             continue
         weights = phase_weights(run.phase_count)
-        answered_positions = {e.phase_position for e in run.answers if e.phase_position}
         for k in range(1, run.phase_count):
-            if k not in answered_positions:
+            # Only what the student had done before first moving past phase k.
+            at_k = run_until(run, k)
+            if not any(e.phase_position == k for e in at_k.answers):
                 continue
-            so_far = weighted_percentage(run.phase_scores[:k], weights)
+            so_far = weighted_percentage(at_k.phase_scores[:k], weights)
             if so_far is None:
                 continue
             row = _meta(run)
-            row.update(run_inputs(run, norms, upto=k))
+            row.update(run_inputs(at_k, norms, upto=k))
             row['checkpoint'] = float(k)
             row['pct_so_far'] = so_far
             row['baseline_label'] = categorize(so_far)

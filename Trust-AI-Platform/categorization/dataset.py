@@ -10,7 +10,7 @@ something in the scenario's last phase.
 """
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Callable
 
@@ -66,7 +66,12 @@ class Run:
     phase_count: int
     phase_scores: list
     scored_by_position: dict
+    # The scenario's scoring rules, so a checkpoint can rescore the run.
+    scored_ids_by_position: dict
+    max_weight: dict
     answers: list
+    # (phase position, started_at, seconds) of each finished help pause.
+    help_events: list
     help_by_position: dict
     final_percentage: float | None
     label: str | None
@@ -188,21 +193,85 @@ def _group_keys():
 
 
 def _help(scenario, ctx):
-    """Help per (user, activity) seconds, and per user and phase position."""
+    """Help seconds per (user, activity), and timed help events per user."""
     by_user_activity = defaultdict(int)
-    by_user_position = defaultdict(lambda: defaultdict(lambda: {'seconds': 0, 'requests': 0}))
-    for user_id, activity_id, phase_id, seconds in finished_help_requests(scenario).values_list(
-        'user_id', 'activity_id', 'phase_id', 'duration_seconds',
+    events_by_user = defaultdict(list)
+    for user_id, activity_id, phase_id, started_at, seconds in finished_help_requests(
+        scenario,
+    ).order_by('started_at').values_list(
+        'user_id', 'activity_id', 'phase_id', 'started_at', 'duration_seconds',
     ):
         seconds = seconds or 0
         if activity_id:
             by_user_activity[(user_id, activity_id)] += seconds
         position = ctx.position_by_phase_id.get(phase_id) or ctx.position_by_activity_id.get(activity_id)
         if position:
-            bucket = by_user_position[user_id][position]
-            bucket['seconds'] += seconds
-            bucket['requests'] += 1
-    return by_user_activity, by_user_position
+            events_by_user[user_id].append((position, started_at, seconds))
+    return by_user_activity, events_by_user
+
+
+def help_totals_by_position(help_events):
+    totals = {}
+    for position, _, seconds in help_events:
+        bucket = totals.setdefault(position, {'seconds': 0, 'requests': 0})
+        bucket['seconds'] += seconds
+        bucket['requests'] += 1
+    return totals
+
+
+def score_run(answers, scored_ids_by_position, max_weight, phase_count):
+    """(phase_scores, scored_by_position) from the answers marked is_last."""
+    chosen = {
+        event.activity_id: event.chosen_weight
+        for event in answers
+        if event.is_last and event.activity_id is not None and event.chosen_weight is not None
+    }
+    phase_scores = []
+    scored_by_position = {}
+    for position in range(1, phase_count + 1):
+        scored = scored_ids_by_position.get(position, [])
+        phase_scores.append(phase_score(scored, chosen, max_weight))
+        scored_by_position[position] = (sum(1 for aid in scored if aid in chosen), len(scored))
+    return phase_scores, scored_by_position
+
+
+def run_until(run, k):
+    """The run as it stood at checkpoint k, before its first answer past phase k.
+
+    Answers and help from after that moment are dropped, even in phases
+    1..k (a student who went back), and the last answer per activity is
+    taken again from what is left.
+    """
+    later = [e.created_on for e in run.answers if e.phase_position and e.phase_position > k]
+    cutoff = min(later) if later else None
+    kept = [
+        e for e in run.answers
+        if (cutoff is None or e.created_on < cutoff)
+        and (e.phase_position is None or e.phase_position <= k)
+    ]
+    last_index = {}
+    for index, event in enumerate(kept):
+        if event.activity_id is not None:
+            last_index[event.activity_id] = index
+    answers = [
+        replace(event, is_last=event.activity_id is not None and last_index[event.activity_id] == index)
+        for index, event in enumerate(kept)
+    ]
+    help_events = [
+        (position, started_at, seconds) for position, started_at, seconds in run.help_events
+        if position <= k and (cutoff is None or started_at < cutoff)
+    ]
+    phase_scores, scored_by_position = score_run(
+        answers, run.scored_ids_by_position, run.max_weight, run.phase_count,
+    )
+    return replace(
+        run,
+        answers=answers,
+        help_events=help_events,
+        help_by_position=help_totals_by_position(help_events),
+        phase_scores=phase_scores,
+        scored_by_position=scored_by_position,
+    )
 
 
 def scenario_runs(scenario, group_key):
@@ -211,7 +280,7 @@ def scenario_runs(scenario, group_key):
         return []
     weights = phase_weights(len(ctx.phases))
     last_ids = set(get_last_answers(scenario.id).values_list('id', flat=True))
-    help_by_pair, help_by_position = _help(scenario, ctx)
+    help_by_pair, help_events_by_user = _help(scenario, ctx)
 
     answers_by_run = defaultdict(list)
     for row in (
@@ -230,7 +299,6 @@ def scenario_runs(scenario, group_key):
         implementation = implementations[implementation_id]
         user_id = implementation.user_id
         events = []
-        chosen = {}
         for row in rows:
             in_scenario = row.activity_id in ctx.activity_ids
             timing = row.timing or 0
@@ -247,15 +315,11 @@ def scenario_runs(scenario, group_key):
                 chosen_weight=weight,
                 is_last=is_last,
             ))
-            if is_last and in_scenario and weight is not None:
-                chosen[row.activity_id] = weight
 
-        phase_scores = []
-        scored_by_position = {}
-        for position in range(1, len(ctx.phases) + 1):
-            scored = ctx.scored_ids_by_position[position]
-            phase_scores.append(phase_score(scored, chosen, ctx.max_weight))
-            scored_by_position[position] = (sum(1 for aid in scored if aid in chosen), len(scored))
+        phase_scores, scored_by_position = score_run(
+            events, ctx.scored_ids_by_position, ctx.max_weight, len(ctx.phases),
+        )
+        help_events = help_events_by_user.get(user_id, [])
 
         answered_ids = {event.activity_id for event in events if event.activity_id is not None}
         has_lost = any(event.activity_id is None for event in events)
@@ -277,8 +341,11 @@ def scenario_runs(scenario, group_key):
             phase_count=len(ctx.phases),
             phase_scores=phase_scores,
             scored_by_position=scored_by_position,
+            scored_ids_by_position=ctx.scored_ids_by_position,
+            max_weight=ctx.max_weight,
             answers=events,
-            help_by_position={pos: dict(v) for pos, v in help_by_position.get(user_id, {}).items()},
+            help_events=help_events,
+            help_by_position=help_totals_by_position(help_events),
             final_percentage=final,
             label=label,
             finished_rule=rule,
