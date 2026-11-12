@@ -6,6 +6,7 @@ from .models import UserGroup, UserGroupMembership
 import openpyxl
 from django.http import HttpResponse
 from .forms import UserGroupForm
+from authoringtool.co_authors import co_authored_ids, co_authored_q
 from authoringtool.models import Scenario, UserAnswer, MultilingualAnswer, MultilingualQuestion
 from authoringtool.translation_matching import bundle_translations
 from django.contrib.auth.decorators import login_required
@@ -68,12 +69,16 @@ def _scenario_choices(user, scenarios, assigned_ids=()):
     none is dropped on save.
     """
     mine, others = [], []
+    co_authored = co_authored_ids(user)
     for bundle in bundle_translations(scenarios):
         rows = [
             {'versions': bundle, 'selected': version, 'assigned': True}
             for version in bundle if version.id in assigned_ids
         ] or [{'versions': bundle, 'selected': bundle[0], 'assigned': False}]
-        owned = any(version.created_by_id == user.id for version in bundle)
+        owned = any(
+            version.created_by_id == user.id or version.id in co_authored
+            for version in bundle
+        )
         (mine if owned else others).extend(rows)
     return mine, others
 
@@ -114,6 +119,7 @@ def create_user_group(request):
 
     all_scenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
         Q(created_by=user) |  # Private scenarios created by the user
+        co_authored_q(user) |  # Scenarios the user co-authors
         Q(visibility_status='public') |  # Public scenarios
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))  # Org-only scenarios where user belongs to the org
     ).distinct()
@@ -343,6 +349,7 @@ def edit_group(request, group_id):
     org_ids = user.member_of_organizations.values_list('id', flat=True)
     all_scenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
         Q(created_by=user) |
+        co_authored_q(user) |
         Q(visibility_status='public') |
         (Q(visibility_status='org') & Q(organizations__id__in=org_ids))
     ).distinct()

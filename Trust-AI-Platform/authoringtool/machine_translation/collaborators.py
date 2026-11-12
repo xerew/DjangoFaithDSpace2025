@@ -32,8 +32,10 @@ def can_be_reviewer(user):
     return _is_admin(user) or user.groups.filter(name='teachers').exists()
 
 
-def is_collaborator(user, scenario):
-    return ScenarioCollaborator.objects.filter(scenario=scenario, user=user).exists()
+def is_reviewer(user, scenario):
+    return ScenarioCollaborator.objects.filter(
+        scenario=scenario, user=user, role=ScenarioCollaborator.ROLE_TRANSLATION_REVIEWER,
+    ).exists()
 
 
 def _send_review_email(scenario, job, reviewer, added_by):
@@ -65,7 +67,12 @@ def assign_reviewer(scenario, reviewer, added_by):
             'added_by': added_by,
         },
     )
-    if created and reviewer.email:
+    # A co-author asked to review becomes a reviewer, who can also verify.
+    promoted = not created and collaborator.role != ScenarioCollaborator.ROLE_TRANSLATION_REVIEWER
+    if promoted:
+        collaborator.role = ScenarioCollaborator.ROLE_TRANSLATION_REVIEWER
+        collaborator.save(update_fields=['role'])
+    if (created or promoted) and reviewer.email:
         _send_review_email(scenario, scenario.translation_job, reviewer, added_by)
     return collaborator
 
@@ -84,7 +91,7 @@ def can_verify(user, scenario):
     job = getattr(scenario, 'translation_job', None)
     if job is None or job.status != ScenarioTranslationJob.STATUS_DONE:
         return False
-    return _is_admin(user) or is_collaborator(user, scenario)
+    return _is_admin(user) or is_reviewer(user, scenario)
 
 
 def verify_translation(scenario, user):

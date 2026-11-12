@@ -9661,3 +9661,70 @@ msgstr[1] ""
 #, python-format
 msgid "Group '%(name)s' updated successfully."
 msgstr "Gruppe „%(name)s“ erfolgreich aktualisiert."
+
+#: authoringtool/co_authors.py
+msgid "You were added as a co-author"
+msgstr "Sie wurden als Mitautor/in hinzugefügt"
+
+#: authoringtool/co_authors.py
+#, python-format
+msgid ""
+"%(sender)s added you as a co-author of the scenario \"%(name)s\" on Trust AI "
+"Lab. Open it here: %(link)s"
+msgstr ""
+"%(sender)s hat Sie als Mitautor/in des Szenarios „%(name)s“ auf Trust AI Lab "
+"hinzugefügt. Hier öffnen: %(link)s"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Co-authors"
+msgstr "Mitautor/innen"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Search by name, username, email or organization"
+msgstr "Nach Name, Benutzername, E-Mail oder Organisation suchen"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid ""
+"Co-authors can edit this scenario and use it with their groups. They cannot "
+"change its sharing or delete it."
+msgstr ""
+"Mitautor/innen können dieses Szenario bearbeiten und mit ihren Gruppen "
+"nutzen. Sie können weder seine Freigabe ändern noch es löschen."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No co-authors yet."
+msgstr "Noch keine Mitautor/innen."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Remove co-author {name}"
+msgstr "Mitautor/in {name} entfernen"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No organization"
+msgstr "Keine Organisation"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Your organization"
+msgstr "Ihre Organisation"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Showing the first {count} teachers. Search to narrow the list."
+msgstr ""
+"Die ersten {count} Lehrkräfte werden angezeigt. Suchen Sie, um die Liste "
+"einzugrenzen."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not update co-authors. Please try again."
+msgstr ""
+"Die Mitautor/innen konnten nicht aktualisiert werden. Bitte versuchen Sie es "
+"erneut."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not load the list of teachers. Please try again."
+msgstr ""
+"Die Liste der Lehrkräfte konnte nicht geladen werden. Bitte versuchen Sie es "
+"erneut."

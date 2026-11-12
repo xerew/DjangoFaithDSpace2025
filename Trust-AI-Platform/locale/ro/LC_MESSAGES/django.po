@@ -9727,3 +9727,64 @@ msgstr[2] ""
 #, python-format
 msgid "Group '%(name)s' updated successfully."
 msgstr "Grupul „%(name)s” a fost actualizat."
+
+#: authoringtool/co_authors.py
+msgid "You were added as a co-author"
+msgstr "Sunteți acum coautor al unui scenariu"
+
+#: authoringtool/co_authors.py
+#, python-format
+msgid ""
+"%(sender)s added you as a co-author of the scenario \"%(name)s\" on Trust AI "
+"Lab. Open it here: %(link)s"
+msgstr ""
+"%(sender)s v-a adăugat drept coautor al scenariului „%(name)s” pe Trust AI "
+"Lab. Îl puteți deschide aici: %(link)s"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Co-authors"
+msgstr "Coautori"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Search by name, username, email or organization"
+msgstr "Caută după nume, nume de utilizator, e-mail sau organizație"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid ""
+"Co-authors can edit this scenario and use it with their groups. They cannot "
+"change its sharing or delete it."
+msgstr ""
+"Coautorii pot edita acest scenariu și îl pot folosi cu grupurile lor. Nu pot "
+"modifica partajarea și nu îl pot șterge."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No co-authors yet."
+msgstr "Încă nu există coautori."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Remove co-author {name}"
+msgstr "Elimină coautorul {name}"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Add"
+msgstr "Adaugă"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No organization"
+msgstr "Fără organizație"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Your organization"
+msgstr "Organizația dumneavoastră"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Showing the first {count} teachers. Search to narrow the list."
+msgstr "Profesori afișați: primii {count}. Căutați pentru a restrânge lista."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not update co-authors. Please try again."
+msgstr "Coautorii nu au putut fi actualizați. Încercați din nou."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not load the list of teachers. Please try again."
+msgstr "Lista profesorilor nu a putut fi încărcată. Încercați din nou."

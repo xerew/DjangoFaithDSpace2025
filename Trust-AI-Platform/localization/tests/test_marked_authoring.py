@@ -361,6 +361,9 @@ PYTHON_SENTINELS = [
     'Teacher adaptation',
     'Waiting',
     'Co-author',
+    'Co-authors',
+    'You were added as a co-author',
+    'Search by name, username, email or organization',
 ]
 
 # Strings used only inside <script> blocks.

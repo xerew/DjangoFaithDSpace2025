@@ -386,6 +386,21 @@
                 </div>
               </div>
 
+              <hr class="sc-divider">
+              <div class="sc-field" id="coAuthorSection"
+                   data-candidates-url="{% url 'co_author_candidates' scenario_id=Scenario.id %}"
+                   data-add-url="{% url 'add_co_author' scenario_id=Scenario.id %}"
+                   data-remove-url="{% url 'remove_co_author' scenario_id=Scenario.id user_id=0 %}">
+                <label class="sc-label" for="coAuthorSearch"><i class="bi bi-people"></i>{% translate "Co-authors" %}</label>
+                <div id="coAuthorList" class="d-flex flex-wrap gap-2 mb-2"></div>
+                <input type="search" class="sc-input" id="coAuthorSearch" autocomplete="off"
+                       placeholder="{% translate 'Search by name, username, email or organization' %}">
+                <div id="coAuthorError" class="small text-danger mt-1" role="alert"></div>
+                <div id="coAuthorResults" class="list-group mt-2" style="display:none;max-height:300px;overflow:auto;"></div>
+                <div id="coAuthorMore" class="sc-hint"></div>
+                <div class="sc-hint">{% translate "Co-authors can edit this scenario and use it with their groups. They cannot change its sharing or delete it." %}</div>
+              </div>
+
             </div>
           </div>
           {% else %}
@@ -481,5 +496,159 @@
     }, 100);
   });
 </script>
+
+{% if can_manage_sharing %}
+{{ co_authors|json_script:"co-author-data" }}
+<script>
+  // Adding and removing save straight away, without reloading, so unsaved
+  // changes in the form above are kept.
+  (function () {
+    const section = document.getElementById('coAuthorSection');
+    const list = document.getElementById('coAuthorList');
+    const search = document.getElementById('coAuthorSearch');
+    const results = document.getElementById('coAuthorResults');
+    const more = document.getElementById('coAuthorMore');
+    const error = document.getElementById('coAuthorError');
+    const csrfToken = document.querySelector('#scenarioForm [name=csrfmiddlewaretoken]').value;
+    const TEXT = {
+      none: "{% translate 'No co-authors yet.' as s %}{{ s|escapejs }}",
+      remove: "{% translate 'Remove co-author {name}' as s %}{{ s|escapejs }}",
+      add: "{% translate 'Add' as s %}{{ s|escapejs }}",
+      noOrganization: "{% translate 'No organization' as s %}{{ s|escapejs }}",
+      yourOrganization: "{% translate 'Your organization' as s %}{{ s|escapejs }}",
+      noTeachers: "{% translate 'No teachers found.' as s %}{{ s|escapejs }}",
+      more: "{% translate 'Showing the first {count} teachers. Search to narrow the list.' as s %}{{ s|escapejs }}",
+      updateFailed: "{% translate 'Could not update co-authors. Please try again.' as s %}{{ s|escapejs }}",
+      loadFailed: "{% translate 'Could not load the list of teachers. Please try again.' as s %}{{ s|escapejs }}",
+    };
+    let timer;
+    let latestLoad = 0;
+
+    function displayName(person) {
+      return person.name ? person.name + ' (' + person.username + ')' : person.username;
+    }
+
+    function renderCoAuthors(people) {
+      list.textContent = '';
+      if (!people.length) {
+        const none = document.createElement('span');
+        none.className = 'sc-hint';
+        none.textContent = TEXT.none;
+        list.appendChild(none);
+      }
+      people.forEach(function (person) {
+        const chip = document.createElement('span');
+        chip.className = 'badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-1';
+        chip.textContent = displayName(person);
+        const remove = document.createElement('button');
+        const label = TEXT.remove.replace('{name}', function () { return displayName(person); });
+        remove.type = 'button';
+        remove.className = 'btn btn-link btn-sm p-0 text-danger';
+        remove.title = label;
+        remove.setAttribute('aria-label', label);
+        remove.innerHTML = '<i class="bi bi-x-circle"></i>';
+        remove.addEventListener('click', function () {
+          change(section.dataset.removeUrl.replace(/\/0\/remove\/$/, '/' + person.id + '/remove/'));
+        });
+        chip.appendChild(remove);
+        list.appendChild(chip);
+      });
+    }
+
+    function renderCandidates(data) {
+      results.textContent = '';
+      results.style.display = '';
+      more.textContent = data.truncated
+        ? TEXT.more.replace('{count}', function () { return data.limit; })
+        : '';
+      data.groups.forEach(function (group) {
+        const heading = document.createElement('div');
+        heading.className = 'list-group-item list-group-item-light small fw-semibold';
+        heading.textContent = group.name === null ? TEXT.noOrganization : group.name;
+        if (group.yours) {
+          const yours = document.createElement('span');
+          yours.className = 'badge text-bg-light border ms-2';
+          yours.textContent = TEXT.yourOrganization;
+          heading.appendChild(yours);
+        }
+        results.appendChild(heading);
+        group.users.forEach(function (person) {
+          const row = document.createElement('div');
+          row.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
+          const name = document.createElement('span');
+          name.textContent = displayName(person);
+          const add = document.createElement('button');
+          add.type = 'button';
+          add.className = 'btn btn-sm btn-outline-primary';
+          add.textContent = TEXT.add;
+          add.addEventListener('click', function () {
+            const body = new URLSearchParams();
+            body.set('user_id', person.id);
+            change(section.dataset.addUrl, body);
+          });
+          row.appendChild(name);
+          row.appendChild(add);
+          results.appendChild(row);
+        });
+      });
+      if (!data.groups.length) {
+        const none = document.createElement('div');
+        none.className = 'list-group-item text-muted small';
+        none.textContent = TEXT.noTeachers;
+        results.appendChild(none);
+      }
+    }
+
+    function load() {
+      const thisLoad = ++latestLoad;
+      fetch(section.dataset.candidatesUrl + '?q=' + encodeURIComponent(search.value), {credentials: 'same-origin'})
+        .then(function (response) {
+          if (!response.ok) { throw new Error(response.status); }
+          return response.json();
+        })
+        .then(function (data) {
+          if (thisLoad === latestLoad) {
+            error.textContent = '';
+            renderCandidates(data);
+          }
+        })
+        .catch(function () {
+          if (thisLoad === latestLoad) { error.textContent = TEXT.loadFailed; }
+        });
+    }
+
+    function change(url, body) {
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'X-CSRFToken': csrfToken},
+        body: body,
+      })
+        .then(function (response) {
+          if (!response.ok) { throw new Error(response.status); }
+          return response.json();
+        })
+        .then(function (data) {
+          error.textContent = '';
+          renderCoAuthors(data.co_authors);
+          load();
+        })
+        .catch(function () { error.textContent = TEXT.updateFailed; });
+    }
+
+    search.addEventListener('focus', function () {
+      if (results.style.display === 'none') { load(); }
+    });
+    search.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(load, 250);
+    });
+    search.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); }  // don't submit the form
+    });
+    renderCoAuthors(JSON.parse(document.getElementById('co-author-data').textContent));
+  })();
+</script>
+{% endif %}
 
 {% endblock atcontent %}

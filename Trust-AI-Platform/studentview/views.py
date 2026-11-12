@@ -27,6 +27,7 @@ from authoringtool.models import (
     HelpRequest,
 )
 from django.views.decorators.http import require_POST
+from authoringtool.co_authors import co_authored_q
 from authoringtool.models import Subject
 from authoringtool.html_safety import sanitize_html
 from authoringtool.translation_matching import (
@@ -482,6 +483,7 @@ def scenarios_view(request):
         org_ids = user.member_of_organizations.values_list('id', flat=True)
         base_qs = Scenario.objects.filter(
             Q(created_by=user) |
+            co_authored_q(user) |
             Q(visibility_status='public') |
             Q(visibility_status='org', organizations__id__in=org_ids)
         ).distinct()

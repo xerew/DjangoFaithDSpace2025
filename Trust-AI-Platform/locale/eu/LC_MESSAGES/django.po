@@ -9560,3 +9560,60 @@ msgstr[1] ""
 #, python-format
 msgid "Group '%(name)s' updated successfully."
 msgstr "«%(name)s» taldea ondo eguneratu da."
+
+#: authoringtool/co_authors.py
+msgid "You were added as a co-author"
+msgstr ""
+
+#: authoringtool/co_authors.py
+#, python-format
+msgid ""
+"%(sender)s added you as a co-author of the scenario \"%(name)s\" on Trust AI "
+"Lab. Open it here: %(link)s"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Co-authors"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Search by name, username, email or organization"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid ""
+"Co-authors can edit this scenario and use it with their groups. They cannot "
+"change its sharing or delete it."
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No co-authors yet."
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Remove co-author {name}"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Add"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No organization"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Your organization"
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Showing the first {count} teachers. Search to narrow the list."
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not update co-authors. Please try again."
+msgstr ""
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not load the list of teachers. Please try again."
+msgstr ""

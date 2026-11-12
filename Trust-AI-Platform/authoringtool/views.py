@@ -55,6 +55,7 @@ from .evidence import (
     normalize_evidence_scope,
 )
 
+from . import co_authors
 from .help_time import help_time_chart
 from .risk_flag_text import display_flag
 from .machine_translation.collaborators import (
@@ -592,6 +593,7 @@ def index(request):
         org_ids = user.member_of_organizations.values_list('id', flat=True)
         myScenarios = Scenario.objects.filter(archived_at__isnull=True).filter(
             Q(created_by=user) |  # Scenarios the user created
+            co_authors.co_authored_q(user) |  # Scenarios the user co-authors
             Q(visibility_status='public') |  # Public scenarios
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios the user is part of
         ).distinct()
@@ -678,12 +680,13 @@ def scenarios(request):
         filters &= Q(subjects__id__in=selected_subject_ids)
 
     # Show only the current user's scenarios if 'Show Mine' is selected
+    mine = Q(created_by=request.user) | co_authors.co_authored_q(request.user)
     if show_mine:
-        filters &= Q(created_by=request.user)
+        filters &= mine
 
     # Visibility filter based on the user's selection
     if visibility_filter == 'private':
-        filters &= Q(visibility_status='private', created_by=request.user)
+        filters &= Q(visibility_status='private') & mine
     elif visibility_filter == 'org':
         org_ids = request.user.member_of_organizations.values_list('id', flat=True)
         filters &= Q(visibility_status='org', organizations__id__in=org_ids)
@@ -699,7 +702,7 @@ def scenarios(request):
         visible_scenarios = Scenario.objects.filter(
             Q(visibility_status='public') |  # Public scenarios visible to everyone
             Q(visibility_status='private', created_by=request.user) |  # Private scenarios visible only to the creator
-            Q(collaborators__user=request.user) |  # ...and to the collaborators an admin added
+            Q(collaborators__user=request.user) |  # ...and to the scenario's collaborators
             Q(visibility_status='org', organizations__id__in=org_ids)  # Org-only scenarios visible to members of the org
         ).filter(filters).distinct().order_by('-created_on')
 
@@ -773,8 +776,10 @@ def scenarios(request):
 
     # Process only the current page's scenarios for can_edit
     user_org_ids = set(request.user.member_of_organizations.values_list('id', flat=True))
+    co_authored = co_authors.co_authored_ids(request.user, [scenario.id for scenario in page_obj])
     for scenario in page_obj:
         scenario.can_edit = user_can_edit_scenario(request.user, scenario)
+        scenario.is_co_author = scenario.id in co_authored
     attach_translation_jobs(
         request.user,
         list(page_obj) + [v for s in page_obj for v in s.translation_versions],
@@ -873,6 +878,7 @@ def updateScenario(request, id):
     context = {
         'Scenario': updateScenario,
         'can_manage_sharing': user_manages_scenario(request.user, updateScenario),
+        'co_authors': co_authors.co_author_rows(updateScenario),
         'min_age': scenario_min_age,
         'max_age': scenario_max_age,
         'user_organizations': user_organizations,
@@ -1291,7 +1297,9 @@ def viewScenario(request, id):
         'translation_total': len(translation_ids),
         'myScenario': myScenario,
         'mt_job': machine_translation_job(myScenario),
-        'collaborators': myScenario.collaborators.select_related('user').order_by('added_at'),
+        'collaborators': myScenario.collaborators.filter(
+            role=ScenarioCollaborator.ROLE_TRANSLATION_REVIEWER,
+        ).select_related('user').order_by('added_at'),
         'can_verify_translation': can_verify(request.user, myScenario),
         'can_remove_collaborators': can_remove_collaborators(request.user, myScenario),
         'min_age': scenario_min_age,
@@ -3100,6 +3108,47 @@ def remove_scenario_collaborator(request, scenario_id, user_id):
         return HttpResponseForbidden(_("Only the scenario's creator or an admin can do this."))
     messages.success(request, _('Collaborator removed.'))
     return redirect('viewScenario', id=scenario.id)
+
+
+@group_required('teachers')
+def co_author_candidates(request, scenario_id):
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    if not can_remove_collaborators(request.user, scenario):
+        return HttpResponseForbidden(_("Only the scenario's creator or an admin can do this."))
+    groups, truncated = co_authors.candidates(
+        scenario, request.GET.get('q', '').strip(), request.user,
+    )
+    return JsonResponse({
+        'groups': groups,
+        'truncated': truncated,
+        'limit': co_authors.CANDIDATE_LIMIT,
+    })
+
+
+@require_POST
+@group_required('teachers')
+def add_co_author(request, scenario_id):
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    user_id = request.POST.get('user_id', '')
+    user = get_object_or_404(User, pk=user_id if user_id.isdecimal() else 0)
+    try:
+        co_authors.add(scenario, user, request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden(_("Only the scenario's creator or an admin can do this."))
+    except co_authors.NotEligible:
+        return JsonResponse({'error': 'not_eligible'}, status=400)
+    return JsonResponse({'co_authors': co_authors.co_author_rows(scenario)})
+
+
+@require_POST
+@group_required('teachers')
+def remove_co_author(request, scenario_id, user_id):
+    scenario = get_object_or_404(Scenario, pk=scenario_id)
+    try:
+        remove_collaborator(scenario, get_object_or_404(User, pk=user_id), request.user)
+    except PermissionDenied:
+        return HttpResponseForbidden(_("Only the scenario's creator or an admin can do this."))
+    return JsonResponse({'co_authors': co_authors.co_author_rows(scenario)})
 
 
 @require_POST

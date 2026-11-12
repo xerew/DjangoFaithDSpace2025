@@ -9604,3 +9604,65 @@ msgstr[1] ""
 #, python-format
 msgid "Group '%(name)s' updated successfully."
 msgstr "Grupo «%(name)s» atualizado com êxito."
+
+#: authoringtool/co_authors.py
+msgid "You were added as a co-author"
+msgstr "É agora coautor de um cenário"
+
+#: authoringtool/co_authors.py
+#, python-format
+msgid ""
+"%(sender)s added you as a co-author of the scenario \"%(name)s\" on Trust AI "
+"Lab. Open it here: %(link)s"
+msgstr ""
+"%(sender)s adicionou-o como coautor do cenário «%(name)s» na Trust AI Lab. "
+"Abra-o aqui: %(link)s"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Co-authors"
+msgstr "Coautores"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Search by name, username, email or organization"
+msgstr "Pesquisar por nome, nome de utilizador, e-mail ou organização"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid ""
+"Co-authors can edit this scenario and use it with their groups. They cannot "
+"change its sharing or delete it."
+msgstr ""
+"Os coautores podem editar este cenário e usá-lo com os seus grupos. Não "
+"podem alterar a partilha nem eliminá-lo."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No co-authors yet."
+msgstr "Ainda não há coautores."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Remove co-author {name}"
+msgstr "Remover o coautor {name}"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Add"
+msgstr "Adicionar"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No organization"
+msgstr "Sem organização"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Your organization"
+msgstr "A sua organização"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Showing the first {count} teachers. Search to narrow the list."
+msgstr ""
+"A mostrar os primeiros {count} professores. Pesquise para restringir a lista."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not update co-authors. Please try again."
+msgstr "Não foi possível atualizar os coautores. Tente novamente."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not load the list of teachers. Please try again."
+msgstr "Não foi possível carregar a lista de professores. Tente novamente."

@@ -9667,3 +9667,67 @@ msgstr[1] ""
 #, python-format
 msgid "Group '%(name)s' updated successfully."
 msgstr "Η ομάδα «%(name)s» ενημερώθηκε."
+
+#: authoringtool/co_authors.py
+msgid "You were added as a co-author"
+msgstr "Προστεθήκατε ως συν-συγγραφέας"
+
+#: authoringtool/co_authors.py
+#, python-format
+msgid ""
+"%(sender)s added you as a co-author of the scenario \"%(name)s\" on Trust AI "
+"Lab. Open it here: %(link)s"
+msgstr ""
+"Το μέλος %(sender)s σας πρόσθεσε ως συν-συγγραφέα στο σενάριο «%(name)s» στο "
+"Trust AI Lab. Ανοίξτε το εδώ: %(link)s"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Co-authors"
+msgstr "Συν-συγγραφείς"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Search by name, username, email or organization"
+msgstr "Αναζήτηση με όνομα, όνομα χρήστη, email ή οργανισμό"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid ""
+"Co-authors can edit this scenario and use it with their groups. They cannot "
+"change its sharing or delete it."
+msgstr ""
+"Οι συν-συγγραφείς μπορούν να επεξεργάζονται αυτό το σενάριο και να το "
+"χρησιμοποιούν με τις ομάδες τους. Δεν μπορούν να αλλάξουν την κοινοποίησή "
+"του ούτε να το διαγράψουν."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No co-authors yet."
+msgstr "Δεν υπάρχουν ακόμη συν-συγγραφείς."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Remove co-author {name}"
+msgstr "Αφαίρεση συν-συγγραφέα: {name}"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Add"
+msgstr "Προσθήκη"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "No organization"
+msgstr "Χωρίς οργανισμό"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Your organization"
+msgstr "Ο οργανισμός σας"
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Showing the first {count} teachers. Search to narrow the list."
+msgstr ""
+"Εμφανίζονται οι πρώτοι {count} εκπαιδευτικοί. Κάντε αναζήτηση για να "
+"περιορίσετε τη λίστα."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not update co-authors. Please try again."
+msgstr "Δεν ήταν δυνατή η ενημέρωση των συν-συγγραφέων. Δοκιμάστε ξανά."
+
+#: authoringtool/templates/authoringtool/updateScenario.html
+msgid "Could not load the list of teachers. Please try again."
+msgstr "Δεν ήταν δυνατή η φόρτωση της λίστας εκπαιδευτικών. Δοκιμάστε ξανά."
