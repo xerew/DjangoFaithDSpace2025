@@ -144,9 +144,12 @@ def leave_one_group_out(table, columns, categories, progress, name='Final model'
     for index, key in enumerate(eligible, start=1):
         progress(f'{name}: unseen scenarios {index} / {len(eligible)}')
         held = (table['group_key'] == key).to_numpy()
-        if len(set(y[~held])) < 2:
+        # Students of the held-out scenario are left out of training
+        # entirely, including their runs on other scenarios.
+        train = ~held & ~table['user_id'].isin(set(table.loc[held, 'user_id'])).to_numpy()
+        if len(set(y[train])) < 2:
             continue
-        booster = fit_booster(X[~held], y[~held], groups[~held])
+        booster = fit_booster(X[train], y[train], groups[train])
         predicted = [CATEGORIES[i] for i in predict_proba(booster, X[held]).argmax(axis=1)]
         part = table[held]
         scores = metrics(part['label'], predicted)

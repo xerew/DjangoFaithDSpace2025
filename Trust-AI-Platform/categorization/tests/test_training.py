@@ -60,6 +60,25 @@ class TrainingTests(SimpleTestCase):
             self.assertFalse(tested & users, fold)
         self.assertEqual(len(oof), len(self.final))
 
+    def test_unseen_scenario_test_keeps_its_students_out_of_training(self):
+        # 50 students over 200 runs and 4 scenarios: each student has runs
+        # in two scenarios.
+        table = synthetic_final(students=50)
+        trained_on = []
+        real_fit = training.fit_booster
+
+        def recording_fit(X, y, groups):
+            trained_on.append(set(groups))
+            return real_fit(X, y, groups)
+
+        with mock.patch.object(training, 'fit_booster', side_effect=recording_fit):
+            results = training.leave_one_group_out(table, self.columns, self.categories, lambda text: None)
+        self.assertEqual(len(results), len(trained_on))
+        for entry, users in zip(results, trained_on):
+            tested = set(table.loc[table.group_key == entry['group_key'], 'user_id'])
+            self.assertTrue(users)
+            self.assertFalse(tested & users, entry['group_key'])
+
     def test_fold_missing_a_category_still_gives_three_columns(self):
         subset = self.final[self.final.label != 'High']
         X = as_model_frame(subset, self.columns, self.categories)
