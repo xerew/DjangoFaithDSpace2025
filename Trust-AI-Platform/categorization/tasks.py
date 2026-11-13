@@ -27,16 +27,18 @@ logger = logging.getLogger(__name__)
 def run_counts(runs):
     labelled = [run for run in runs if run.label is not None]
     scenarios = {}
-    per_scenario = defaultdict(lambda: {'runs': 0, 'labelled': 0})
+    per_scenario = defaultdict(lambda: {'runs': 0, 'labelled': 0, 'finished': 0})
     for run in runs:
         scenarios[run.scenario_id] = (run.scenario_name, run.language or 'Unspecified')
         per_scenario[run.scenario_id]['runs'] += 1
         per_scenario[run.scenario_id]['labelled'] += run.label is not None
+        per_scenario[run.scenario_id]['finished'] += run.finished_rule != UNFINISHED
     return {
         'students': len({run.user_id for run in labelled}),
         'runs_total': len(runs),
         'labelled': len(labelled),
-        'unfinished': sum(run.finished_rule == UNFINISHED for run in runs),
+        'finished': sum(run.finished_rule != UNFINISHED for run in labelled),
+        'unfinished': sum(run.finished_rule == UNFINISHED for run in labelled),
         'route_end': sum(run.finished_rule == ROUTE_END for run in labelled),
         'last_phase': sum(run.finished_rule == LAST_PHASE for run in labelled),
         'current_version': sum(run.is_current_version for run in labelled),

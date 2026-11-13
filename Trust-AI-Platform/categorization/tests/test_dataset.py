@@ -86,11 +86,20 @@ class LoadRunsTests(TestCase):
         terminals = terminal_activity_ids(self.ns.scenario)
         self.assertEqual(terminals, {self.ns.primaries[3].id})
 
-    def test_dropout_is_unfinished(self):
+    def test_dropout_is_scored_by_the_points_gathered(self):
+        # Unanswered activities count as 0: phase 1 at 100% with weight 0.2 is 20%.
         answer_all(make_student('dropout'), self.ns, [2, None, None, None])
         run = runs_by_username(load_runs())['dropout']
         self.assertEqual(run.finished_rule, 'unfinished')
-        self.assertIsNone(run.label)
+        self.assertAlmostEqual(run.final_percentage, 20.0)
+        self.assertEqual(run.label, 'Low')
+
+    def test_dropout_with_enough_points_can_be_high(self):
+        # Phases 1-3 at 100%: 0.2 + 0.2 + 0.45 = 85%, above the High threshold.
+        answer_all(make_student('late_dropout'), self.ns, [2, 2, 2, None])
+        run = runs_by_username(load_runs())['late_dropout']
+        self.assertEqual(run.finished_rule, 'unfinished')
+        self.assertEqual(run.label, 'High')
 
     def test_deleted_activity_answers_fall_back(self):
         ns = make_scenario(self.teacher, name='Lost route')

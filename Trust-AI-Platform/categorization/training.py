@@ -233,7 +233,7 @@ def train_all(final, checkpoints, progress):
     started = time.monotonic()
     if len(final) < MIN_LABELLED_RUNS or final['label'].nunique() < 2:
         raise NotEnoughData(
-            f'Not enough finished runs to train: {len(final)} found, at least '
+            f'Not enough runs to train: {len(final)} found, at least '
             f'{MIN_LABELLED_RUNS} needed, with at least two categories.'
         )
     categories = model_categories(final, checkpoints)

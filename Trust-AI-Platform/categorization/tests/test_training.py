@@ -125,7 +125,7 @@ class TrainingTests(SimpleTestCase):
             training.train_all(small, synthetic_checkpoints(small), lambda text: None)
         self.assertEqual(
             str(caught.exception),
-            'Not enough finished runs to train: 20 found, at least 50 needed, '
+            'Not enough runs to train: 20 found, at least 50 needed, '
             'with at least two categories.',
         )
 

@@ -64,10 +64,10 @@ def results():
 
 
 def counts():
-    return {'students': 4, 'runs_total': 5, 'labelled': 4, 'unfinished': 1, 'route_end': 4,
+    return {'students': 4, 'runs_total': 5, 'labelled': 5, 'finished': 4, 'unfinished': 1, 'route_end': 4,
             'last_phase': 0, 'current_version': 4, 'older_version': 0,
-            'scenarios': [{'id': 1, 'name': 'Alpha', 'language': 'English', 'runs': 3, 'labelled': 2},
-                          {'id': 2, 'name': 'Beta', 'language': 'Greek', 'runs': 2, 'labelled': 2}]}
+            'scenarios': [{'id': 1, 'name': 'Alpha', 'language': 'English', 'runs': 3, 'labelled': 3, 'finished': 2},
+                          {'id': 2, 'name': 'Beta', 'language': 'Greek', 'runs': 2, 'labelled': 2, 'finished': 2}]}
 
 
 class DashboardTests(TestCase):

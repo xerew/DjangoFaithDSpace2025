@@ -167,13 +167,20 @@ def final_table(runs, norms):
 
 
 def checkpoint_table(runs, norms):
-    """One row per labelled run and checkpoint k (1..phases-1) it reached."""
+    """One row per labelled run and checkpoint k (1..phases-1) it moved past.
+
+    "After phase k" is the moment the student first answered past phase k.
+    A student who stopped inside phase k never reached that moment, so the
+    run has no row for k: their final state is not a picture of a student
+    who just finished phase k.
+    """
     rows = []
     for run in runs:
         if run.label is None:
             continue
         weights = phase_weights(run.phase_count)
-        for k in range(1, run.phase_count):
+        reached = max((e.phase_position for e in run.answers if e.phase_position), default=0)
+        for k in range(1, min(run.phase_count, reached)):
             # Only what the student had done before first moving past phase k.
             at_k = run_until(run, k)
             if not any(e.phase_position == k for e in at_k.answers):

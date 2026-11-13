@@ -63,7 +63,7 @@
         <button type="submit" class="button" {% if active %}disabled{% endif %}>{% translate 'Train models' %}</button>
       </form>
     </div>
-    <p class="cat-quiet">{% translate 'Trained on finished runs of public scenarios only. Every number below comes from students the model did not train on. PISA categories on the platform are not changed.' %}</p>
+    <p class="cat-quiet">{% translate 'Trained on every run of public scenarios. Students who stopped early are scored by the points they gathered: unanswered activities count as 0. Every number below comes from students the model did not train on. PISA categories on the platform are not changed.' %}</p>
     <p id="cat-status" data-active="{% if active %}1{% else %}0{% endif %}">
       {% if active %}
         <strong>{% translate 'Training is running.' %}</strong>
@@ -80,7 +80,7 @@
         {% if duration is not None %}{% blocktranslate %}It took {{ duration }} seconds.{% endblocktranslate %}{% endif %}
       </p>
       <p>
-        {% blocktranslate with students=selected.counts.students labelled=selected.counts.labelled unfinished=selected.counts.unfinished route_end=selected.counts.route_end last_phase=selected.counts.last_phase %}{{ students }} students, {{ labelled }} finished runs ({{ route_end }} reached the end of their route, {{ last_phase }} judged by the last phase), {{ unfinished }} unfinished runs left out.{% endblocktranslate %}
+        {% blocktranslate with students=selected.counts.students labelled=selected.counts.labelled finished=selected.counts.finished unfinished=selected.counts.unfinished route_end=selected.counts.route_end last_phase=selected.counts.last_phase %}{{ students }} students, {{ labelled }} runs: {{ finished }} finished ({{ route_end }} reached the end of their route, {{ last_phase }} judged by the last phase) and {{ unfinished }} stopped early, scored by the points they gathered.{% endblocktranslate %}
         {% blocktranslate with current=selected.counts.current_version older=selected.counts.older_version %}Current scenario version: {{ current }} runs; older or legacy versions: {{ older }}.{% endblocktranslate %}
       </p>
       <details>
@@ -90,7 +90,7 @@
             <thead><tr><th>{% translate 'Scenario' %}</th><th>{% translate 'Language' %}</th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'Finished' %}</th></tr></thead>
             <tbody>
               {% for scenario in selected.counts.scenarios %}
-                <tr><td>{{ scenario.name }}</td><td>{{ scenario.language }}</td><td class="num">{{ scenario.runs }}</td><td class="num">{{ scenario.labelled }}</td></tr>
+                <tr><td>{{ scenario.name }}</td><td>{{ scenario.language }}</td><td class="num">{{ scenario.runs }}</td><td class="num">{{ scenario.finished }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -202,7 +202,7 @@
       {% endif %}
 
       <h3>{% translate 'Agreement per scenario' %}</h3>
-      <p class="cat-quiet">{% translate 'Unseen scenario: the model trained without this scenario and its translations. Shown for scenarios with at least 30 finished runs.' %}</p>
+      <p class="cat-quiet">{% translate 'Unseen scenario: the model trained without this scenario and its translations. Shown for scenarios with at least 30 runs.' %}</p>
       <div class="cat-table-wrap"><table>
         <thead><tr><th>{% translate 'Scenario' %}</th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'Agreement' %}</th><th class="num">{% translate 'Unseen scenario' %}</th></tr></thead>
         <tbody>
@@ -277,7 +277,7 @@
         </tbody>
       </table></div>
       {% else %}
-        <p class="cat-quiet">{% translate 'No scenario has at least 30 finished runs at this checkpoint.' %}</p>
+        <p class="cat-quiet">{% translate 'No scenario has at least 30 runs at this checkpoint.' %}</p>
       {% endif %}
       {% else %}
         <p class="cat-quiet">{% translate 'No early-prediction results for this selection.' %}</p>

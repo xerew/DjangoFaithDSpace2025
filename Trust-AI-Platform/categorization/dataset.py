@@ -2,7 +2,11 @@
 
 A run is one ScenarioImplementation: one student on one scenario. Answers
 are the same eligible answers the analytics use (teachers, suspect and
-excluded runs left out). A run gets a label only when it is finished:
+excluded runs left out). Every run gets a label from the points it
+gathered: activities the student never answered count as 0, so a student
+who stopped early is scored like the platform scores them.
+
+Whether the run is finished is kept as information (`finished_rule`):
 the student answered an activity where their route ends. When the route
 can't be followed (answers whose activity is gone, or a scenario without
 any route end), the run counts as finished if the student answered
@@ -325,7 +329,7 @@ def scenario_runs(scenario, group_key):
         has_lost = any(event.activity_id is None for event in events)
         rule = finished_rule(answered_ids, has_lost, ctx)
         final = weighted_percentage(phase_scores, weights)
-        label = categorize(final) if rule != UNFINISHED and final is not None else None
+        label = categorize(final) if final is not None else None
         runs.append(Run(
             implementation_id=implementation_id,
             user_id=user_id,
@@ -354,7 +358,7 @@ def scenario_runs(scenario, group_key):
 
 
 def load_runs(progress: Callable[[str], None] = lambda text: None):
-    """Every run of every public scenario; labelled only when finished."""
+    """Every run of every public scenario, labelled by the points gathered."""
     group_key = _group_keys()
     scenarios = public_scenarios()
     runs = []

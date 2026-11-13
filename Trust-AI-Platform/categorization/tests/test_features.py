@@ -87,8 +87,16 @@ class FeatureTests(SimpleTestCase):
         # Phases 1-2 at 100% and 50%, weights 0.2 and 0.2: 75%.
         self.assertAlmostEqual(row.pct_so_far, 75.0)
         self.assertEqual(row.baseline_label, 'Moderate')
-        # Checkpoints run from 1 to phase_count - 1, for phases answered.
-        self.assertEqual(sorted(table.checkpoint), [1, 2, 3])
+        # Checkpoint k needs an answer past phase k: this student never
+        # moved on from phase 3, so there is no "after phase 3".
+        self.assertEqual(sorted(table.checkpoint), [1, 2])
+
+    def test_student_who_stopped_inside_a_phase_has_no_checkpoint_for_it(self):
+        run = make_run([event(101, 1, minute=0), event(102, 2, weight=0, minute=1)],
+                       [(2, 2), (0, 2), (0, 2), (0, 2)], label='Low')
+        table = checkpoint_table([run], build_norms([run]))
+        self.assertEqual(list(table.checkpoint), [1])
+        self.assertEqual(table.iloc[0].label, 'Low')
 
     def test_fast_share(self):
         runs = [

@@ -33,19 +33,26 @@ class TrainingJobTests(TestCase):
         run_training(run.id)
         run.refresh_from_db()
         self.assertEqual(run.status, 'failed')
-        self.assertTrue(run.error.startswith('Not enough finished runs to train'), run.error)
+        self.assertTrue(run.error.startswith('Not enough runs to train'), run.error)
         self.assertIsNotNone(run.finished_at)
 
     def test_job_success_fills_run(self):
         self.students(make_scenario(self.teacher, name='First'), 6, 'a')
-        self.students(make_scenario(self.teacher, name='Second'), 6, 'b')
+        second = make_scenario(self.teacher, name='Second')
+        self.students(second, 6, 'b')
+        answer_all(make_student('dropout'), second, [2, 1, None, None])
         run = TrainingRun.start(self.admin)
         with mock.patch.object(training, 'MIN_LABELLED_RUNS', 5):
             run_training(run.id)
         run.refresh_from_db()
         self.assertEqual(run.status, 'finished', run.error)
-        self.assertEqual(run.counts['labelled'], 12)
-        self.assertEqual(run.counts['students'], 12)
+        # The student who stopped early is counted too.
+        self.assertEqual(run.counts['labelled'], 13)
+        self.assertEqual(run.counts['finished'], 12)
+        self.assertEqual(run.counts['unfinished'], 1)
+        self.assertEqual(run.counts['students'], 13)
+        self.assertEqual({s['name']: s['finished'] for s in run.counts['scenarios']},
+                         {'First': 6, 'Second': 6})
         self.assertEqual(len(run.counts['scenarios']), 2)
         self.assertEqual(run.results['final']['overall']['runs'], run.counts['labelled'])
         self.assertTrue(run.results['early']['checkpoints'])
