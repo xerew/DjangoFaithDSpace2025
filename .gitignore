@@ -24,6 +24,8 @@ data/
 Trust-AI-Platform/media/
 Trust-AI-Platform/staticfiles/
 Trust-AI-Platform/static/pdfs/
+# Tutorial videos are too large for git; copy them to the server by hand
+Trust-AI-Platform/static/videos/
 Trust-AI-Platform/ai_metrics_cache/
 Trust-AI-Platform/rag_pdfs/
 Trust-AI-Platform/rag_indexes/

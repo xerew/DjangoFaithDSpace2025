@@ -58,6 +58,8 @@
   .resource-tile-icon.form  { background: #e3f2fd; color: #1565c0; }
   .resource-tile-icon.image { background: #f3e5f5; color: #6a1b9a; }
   .resource-tile-icon.doc   { background: #e8edf5; color: #4154f1; }
+  .resource-tile-icon.video { background: #ffebee; color: #c62828; }
+  .tutorial-video { width: 100%; max-height: 70vh; border-radius: 8px; background: #000; }
   .resource-tile-body { flex: 1; min-width: 0; }
   .resource-tile-title { font-size: 13px; font-weight: 700; color: #012970; line-height: 1.3; margin-bottom: 3px; }
   .resource-tile-desc  { font-size: 11.5px; color: #888; line-height: 1.4; }
@@ -106,6 +108,20 @@
   </div>
 
   <section class="section">
+
+    <!-- Video Tutorials -->
+    <div class="doc-section-label"><i class="bi bi-play-btn me-1"></i>Video Tutorials</div>
+    <div class="resource-grid">
+
+      <a class="resource-tile" href="#" data-bs-toggle="modal" data-bs-target="#videoModalTutorial">
+        <div class="resource-tile-icon video"><i class="bi bi-play-circle-fill"></i></div>
+        <div class="resource-tile-body">
+          <div class="resource-tile-title">Platform Tutorial Video</div>
+          <div class="resource-tile-desc">A 5-minute walkthrough of the platform</div>
+        </div>
+      </a>
+
+    </div>
 
     <!-- Guides -->
     <div class="doc-section-label"><i class="bi bi-file-earmark-text me-1"></i>Guides</div>
@@ -226,6 +242,30 @@
   </section>
 </main>
 
+<!-- Tutorial Video Modal -->
+<div class="modal fade" id="videoModalTutorial" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-play-circle text-danger me-2"></i>Platform Tutorial Video</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {# preload="none": the 50 MB file loads only when someone presses play #}
+        <video class="tutorial-video" controls preload="none" playsinline>
+          <source src="{% static 'videos/trust_ai_platform_tutorial.mp4' %}" type="video/mp4">
+        </video>
+      </div>
+      <div class="modal-footer border-0">
+        <a href="{% static 'videos/trust_ai_platform_tutorial.mp4' %}" class="btn btn-success" download>
+          <i class="bi bi-download me-1"></i>Download Video
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PDF Modal (English) -->
 <div class="modal fade" id="pdfModalEnglish" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl">
@@ -288,5 +328,12 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Stop the tutorial when its window is closed, so it does not keep playing unseen.
+  document.getElementById('videoModalTutorial').addEventListener('hidden.bs.modal', function () {
+    this.querySelector('video').pause();
+  });
+</script>
 
 {% endblock %}
