@@ -166,7 +166,14 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_PORT: "5432"
       PYTHONUNBUFFERED: "1"
+      # TensorFlow sizes its thread pools to the host's cores, not to the CPU cap.
+      TF_INTRA_OP_PARALLELISM_THREADS: "2"
+      TF_INTER_OP_PARALLELISM_THREADS: "1"
+      RASA_TELEMETRY_ENABLED: "false"
     cpus: 2
+    mem_limit: 4g
+    # Python as PID 1 would ignore SIGTERM; with init, stopping is immediate.
+    init: true
     depends_on:
       - db
     restart: unless-stopped

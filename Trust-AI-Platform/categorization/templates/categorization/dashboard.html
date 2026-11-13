@@ -473,7 +473,8 @@
     }); });
     chart.setOption({
       grid: { left: 150, right: 16, top: 16, bottom: 110 },
-      tooltip: { formatter: function (p) { return c.rows[p.value[1]] + ' → ' + c.columns[p.value[0]] + ': ' + p.value[2]; } },
+      tooltip: { formatter: function (p) { var e = echarts.format.encodeHTML;
+        return e(c.rows[p.value[1]]) + ' → ' + e(c.columns[p.value[0]]) + ': ' + p.value[2]; } },
       xAxis: { type: 'category', data: c.columns, axisLabel: { color: quiet, rotate: 40 }, axisLine: { lineStyle: { color: grid } } },
       yAxis: { type: 'category', data: c.rows, inverse: true, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
       visualMap: { show: false, min: 0, max: max, inRange: { color: RAMP } },
@@ -484,21 +485,28 @@
 
   function chatbotConfidence() {
     var d = data('chatbot-chart-data'); var chart = d && make('chatbot-confidence'); if (!chart) return;
-    var conf = d.confidence;
-    // The fallback threshold sits between bucket boundaries; mark the bucket it falls in.
-    var fallbackBucket = conf.labels[Math.min(Math.floor(conf.fallback * conf.labels.length), conf.labels.length - 1)];
+    var conf = d.confidence, n = conf.right.length;
+    // Bars at the centre of each bucket on a 0-1 axis, so the fallback line sits at its exact value.
+    function at(values) { return values.map(function (count, i) { return [(i + 0.5) / n, count]; }); }
+    // A value axis cannot stack bars: the right+wrong total is drawn in blue,
+    // the wrong part in front of it from the bottom, which reads as a stack.
+    var total = conf.right.map(function (count, i) { return count + conf.wrong[i]; });
+    var width = Math.max(4, chart.getWidth() * 0.7 / n);
     chart.setOption({
-      grid: { left: 48, right: 16, top: 40, bottom: 56 },
+      grid: { left: 48, right: 24, top: 40, bottom: 40 },
       legend: { top: 0, textStyle: { color: ink } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: { type: 'category', data: conf.labels, axisLabel: { color: quiet, rotate: 30 }, axisLine: { lineStyle: { color: grid } } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+                 formatter: function (items) { var i = Math.min(Math.floor(items[0].value[0] * n), n - 1);
+                   return conf.labels[i] + '<br>' + d.names.right + ': ' + conf.right[i] + '<br>' + d.names.wrong + ': ' + conf.wrong[i]; } },
+      xAxis: { type: 'value', min: 0, max: 1, interval: 0.1, axisLabel: { color: quiet, formatter: function (x) { return x.toFixed(1); } },
+               splitLine: { show: false }, axisLine: { lineStyle: { color: grid } } },
       yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
       series: [
-        { type: 'bar', name: d.names.right, stack: 'n', data: conf.right, itemStyle: { color: BLUE }, barMaxWidth: 28,
+        { type: 'bar', name: d.names.right, data: at(total), itemStyle: { color: BLUE, borderRadius: [4, 4, 0, 0] },
+          barWidth: width, barGap: '-100%',
           markLine: { symbol: 'none', label: { color: ink, formatter: d.names.fallback + ' ' + conf.fallback },
-                      lineStyle: { color: ink, type: 'dashed' }, data: [{ xAxis: fallbackBucket }] } },
-        { type: 'bar', name: d.names.wrong, stack: 'n', data: conf.wrong,
-          itemStyle: { color: ORANGE, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 28 }
+                      lineStyle: { color: ink, type: 'dashed' }, data: [{ xAxis: conf.fallback }] } },
+        { type: 'bar', name: d.names.wrong, data: at(conf.wrong), itemStyle: { color: ORANGE }, barWidth: width, barGap: '-100%' }
       ]
     });
   }

@@ -2,10 +2,14 @@
 
 import importlib.util
 import os
+import sys
 import tempfile
-from datetime import timedelta
+import textwrap
+import unittest
+from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
+from unittest import mock
 
 import openpyxl
 from django.conf import settings
@@ -85,6 +89,18 @@ class EvaluationModelTests(TestCase):
         lost.refresh_from_db()
         self.assertEqual(lost.status, 'failed')
 
+    def test_running_job_counts_from_when_it_started(self):
+        # Queued 4 hours ago while the worker was down, started a minute ago.
+        busy = ChatbotEvaluation.objects.create(status='running', folds=3, started_at=timezone.now())
+        ChatbotEvaluation.objects.filter(pk=busy.pk).update(created_at=timezone.now() - timedelta(hours=4))
+        ChatbotEvaluation.expire_stale()
+        busy.refresh_from_db()
+        self.assertEqual(busy.status, 'running')
+        ChatbotEvaluation.objects.filter(pk=busy.pk).update(started_at=timezone.now() - timedelta(hours=4))
+        ChatbotEvaluation.expire_stale()
+        busy.refresh_from_db()
+        self.assertEqual(busy.status, 'failed')
+
     def test_independent_of_categorization_training(self):
         TrainingRun.objects.create(status='running')
         self.assertEqual(ChatbotEvaluation.start(self.staff, folds=3).status, 'queued')
@@ -120,6 +136,15 @@ class ReportTests(SimpleTestCase):
         self.assertEqual(summary['wrong_above_fallback'], 1)
         self.assertEqual(summary['per_fold']['test Accuracy'], (0.776, 0.019))
         self.assertEqual(summary['per_fold']['test F1-score'], (0.761, 0.032))
+
+    def test_per_fold_reads_the_intent_block_only(self):
+        log = '\n'.join([
+            'INFO rasa.model_testing  - Intent evaluation results',
+            'INFO rasa.nlu.test  - test Accuracy: 0.776 (0.019)',
+            'INFO rasa.model_testing  - Entity evaluation results',
+            'INFO rasa.nlu.test  - test F1-score: 0.100 (0.050)',
+        ])
+        self.assertEqual(chatbot_report.per_fold(log), {'test Accuracy': (0.776, 0.019)})
 
     def test_wrong_predictions_highest_confidence_first(self):
         wrong = self.build()['wrong']
@@ -277,14 +302,20 @@ class ChatbotExportTests(TestCase):
             self.assertEqual(response.status_code, 404)
 
 
+WORKER_PATH = Path(settings.BASE_DIR).parent / 'deploy' / 'rasa-eval' / 'worker.py'
+# The Docker test command mounts only Trust-AI-Platform.
+needs_worker = unittest.skipUnless(WORKER_PATH.exists(), 'deploy/rasa-eval is not mounted here')
+
+
 def load_worker():
-    path = Path(settings.BASE_DIR).parent / 'deploy' / 'rasa-eval' / 'worker.py'
+    path = WORKER_PATH
     spec = importlib.util.spec_from_file_location('rasa_eval_worker', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
+@needs_worker
 class WorkerHelperTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
@@ -332,5 +363,188 @@ class WorkerHelperTests(SimpleTestCase):
         self.assertIn('--successes', command)
         self.assertNotIn('--enable-api', command)
 
-    def test_worker_file_is_mounted_path(self):
-        self.assertTrue(os.path.exists(Path(settings.BASE_DIR).parent / 'deploy' / 'rasa-eval' / 'worker.py'))
+    def test_time_limits_agree_with_the_page(self):
+        stale = ChatbotEvaluation.STALE_AFTER.total_seconds()
+        self.assertEqual(self.worker.STALE_HOURS * 3600, stale)
+        self.assertLess(self.worker.TIME_LIMIT_SECONDS, stale)
+
+    def test_progress_bars_are_left_out_of_the_log(self):
+        self.assertTrue(self.worker.PROGRESS_BAR.search('Epochs:  45%|####5     | 45/100 [00:10<00:12]'))
+        self.assertFalse(self.worker.PROGRESS_BAR.search('INFO rasa.nlu.test  - test Accuracy: 0.776 (0.019)'))
+
+
+class FakeCursor:
+    def __init__(self, connection):
+        self.connection = connection
+        self.description = None
+        self.rowcount = 0
+        self.rows = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def execute(self, sql, params=()):
+        self.connection.calls.append((' '.join(sql.split()), params))
+        self.connection.check(sql, params)
+        if sql.strip().startswith('SELECT now()'):
+            self.description, self.rows, self.rowcount = True, [(datetime(2026, 11, 13, 12, 0),)], 1
+        else:
+            self.description, self.rows = None, []
+            self.rowcount = self.connection.rowcount(sql)
+
+    def fetchall(self):
+        return self.rows
+
+
+class FakeConnection:
+    """Records every statement; `rowcount` and `check` let a test misbehave."""
+
+    def __init__(self, rowcount=lambda sql: 1, check=lambda sql, params: None, rollback_error=None):
+        self.calls = []
+        self.rowcount = rowcount
+        self.check = check
+        self.rollback_error = rollback_error
+
+    def cursor(self):
+        return FakeCursor(self)
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        if self.rollback_error:
+            raise self.rollback_error
+
+    def written(self, column):
+        """Values written to `column`, in order."""
+        found = []
+        for sql, params in self.calls:
+            if sql.startswith('UPDATE') and f'{column} = %s' in sql:
+                names = sql.split(' SET ')[1].split(' WHERE ')[0].split(', ')
+                index = [name.split(' = ')[0] for name in names].index(column)
+                value = params[index]
+                found.append(getattr(value, 'adapted', value))
+        return found
+
+
+FAKE_RASA = {
+    'success': """
+        import json, os
+        print("INFO - Starting to train component 'DIETClassifier'.", flush=True)
+        print('Epochs:  45%|####5     | 45/100 [00:10<00:12]', flush=True)
+        print('INFO - Accumulated test folds intent evaluation results:', flush=True)
+        print('INFO - Intent evaluation results', flush=True)
+        print('INFO - test Accuracy: 0.800 (0.010)', flush=True)
+        os.makedirs('out')
+        json.dump({'greet': {'precision': 1, 'recall': 1, 'f1-score': 1, 'support': 1}, 'accuracy': 1.0},
+                  open('out/intent_report.json', 'w'))
+        json.dump([], open('out/intent_errors.json', 'w'))
+        json.dump([{'text': 'hi'}], open('out/intent_successes.json', 'w'))
+    """,
+    'exit': """
+        import sys
+        print('ERROR - something broke', flush=True)
+        sys.exit(3)
+    """,
+    'hang': """
+        import time
+        print("INFO - Starting to train component 'DIETClassifier'.", flush=True)
+        time.sleep(120)
+    """,
+}
+
+
+@needs_worker
+class WorkerEvaluateTests(SimpleTestCase):
+    """evaluate() against a fake database and a fake Rasa (a small Python script)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.worker = load_worker()
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.folder = Path(folder.name)
+        (self.folder / 'src' / 'data').mkdir(parents=True)
+        (self.folder / 'src' / 'data' / 'nlu.yml').write_text('version: "3.1"\nnlu: []\n', encoding='utf-8')
+        (self.folder / 'src' / 'config.yml').write_text('pipeline: null\n', encoding='utf-8')
+        self.processes = []
+
+    def run_evaluation(self, script, connection, **patches):
+        patches.setdefault('TIME_LIMIT_SECONDS', 60)
+        path = self.folder / 'fake_rasa.py'
+        path.write_text(textwrap.dedent(FAKE_RASA[script]), encoding='utf-8')
+        real_popen = self.worker.subprocess.Popen
+
+        def recording_popen(*args, **kwargs):
+            process = real_popen(*args, **kwargs)
+            self.processes.append(process)
+            return process
+
+        with mock.patch.object(self.worker, 'SOURCE', self.folder / 'src'), \
+             mock.patch.object(self.worker, 'rasa_command', lambda folds: [sys.executable, str(path)]), \
+             mock.patch.object(self.worker.subprocess, 'Popen', side_effect=recording_popen), \
+             mock.patch.multiple(self.worker, **patches):
+            self.worker.evaluate(connection, 7, 3)
+
+    def assert_rasa_stopped(self):
+        self.assertEqual(len(self.processes), 1)
+        self.assertIsNotNone(self.processes[0].poll())
+
+    def test_success_writes_results(self):
+        connection = FakeConnection()
+        self.run_evaluation('success', connection)
+        self.assertEqual(connection.written('status'), ['finished'])
+        self.assertEqual(connection.written('report')[0]['accuracy'], 1.0)
+        self.assertEqual(connection.written('successes')[0], [{'text': 'hi'}])
+        self.assertEqual(connection.written('fallback_threshold'), [0.3])
+        self.assertEqual(connection.written('progress'), ['Fold 1 / 3: training', 'Writing the results', ''])
+        tail = connection.written('log_tail')[0]
+        self.assertIn('test Accuracy: 0.800', tail)
+        self.assertNotIn('Epochs', tail)
+        # Every write is limited to a job that is still running.
+        for sql, _ in connection.calls:
+            if sql.startswith('UPDATE'):
+                self.assertIn("status = 'running'", sql)
+
+    def test_rasa_error_is_recorded(self):
+        connection = FakeConnection()
+        self.run_evaluation('exit', connection)
+        self.assertEqual(connection.written('status'), ['failed'])
+        self.assertEqual(connection.written('error'), ['Rasa stopped with exit code 3.'])
+        self.assertIn('something broke', connection.written('log_tail')[0])
+
+    def test_job_expired_on_the_page_stops_rasa(self):
+        # The page expired the job: updates of the progress match no row.
+        connection = FakeConnection(rowcount=lambda sql: 0 if 'SET progress' in sql else 1)
+        self.run_evaluation('hang', connection)
+        self.assert_rasa_stopped()
+        self.assertEqual(connection.written('status'), [])
+
+    def test_database_lost_mid_run_stops_rasa(self):
+        def check(sql, params):
+            if 'SET progress' in sql:
+                raise ConnectionError('server closed the connection unexpectedly')
+
+        connection = FakeConnection(check=check, rollback_error=ConnectionError('connection already closed'))
+        self.run_evaluation('hang', connection)  # must not raise
+        self.assert_rasa_stopped()
+
+    def test_time_limit_stops_rasa(self):
+        connection = FakeConnection()
+        self.run_evaluation('hang', connection, TIME_LIMIT_SECONDS=1)
+        self.assert_rasa_stopped()
+        self.assertEqual(connection.written('status'), ['failed'])
+        self.assertIn('did not finish', connection.written('error')[0])
+
+    def test_claim_skips_jobs_the_page_gave_up_on(self):
+        connection = FakeConnection()
+        self.worker.claim(connection)
+        sql, params = connection.calls[0]
+        self.assertIn("status = 'queued' AND created_at > now() - make_interval(hours => %s)", sql)
+        self.assertEqual(params, (self.worker.STALE_HOURS,))

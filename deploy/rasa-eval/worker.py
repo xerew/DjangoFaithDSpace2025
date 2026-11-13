@@ -4,24 +4,27 @@ Runs in the rasa/rasa image, next to the live chatbot but separate from it.
 Admins queue an evaluation on the Student categorization page; this loop
 claims it from the database, runs
 
-    rasa test nlu --cross-validation --folds N --successes
+    rasa test nlu --cross-validation --folds N --successes --no-plot
 
 on a copy of the chatbot's data/nlu.yml and config.yml, and writes Rasa's
 result files back into the same row. Django builds the tables, charts and
 Excel file from them (categorization/chatbot_report.py).
 
 Only the standard library, psycopg2 and PyYAML are used; all three are in
-the rasa image. The table is categorization.models.ChatbotEvaluation; a
-test checks that the columns written here exist there.
+the rasa image. The table is categorization.models.ChatbotEvaluation; tests
+check that the columns written here exist there and that the time limits
+agree with its STALE_AFTER.
 """
 
 import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from collections import deque
 from importlib import metadata
@@ -34,12 +37,23 @@ RESULT_COLUMNS = (
 )
 SOURCE = Path(os.environ.get('RASA_SOURCE', '/rasa-src'))
 POLL_SECONDS = int(os.environ.get('POLL_SECONDS', '10'))
+# The page gives up on a job after this long (ChatbotEvaluation.STALE_AFTER):
+# a queued job older than that is not started, and Rasa is stopped a little
+# before it, so the worker records its own clear error first.
+STALE_HOURS = 3
+TIME_LIMIT_SECONDS = STALE_HOURS * 3600 - 300
 LOG_LINES = 300
+# tqdm epoch bars ("Epochs:  45%|####5  | 45/100 [...]") say nothing after the fact.
+PROGRESS_BAR = re.compile(r'\d+%\|')
 DEFAULT_FALLBACK = 0.3
 RESTARTED_ERROR = 'The chatbot evaluation worker restarted during the run.'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('rasa-eval')
+
+
+class JobGone(Exception):
+    """The job is no longer running in the database (expired on the page): stop."""
 
 
 def fallback_threshold(config):
@@ -77,6 +91,7 @@ def rasa_command(folds):
         '--config', 'config.yml',
         '--cross-validation', '--folds', str(folds),
         '--successes',
+        '--no-plot',
         '--out', 'out',
     ]
 
@@ -95,6 +110,13 @@ def collect_results(out):
     }
 
 
+def rasa_version():
+    try:
+        return metadata.version('rasa')
+    except metadata.PackageNotFoundError:
+        return ''
+
+
 # ---- database ---------------------------------------------------------------
 
 def connect():
@@ -110,11 +132,13 @@ def connect():
 
 
 def execute(connection, sql, params=()):
+    """Run one statement and commit. Returns (rows or None, rowcount)."""
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall() if cursor.description else None
+        count = cursor.rowcount
     connection.commit()
-    return rows
+    return rows, count
 
 
 def fail_interrupted(connection):
@@ -126,35 +150,61 @@ def fail_interrupted(connection):
 
 
 def claim(connection):
-    rows = execute(connection, f"""
+    """The oldest queued job the page still waits for, now marked running."""
+    rows, _ = execute(connection, f"""
         UPDATE {TABLE} SET status = 'running', started_at = now(), progress = 'Starting Rasa'
         WHERE id = (
-            SELECT id FROM {TABLE} WHERE status = 'queued'
+            SELECT id FROM {TABLE}
+            WHERE status = 'queued' AND created_at > now() - make_interval(hours => %s)
             ORDER BY created_at, id FOR UPDATE SKIP LOCKED LIMIT 1
         )
         RETURNING id, folds
-    """)
+    """, (STALE_HOURS,))
     return rows[0] if rows else None
 
 
 def update(connection, job_id, **values):
-    """Write to a running job only: an expired or deleted job stays as it is."""
+    """Write to a running job only; raise JobGone when it is not running any more."""
     from psycopg2.extras import Json
 
     assert set(values) <= set(RESULT_COLUMNS), values
     columns = ', '.join(f'{name} = %s' for name in values)
     params = [Json(v) if isinstance(v, (dict, list)) else v for v in values.values()]
-    execute(connection, f"UPDATE {TABLE} SET {columns} WHERE id = %s AND status = 'running'",
-            (*params, job_id))
+    _, count = execute(
+        connection, f"UPDATE {TABLE} SET {columns} WHERE id = %s AND status = 'running'",
+        (*params, job_id),
+    )
+    if count == 0:
+        raise JobGone(job_id)
+
+
+def _now(connection):
+    rows, _ = execute(connection, 'SELECT now()')
+    return rows[0][0]
 
 
 # ---- one evaluation -----------------------------------------------------------
+
+def _record_failure(connection, job_id, error, tail):
+    """Best effort: a dead connection must not stop the clean-up after it."""
+    try:
+        connection.rollback()
+        update(connection, job_id, status='failed', error=str(error)[:1000] or type(error).__name__,
+               log_tail='\n'.join(tail), finished_at=_now(connection))
+    except JobGone:
+        pass
+    except Exception:  # noqa: BLE001
+        log.exception('Could not record the failure of evaluation %s.', job_id)
+
 
 def evaluate(connection, job_id, folds):
     import yaml
 
     work = Path(tempfile.mkdtemp(prefix='rasa-eval-'))
     tail = deque(maxlen=LOG_LINES)
+    process = None
+    timed_out = threading.Event()
+    timer = None
     try:
         (work / 'data').mkdir()
         shutil.copy(SOURCE / 'data' / 'nlu.yml', work / 'data' / 'nlu.yml')
@@ -165,7 +215,7 @@ def evaluate(connection, job_id, folds):
             connection, job_id,
             nlu_text=nlu_text,
             nlu_sha256=hashlib.sha256(nlu_text.encode('utf-8')).hexdigest(),
-            rasa_version=metadata.version('rasa'),
+            rasa_version=rasa_version(),
             fallback_threshold=fallback_threshold(config),
         )
 
@@ -174,14 +224,25 @@ def evaluate(connection, job_id, folds):
             rasa_command(folds), cwd=work, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding='utf-8', errors='replace', bufsize=1,
         )
+
+        def stop_for_time():
+            timed_out.set()
+            process.kill()
+
+        timer = threading.Timer(TIME_LIMIT_SECONDS, stop_for_time)
+        timer.daemon = True
+        timer.start()
         for line in process.stdout:
             line = line.rstrip()
-            tail.append(line)
+            if not PROGRESS_BAR.search(line):
+                tail.append(line)
             text = progress.read(line)
             if text:
                 log.info('Evaluation %s: %s', job_id, text)
                 update(connection, job_id, progress=text)
         code = process.wait()
+        if timed_out.is_set():
+            raise RuntimeError(f'Rasa did not finish within {TIME_LIMIT_SECONDS // 60} minutes and was stopped.')
         if code != 0:
             raise RuntimeError(f'Rasa stopped with exit code {code}.')
 
@@ -191,17 +252,20 @@ def evaluate(connection, job_id, folds):
         update(connection, job_id, **results, log_tail='\n'.join(tail), progress='',
                finished_at=_now(connection), status='finished')
         log.info('Evaluation %s finished.', job_id)
+    except JobGone:
+        log.warning('Evaluation %s is no longer running on the page; Rasa stopped.', job_id)
     except Exception as error:  # noqa: BLE001 - every failure must reach the page
         log.exception('Evaluation %s failed.', job_id)
-        connection.rollback()
-        update(connection, job_id, status='failed', error=str(error)[:1000] or error.__class__.__name__,
-               log_tail='\n'.join(tail), finished_at=_now(connection))
+        _record_failure(connection, job_id, error, tail)
     finally:
+        if timer is not None:
+            timer.cancel()
+        if process is not None:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            process.stdout.close()
         shutil.rmtree(work, ignore_errors=True)
-
-
-def _now(connection):
-    return execute(connection, 'SELECT now()')[0][0]
 
 
 def main():

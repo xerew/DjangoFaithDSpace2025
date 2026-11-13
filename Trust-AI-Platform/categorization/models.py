@@ -32,8 +32,10 @@ STATUS_CHOICES = [
 class OneAtATime:
     """One queued or running job of a kind; lost jobs expire.
 
-    A job this old that never finished was lost (worker restart); it must
-    not keep the start button disabled forever.
+    A job queued, or running, for longer than STALE_AFTER was lost (worker
+    restart); it must not keep the start button disabled forever. A
+    running job counts from when it started, so a job that waited in the
+    queue is not expired while a worker is busy with it.
     """
 
     ACTIVE = ('queued', 'running')
@@ -42,9 +44,13 @@ class OneAtATime:
     @classmethod
     def expire_stale(cls):
         """Mark jobs that were lost (queued or running too long) as failed."""
-        cls.objects.filter(
-            status__in=cls.ACTIVE, created_at__lt=timezone.now() - cls.STALE_AFTER,
-        ).update(status='failed', error=cls.STALE_ERROR, finished_at=timezone.now())
+        cutoff = timezone.now() - cls.STALE_AFTER
+        lost = (
+            models.Q(status='queued', created_at__lt=cutoff)
+            | models.Q(status='running', started_at__lt=cutoff)
+            | models.Q(status='running', started_at__isnull=True, created_at__lt=cutoff)
+        )
+        cls.objects.filter(lost).update(status='failed', error=cls.STALE_ERROR, finished_at=timezone.now())
 
     @classmethod
     def start(cls, user, **fields):

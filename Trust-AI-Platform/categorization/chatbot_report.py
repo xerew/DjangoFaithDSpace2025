@@ -17,11 +17,22 @@ FOLD_LINE = re.compile(r'(train|test) (Accuracy|F1-score|Precision): ([\d.]+) \(
 
 
 def per_fold(log_tail):
-    """The 'test Accuracy: 0.776 (0.019)' lines: mean and std across folds."""
-    return {
-        f'{split} {metric}': (float(mean), float(std))
-        for split, metric, mean, std in FOLD_LINE.findall(log_tail or '')
-    }
+    """The intent 'test Accuracy: 0.776 (0.019)' lines: mean and std across folds.
+
+    Rasa prints the same kind of lines for entities and response selection
+    after the intent block; only the intent block is read.
+    """
+    text = log_tail or ''
+    start = text.find('Intent evaluation results')
+    if start >= 0:
+        text = text[start + len('Intent evaluation results'):]
+        end = text.find('evaluation results')
+        if end >= 0:
+            text = text[:end]
+    found = {}
+    for split, metric, mean, std in FOLD_LINE.findall(text):
+        found.setdefault(f'{split} {metric}', (float(mean), float(std)))
+    return found
 
 
 def _predicted(item):

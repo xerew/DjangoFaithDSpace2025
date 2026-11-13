@@ -4,6 +4,7 @@ from io import BytesIO
 
 from django.utils.translation import gettext as _
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Font
 
 from authoringtool.performance_formula import CATEGORIES
@@ -214,7 +215,9 @@ def chatbot_workbook(evaluation):
               _('Below fallback')]
 
     def prediction_rows(rows):
-        return [(r['text'], r['intent'], r['predicted'], r['confidence'], r['correct'], r['below_fallback'])
+        # Control characters in a typed sentence would make openpyxl refuse the file.
+        return [(ILLEGAL_CHARACTERS_RE.sub('', r['text']), r['intent'], r['predicted'], r['confidence'],
+                 r['correct'], r['below_fallback'])
                 for r in rows]
 
     _sheet(book, 'Wrong predictions', header, prediction_rows(view['wrong']))

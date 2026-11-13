@@ -16,7 +16,7 @@
     {% if chatbot_active %}
       <strong>{% blocktranslate with folds=chatbot_active.folds %}Evaluation with {{ folds }} folds is running.{% endblocktranslate %}</strong>
       <span id="cat-progress">{{ chatbot_active.progress|default:_('Waiting for the chatbot evaluation worker…') }}</span>
-      <span class="cat-quiet">{% translate 'A 3-fold run takes about 30 minutes; you can leave this page.' %}</span>
+      <span class="cat-quiet">{% translate 'A run takes a few minutes; you can leave this page.' %}</span>
     {% endif %}
   </p>
   {% if chatbot_failed %}
