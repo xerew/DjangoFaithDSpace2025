@@ -62,6 +62,18 @@ class TrainingJobTests(TestCase):
             self.assertTrue(os.path.exists(path), path)
             self.assertTrue(path.startswith(self.folder.name))
 
+    def test_over_time_error_keeps_the_trained_models(self):
+        self.students(make_scenario(self.teacher, name='First'), 6, 'a')
+        self.students(make_scenario(self.teacher, name='Second'), 6, 'b')
+        run = TrainingRun.start(self.admin)
+        with mock.patch.object(training, 'MIN_LABELLED_RUNS', 5), \
+             mock.patch('categorization.tasks.over_time.evaluate', side_effect=ValueError('boom')):
+            run_training(run.id)
+        run.refresh_from_db()
+        self.assertEqual(run.status, 'finished', run.error)
+        self.assertEqual(run.results['over_time'], {'error': 'ValueError: boom'})
+        self.assertTrue(os.path.exists(run.final_model_path))
+
     def test_unexpected_error_marks_failed(self):
         run = TrainingRun.start(self.admin)
         with mock.patch('categorization.tasks.load_runs', side_effect=RuntimeError('boom')):

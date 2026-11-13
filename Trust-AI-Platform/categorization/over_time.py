@@ -6,10 +6,12 @@ a month with fewer than MIN_PERIOD_RUNS runs is joined with the next one
 models are trained only on the runs that started before it, including the
 time norms, and tested on the period's runs. A student who comes back in a
 later period has their earlier runs in the training data, as they would
-in real use. No Django here.
+in real use.
 """
 
 from collections import defaultdict
+
+from django.utils import timezone
 
 from authoringtool.performance_formula import CATEGORIES
 
@@ -36,6 +38,9 @@ def periods(runs, min_runs=MIN_PERIOD_RUNS):
     by_month = defaultdict(list)
     for run in runs:
         when = started_on(run)
+        # Answers are stored in UTC; a month starts at midnight on the platform (Athens).
+        if timezone.is_aware(when):
+            when = timezone.localtime(when)
         by_month[(when.year, when.month)].append(run)
     found = []
     current = None

@@ -294,9 +294,11 @@
     <div class="cat-card">
       <div class="cat-row" style="justify-content: space-between;">
         <h2>{% translate 'Over time' %}</h2>
-        {% if over_time %}<a class="button" href="{% url 'categorization_export' selected.id 'time' %}">{% translate 'Download Excel' %}</a>{% endif %}
+        {% if over_time and not over_time.error %}<a class="button" href="{% url 'categorization_export' selected.id 'time' %}">{% translate 'Download Excel' %}</a>{% endif %}
       </div>
-      {% if over_time %}
+      {% if over_time.error %}
+        <p class="cat-error">{% translate 'The over-time test failed:' %} {{ over_time.error }}</p>
+      {% elif over_time %}
       <p class="cat-quiet">{% blocktranslate with min_runs=over_time.min_period_runs min_train=over_time.min_train_runs %}Students in the order they started (the date of their first answer). For each period, the model is trained only on the runs that started before it and tested on that period's runs, as if it had been running on the platform from the start. Months with fewer than {{ min_runs }} runs are joined with the next one; a period is tested once at least {{ min_train }} earlier runs exist. The filters above do not apply here.{% endblocktranslate %}</p>
 
       <form method="get" class="cat-row cat-filters">
@@ -330,10 +332,12 @@
           <tr>
             <td>{{ row.label }}</td><td class="num">{{ row.trained_on }}</td><td class="num">{{ row.tested }}</td>
             {% if row.evaluated %}
-              <td class="num">{{ row.xgb.accuracy|pct }}</td><td class="num">{{ row.baseline.accuracy|pct }}</td>
-              <td class="num">{{ row.xgb.macro_f1|pct }}</td><td class="num">{{ row.baseline.macro_f1|pct }}</td>
+              <td class="num">{{ row.xgb.accuracy|pct }}</td>
+              <td class="num">{% if row.baseline %}{{ row.baseline.accuracy|pct }}{% else %}&ndash;{% endif %}</td>
+              <td class="num">{{ row.xgb.macro_f1|pct }}</td>
+              <td class="num">{% if row.baseline %}{{ row.baseline.macro_f1|pct }}{% else %}&ndash;{% endif %}</td>
             {% else %}
-              <td colspan="4" class="cat-quiet">{% translate 'Not tested: too few earlier runs to learn from.' %}</td>
+              <td colspan="4" class="cat-quiet">{% translate 'Not tested for this prediction: too few earlier runs to learn from, or no run of this period reached this phase.' %}</td>
             {% endif %}
           </tr>
           {% endfor %}
@@ -353,7 +357,7 @@
     {{ early.confusion|json_script:"early-confusion-data" }}
     {{ early.importances|json_script:"early-importance-data" }}
     {{ early.chart|json_script:"early-trend-data" }}
-  {% elif over_time %}
+  {% elif over_time and not over_time.error %}
     {{ over_time.chart|json_script:"time-trend-data" }}
   {% endif %}
   {% endif %}
@@ -495,7 +499,7 @@
     chart.setOption({
       grid: { left: 48, right: 24, top: 40, bottom: 40 },
       legend: { top: 0, textStyle: { color: ink } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'line' },
                  formatter: function (items) { var i = Math.min(Math.floor(items[0].value[0] * n), n - 1);
                    return conf.labels[i] + '<br>' + d.names.right + ': ' + conf.right[i] + '<br>' + d.names.wrong + ': ' + conf.wrong[i]; } },
       xAxis: { type: 'value', min: 0, max: 1, interval: 0.1, axisLabel: { color: quiet, formatter: function (x) { return x.toFixed(1); } },

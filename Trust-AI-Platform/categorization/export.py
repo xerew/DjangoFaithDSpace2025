@@ -151,7 +151,7 @@ def _time_book(run):
     book.remove(book.active)
     first = over_time_view(run.results)
     rows = []
-    for option in (first['options'] if first else []):
+    for option in (first.get('options', []) if first else []):
         name = _('Final categorization') if option == 'final' else _('After phase %(k)s') % {'k': option}
         for row in over_time_view(run.results, option)['rows']:
             if not row['evaluated']:

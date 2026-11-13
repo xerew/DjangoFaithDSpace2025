@@ -89,7 +89,11 @@ def run_training(run_id):
         run.save(update_fields=['counts', 'versions', 'parameters'])
         results, boosters = training.train_all(final, checkpoints, run.set_progress)
         started = time.monotonic()
-        results['over_time'] = over_time.evaluate(runs, run.set_progress)
+        try:
+            results['over_time'] = over_time.evaluate(runs, run.set_progress)
+        except Exception as error:  # the main models are trained; keep them
+            logger.exception('Over-time test of training run %s failed', run_id)
+            results['over_time'] = {'error': f'{type(error).__name__}: {error}'}
         results['seconds']['over_time'] = round(time.monotonic() - started, 1)
         run.final_model_path = _save_model(boosters['final'], run, 'final')
         run.early_model_path = _save_model(boosters['early'], run, 'early')

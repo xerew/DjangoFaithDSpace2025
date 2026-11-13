@@ -1,6 +1,6 @@
 """Over time: models trained only on earlier students, tested month by month."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from io import BytesIO
 from unittest import mock
 
@@ -52,6 +52,12 @@ class PeriodTests(SimpleTestCase):
         found = [(first, last, len(part)) for first, last, part in over_time.periods(runs, min_runs=30)]
         # The last 3 runs of September are too few on their own: joined with the period before.
         self.assertEqual(found, [((2024, 5), (2024, 5), 40), ((2024, 6), (2024, 9), 48)])
+
+    def test_months_follow_athens_time(self):
+        # 22:30 UTC on 31 March is 01:30 on 1 April in Athens.
+        late = dated_run(1, datetime(2025, 3, 31, 22, 30, tzinfo=dt_timezone.utc), [2, 2, 2, 2])
+        found = over_time.periods([late], min_runs=1)
+        self.assertEqual(found[0][0], (2025, 4))
 
     def test_runs_are_dated_by_their_first_answer(self):
         run = dated_run(1, datetime(2025, 3, 31, 23, 50), [2, 2, 2, 2])
@@ -151,6 +157,19 @@ class OverTimeTabTests(TestCase):
         self.assertContains(response, 'Oct 2024 – Dec 2024')
         self.assertContains(response, 'Over time')
         self.assertEqual(response.context['over_time']['picked'], '1')
+
+    def test_final_prediction_page(self):
+        # The final categorization has no formula line: its cells show a dash.
+        self.run_with({**results(), 'over_time': stored()})
+        response = self.client.get(self.url, {'tab': 'time', 'prediction': 'final'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['over_time']['picked'], 'final')
+        self.assertContains(response, '90.0%')
+
+    def test_over_time_error_is_shown(self):
+        self.run_with({**results(), 'over_time': {'error': 'ValueError: boom'}})
+        response = self.client.get(self.url, {'tab': 'time'})
+        self.assertContains(response, 'The over-time test failed: ValueError: boom')
 
     def test_run_trained_before_this_tab(self):
         self.run_with(results())

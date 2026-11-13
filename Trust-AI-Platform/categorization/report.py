@@ -148,6 +148,8 @@ def over_time_view(results, prediction=None):
     data = results.get('over_time')
     if not data:
         return None
+    if 'error' in data:
+        return {'error': data['error']}
     periods = data['periods']
     checkpoints = sorted({k for p in periods for k in p.get('checkpoints', {})}, key=int)
     options = checkpoints + ['final']

@@ -160,7 +160,7 @@ def dashboard(request):
         early = early_view(selected.results, filters, checkpoint)
         _chart_text(early['chart'])
         over_time = over_time_view(selected.results, request.GET.get('prediction'))
-        if over_time:
+        if over_time and 'chart' in over_time:
             _chart_text(over_time['chart'], labels=False)
         context.update({
             'over_time': over_time,

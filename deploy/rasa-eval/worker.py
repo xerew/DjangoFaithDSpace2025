@@ -46,7 +46,7 @@ LOG_LINES = 300
 # tqdm epoch bars ("Epochs:  45%|####5  | 45/100 [...]") say nothing after the fact.
 PROGRESS_BAR = re.compile(r'\d+%\|')
 DEFAULT_FALLBACK = 0.3
-RESTARTED_ERROR = 'The chatbot evaluation worker restarted during the run.'
+RESTARTED_ERROR = 'The chatbot evaluation worker restarted or lost its database connection during the run.'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('rasa-eval')
