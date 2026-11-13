@@ -59,7 +59,8 @@
   .resource-tile-icon.image { background: #f3e5f5; color: #6a1b9a; }
   .resource-tile-icon.doc   { background: #e8edf5; color: #4154f1; }
   .resource-tile-icon.video { background: #ffebee; color: #c62828; }
-  .tutorial-video { width: 100%; max-height: 70vh; border-radius: 8px; background: #000; }
+  /* The video is 16:9; the fixed ratio keeps the player full size before the file loads. */
+  .tutorial-video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 75vh; border-radius: 8px; background: #000; }
   .resource-tile-body { flex: 1; min-width: 0; }
   .resource-tile-title { font-size: 13px; font-weight: 700; color: #012970; line-height: 1.3; margin-bottom: 3px; }
   .resource-tile-desc  { font-size: 11.5px; color: #888; line-height: 1.4; }
@@ -251,8 +252,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        {# preload="none": the 50 MB file loads only when someone presses play #}
-        <video class="tutorial-video" controls preload="none" playsinline>
+        {# preload="metadata" fetches only the length; the 50 MB file loads when someone presses play #}
+        <video class="tutorial-video" controls preload="metadata" playsinline>
           <source src="{% static 'videos/trust_ai_platform_tutorial.mp4' %}" type="video/mp4">
         </video>
       </div>
