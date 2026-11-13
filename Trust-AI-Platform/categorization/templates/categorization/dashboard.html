@@ -60,6 +60,7 @@
   <nav class="cat-tabs">
     <a href="{{ tab_links.final }}" class="{% if tab == 'final' %}active{% endif %}">{% translate 'Final categorization' %}</a>
     <a href="{{ tab_links.early }}" class="{% if tab == 'early' %}active{% endif %}">{% translate 'Early prediction' %}</a>
+    <a href="{{ tab_links.time }}" class="{% if tab == 'time' %}active{% endif %}">{% translate 'Over time' %}</a>
     <a href="{{ tab_links.chatbot }}" class="{% if tab == 'chatbot' %}active{% endif %}">{% translate 'Chatbot intents' %}</a>
   </nav>
 
@@ -218,7 +219,7 @@
         </tbody>
       </table></div>
     </div>
-  {% else %}
+  {% elif tab == 'early' %}
     <div class="cat-card">
       <div class="cat-row" style="justify-content: space-between;">
         <h2>{% translate 'Early prediction' %}</h2>
@@ -289,15 +290,71 @@
         <p class="cat-quiet">{% translate 'No early-prediction results for this selection.' %}</p>
       {% endif %}
     </div>
+  {% else %}
+    <div class="cat-card">
+      <div class="cat-row" style="justify-content: space-between;">
+        <h2>{% translate 'Over time' %}</h2>
+        {% if over_time %}<a class="button" href="{% url 'categorization_export' selected.id 'time' %}">{% translate 'Download Excel' %}</a>{% endif %}
+      </div>
+      {% if over_time %}
+      <p class="cat-quiet">{% blocktranslate with min_runs=over_time.min_period_runs min_train=over_time.min_train_runs %}Students in the order they started (the date of their first answer). For each period, the model is trained only on the runs that started before it and tested on that period's runs, as if it had been running on the platform from the start. Months with fewer than {{ min_runs }} runs are joined with the next one; a period is tested once at least {{ min_train }} earlier runs exist. The filters above do not apply here.{% endblocktranslate %}</p>
+
+      <form method="get" class="cat-row cat-filters">
+        {% for key, value in request.GET.items %}{% if key != 'prediction' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+        <label>{% translate 'Prediction' %}
+          <select name="prediction" onchange="this.form.submit()">
+            {% for option in over_time.options %}
+              <option value="{{ option }}" {% if option == over_time.picked %}selected{% endif %}>{% if option == 'final' %}{% translate 'Final categorization' %}{% else %}{% blocktranslate with k=option %}After phase {{ k }}{% endblocktranslate %}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+      </form>
+      {% if over_time.picked == 'final' %}
+        <p class="cat-quiet">{% translate 'For the final categorization the formula is PISA itself, so only the agreement of XGBoost with it is shown.' %}</p>
+      {% endif %}
+
+      <h3>{% translate 'Accuracy and macro F1 of each period' %}</h3>
+      <div id="time-trend" class="cat-chart" role="img" aria-label="{% translate 'Accuracy and macro F1 of each period' %}"></div>
+      <h3>{% translate 'Runs the model had learned from, and runs tested' %}</h3>
+      <div id="time-runs" class="cat-chart" style="height: 220px;" role="img" aria-label="{% translate 'Runs the model had learned from, and runs tested' %}"></div>
+
+      <div class="cat-table-wrap"><table>
+        <thead><tr>
+          <th>{% translate 'Tested on' %}</th><th class="num">{% translate 'Runs learned from' %}</th><th class="num">{% translate 'Runs tested' %}</th>
+          <th class="num">{% translate 'XGBoost accuracy' %}</th><th class="num">{% translate 'Formula so far accuracy' %}</th>
+          <th class="num">{% translate 'XGBoost macro F1' %}</th><th class="num">{% translate 'Formula so far macro F1' %}</th>
+        </tr></thead>
+        <tbody>
+          {% for row in over_time.rows %}
+          <tr>
+            <td>{{ row.label }}</td><td class="num">{{ row.trained_on }}</td><td class="num">{{ row.tested }}</td>
+            {% if row.evaluated %}
+              <td class="num">{{ row.xgb.accuracy|pct }}</td><td class="num">{{ row.baseline.accuracy|pct }}</td>
+              <td class="num">{{ row.xgb.macro_f1|pct }}</td><td class="num">{{ row.baseline.macro_f1|pct }}</td>
+            {% else %}
+              <td colspan="4" class="cat-quiet">{% translate 'Not tested: too few earlier runs to learn from.' %}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+        <p><strong>{% translate 'Train the models again to see this tab.' %}</strong></p>
+        <p class="cat-quiet">{% translate 'This run was trained before the over-time test existed.' %}</p>
+      {% endif %}
+    </div>
   {% endif %}
 
   {% if tab == 'final' %}
     {{ final.confusion|json_script:"final-confusion-data" }}
     {{ final.importances|json_script:"final-importance-data" }}
-  {% else %}
+  {% elif tab == 'early' %}
     {{ early.confusion|json_script:"early-confusion-data" }}
     {{ early.importances|json_script:"early-importance-data" }}
     {{ early.chart|json_script:"early-trend-data" }}
+  {% elif over_time %}
+    {{ over_time.chart|json_script:"time-trend-data" }}
   {% endif %}
   {% endif %}
   {% endif %}
@@ -350,8 +407,8 @@
     });
   }
 
-  function trend() {
-    var d = data('early-trend-data'); var chart = d && make('early-trend'); if (!chart) return;
+  function trend(id) {
+    var d = data(id + '-data'); var chart = d && make(id); if (!chart) return;
     var labels = d.labels, names = d.names;
     function line(name, values, color, dashed) {
       return { type: 'line', name: name, data: values, symbolSize: 8, lineStyle: { width: 2, color: color, type: dashed ? 'dashed' : 'solid' },
@@ -370,6 +427,21 @@
         line(names.baseline_accuracy, d.baseline_accuracy, ORANGE, false),
         line(names.xgb_f1, d.xgb_f1, BLUE, true),
         line(names.baseline_f1, d.baseline_f1, ORANGE, true)
+      ].filter(function (s) { return s.data.some(function (x) { return x != null; }); })
+    });
+  }
+
+  function timeRuns() {
+    var d = data('time-trend-data'); var chart = d && make('time-runs'); if (!chart) return;
+    chart.setOption({
+      grid: { left: 56, right: 24, top: 36, bottom: 32 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [
+        { type: 'bar', name: d.names.trained_on, data: d.trained_on, itemStyle: { color: quiet, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
+        { type: 'bar', name: d.names.tested, data: d.tested, itemStyle: { color: BLUE, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 }
       ]
     });
   }
@@ -433,7 +505,8 @@
 
   confusion('final-confusion'); importance('final-importance');
   chatbotF1(); chatbotConfusion(); chatbotConfidence();
-  confusion('early-confusion'); importance('early-importance'); trend();
+  confusion('early-confusion'); importance('early-importance'); trend('early-trend');
+  trend('time-trend'); timeRuns();
   window.addEventListener('resize', function () { charts.forEach(function (c) { c.resize(); }); });
 
   var status = document.getElementById('cat-status');

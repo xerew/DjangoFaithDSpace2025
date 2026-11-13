@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from . import chatbot_report
 from .export import chatbot_workbook, workbook
 from .models import ChatbotEvaluation, TrainingRun
-from .report import early_view, filter_options, final_view
+from .report import early_view, filter_options, final_view, over_time_view
 from .tasks import train_models_task
 
 
@@ -47,10 +47,11 @@ def _int(value):
 
 def _tab_links(request):
     links = {}
-    for tab in ('final', 'early'):
+    for tab in ('final', 'early', 'time'):
         query = request.GET.copy()
         query['tab'] = tab
         query.pop('checkpoint', None)
+        query.pop('prediction', None)
         query.pop('evaluation', None)
         links[tab] = '?' + query.urlencode()
     # The categorization filters mean nothing on the chatbot tab.
@@ -58,13 +59,16 @@ def _tab_links(request):
     return links
 
 
-def _chart_text(chart):
-    chart['labels'] = [_('After phase %(k)s') % {'k': k} for k in chart['checkpoints']]
+def _chart_text(chart, labels=True):
+    if labels:
+        chart['labels'] = [_('After phase %(k)s') % {'k': k} for k in chart['checkpoints']]
     chart['names'] = {
         'xgb_accuracy': _('XGBoost accuracy'),
         'baseline_accuracy': _('Formula so far accuracy'),
         'xgb_f1': _('XGBoost macro F1'),
         'baseline_f1': _('Formula so far macro F1'),
+        'trained_on': _('Runs learned from'),
+        'tested': _('Runs tested'),
     }
     return chart
 
@@ -124,7 +128,7 @@ def _chatbot_context(request):
 @admin_only
 def dashboard(request):
     tab = request.GET.get('tab')
-    tab = tab if tab in ('early', 'chatbot') else 'final'
+    tab = tab if tab in ('early', 'time', 'chatbot') else 'final'
     context = {
         **admin.site.each_context(request),
         'title': _('Student categorization models'),
@@ -155,7 +159,11 @@ def dashboard(request):
             duration = round((selected.finished_at - selected.started_at).total_seconds())
         early = early_view(selected.results, filters, checkpoint)
         _chart_text(early['chart'])
+        over_time = over_time_view(selected.results, request.GET.get('prediction'))
+        if over_time:
+            _chart_text(over_time['chart'], labels=False)
         context.update({
+            'over_time': over_time,
             'final': final_view(selected.results, filters),
             'early': early,
             'options': filter_options(selected.results),
@@ -193,7 +201,7 @@ def status(request):
 
 @admin_only
 def export(request, run_id, tab):
-    if tab not in ('final', 'early'):
+    if tab not in ('final', 'early', 'time'):
         raise Http404
     run = get_object_or_404(TrainingRun, pk=run_id, status='finished')
     content = workbook(run, tab, _filters(request), _int(request.GET.get('checkpoint')))

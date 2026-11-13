@@ -5,6 +5,9 @@ them; nothing is retrained.
 """
 
 from collections import defaultdict
+from datetime import date
+
+from django.utils.formats import date_format
 
 from authoringtool.performance_formula import HIGH_THRESHOLD, MODERATE_THRESHOLD
 
@@ -131,3 +134,57 @@ def filter_options(results):
     )
     languages = sorted({row['language'] for row in rows}, key=str.casefold)
     return {'scenarios': scenarios, 'languages': languages}
+
+
+def _period_label(start, end):
+    def month(text):
+        year, number = map(int, text.split('-'))
+        return date_format(date(year, number, 1), 'M Y')
+    return month(start) if start == end else f'{month(start)} – {month(end)}'
+
+
+def over_time_view(results, prediction=None):
+    """One row per period for the picked prediction ('1', '2', ... or 'final')."""
+    data = results.get('over_time')
+    if not data:
+        return None
+    periods = data['periods']
+    checkpoints = sorted({k for p in periods for k in p.get('checkpoints', {})}, key=int)
+    options = checkpoints + ['final']
+    picked = prediction if prediction in options else options[0]
+    rows = []
+    for period in periods:
+        if picked == 'final':
+            xgb, baseline = period.get('final', {}).get('xgb'), None
+        else:
+            entry = period.get('checkpoints', {}).get(picked, {})
+            xgb, baseline = entry.get('xgb'), entry.get('baseline')
+        rows.append({
+            'label': _period_label(period['start'], period['end']),
+            'trained_on': period['trained_on'],
+            'students_trained': period['students_trained'],
+            'tested': xgb['runs'] if xgb else period['tested'],
+            'xgb': xgb,
+            'baseline': baseline,
+            'evaluated': xgb is not None,
+        })
+
+    def series(kind, key):
+        return [row[kind][key] if row[kind] else None for row in rows]
+
+    return {
+        'options': options,
+        'picked': picked,
+        'rows': rows,
+        'min_period_runs': data.get('min_period_runs'),
+        'min_train_runs': data.get('min_train_runs'),
+        'chart': {
+            'labels': [row['label'] for row in rows],
+            'xgb_accuracy': series('xgb', 'accuracy'),
+            'baseline_accuracy': series('baseline', 'accuracy'),
+            'xgb_f1': series('xgb', 'macro_f1'),
+            'baseline_f1': series('baseline', 'macro_f1'),
+            'trained_on': [row['trained_on'] for row in rows],
+            'tested': [row['tested'] for row in rows],
+        },
+    }

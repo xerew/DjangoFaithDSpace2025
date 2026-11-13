@@ -9,7 +9,7 @@ from openpyxl.styles import Font
 from authoringtool.performance_formula import CATEGORIES
 
 from . import chatbot_report
-from .report import early_view, filter_options, final_view
+from .report import early_view, filter_options, final_view, over_time_view
 
 PERCENT = '0.0%'
 
@@ -144,8 +144,35 @@ def _save(book):
     return buffer.getvalue()
 
 
+def _time_book(run):
+    """Every evaluated period, for every prediction, in one long sheet."""
+    book = Workbook()
+    book.remove(book.active)
+    first = over_time_view(run.results)
+    rows = []
+    for option in (first['options'] if first else []):
+        name = _('Final categorization') if option == 'final' else _('After phase %(k)s') % {'k': option}
+        for row in over_time_view(run.results, option)['rows']:
+            if not row['evaluated']:
+                continue
+            xgb, base = row['xgb'], row['baseline'] or {}
+            rows.append((row['label'], name, row['trained_on'], row['students_trained'], row['tested'],
+                         xgb['accuracy'], base.get('accuracy'), xgb['macro_f1'], base.get('macro_f1')))
+    _sheet(book, 'Over time', [
+        _('Tested on'), _('Prediction'), _('Runs learned from'), _('Students learned from'),
+        _('Runs tested'), _('XGBoost accuracy'), _('Formula so far accuracy'),
+        _('XGBoost macro F1'), _('Formula so far macro F1'),
+    ], rows, percent_columns=(6, 7, 8, 9))
+    return book
+
+
 def workbook(run, tab, filters, checkpoint=None):
-    book = _final_book(run, filters) if tab == 'final' else _early_book(run, filters, checkpoint)
+    if tab == 'time':
+        book = _time_book(run)
+    elif tab == 'final':
+        book = _final_book(run, filters)
+    else:
+        book = _early_book(run, filters, checkpoint)
     return _save(book)
 
 

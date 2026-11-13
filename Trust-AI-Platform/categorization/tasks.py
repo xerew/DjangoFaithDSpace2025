@@ -2,6 +2,7 @@
 
 import logging
 import os
+import time
 from collections import defaultdict
 
 import sklearn
@@ -10,7 +11,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
-from . import training
+from . import over_time, training
 from .dataset import LAST_PHASE, ROUTE_END, UNFINISHED, load_runs
 from .features import (
     FAST_ANSWER_RULE,
@@ -82,9 +83,14 @@ def run_training(run_id):
             'final_inputs': input_columns(final) if len(final) else [],
             'early_inputs': input_columns(checkpoints) if len(checkpoints) else [],
             'fast_answer_rule': FAST_ANSWER_RULE,
+            'over_time_min_period_runs': over_time.MIN_PERIOD_RUNS,
+            'over_time_min_train_runs': over_time.MIN_TRAIN_RUNS,
         }
         run.save(update_fields=['counts', 'versions', 'parameters'])
         results, boosters = training.train_all(final, checkpoints, run.set_progress)
+        started = time.monotonic()
+        results['over_time'] = over_time.evaluate(runs, run.set_progress)
+        results['seconds']['over_time'] = round(time.monotonic() - started, 1)
         run.final_model_path = _save_model(boosters['final'], run, 'final')
         run.early_model_path = _save_model(boosters['early'], run, 'early')
         run.results = results
