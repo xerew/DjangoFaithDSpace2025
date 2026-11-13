@@ -148,6 +148,29 @@ services:
       - rasa_actions
     restart: unless-stopped
 
+  # Chatbot intent evaluation, queued from the admin Student categorization
+  # page. Same Rasa as the live chatbot; reads its sentences read-only and
+  # never touches the live model. Limited to 2 CPUs so students' chatbot
+  # stays responsive during a run.
+  rasa-eval:
+    image: rasa/rasa:3.6.0
+    entrypoint: ["python", "/worker/worker.py"]
+    working_dir: /tmp
+    volumes:
+      - ./RasaFaith/RasaFaith:/rasa-src:ro
+      - ./deploy/rasa-eval:/worker:ro
+    environment:
+      DB_HOST: db
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PORT: "5432"
+      PYTHONUNBUFFERED: "1"
+    cpus: 2
+    depends_on:
+      - db
+    restart: unless-stopped
+
   rasa_actions:
     build:
       context: ./RasaFaith/RasaFaith/actions

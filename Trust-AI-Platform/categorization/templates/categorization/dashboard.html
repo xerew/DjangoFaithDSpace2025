@@ -38,6 +38,8 @@
     .cat td.num, .cat th.num { text-align: right; white-space: nowrap; }
     .cat td:first-child { white-space: nowrap; }
     .cat details summary { cursor: pointer; }
+    .cat-nlu { max-height: 320px; overflow: auto; white-space: pre-wrap; font-size: 0.85rem; }
+    .cat td.cat-text { white-space: normal; }
     @media (max-width: 640px) {
       .cat-card { padding: 12px; }
       .cat-chart { height: 280px; }
@@ -55,6 +57,15 @@
 {% block content %}
 <div id="content-main" class="cat">
 
+  <nav class="cat-tabs">
+    <a href="{{ tab_links.final }}" class="{% if tab == 'final' %}active{% endif %}">{% translate 'Final categorization' %}</a>
+    <a href="{{ tab_links.early }}" class="{% if tab == 'early' %}active{% endif %}">{% translate 'Early prediction' %}</a>
+    <a href="{{ tab_links.chatbot }}" class="{% if tab == 'chatbot' %}active{% endif %}">{% translate 'Chatbot intents' %}</a>
+  </nav>
+
+  {% if tab == 'chatbot' %}
+    {% include 'categorization/chatbot_tab.html' %}
+  {% else %}
   <div class="cat-card">
     <div class="cat-row" style="justify-content: space-between;">
       <h2>{% translate 'XGBoost next to the PISA categorization' %}</h2>
@@ -64,7 +75,7 @@
       </form>
     </div>
     <p class="cat-quiet">{% translate 'Trained on every run of public scenarios. Students who stopped early are scored by the points they gathered: unanswered activities count as 0. Every number below comes from students the model did not train on. PISA categories on the platform are not changed.' %}</p>
-    <p id="cat-status" data-active="{% if active %}1{% else %}0{% endif %}">
+    <p id="cat-status" data-active="{% if active %}1{% else %}0{% endif %}" data-url="{% url 'categorization_status' %}">
       {% if active %}
         <strong>{% translate 'Training is running.' %}</strong>
         <span id="cat-progress">{{ active.progress|default:_('Waiting for the worker…') }}</span>
@@ -138,11 +149,6 @@
   </div>
 
   {% if selected %}
-  <nav class="cat-tabs">
-    <a href="{{ tab_links.final }}" class="{% if tab == 'final' %}active{% endif %}">{% translate 'Final categorization' %}</a>
-    <a href="{{ tab_links.early }}" class="{% if tab == 'early' %}active{% endif %}">{% translate 'Early prediction' %}</a>
-  </nav>
-
   {% if tab == 'final' %}
     <div class="cat-card">
       <div class="cat-row" style="justify-content: space-between;">
@@ -294,6 +300,7 @@
     {{ early.chart|json_script:"early-trend-data" }}
   {% endif %}
   {% endif %}
+  {% endif %}
 
 </div>
 
@@ -367,13 +374,71 @@
     });
   }
 
+  function chatbotF1() {
+    var d = data('chatbot-chart-data'); var chart = d && d.per_intent.length && make('chatbot-f1'); if (!chart) return;
+    var rows = d.per_intent.slice().reverse();  // worst at the top
+    chart.setOption({
+      grid: { left: 150, right: 32, top: 8, bottom: 32 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (x) { return x.toFixed(2); } },
+      xAxis: { type: 'value', min: 0, max: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: rows.map(function (r) { return r.intent; }), axisLabel: axisText },
+      series: [{ type: 'bar', name: d.names.f1, data: rows.map(function (r) { return r.f1; }),
+                 itemStyle: { color: BLUE, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14,
+                 label: { show: true, position: 'right', color: ink, formatter: function (p) { return p.value.toFixed(2); } } }]
+    });
+  }
+
+  function chatbotConfusion() {
+    var d = data('chatbot-chart-data'); var el = document.getElementById('chatbot-confusion');
+    if (!d || !el || !d.confusion.rows.length) return;
+    var c = d.confusion, cells = [], max = 1;
+    // One row per intent, so the chart grows with the number of intents.
+    el.style.height = Math.max(320, 36 * c.rows.length + 140) + 'px';
+    var chart = make('chatbot-confusion'); if (!chart) return;
+    c.matrix.forEach(function (row) { row.forEach(function (n) { max = Math.max(max, n); }); });
+    c.matrix.forEach(function (row, y) { row.forEach(function (n, x) {
+      cells.push({ value: [x, y, n], label: { show: n > 0, color: n > max * 0.5 ? '#ffffff' : '#1d2433' } });
+    }); });
+    chart.setOption({
+      grid: { left: 150, right: 16, top: 16, bottom: 110 },
+      tooltip: { formatter: function (p) { return c.rows[p.value[1]] + ' → ' + c.columns[p.value[0]] + ': ' + p.value[2]; } },
+      xAxis: { type: 'category', data: c.columns, axisLabel: { color: quiet, rotate: 40 }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: c.rows, inverse: true, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      visualMap: { show: false, min: 0, max: max, inRange: { color: RAMP } },
+      series: [{ type: 'heatmap', data: cells, itemStyle: { borderColor: v('--body-bg', '#fff'), borderWidth: 2, borderRadius: 4 },
+        label: { fontWeight: 600, formatter: function (p) { return p.value[2]; } } }]
+    });
+  }
+
+  function chatbotConfidence() {
+    var d = data('chatbot-chart-data'); var chart = d && make('chatbot-confidence'); if (!chart) return;
+    var conf = d.confidence;
+    // The fallback threshold sits between bucket boundaries; mark the bucket it falls in.
+    var fallbackBucket = conf.labels[Math.min(Math.floor(conf.fallback * conf.labels.length), conf.labels.length - 1)];
+    chart.setOption({
+      grid: { left: 48, right: 16, top: 40, bottom: 56 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'category', data: conf.labels, axisLabel: { color: quiet, rotate: 30 }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [
+        { type: 'bar', name: d.names.right, stack: 'n', data: conf.right, itemStyle: { color: BLUE }, barMaxWidth: 28,
+          markLine: { symbol: 'none', label: { color: ink, formatter: d.names.fallback + ' ' + conf.fallback },
+                      lineStyle: { color: ink, type: 'dashed' }, data: [{ xAxis: fallbackBucket }] } },
+        { type: 'bar', name: d.names.wrong, stack: 'n', data: conf.wrong,
+          itemStyle: { color: ORANGE, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 28 }
+      ]
+    });
+  }
+
   confusion('final-confusion'); importance('final-importance');
+  chatbotF1(); chatbotConfusion(); chatbotConfidence();
   confusion('early-confusion'); importance('early-importance'); trend();
   window.addEventListener('resize', function () { charts.forEach(function (c) { c.resize(); }); });
 
   var status = document.getElementById('cat-status');
   if (status && status.dataset.active === '1') {
-    var url = '{% url "categorization_status" %}';
+    var url = status.dataset.url;
     setInterval(function () {
       fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (run) {
         if (!run.status || (run.status !== 'queued' && run.status !== 'running')) { window.location.reload(); return; }

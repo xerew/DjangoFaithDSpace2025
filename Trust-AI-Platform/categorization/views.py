@@ -10,8 +10,9 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from .export import workbook
-from .models import TrainingAlreadyRunning, TrainingRun
+from . import chatbot_report
+from .export import chatbot_workbook, workbook
+from .models import ChatbotEvaluation, TrainingRun
 from .report import early_view, filter_options, final_view
 from .tasks import train_models_task
 
@@ -50,7 +51,10 @@ def _tab_links(request):
         query = request.GET.copy()
         query['tab'] = tab
         query.pop('checkpoint', None)
+        query.pop('evaluation', None)
         links[tab] = '?' + query.urlencode()
+    # The categorization filters mean nothing on the chatbot tab.
+    links['chatbot'] = '?tab=chatbot'
     return links
 
 
@@ -70,31 +74,80 @@ def selected_run(request):
     return finished.filter(pk=_int(request.GET.get('run'))).first() or finished.first()
 
 
-@admin_only
-def dashboard(request):
-    TrainingRun.expire_stale()
-    selected = selected_run(request)
-    light = TrainingRun.objects.defer('results')
-    active = light.filter(status__in=TrainingRun.ACTIVE).first()
+def _active_and_failed(model, selected, heavy):
+    """The job in progress, and the last failure if newer than what is shown."""
+    model.expire_stale()
+    light = model.objects.defer(*heavy)
+    active = light.filter(status__in=model.ACTIVE).first()
     last_failed = light.filter(status='failed').first()
     if last_failed and selected and last_failed.created_at < selected.created_at:
         last_failed = None
-    tab = 'early' if request.GET.get('tab') == 'early' else 'final'
-    filters = _filters(request)
+    return active, last_failed
+
+
+# Fields too big to load just to list or poll evaluations.
+EVALUATION_RESULTS = ('report', 'errors', 'successes', 'nlu_text', 'log_tail')
+
+
+def _chatbot_context(request):
+    finished = ChatbotEvaluation.objects.filter(status='finished')
+    selected = finished.filter(pk=_int(request.GET.get('evaluation'))).first() or finished.first()
+    active, last_failed = _active_and_failed(ChatbotEvaluation, selected, EVALUATION_RESULTS)
+    context = {
+        'evaluation': selected,
+        'evaluations': finished.only('id', 'finished_at', 'folds')[:50],
+        'chatbot_active': active,
+        'chatbot_failed': last_failed,
+        'fold_choices': ChatbotEvaluation.FOLD_CHOICES,
+    }
+    if selected:
+        view = chatbot_report.build(selected)
+        minutes = None
+        if selected.finished_at and selected.started_at:
+            minutes = max(round((selected.finished_at - selected.started_at).total_seconds() / 60), 1)
+        context.update({
+            'chatbot': view,
+            'chatbot_minutes': minutes,
+            'chatbot_charts': {
+                'per_intent': [{'intent': r['intent'], 'f1': r['f1']} for r in view['per_intent']],
+                'confusion': view['confusion'],
+                'confidence': view['confidence'],
+                'names': {
+                    'f1': _('F1'), 'right': _('Right'), 'wrong': _('Wrong'),
+                    'fallback': _('Fallback threshold'),
+                },
+            },
+        })
+    return context
+
+
+@admin_only
+def dashboard(request):
+    tab = request.GET.get('tab')
+    tab = tab if tab in ('early', 'chatbot') else 'final'
     context = {
         **admin.site.each_context(request),
         'title': _('Student categorization models'),
         # The admin's app sidebar adds nothing on this page.
         'is_nav_sidebar_enabled': False,
+        'tab': tab,
+        'tab_links': _tab_links(request),
+    }
+    if tab == 'chatbot':
+        context.update(_chatbot_context(request))
+        return render(request, 'categorization/dashboard.html', context)
+
+    selected = selected_run(request)
+    active, last_failed = _active_and_failed(TrainingRun, selected, ('results',))
+    filters = _filters(request)
+    context.update({
         'selected': selected,
         # Only what the dropdown shows: each run's results can be megabytes.
         'finished_runs': TrainingRun.objects.filter(status='finished').only('id', 'finished_at')[:50],
         'active': active,
         'last_failed': last_failed,
-        'tab': tab,
-        'tab_links': _tab_links(request),
         'filters': filters,
-    }
+    })
     if selected:
         checkpoint = _int(request.GET.get('checkpoint'))
         duration = None
@@ -116,7 +169,7 @@ def dashboard(request):
 def train(request):
     try:
         run = TrainingRun.start(request.user)
-    except TrainingAlreadyRunning:
+    except TrainingRun.AlreadyRunning:
         messages.warning(request, _('A training run is already in progress.'))
     else:
         train_models_task.delay(run.id)
@@ -149,4 +202,46 @@ def export(request, run_id, tab):
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
     response['Content-Disposition'] = f'attachment; filename="categorization-run-{run.id}-{tab}.xlsx"'
+    return response
+
+
+@require_POST
+@admin_only
+def chatbot_run(request):
+    folds = _int(request.POST.get('folds'))
+    back = reverse('categorization_dashboard') + '?tab=chatbot'
+    if folds not in ChatbotEvaluation.FOLD_CHOICES:
+        messages.error(request, _('Choose 3 or 5 folds.'))
+        return redirect(back)
+    try:
+        ChatbotEvaluation.start(request.user, folds=folds)
+    except ChatbotEvaluation.AlreadyRunning:
+        messages.warning(request, _('A chatbot evaluation is already in progress.'))
+    else:
+        messages.success(request, _('Chatbot evaluation queued.'))
+    return redirect(back)
+
+
+@admin_only
+def chatbot_status(request):
+    ChatbotEvaluation.expire_stale()
+    evaluation = ChatbotEvaluation.objects.defer(*EVALUATION_RESULTS).first()
+    if not evaluation:
+        return JsonResponse({})
+    return JsonResponse({
+        'id': evaluation.id,
+        'status': evaluation.status,
+        'progress': evaluation.progress,
+        'error': evaluation.error,
+    })
+
+
+@admin_only
+def chatbot_export(request, evaluation_id):
+    evaluation = get_object_or_404(ChatbotEvaluation, pk=evaluation_id, status='finished')
+    response = HttpResponse(
+        chatbot_workbook(evaluation),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="chatbot-intents-{evaluation.id}.xlsx"'
     return response

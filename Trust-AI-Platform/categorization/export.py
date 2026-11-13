@@ -8,6 +8,7 @@ from openpyxl.styles import Font
 
 from authoringtool.performance_formula import CATEGORIES
 
+from . import chatbot_report
 from .report import early_view, filter_options, final_view
 
 PERCENT = '0.0%'
@@ -126,7 +127,8 @@ def _text_only(book):
     """Store text that looks like a formula ("=...") as text.
 
     The export never writes formulas; scenario names are written by
-    teachers and the language filter comes from the URL.
+    teachers, the language filter comes from the URL, and chatbot
+    sentences are typed by people.
     """
     for sheet in book.worksheets:
         for row in sheet.iter_rows():
@@ -135,9 +137,59 @@ def _text_only(book):
                     cell.data_type = 's'
 
 
-def workbook(run, tab, filters, checkpoint=None):
-    book = _final_book(run, filters) if tab == 'final' else _early_book(run, filters, checkpoint)
+def _save(book):
     _text_only(book)
     buffer = BytesIO()
     book.save(buffer)
     return buffer.getvalue()
+
+
+def workbook(run, tab, filters, checkpoint=None):
+    book = _final_book(run, filters) if tab == 'final' else _early_book(run, filters, checkpoint)
+    return _save(book)
+
+
+def chatbot_workbook(evaluation):
+    """The sheets of the hand-run intent report, for one chatbot evaluation."""
+    view = chatbot_report.build(evaluation)
+    summary = view['summary']
+    book = Workbook()
+    book.remove(book.active)
+    rows = [
+        (_('Evaluation finished'), evaluation.finished_at.strftime('%Y-%m-%d %H:%M') if evaluation.finished_at else ''),
+        (_('Folds'), summary['folds']),
+        (_('Rasa version'), evaluation.rasa_version),
+        (_('Training sentences (SHA-256)'), evaluation.nlu_sha256),
+        (_('Examples tested'), summary['examples']),
+        (_('Intents tested'), summary['intents']),
+        (_('Accuracy (all folds pooled)'), summary['accuracy']),
+        (_('Macro F1 (each intent counts equally)'), summary['macro_f1']),
+        (_('Weighted F1 (by number of examples)'), summary['weighted_f1']),
+        (_('Wrong predictions'), summary['wrong']),
+        (_('Wrong with confidence at or above the fallback %(threshold)s (the fallback would not catch them)')
+         % {'threshold': summary['fallback']}, summary['wrong_above_fallback']),
+    ]
+    for key, (mean, std) in summary['per_fold'].items():
+        rows.append((_('%(measure)s per fold, mean (std)') % {'measure': key}, f'{mean:.3f} ({std:.3f})'))
+    sheet = _sheet(book, 'Summary', [_('Measure'), _('Value')], rows)
+    for row in sheet.iter_rows(min_row=2):
+        if isinstance(row[1].value, float):
+            row[1].number_format = PERCENT
+    _sheet(book, 'Per intent',
+           [_('Intent'), _('Examples'), _('Precision'), _('Recall'), _('F1'), _('Wrong')],
+           [(r['intent'], r['examples'], r['precision'], r['recall'], r['f1'], r['wrong'])
+            for r in sorted(view['per_intent'], key=lambda r: r['intent'])],
+           percent_columns=(3, 4, 5))
+    confusion = view['confusion']
+    _sheet(book, 'Confusion matrix', [_('True \\ Predicted'), *confusion['columns']],
+           [(true, *counts) for true, counts in zip(confusion['rows'], confusion['matrix'])])
+    header = [_('Text'), _('True intent'), _('Predicted intent'), _('Confidence'), _('Correct'),
+              _('Below fallback')]
+
+    def prediction_rows(rows):
+        return [(r['text'], r['intent'], r['predicted'], r['confidence'], r['correct'], r['below_fallback'])
+                for r in rows]
+
+    _sheet(book, 'Wrong predictions', header, prediction_rows(view['wrong']))
+    _sheet(book, 'All predictions', header, prediction_rows(view['predictions']))
+    return _save(book)

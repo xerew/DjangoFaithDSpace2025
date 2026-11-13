@@ -19,6 +19,12 @@ urlpatterns = [
     path('admin/student-categorization/', categorization_views.dashboard, name='categorization_dashboard'),
     path('admin/student-categorization/train/', categorization_views.train, name='categorization_train'),
     path('admin/student-categorization/status/', categorization_views.status, name='categorization_status'),
+    path('admin/student-categorization/chatbot/run/', categorization_views.chatbot_run,
+         name='categorization_chatbot_run'),
+    path('admin/student-categorization/chatbot/status/', categorization_views.chatbot_status,
+         name='categorization_chatbot_status'),
+    path('admin/student-categorization/chatbot/<int:evaluation_id>/export/',
+         categorization_views.chatbot_export, name='categorization_chatbot_export'),
     path(
         'admin/student-categorization/<int:run_id>/export/<str:tab>/',
         categorization_views.export,
