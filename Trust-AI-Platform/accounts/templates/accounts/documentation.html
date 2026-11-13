@@ -110,7 +110,8 @@
 
   <section class="section">
 
-    <!-- Video Tutorials -->
+    {# Video tutorial: shown only while the video file is on the server #}
+    {% if tutorial_video %}
     <div class="doc-section-label"><i class="bi bi-play-btn me-1"></i>Video Tutorials</div>
     <div class="resource-grid">
 
@@ -123,6 +124,7 @@
       </a>
 
     </div>
+    {% endif %}
 
     <!-- Guides -->
     <div class="doc-section-label"><i class="bi bi-file-earmark-text me-1"></i>Guides</div>
@@ -243,6 +245,7 @@
   </section>
 </main>
 
+{% if tutorial_video %}
 <!-- Tutorial Video Modal -->
 <div class="modal fade" id="videoModalTutorial" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl">
@@ -254,11 +257,11 @@
       <div class="modal-body">
         {# preload="metadata" fetches only the length; the 50 MB file loads when someone presses play #}
         <video class="tutorial-video" controls preload="metadata" playsinline>
-          <source src="{% static 'videos/trust_ai_platform_tutorial.mp4' %}" type="video/mp4">
+          <source src="{% static tutorial_video %}" type="video/mp4">
         </video>
       </div>
       <div class="modal-footer border-0">
-        <a href="{% static 'videos/trust_ai_platform_tutorial.mp4' %}" class="btn btn-success" download>
+        <a href="{% static tutorial_video %}" class="btn btn-success" download>
           <i class="bi bi-download me-1"></i>Download Video
         </a>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
@@ -266,6 +269,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- PDF Modal (English) -->
 <div class="modal fade" id="pdfModalEnglish" tabindex="-1" aria-hidden="true">
@@ -330,11 +334,13 @@
   </div>
 </div>
 
+{% if tutorial_video %}
 <script>
   // Stop the tutorial when its window is closed, so it does not keep playing unseen.
   document.getElementById('videoModalTutorial').addEventListener('hidden.bs.modal', function () {
     this.querySelector('video').pause();
   });
 </script>
+{% endif %}
 
 {% endblock %}

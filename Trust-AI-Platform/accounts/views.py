@@ -148,10 +148,26 @@ def registerAccount(request):
 def view404(request, exception):
     return render(request, '404.html', {}, status=404)
 
+TUTORIAL_VIDEO = 'videos/trust_ai_platform_tutorial.mp4'
+
+
+def _tutorial_video_available():
+    """The video is copied to the server by hand; show its section only once it is there."""
+    from django.contrib.staticfiles import finders
+    from django.contrib.staticfiles.storage import staticfiles_storage
+    if staticfiles_storage.exists(TUTORIAL_VIDEO):
+        return True
+    # runserver serves straight from the app folders, without collectstatic.
+    return settings.DEBUG and finders.find(TUTORIAL_VIDEO) is not None
+
+
 @group_required('teachers')
 def documentation_view(request):
     is_dspace_partner = request.user.groups.filter(name="dspace_partners").exists()
-    return render(request, 'accounts/documentation.html', {'is_dspace_partner': is_dspace_partner})
+    return render(request, 'accounts/documentation.html', {
+        'is_dspace_partner': is_dspace_partner,
+        'tutorial_video': TUTORIAL_VIDEO if _tutorial_video_available() else None,
+    })
 
 def tos_view(request):
     if request.user.is_authenticated:

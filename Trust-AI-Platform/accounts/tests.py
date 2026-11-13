@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib import admin
 from django.core import mail
@@ -848,3 +849,31 @@ class AdminBulkEmailTests(TestCase):
         self.assertEqual(count_response.status_code, 403)
         self.assertEqual(send_response.status_code, 403)
         self.assertEqual(BulkEmailCampaign.objects.count(), 0)
+
+
+class DocumentationTutorialVideoTests(TestCase):
+    """The tutorial video section shows only while the video file is on the server."""
+
+    def setUp(self):
+        teachers, _ = Group.objects.get_or_create(name='teachers')
+        teacher = User.objects.create_user('doc_teacher', password='pass')
+        teacher.groups.add(teachers)
+        self.client.login(username='doc_teacher', password='pass')
+
+    def _page(self, available):
+        with mock.patch('accounts.views._tutorial_video_available', return_value=available):
+            response = self.client.get(reverse('documentation_and_tutorials'))
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def test_section_is_hidden_without_the_video_file(self):
+        response = self._page(False)
+        self.assertNotContains(response, 'Video Tutorials')
+        self.assertNotContains(response, 'videoModalTutorial')
+        self.assertNotContains(response, 'trust_ai_platform_tutorial.mp4')
+
+    def test_section_shows_when_the_video_file_is_there(self):
+        response = self._page(True)
+        self.assertContains(response, 'Video Tutorials')
+        self.assertContains(response, 'id="videoModalTutorial"')
+        self.assertContains(response, 'videos/trust_ai_platform_tutorial.mp4', count=2)
