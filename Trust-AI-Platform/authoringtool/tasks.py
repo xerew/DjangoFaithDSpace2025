@@ -33,6 +33,7 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
+from .rag_sources import group_rag_pdfs, rag_pdf_signature
 from .translation_matching import (
     pooled_implementation_count,
     translation_activity_maps,
@@ -3055,21 +3056,34 @@ BASE_INDEX_DIR = settings.RAG_INDEX_ROOT       # e.g. /data/rag/rag_indexes
 def get_pdf_dir(scenario_id: int) -> str:
     return os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
 
-def get_index_dir(scenario_id: int) -> str:
-    return os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
+def get_index_dir(scenario_id: int, signature: str = '') -> str:
+    name = f"scenario_{scenario_id}" + (f"_{signature}" if signature else "")
+    return os.path.join(BASE_INDEX_DIR, name)
 
-# 2026
-# def get_pdf_dir(scenario_id):
-#     return os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
 
-# def get_index_dir(scenario_id):
-#     return os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
+def remove_rag_indexes(scenario_id: int, keep: str | None = None) -> None:
+    """Remove the scenario's index folders, except the one named `keep`.
 
-def ensure_rag_index(scenario_id):
+    A folder that cannot be removed (Chroma may hold a file open on Windows)
+    is left for the next run.
+    """
+    if not os.path.isdir(BASE_INDEX_DIR):
+        return
+    exact = f"scenario_{scenario_id}"
+    for name in os.listdir(BASE_INDEX_DIR):
+        if name == keep or not (name == exact or name.startswith(exact + "_")):
+            continue
+        try:
+            shutil.rmtree(os.path.join(BASE_INDEX_DIR, name), onerror=_on_rm_error)
+        except OSError as exc:
+            print(f"[RAG] could not remove old index {name}: {exc}")
+
+
+def ensure_rag_index(scenario_id, signature=''):
     """
     Build or reuse a Chroma index for the scenario's PDFs.
     """
-    index_dir = os.path.join(BASE_INDEX_DIR, f"scenario_{scenario_id}")
+    index_dir = get_index_dir(scenario_id, signature)
     os.makedirs(index_dir, exist_ok=True)
     collection_name = f"scenario_{scenario_id}"
     client = chromadb.PersistentClient(path=index_dir)
@@ -3081,17 +3095,24 @@ def ensure_rag_index(scenario_id):
 
 def chunk_and_index_pdfs(scenario_id):
     """
-    Ingest all PDFs under rag_pdfs/scenario_<ID>/ and index into Chroma.
-    """
-    pdf_dir = get_pdf_dir(scenario_id)
-    index_dir = get_index_dir(scenario_id)
-    # only clear the *index* folder, not the entire scenario folder
-    # if os.path.exists(index_dir):
-    #     shutil.rmtree(index_dir)
-    os.makedirs(index_dir, exist_ok=True)
-    os.makedirs(pdf_dir, exist_ok=True)  # ensure the PDF folder always exists
+    Index the PDFs of the scenario and its confirmed translations into Chroma.
 
-    rag_store = ensure_rag_index(scenario_id)
+    The index folder is named after the PDF contents, so adding or deleting a
+    PDF, or confirming or undoing a translation, builds a fresh index and the
+    old ones are removed.
+    """
+    scenario = Scenario.objects.get(pk=scenario_id)
+    os.makedirs(get_pdf_dir(scenario_id), exist_ok=True)  # ensure the PDF folder always exists
+    pdfs = group_rag_pdfs(scenario)
+    # 'none' keeps an empty set away from the old unsigned folder, which may
+    # still hold chunks of PDFs that have since been deleted.
+    signature = rag_pdf_signature(pdfs) or 'none'
+    remove_rag_indexes(
+        scenario_id,
+        keep=os.path.basename(get_index_dir(scenario_id, signature)),
+    )
+
+    rag_store = ensure_rag_index(scenario_id, signature)
     # 2) If already indexed, skip re-ingest
     try:
         if rag_store._collection.count() > 0:
@@ -3099,9 +3120,7 @@ def chunk_and_index_pdfs(scenario_id):
             return rag_store
     except Exception:
         pass  # fallback to indexing
-    # pdf_dir = os.path.join(BASE_RAG_DIR, f"scenario_{scenario_id}")
-    pdf_files = glob.glob(os.path.join(pdf_dir, "*.pdf"))
-    if not pdf_files:
+    if not pdfs:
         print(f"[RAG] no PDFs found for scenario {scenario_id}, skipping indexing.")
         return rag_store
 
@@ -3109,15 +3128,16 @@ def chunk_and_index_pdfs(scenario_id):
     all_docs = []
     seen_texts = set()
 
-    for path in pdf_files:
-        loader = PyPDFLoader(path)
+    for pdf in pdfs:
+        loader = PyPDFLoader(pdf.path)
         raw_docs = loader.load_and_split(text_splitter=splitter)
         for d in raw_docs:
             text = d.page_content.strip()
             if text in seen_texts:
                 continue
             seen_texts.add(text)
-            d.metadata["source_file"] = os.path.basename(path)
+            d.metadata["source_file"] = pdf.filename
+            d.metadata["source_scenario_id"] = pdf.scenario_id
             all_docs.append(d)
 
     if all_docs:
@@ -3869,10 +3889,9 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     print(f"\nStarting LLM context generation for scenario '{scenario.name}' (ID: {scenario_id})")
 
     # 0️⃣ Build or refresh RAG index from scenario PDFs
-    index_dir = Path(get_index_dir(scenario_id))
-    if force_rebuild and index_dir.exists():
-        print(f"Removing old RAG index at {index_dir}")
-        shutil.rmtree(index_dir, onerror=_on_rm_error)
+    if force_rebuild:
+        print(f"Removing old RAG indexes for scenario {scenario_id}")
+        remove_rag_indexes(scenario_id)
 
     if force_rebuild:
         print(f'Clearing cached LLM context from DB for scenario {scenario_id}')

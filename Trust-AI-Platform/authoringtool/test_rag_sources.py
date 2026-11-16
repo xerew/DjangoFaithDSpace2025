@@ -1,10 +1,13 @@
 import os
 import tempfile
+from types import SimpleNamespace
+from unittest import mock
 
 from django.test import override_settings
 
 from authoringtool.models import TranslationMatch
 from authoringtool.rag_sources import group_rag_pdfs, rag_pdf_signature
+from authoringtool.tasks import chunk_and_index_pdfs, remove_rag_indexes
 from authoringtool.test_translation_pooling import PoolingBase
 
 
@@ -102,3 +105,103 @@ class GroupRagPdfsTests(RagFilesBase):
         english, _ = self.pendulums()
 
         self.assertEqual(rag_pdf_signature(group_rag_pdfs(english)), '')
+
+
+class FakeStore:
+    def __init__(self):
+        self.added = []
+        self._collection = SimpleNamespace(count=lambda: len(self.added))
+
+    def add_documents(self, docs):
+        self.added.extend(docs)
+
+
+class FakeLoader:
+    def __init__(self, path):
+        self.path = path
+
+    def load_and_split(self, text_splitter=None):
+        return [SimpleNamespace(
+            page_content=os.path.basename(self.path), metadata={},
+        )]
+
+
+class RagIndexTests(RagFilesBase):
+    def setUp(self):
+        super().setUp()
+        self.index_root = tempfile.mkdtemp()
+        self.store = FakeStore()
+        self.ensure = mock.Mock(return_value=self.store)
+        for target, value in (
+            ('authoringtool.tasks.BASE_INDEX_DIR', self.index_root),
+            ('authoringtool.tasks.ensure_rag_index', self.ensure),
+            ('authoringtool.tasks.PyPDFLoader', FakeLoader),
+        ):
+            patcher = mock.patch(target, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_index_reads_translation_pdfs(self):
+        english, greek = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        self.add_pdf(greek, 'b.pdf')
+
+        chunk_and_index_pdfs(english.id)
+
+        self.assertEqual(
+            {doc.metadata['source_scenario_id'] for doc in self.store.added},
+            {english.id, greek.id},
+        )
+        self.assertEqual(
+            {doc.metadata['source_file'] for doc in self.store.added},
+            {'a.pdf', 'b.pdf'},
+        )
+
+    def test_index_folder_follows_the_pdf_set(self):
+        english, greek = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        chunk_and_index_pdfs(english.id)
+        first = self.ensure.call_args.args
+
+        self.add_pdf(greek, 'b.pdf')
+        chunk_and_index_pdfs(english.id)
+
+        self.assertNotEqual(first, self.ensure.call_args.args)
+
+    def test_unchanged_pdf_set_reuses_the_index(self):
+        english, _ = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        chunk_and_index_pdfs(english.id)
+        first = self.ensure.call_args.args
+
+        chunk_and_index_pdfs(english.id)
+
+        self.assertEqual(first, self.ensure.call_args.args)
+        self.assertEqual(len(self.store.added), 1)
+
+    def test_old_index_folders_are_removed(self):
+        english, _ = self.pendulums()
+        os.makedirs(os.path.join(self.index_root, f'scenario_{english.id}_oldsig'))
+        os.makedirs(os.path.join(self.index_root, f'scenario_{english.id}'))
+
+        remove_rag_indexes(english.id, keep=f'scenario_{english.id}_new')
+
+        self.assertEqual(os.listdir(self.index_root), [])
+
+    def test_kept_index_folder_stays(self):
+        english, _ = self.pendulums()
+        kept = f'scenario_{english.id}_new'
+        os.makedirs(os.path.join(self.index_root, kept))
+
+        remove_rag_indexes(english.id, keep=kept)
+
+        self.assertEqual(os.listdir(self.index_root), [kept])
+
+    def test_cleanup_leaves_other_scenarios_alone(self):
+        english, _ = self.pendulums()
+        other = f'scenario_{english.id}0'
+        os.makedirs(os.path.join(self.index_root, other))
+
+        remove_rag_indexes(english.id)
+
+        self.assertEqual(os.listdir(self.index_root), [other])
