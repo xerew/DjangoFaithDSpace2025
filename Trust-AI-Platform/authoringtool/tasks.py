@@ -33,7 +33,7 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
-from .rag_sources import group_rag_pdfs, rag_pdf_signature
+from .rag_sources import group_rag_pdfs, rag_pdf_signature, scenario_rag_folder
 from .translation_matching import (
     pooled_implementation_count,
     translation_activity_maps,
@@ -3102,7 +3102,7 @@ def chunk_and_index_pdfs(scenario_id):
     old ones are removed.
     """
     scenario = Scenario.objects.get(pk=scenario_id)
-    os.makedirs(get_pdf_dir(scenario_id), exist_ok=True)  # ensure the PDF folder always exists
+    os.makedirs(scenario_rag_folder(scenario_id), exist_ok=True)  # ensure the PDF folder always exists
     pdfs = group_rag_pdfs(scenario)
     # 'none' keeps an empty set away from the old unsigned folder, which may
     # still hold chunks of PDFs that have since been deleted.
@@ -3129,8 +3129,12 @@ def chunk_and_index_pdfs(scenario_id):
     seen_texts = set()
 
     for pdf in pdfs:
-        loader = PyPDFLoader(pdf.path)
-        raw_docs = loader.load_and_split(text_splitter=splitter)
+        try:
+            raw_docs = PyPDFLoader(pdf.path).load_and_split(text_splitter=splitter)
+        except Exception as exc:
+            # One damaged upload must not stop proposals for every translation.
+            print(f"[RAG] skipping unreadable PDF {pdf.path}: {exc}")
+            continue
         for d in raw_docs:
             text = d.page_content.strip()
             if text in seen_texts:

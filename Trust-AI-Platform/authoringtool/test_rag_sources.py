@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from types import SimpleNamespace
 from unittest import mock
@@ -8,6 +9,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from authoringtool.models import TranslationMatch
+from authoringtool import rag_sources
 from authoringtool.rag_sources import group_rag_pdfs, rag_pdf_signature
 from authoringtool.tasks import chunk_and_index_pdfs, remove_rag_indexes
 from authoringtool.test_translation_pooling import PoolingBase
@@ -17,6 +19,7 @@ class RagFilesBase(PoolingBase):
     def setUp(self):
         super().setUp()
         self.rag_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.rag_root, True)
         override = override_settings(RAG_PDFS_ROOT=self.rag_root)
         override.enable()
         self.addCleanup(override.disable)
@@ -108,6 +111,42 @@ class GroupRagPdfsTests(RagFilesBase):
 
         self.assertEqual(rag_pdf_signature(group_rag_pdfs(english)), '')
 
+    def test_unreadable_pdf_is_left_out(self):
+        english, greek = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        self.add_pdf(greek, 'locked.pdf')
+        real_read = rag_sources._read_sha256
+
+        def read(path):
+            if path.endswith('locked.pdf'):
+                raise PermissionError(path)
+            return real_read(path)
+
+        with mock.patch.object(rag_sources, '_read_sha256', side_effect=read):
+            names = [pdf.filename for pdf in group_rag_pdfs(english)]
+
+        self.assertEqual(names, ['a.pdf'])
+
+    def test_unchanged_pdf_is_not_read_again(self):
+        english, _ = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        with mock.patch.object(
+            rag_sources, '_read_sha256', wraps=rag_sources._read_sha256,
+        ) as read:
+            group_rag_pdfs(english)
+            group_rag_pdfs(english)
+
+        self.assertEqual(read.call_count, 1)
+
+    def test_changed_pdf_is_read_again(self):
+        english, _ = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        before = rag_pdf_signature(group_rag_pdfs(english))
+
+        self.add_pdf(english, 'a.pdf', payload=b'a longer new version')
+
+        self.assertNotEqual(before, rag_pdf_signature(group_rag_pdfs(english)))
+
 
 class FakeStore:
     def __init__(self):
@@ -123,6 +162,8 @@ class FakeLoader:
         self.path = path
 
     def load_and_split(self, text_splitter=None):
+        if 'broken' in os.path.basename(self.path):
+            raise ValueError('EOF marker not found')
         return [SimpleNamespace(
             page_content=os.path.basename(self.path), metadata={},
         )]
@@ -132,6 +173,7 @@ class RagIndexTests(RagFilesBase):
     def setUp(self):
         super().setUp()
         self.index_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.index_root, True)
         self.store = FakeStore()
         self.ensure = mock.Mock(return_value=self.store)
         for target, value in (
@@ -142,6 +184,27 @@ class RagIndexTests(RagFilesBase):
             patcher = mock.patch(target, value)
             patcher.start()
             self.addCleanup(patcher.stop)
+
+    def test_broken_pdf_in_a_translation_is_skipped(self):
+        english, greek = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+        self.add_pdf(greek, 'broken.pdf')
+
+        chunk_and_index_pdfs(english.id)
+
+        self.assertEqual(
+            [doc.metadata['source_file'] for doc in self.store.added],
+            ['a.pdf'],
+        )
+
+    def test_own_pdf_folder_is_made_under_the_configured_root(self):
+        english, _ = self.pendulums()
+
+        chunk_and_index_pdfs(english.id)
+
+        self.assertTrue(
+            os.path.isdir(os.path.join(self.rag_root, f'scenario_{english.id}')),
+        )
 
     def test_index_reads_translation_pdfs(self):
         english, greek = self.pendulums()

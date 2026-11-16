@@ -27,12 +27,25 @@ def scenario_rag_folder(scenario_id):
     return os.path.join(settings.RAG_PDFS_ROOT, f'scenario_{scenario_id}')
 
 
-def _file_sha256(path):
+def _read_sha256(path):
     digest = hashlib.sha256()
     with open(path, 'rb') as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b''):
             digest.update(block)
     return digest.hexdigest()
+
+
+# The scenario page lists these on every view, so a file is read again only
+# when its size or modification time changes.
+_digests = {}
+
+
+def _file_sha256(path):
+    info = os.stat(path)
+    key = (path, info.st_size, info.st_mtime_ns)
+    if key not in _digests:
+        _digests[key] = _read_sha256(path)
+    return _digests[key]
 
 
 def _scenario_pdfs(scenario):
@@ -44,13 +57,19 @@ def _scenario_pdfs(scenario):
         path = os.path.join(folder, filename)
         if not filename.lower().endswith('.pdf') or not os.path.isfile(path):
             continue
+        try:
+            sha256 = _file_sha256(path)
+        except OSError as exc:
+            # Deleted meanwhile or not readable: leave it out.
+            print(f'[RAG] skipping unreadable PDF {path}: {exc}')
+            continue
         pdfs.append(RagPdf(
             scenario_id=scenario.id,
             scenario_name=scenario.name,
             language=scenario.language or '',
             filename=filename,
             path=path,
-            sha256=_file_sha256(path),
+            sha256=sha256,
         ))
     return pdfs
 
