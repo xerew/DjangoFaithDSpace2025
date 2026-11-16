@@ -22,6 +22,66 @@ OFFLINE = 'offline'
 MISSING_MODELS = 'missing_models'
 
 
+class AIServerUnavailable(RuntimeError):
+    """The AI server could not be used (no connection, timeout or a 5xx)."""
+
+
+# Connect, then read: the read time allows the model to be loaded first.
+PROBE_TIMEOUT = (10, 180)
+
+
+def is_server_failure(exc):
+    """True when the error is the server's (unreachable, timeout, 5xx), not the answer's."""
+    if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
+        return True
+    response = getattr(exc, 'response', None)
+    return isinstance(exc, requests.HTTPError) and response is not None and response.status_code >= 500
+
+
+def describe_failure(exc):
+    """Short reason for a teacher, e.g. '502 Bad Gateway'."""
+    if isinstance(exc, requests.Timeout):
+        return 'no answer in time'
+    if isinstance(exc, requests.ConnectionError):
+        return 'could not connect'
+    response = getattr(exc, 'response', None)
+    if response is not None:
+        return f'{response.status_code} {response.reason}'.strip()
+    return str(exc)
+
+
+def probe_proposal_model():
+    """Ask the proposal model for a one-word answer, the way proposals are asked.
+
+    Listing the models (check_ollama) can succeed while generating fails, so
+    a run starts only after this works. Raises AIServerUnavailable otherwise
+    and marks the server offline for the banner.
+    """
+    try:
+        response = requests.post(
+            f'{settings.OLLAMA_URL}/api/generate',
+            json={
+                'model': settings.LLM_PROPOSAL_MODEL,
+                'prompt': 'Reply with OK.',
+                'stream': False,
+                'think': False,
+                'options': {'num_predict': 1},
+            },
+            timeout=PROBE_TIMEOUT,
+        )
+        response.raise_for_status()
+        envelope = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        record_service_status(False)
+        raise AIServerUnavailable(
+            f"The AI server isn't answering ({describe_failure(exc)})."
+        ) from exc
+    if envelope.get('error'):
+        raise AIServerUnavailable(
+            f"The AI server can't run the proposal model ({envelope['error']})."
+        )
+
+
 def proposal_models():
     """Models a proposal / LLM context run may need, in the order they're used."""
     return [

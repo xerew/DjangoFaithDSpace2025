@@ -3810,7 +3810,11 @@ def ai_server_check(request):
 @login_required
 def get_llm_context_task_status(request, task_id):
     task = AsyncResult(task_id)
-    return JsonResponse({"state": task.state, "result": task.result})
+    result = task.result
+    if task.failed():
+        # The task's exception carries the reason shown to the teacher.
+        result = str(result) or "The job failed."
+    return JsonResponse({"state": task.state, "result": result})
 
 # @login_required
 # def proposal_list_view(request, scenario_id):

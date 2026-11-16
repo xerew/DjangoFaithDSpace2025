@@ -33,6 +33,12 @@ from .graph_validation import (
     assert_scenario_graph_integrity,
 )
 from .help_time import help_cache_token, help_totals
+from .machine_translation.health import (
+    AIServerUnavailable,
+    describe_failure,
+    is_server_failure,
+    probe_proposal_model,
+)
 from .rag_sources import group_rag_pdfs, rag_pdf_signature, scenario_rag_folder
 from .translation_matching import (
     pooled_implementation_count,
@@ -3172,6 +3178,10 @@ _PROPOSAL_GENERATION_ATTEMPTS = max(
 SUPPORTED_PROPOSAL_ACTIVITY_TYPES = ("Question", "Explanation", "Experiment")
 
 
+class ProposalRunAborted(RuntimeError):
+    """A proposal run stopped; the scenario's current proposals were kept."""
+
+
 class ProposalValidationError(ValueError):
     def __init__(self, errors):
         self.errors = list(errors)
@@ -3830,6 +3840,8 @@ def request_validated_proposal(
                 f"{_PROPOSAL_GENERATION_ATTEMPTS} failed: {exc}"
             )
 
+    if is_server_failure(last_error):
+        raise AIServerUnavailable(describe_failure(last_error)) from last_error
     raise ProposalValidationError([
         f"Could not generate a valid {required_action} proposal: {last_error}"
     ])
@@ -3891,6 +3903,15 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         scope=evidence_scope,
     )
     print(f"\nStarting LLM context generation for scenario '{scenario.name}' (ID: {scenario_id})")
+
+    # Ask the model for a real answer before anything is cleared or replaced.
+    try:
+        probe_proposal_model()
+    except AIServerUnavailable as exc:
+        print(f"[proposal] AI server check failed: {exc}")
+        raise ProposalRunAborted(
+            f"{exc} Nothing was changed: the current proposals were kept."
+        ) from exc
 
     # 0️⃣ Build or refresh RAG index from scenario PDFs
     if force_rebuild:
@@ -4034,7 +4055,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         activity.save(update_fields=['related_act_llm_context'])
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
-    # — archive the previous run (if any) and start a fresh current one —
+    # — built out of sight: it replaces the current run only once finished —
     generation_run = ProposalGenerationRun.start_new(
         scenario,
         triggered_by,
@@ -4042,6 +4063,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         evidence_scope=evidence_scope,
         evidence_version_ids=evidence_context['version_ids'],
         evidence_summary=proposal_evidence_summary(scenario, evidence_context),
+        current=False,
     )
     print(f"Started new ProposalGenerationRun {generation_run.id} for scenario {scenario_id}")
 
@@ -4059,6 +4081,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     for f in flags:
         by_act[f.activity].append(f)
 
+    written = 0
     for activity, flag_list in by_act.items():
         phase = activity.phase
 
@@ -4202,6 +4225,13 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
                 expected_answer_count=expected_answer_count,
                 require_insert_after=require_insert_after,
             )
+        except AIServerUnavailable as exc:
+            print(f"[proposal] AI server lost after {written} proposals: {exc}")
+            raise ProposalRunAborted(
+                f"The AI server stopped answering ({exc}) after {written} of "
+                f"{len(by_act)} proposals. The current proposals were kept; "
+                "the unfinished run is in Proposal History."
+            ) from exc
         except ProposalValidationError as exc:
             record_proposal_structural_failure(
                 scenario=scenario,
@@ -4263,6 +4293,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         for cat in {f.category for f in flag_list}:
             tag, _ = CategoryTag.objects.get_or_create(name=cat)
             prop.categories_in_risk.add(tag)
+        written += 1
 
     latest_version = (
         Scenario.objects.get(pk=scenario_id).ensure_current_version()
@@ -4284,6 +4315,15 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             'proposals were being generated. This run was archived; '
             'generate proposals again for the current evidence sources.'
         )
+
+    # Activities at risk but not one proposal written: keep what teachers have.
+    if by_act and not written:
+        raise ProposalRunAborted(
+            "No proposal could be written: the AI's answers were not valid "
+            "(see Proposal structural failures). The current proposals were kept."
+        )
+    generation_run.make_current()
+    print(f"ProposalGenerationRun {generation_run.id} is now current ({written} proposals)")
 
     # 6️⃣ Write out a CSV snapshot of all proposals
     base = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')

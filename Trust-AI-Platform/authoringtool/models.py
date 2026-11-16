@@ -2806,23 +2806,36 @@ class ProposalGenerationRun(models.Model):
         evidence_scope='local',
         evidence_version_ids=None,
         evidence_summary=None,
+        current=True,
     ):
-        """Archive the scenario's current run (if any) and start a new current one, atomically."""
+        """Start a run. A current one archives the scenario's current run,
+        atomically; with current=False the current run stays until
+        make_current() is called on the new one."""
         with transaction.atomic():
             scenario_version = (
                 scenario_version
                 or scenario.ensure_current_version(created_by=created_by)
             )
-            cls.objects.filter(scenario=scenario, is_current=True).update(is_current=False)
+            if current:
+                cls.objects.filter(scenario=scenario, is_current=True).update(is_current=False)
             return cls.objects.create(
                 scenario=scenario,
                 scenario_version=scenario_version,
                 created_by=created_by,
-                is_current=True,
+                is_current=current,
                 evidence_scope=evidence_scope,
                 evidence_version_ids=evidence_version_ids or [],
                 evidence_summary=evidence_summary or {},
             )
+
+    def make_current(self):
+        """Replace the scenario's current run with this one, atomically."""
+        with transaction.atomic():
+            type(self).objects.filter(
+                scenario_id=self.scenario_id, is_current=True,
+            ).exclude(pk=self.pk).update(is_current=False)
+            type(self).objects.filter(pk=self.pk).update(is_current=True)
+        self.is_current = True
 
 
 class ActivityProposal(models.Model):

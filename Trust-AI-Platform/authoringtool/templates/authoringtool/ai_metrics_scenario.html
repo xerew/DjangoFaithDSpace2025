@@ -757,7 +757,9 @@ function startLlmGeneration(button, force) {
               normalBtn.disabled = false;
               forceBtn.disabled  = false;
               button.innerHTML   = origHtml;
-              setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>An error occurred during generation.');
+              const failure = document.createElement('span');
+              failure.textContent = status.result || 'An error occurred during generation.';
+              setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>' + failure.innerHTML);
             } else {
               setLlmStatus('running', `<span class="spinner-border spinner-border-sm me-2"></span>Still generating… [${status.state}]`);
             }
