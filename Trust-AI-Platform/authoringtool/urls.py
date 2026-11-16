@@ -101,6 +101,7 @@ urlpatterns = [
     path('ai-server/status/', views.ai_server_status, name='ai_server_status'),
     path('ai-server/check/', views.ai_server_check, name='ai_server_check'),
     path('scenarios/llm_context_status/<str:task_id>/', views.get_llm_context_task_status, name='llm_context_status'),
+    path('scenarios/<int:scenario_id>/proposal_job/', views.proposal_job_progress, name='proposal_job_status'),
     # Proposals
     path('scenarios/<int:scenario_id>/proposals/', views.proposal_list_view, name='proposal_list'),
     path('scenarios/<int:scenario_id>/proposals/history/', views.proposal_history_view, name='proposal_history'),

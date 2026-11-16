@@ -140,7 +140,7 @@ def proposal_json(action='create'):
     }
 
 
-class GenerationJobTests(TestCase):
+class GenerationJobFixture(TestCase):
     """The whole job with the AI server, RAG and risk detection replaced."""
 
     def setUp(self):
@@ -212,6 +212,8 @@ class GenerationJobTests(TestCase):
     def current_run(self):
         return ProposalGenerationRun.objects.get(scenario=self.scenario, is_current=True)
 
+
+class GenerationJobTests(GenerationJobFixture):
     def test_server_down_at_start_changes_nothing(self):
         self.flag(self.activities[0])
 

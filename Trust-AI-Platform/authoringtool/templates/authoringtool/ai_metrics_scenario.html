@@ -112,6 +112,30 @@
   .llm-status.success { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; display:block; }
   .llm-status.error   { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; display:block; }
 
+  /* ── Proposal job progress ── */
+  .pp-panel { border:1px solid #bfdbfe; background:#f8fbff; border-radius:12px; padding:16px 18px; margin:8px 0 20px; }
+  .pp-panel.pp-done { border-color:#bbf7d0; background:#f6fef9; }
+  .pp-panel.pp-failed, .pp-panel.pp-stuck { border-color:#fecaca; background:#fffafa; }
+  .pp-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 16px; font-size:14px; color:#1e3a8a; margin-bottom:10px; }
+  .pp-meta { font-size:12.5px; color:#6b7280; }
+  .pp-bar { height:18px; margin-bottom:12px; }
+  .pp-bar .progress-bar { font-size:11px; font-weight:600; }
+  .pp-panel.pp-done .progress-bar { background:#16a34a; }
+  .pp-panel.pp-failed .progress-bar, .pp-panel.pp-stuck .progress-bar { background:#9ca3af; }
+  .pp-stages { list-style:none; margin:0; padding:0; display:grid; gap:5px; font-size:13px; }
+  .pp-stages li { display:grid; grid-template-columns:20px 1fr; align-items:start; column-gap:6px; }
+  .pp-stages .pp-detail { grid-column:2; font-size:12.5px; color:#1e40af; overflow-wrap:anywhere; }
+  .pp-stages li.pp-done { color:#374151; }
+  .pp-stages li.pp-done i { color:#16a34a; }
+  .pp-stages li.pp-active { color:#1e3a8a; font-weight:600; }
+  .pp-stages li.pp-active i { color:#1a56db; }
+  .pp-stages li.pp-pending { color:#9ca3af; }
+  .pp-stages li.pp-failed i { color:#dc2626; }
+  .pp-stages li.pp-stopped i { color:#9ca3af; }
+  .pp-message { margin-top:12px; font-size:13px; font-weight:500; }
+  .pp-panel.pp-done .pp-message { color:#15803d; }
+  .pp-panel.pp-failed .pp-message, .pp-panel.pp-stuck .pp-message { color:#b91c1c; }
+
   /* ── Empty state ── */
   .am-empty { text-align:center; padding:36px 20px; color:#9ca3af; }
   .am-empty i { font-size:36px; display:block; margin-bottom:10px; }
@@ -330,7 +354,7 @@
           </div>
           <div class="action-card-desc">Generate AI evaluation context for activities that have not yet been processed by the language model.</div>
           <button id="btn-generate-context" data-scenario-id="{{ myScenario.id }}" data-force="false"
-                  class="btn btn-sm btn-primary mt-auto"{% if ai_server.state != 'ok' %} disabled{% endif %}>
+                  class="btn btn-sm btn-primary mt-auto"{% if ai_server.state != 'ok' %} data-server-offline="1"{% endif %}{% if ai_server.state != 'ok' or proposal_job %} disabled{% endif %}>
             <i class="bi bi-cpu me-1"></i> Generate LLM Context
           </button>
           {% if ai_server and ai_server.state != 'ok' %}<div class="ai-server-note">Unavailable while the AI server is offline.</div>{% endif %}
@@ -348,7 +372,7 @@
           </div>
           <div class="action-card-desc">Wipe all cached AI context and rebuild from scratch. Use only when PDFs have changed or results are incorrect.</div>
           <button id="btn-generate-context-force" data-scenario-id="{{ myScenario.id }}" data-force="true"
-                  class="btn btn-sm btn-warning mt-auto"{% if ai_server.state != 'ok' %} disabled{% endif %}>
+                  class="btn btn-sm btn-warning mt-auto"{% if ai_server.state != 'ok' %} data-server-offline="1"{% endif %}{% if ai_server.state != 'ok' or proposal_job %} disabled{% endif %}>
             <i class="bi bi-trash me-1"></i> Force Rebuild
           </button>
           {% if ai_server and ai_server.state != 'ok' %}<div class="ai-server-note">Unavailable while the AI server is offline.</div>{% endif %}
@@ -378,6 +402,10 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- ── Proposal job progress (everyone who opens this page sees it) ── -->
+    <div id="proposal-progress" class="pp-panel" role="status" aria-live="polite" hidden></div>
+    {{ proposal_job|json_script:"proposal-job-data" }}
 
     <!-- ── LLM status (shared) ── -->
     {% if proposal_generation_available %}
@@ -724,60 +752,27 @@ function setLlmStatus(cls, msg) {
 
 function startLlmGeneration(button, force) {
   const scenarioId = button.dataset.scenarioId;
-  const normalBtn  = document.getElementById('btn-generate-context');
-  const forceBtn   = document.getElementById('btn-generate-context-force');
-  const origHtml   = button.innerHTML;
-
-  normalBtn.disabled = true;
-  forceBtn.disabled  = true;
-  button.innerHTML   = '<span class="spinner-border spinner-border-sm me-1"></span> Working…';
-  setLlmStatus('running', force
-    ? '<i class="bi bi-arrow-repeat me-2"></i>Force rebuild started — regenerating all cached context…'
-    : '<i class="bi bi-cpu me-2"></i>LLM context generation started. This may take several minutes…');
+  setGenerateLocked(true);
+  setLlmStatus('', '');
 
   fetch(`/authoringtool/scenarios/${scenarioId}/generate_llm_context/?force=${force}`, {
     method: 'POST',
     headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === 'started') {
-      const interval = setInterval(() => {
-        fetch(`/authoringtool/scenarios/llm_context_status/${data.task_id}/`)
-          .then(r => r.json())
-          .then(status => {
-            if (status.state === 'SUCCESS') {
-              clearInterval(interval);
-              normalBtn.disabled = false;
-              forceBtn.disabled  = false;
-              button.innerHTML   = origHtml;
-              setLlmStatus('success', '<i class="bi bi-check-circle me-2"></i>Context generation completed successfully.');
-            } else if (status.state === 'FAILURE') {
-              clearInterval(interval);
-              normalBtn.disabled = false;
-              forceBtn.disabled  = false;
-              button.innerHTML   = origHtml;
-              const failure = document.createElement('span');
-              failure.textContent = status.result || 'An error occurred during generation.';
-              setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>' + failure.innerHTML);
-            } else {
-              setLlmStatus('running', `<span class="spinner-border spinner-border-sm me-2"></span>Still generating… [${status.state}]`);
-            }
-          });
-      }, 5000);
+  .then(res => res.json().then(data => ({ code: res.status, data })))
+  .then(({ code, data }) => {
+    if (data.status === 'started' || code === 409) {
+      // 409: someone else's run is going; follow that one instead.
+      followJob();
     } else {
-      normalBtn.disabled = false;
-      forceBtn.disabled  = false;
-      button.innerHTML   = origHtml;
+      setGenerateLocked(false);
       const reason = document.createElement('span');
       reason.textContent = data.error || 'Error starting the task.';
       setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>' + reason.innerHTML);
     }
   })
   .catch(() => {
-    normalBtn.disabled = false;
-    forceBtn.disabled  = false;
-    button.innerHTML   = origHtml;
+    setGenerateLocked(false);
     setLlmStatus('error', '<i class="bi bi-x-circle me-2"></i>Request failed.');
   });
 }
@@ -791,6 +786,112 @@ document.getElementById('btn-generate-context-force').addEventListener('click', 
   }
 });
 {% endif %}
+
+// ── Proposal job progress: read by scenario, so a reload or another teacher
+//    sees the same run. Text from the job is always inserted as text. ────────
+const proposalJobUrl = "{% url 'proposal_job_status' myScenario.id %}";
+const proposalListUrl = "{% url 'proposal_list' scenario_id=myScenario.id %}";
+const JOB_TITLES = {
+  running: 'Generating proposals',
+  done: 'Proposals generated',
+  failed: 'Proposal generation stopped',
+  stuck: 'Proposal generation stopped reporting',
+};
+const STAGE_ICONS = {
+  done: 'bi-check-circle-fill',
+  active: 'bi-arrow-right-circle-fill',
+  pending: 'bi-circle',
+  failed: 'bi-x-circle-fill',
+  stopped: 'bi-dash-circle',
+};
+let jobTimer = null;
+
+function textNode(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function setGenerateLocked(locked) {
+  ['btn-generate-context', 'btn-generate-context-force'].forEach(id => {
+    const button = document.getElementById(id);
+    if (button && !button.dataset.serverOffline) button.disabled = locked;
+  });
+}
+
+function formatElapsed(ms) {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function renderJob(job) {
+  const panel = document.getElementById('proposal-progress');
+  panel.replaceChildren();
+  if (!job || job.state === 'none') { panel.hidden = true; return; }
+  panel.hidden = false;
+  panel.className = `pp-panel pp-${job.state}`;
+
+  const head = textNode('div', 'pp-head');
+  head.append(textNode('strong', null, JOB_TITLES[job.state] || 'Proposal generation'));
+  const ended = job.running ? new Date() : new Date(job.updated_at);
+  const meta = [];
+  if (job.started_by) meta.push(`started by ${job.started_by}`);
+  meta.push(`${formatElapsed(ended - new Date(job.started_at))}${job.running ? ' elapsed' : ''}`);
+  head.append(textNode('span', 'pp-meta', meta.join(' · ')));
+  panel.append(head);
+
+  const bar = textNode('div', 'progress pp-bar');
+  bar.setAttribute('role', 'progressbar');
+  bar.setAttribute('aria-valuemin', '0');
+  bar.setAttribute('aria-valuemax', '100');
+  bar.setAttribute('aria-valuenow', String(job.percent));
+  const fill = textNode('div', 'progress-bar' + (job.running ? ' progress-bar-striped progress-bar-animated' : ''), `${job.percent}%`);
+  fill.style.width = `${job.percent}%`;
+  bar.append(fill);
+  panel.append(bar);
+
+  const list = textNode('ul', 'pp-stages');
+  for (const stage of job.stages) {
+    const item = textNode('li', `pp-${stage.status}`);
+    item.append(textNode('i', `bi ${STAGE_ICONS[stage.status] || 'bi-circle'}`));
+    let text = stage.status === 'done' ? stage.summary : stage.label;
+    if (stage.status === 'active' && stage.total) {
+      text += `: ${Math.min(stage.done + 1, stage.total)} of ${stage.total}`;
+    }
+    item.append(textNode('span', null, text));
+    if (stage.status === 'active' && job.detail) item.append(textNode('div', 'pp-detail', job.detail));
+    list.append(item);
+  }
+  panel.append(list);
+
+  let message = job.message;
+  if (job.state === 'stuck') {
+    message = 'The job has not reported any progress for 30 minutes, so it probably stopped. You can start a new run.';
+  }
+  if (message) panel.append(textNode('div', 'pp-message', message));
+  if (job.state === 'done') {
+    const link = textNode('a', 'btn btn-sm btn-success mt-2', 'Review the proposals');
+    link.href = proposalListUrl;
+    panel.append(link);
+  }
+}
+
+function followJob() {
+  clearTimeout(jobTimer);
+  fetch(proposalJobUrl, { headers: { 'Accept': 'application/json' } })
+    .then(res => { if (!res.ok) throw new Error(res.status); return res.json(); })
+    .then(job => {
+      renderJob(job);
+      setGenerateLocked(job.running);
+      if (job.running) jobTimer = setTimeout(followJob, 3000);
+    })
+    .catch(() => { jobTimer = setTimeout(followJob, 10000); });
+}
+
+const initialJob = JSON.parse(document.getElementById('proposal-job-data').textContent);
+if (initialJob) { renderJob(initialJob); followJob(); }
 
 // Bootstrap tooltips
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));

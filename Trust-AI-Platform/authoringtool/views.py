@@ -75,6 +75,12 @@ from .machine_translation.editing import (
     translation_structure_guard,
 )
 from .machine_translation.health import OK as AI_SERVER_OK, proposal_server_status, translation_service_available
+from .proposal_progress import (
+    JobProgress,
+    attach_task as attach_proposal_task,
+    job_status as proposal_job_status,
+    reserve as reserve_proposal_job,
+)
 from .machine_translation.queue import retry_job
 from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
@@ -3564,6 +3570,10 @@ def ai_metrics(request, scenario_id):
         0,
     )
     pooled_count = pooled_implementation_count(scenario)
+    # Only a running job is shown on load; it locks the Generate buttons.
+    running_job = proposal_job_status(scenario.id)
+    if running_job and not running_job['running']:
+        running_job = None
 
     return render(request, 'authoringtool/ai_metrics_scenario.html', {
         'myScenario':           scenario,
@@ -3572,6 +3582,7 @@ def ai_metrics(request, scenario_id):
         'can_generate_proposals': can_generate_proposals,
         'proposal_generation_available': proposal_generation_available,
         'ai_server': proposal_server_status() if proposal_generation_available else None,
+        'proposal_job': running_job,
         'metrics_grouped':      metrics_grouped,
         'flags_grouped':        flags_grouped,
         'has_metrics':          bool(metrics_grouped),
@@ -3777,7 +3788,21 @@ def trigger_llm_context_task(request, scenario_id):
             if server['state'] != AI_SERVER_OK:
                 return JsonResponse({"error": server['title']}, status=503)
             force = request.GET.get("force", "false").lower() == "true"
-            task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
+            starter = request.user.get_full_name() or request.user.username
+            if not reserve_proposal_job(scenario.id, starter):
+                running = proposal_job_status(scenario.id)
+                return JsonResponse({
+                    "error": (
+                        "Proposals are already being generated for this "
+                        f"scenario (started by {running['started_by'] or 'another user'})."
+                    ),
+                }, status=409)
+            try:
+                task = generate_llm_context_for_scenario.delay(scenario.id, force_rebuild=force, triggered_by_id=request.user.id)
+            except Exception:
+                JobProgress(scenario.id).finish(False, "The job could not be queued.")
+                raise
+            attach_proposal_task(scenario.id, task.id)
             return JsonResponse({"status": "started", "task_id": task.id})
         except Scenario.DoesNotExist:
             return JsonResponse({"error": "Scenario not found"}, status=404)
@@ -3805,6 +3830,15 @@ def ai_server_check(request):
     """Check again: ask Celery (the only side that reaches NTUA) to check now."""
     check_translation_service_task.delay()
     return _ai_server_json()
+
+
+@login_required
+def proposal_job_progress(request, scenario_id):
+    """The scenario's proposal job as the Metrics & AI page shows it."""
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    if not user_can_view_scenario(request.user, scenario):
+        return HttpResponseForbidden("You cannot view this scenario.")
+    return JsonResponse(proposal_job_status(scenario.id) or {'state': 'none', 'running': False})
 
 
 @login_required

@@ -39,6 +39,7 @@ from .machine_translation.health import (
     is_server_failure,
     probe_proposal_model,
 )
+from .proposal_progress import JobProgress
 from .rag_sources import group_rag_pdfs, rag_pdf_signature, scenario_rag_folder
 from .translation_matching import (
     pooled_implementation_count,
@@ -3890,6 +3891,27 @@ def proposal_evidence_summary(scenario, evidence_context):
 
 @shared_task
 def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggered_by_id=None):
+    """Proposal job; its progress is reported per scenario for the page."""
+    starter = User.objects.filter(id=triggered_by_id).first() if triggered_by_id else None
+    progress = JobProgress(
+        scenario_id,
+        started_by=(starter.get_full_name() or starter.username) if starter else '',
+    )
+    try:
+        written = _generate_llm_context(scenario_id, force_rebuild, triggered_by_id, progress)
+    except Exception as exc:
+        progress.finish(False, str(exc) or 'The job failed.')
+        raise
+    if written is None:
+        message = 'No activities are at risk, so no proposals were needed.'
+    else:
+        message = f"{written} new proposal{'s' if written != 1 else ''} are ready to review."
+    progress.finish(True, message)
+    return f"Completed LLM analysis + proposal generation for scenario {scenario_id}"
+
+
+def _generate_llm_context(scenario_id, force_rebuild, triggered_by_id, progress):
+    """The job's work. Returns how many proposals were written, None without risks."""
     scenario = Scenario.objects.get(id=scenario_id)
     triggered_by = User.objects.filter(id=triggered_by_id).first() if triggered_by_id else scenario.created_by
     scenario_version = scenario.ensure_current_version(
@@ -3905,6 +3927,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     print(f"\nStarting LLM context generation for scenario '{scenario.name}' (ID: {scenario_id})")
 
     # Ask the model for a real answer before anything is cleared or replaced.
+    progress.stage('check')
     try:
         probe_proposal_model()
     except AIServerUnavailable as exc:
@@ -3927,18 +3950,26 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         scenario.llm_context = ''
         scenario.save(update_fields=['llm_context'])
 
+    progress.stage('pdfs')
     rag_store = chunk_and_index_pdfs(scenario_id)
     retriever = rag_store.as_retriever(search_kwargs={"k": 5})
+    pdf_count = len(group_rag_pdfs(scenario))
+    progress.summary(
+        f"Read the PDFs ({pdf_count} file{'s' if pdf_count != 1 else ''})"
+        if pdf_count else 'No PDFs to read'
+    )
 
     # 1️⃣ ACTIVITY-LEVEL EVALUATION
     phases     = Phase.objects.filter(scenario=scenario).prefetch_related('activities')
     activities = Activity.objects.filter(phase__scenario=scenario).select_related('phase').prefetch_related('answers')
 
-    for activity in activities:
-        # Skip ones we've already done
-        if activity.llm_context and activity.short_llm_summary:
-            continue
-
+    to_summarise = [
+        activity for activity in activities
+        if not (activity.llm_context and activity.short_llm_summary)
+    ]
+    progress.stage('activities', total=len(to_summarise))
+    for done, activity in enumerate(to_summarise):
+        progress.step(done, f'"{activity.name}"')
         print(f"\n[Activity] {activity.name} (Phase '{activity.phase.name}')")
 
         # — Image description (Gemma) —
@@ -3985,9 +4016,18 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             print(f"  Ollama error (activity summary): {e}")
         activity.save(update_fields=['short_llm_summary'])
         print("  Activity context + summary saved.")
+    progress.step(len(to_summarise))
+
+    phases_to_summarise = [phase for phase in phases if not phase.llm_context]
+    progress.stage(
+        'overview',
+        total=(0 if scenario.llm_context else 1) + len(phases_to_summarise),
+    )
+    overview_done = 0
 
     # 2️⃣ SCENARIO-LEVEL CONTEXT
     if not scenario.llm_context:
+        progress.step(0, f'"{scenario.name}"')
         lines = []
         for phase in phases:
             lines.append(f"\nPhase: {phase.name}\nDesc: {phase.description or '—'}\nActivities:")
@@ -4007,11 +4047,11 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             print(f"  Ollama error (scenario context): {e}")
         scenario.save(update_fields=['llm_context'])
         print("  Scenario context saved.")
+        overview_done = 1
 
     # 3️⃣ PHASE-LEVEL CONTEXT
-    for phase in phases:
-        if phase.llm_context:
-            continue
+    for phase in phases_to_summarise:
+        progress.step(overview_done, f'Phase "{phase.name}"')
         act_contexts = [f"- {a.name}: {a.llm_context or '—'}" for a in phase.activities.all()]
         prompt = (
             "You are reviewing a single phase in a learning scenario.\n\n"
@@ -4028,12 +4068,17 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             print(f"  Ollama error (phase context): {e}")
         phase.save(update_fields=['llm_context'])
         print(f"  Phase '{phase.name}' context saved.")
+        overview_done += 1
+    progress.step(overview_done)
 
     # 4️⃣ FLOW ANALYSIS BY CATEGORY
     cats = ['High','Moderate','Low']
-    for activity in activities:
-        if activity.related_act_llm_context:
-            continue
+    paths_to_analyse = [
+        activity for activity in activities if not activity.related_act_llm_context
+    ]
+    progress.stage('paths', total=len(paths_to_analyse))
+    for done, activity in enumerate(paths_to_analyse):
+        progress.step(done, f'"{activity.name}"')
         flow = {}
         for cat in cats:
             ctx = get_activity_context_for_category(activity, cat)
@@ -4053,6 +4098,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         # Saved only when every path got an answer, so failures are retried.
         activity.related_act_llm_context = flow if all(flow.values()) else ''
         activity.save(update_fields=['related_act_llm_context'])
+    progress.step(len(paths_to_analyse))
 
     # 5️⃣ FLAG-DRIVEN PROPOSALS
     # — built out of sight: it replaces the current run only once finished —
@@ -4067,6 +4113,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     )
     print(f"Started new ProposalGenerationRun {generation_run.id} for scenario {scenario_id}")
 
+    progress.stage('risk')
     calculate_activities_in_risk(
         scenario_id,
         evidence_scope=evidence_scope,
@@ -4080,9 +4127,15 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     by_act = defaultdict(list)
     for f in flags:
         by_act[f.activity].append(f)
+    progress.summary(
+        f"Found {len(by_act)} activit{'ies' if len(by_act) != 1 else 'y'} at risk"
+        if by_act else 'No activities at risk'
+    )
 
+    progress.stage('proposals', total=len(by_act))
     written = 0
-    for activity, flag_list in by_act.items():
+    for done, (activity, flag_list) in enumerate(by_act.items()):
+        progress.step(done, f'"{activity.name}": choosing an action')
         phase = activity.phase
 
         # — combine reasons, insights, resolutions —
@@ -4130,6 +4183,8 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
 
         decision = choose_proposal_action(flag_list)
         selected_action = decision.action
+        chosen = f'"{activity.name}": chose {selected_action.upper()}'
+        progress.detail(f'{chosen} · writing…')
         expected_activity_type = (
             activity.activity_type.name if selected_action == "revise" else None
         )
@@ -4247,6 +4302,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         structured["target_category"] = sorted(
             {flag.category for flag in flag_list}
         ) or "all"
+        progress.detail(f'{chosen} · translating…')
         try:
             translated_structured = translate_proposal_fields(
                 structured,
@@ -4294,7 +4350,14 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
             tag, _ = CategoryTag.objects.get_or_create(name=cat)
             prop.categories_in_risk.add(tag)
         written += 1
+    progress.step(len(by_act), '')
+    skipped = len(by_act) - written
+    progress.summary(
+        f"Wrote {written} proposal{'s' if written != 1 else ''}"
+        + (f" ({skipped} skipped: the AI's answer was not valid)" if skipped else '')
+    )
 
+    progress.stage('saving')
     latest_version = (
         Scenario.objects.get(pk=scenario_id).ensure_current_version()
     )
@@ -4336,7 +4399,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     df['categories'] = df['id'].map(lambda i: ", ".join(prop_map[i].categories_in_risk.values_list('name', flat=True)))
     df.to_csv(fp, index=False)
 
-    return f"Completed LLM analysis + proposal generation for scenario {scenario_id}"
+    return written if by_act else None
 
 def parse_llm_proposal(response_suggested_action, proposal=None):
     try:
