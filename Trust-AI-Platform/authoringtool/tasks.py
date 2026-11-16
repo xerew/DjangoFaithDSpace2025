@@ -2236,10 +2236,9 @@ def compute_category_metrics_per_phase_activity(
     }
 
     # Confirmed 1:1 translations add their students' answers, mapped onto this
-    # scenario's activities. Their time counts only for the same language.
-    same_language = dict.fromkeys(valid_implementation_ids, True)
+    # scenario's activities. Answers and time count for every language, so all
+    # translations of a scenario show the same numbers.
     source_languages = {(scenario.language or '').strip() or 'Unspecified'}
-    target_language = (scenario.language or '').strip().casefold()
     for member_id, to_target in translation_activity_maps(scenario).items():
         member = Scenario.objects.filter(pk=member_id).first()
         member_start = next(
@@ -2265,9 +2264,6 @@ def compute_category_metrics_per_phase_activity(
                 activity_id=member_start,
             ).values_list('implementation_id', flat=True)
         )
-        member_is_same_language = (
-            (member.language or '').strip().casefold() == target_language
-        )
         for user_answer in member_answers.filter(
             implementation_id__in=member_implementations,
             activity_id__in=list(to_target),
@@ -2276,8 +2272,6 @@ def compute_category_metrics_per_phase_activity(
                 user_answer.implementation_id,
                 to_target[user_answer.activity_id],
             )] = user_answer
-        for implementation_id in member_implementations:
-            same_language[implementation_id] = member_is_same_language
         valid_implementation_ids |= member_implementations
         if member_implementations:
             source_languages.add((member.language or '').strip() or 'Unspecified')
@@ -2392,13 +2386,9 @@ def compute_category_metrics_per_phase_activity(
                 )
                 if not ua:
                     continue
-                if same_language.get(implementation_id, True):
-                    if not ua.timing:
-                        continue
-                    category_data[cat].append(ua.timing)
-                elif not ua.answer:
-                    # Another language: only the answer is comparable.
+                if not ua.timing:
                     continue
+                category_data[cat].append(ua.timing)
                 counted[cat] += 1
                 if ua.answer:
                     correctness_data[cat].append(ua.answer.is_correct)

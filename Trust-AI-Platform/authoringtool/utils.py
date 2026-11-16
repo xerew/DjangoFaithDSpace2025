@@ -25,6 +25,12 @@ def get_eligible_user_answers(
     )
 
 
+# Part of every metrics cache name. Change it when the way the metrics are
+# computed changes, so files made under the old rules are not reused.
+# 'pt': time is pooled across all confirmed translations.
+METRICS_RULES_TAG = 'pt'
+
+
 def get_scenario_evidence_cache_paths(
     scenario,
     scope='local',
@@ -50,7 +56,7 @@ def get_scenario_evidence_cache_paths(
     pool = translation_pool_signature(scenario)
     prefix = (
         f'scenario_{scenario.id}_v{version.id}_{scope}_'
-        f'{language_slug}_{signature}'
+        f'{language_slug}_{signature}_{METRICS_RULES_TAG}'
         + (f'_tr{pool}' if pool else '')
     )
     return {

@@ -1,4 +1,5 @@
 import csv
+import os
 import tempfile
 
 from django.contrib.auth.models import Group, User
@@ -18,7 +19,10 @@ from authoringtool.models import (
     UserAnswer,
     UserScenarioScore,
 )
-from authoringtool.tasks import compute_category_metrics_per_phase_activity
+from authoringtool.tasks import (
+    calculate_activities_in_risk,
+    compute_category_metrics_per_phase_activity,
+)
 from authoringtool.utils import get_scenario_evidence_cache_paths
 
 
@@ -128,7 +132,7 @@ class PooledMetricsTests(PoolingBase):
         self.assertEqual(sum(int(row['Correct'] or 0) for row in rows), 1)
         self.assertEqual(sum(int(row['Wrong'] or 0) for row in rows), 2)
 
-    def test_time_uses_same_language_students_only(self):
+    def test_time_uses_students_of_every_language(self):
         english = self.build('Pendulum', 'English')
         greek = self.build('Εκκρεμές', 'Ελληνικά')
         self.confirm(english, greek)
@@ -139,7 +143,55 @@ class PooledMetricsTests(PoolingBase):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['Total'], '2')
-        self.assertEqual(float(rows[0]['Avg Time']), 10.0)
+        self.assertEqual(float(rows[0]['Avg Time']), 55.0)
+
+    def mixed_group(self):
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά')
+        self.confirm(english, greek)
+        for timing in (10, 12, 14):
+            self.student_answers(english, correct=True, timing=timing)
+        for timing in (40, 60):
+            self.student_answers(greek, correct=False, timing=timing)
+        return english, greek
+
+    def test_every_translation_shows_the_same_numbers(self):
+        english, greek = self.mixed_group()
+        columns = [
+            'Category', 'Total', 'Correct', 'Wrong', '% Correct', '% Wrong',
+            'Avg Time', 'Timing Total', 'Next Low', 'Next Moderate', 'Next High',
+        ]
+
+        def numbers(rows):
+            return sorted(tuple(row[column] for column in columns) for row in rows)
+
+        self.assertEqual(
+            numbers(self.question_rows(english)),
+            numbers(self.question_rows(greek)),
+        )
+
+    def flag_rows(self, built):
+        scenario = built[0]
+        compute_category_metrics_per_phase_activity(scenario.id)
+        calculate_activities_in_risk(scenario.id)
+        path = get_scenario_evidence_cache_paths(scenario, 'local')['flags']
+        with open(path, encoding='utf-8') as handle:
+            return sorted(
+                (row['Category'], row['Flag'], row['Reason'])
+                for row in csv.DictReader(handle)
+            )
+
+    def test_every_translation_gets_the_same_flags(self):
+        english, greek = self.mixed_group()
+
+        self.assertEqual(self.flag_rows(english), self.flag_rows(greek))
+
+    def test_cache_name_marks_pooled_time(self):
+        english = self.build('Pendulum', 'English')
+
+        path = get_scenario_evidence_cache_paths(english[0], 'local')['metrics']
+
+        self.assertIn('_pt', os.path.basename(path))
 
     def test_translations_of_translations_are_combined(self):
         english = self.build('Pendulum', 'English')
@@ -244,6 +296,8 @@ class CombinedThresholdTests(PoolingBase):
 
         self.assertContains(response, '<strong>3</strong> implementations together')
         self.assertContains(response, '1 from this scenario and 2 from 1 confirmed translation')
+        self.assertContains(response, 'Metrics and AI proposals use them all.')
+        self.assertNotContains(response, 'students only')
         self.assertNotContains(response, 'Other scenarios and family variants are not included')
 
     def test_metrics_page_has_no_low_data_warning_when_combined_is_enough(self):

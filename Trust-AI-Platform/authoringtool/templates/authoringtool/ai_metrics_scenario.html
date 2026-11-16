@@ -176,7 +176,7 @@
             {% if not myScenario.family_pooling_enabled and translation_count %}
               <strong>{{ proposal_implementation_count }}</strong> implementation{{ proposal_implementation_count|pluralize }} together:
               {{ compatible_implementation_count }} from this scenario and {{ translation_implementation_count }} from {{ translation_count }} confirmed translation{{ translation_count|pluralize }}, including historical data.
-              Metrics and AI proposals use them all; average time uses {{ myScenario.language|default:"this scenario's language" }} students only.
+              Metrics and AI proposals use them all.
             {% elif not myScenario.family_pooling_enabled %}
               {{ implementation_count }} implementation{{ implementation_count|pluralize }}
               from this scenario, including its historical data. Other scenarios and family variants are not included.
