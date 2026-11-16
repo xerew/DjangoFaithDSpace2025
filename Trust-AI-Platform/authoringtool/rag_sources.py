@@ -2,7 +2,8 @@
 
 Each scenario keeps its own folder (rag_pdfs/scenario_<id>/). Confirmed 1:1
 translations are one scenario in several languages, so proposals read the
-PDFs of every member. A file uploaded to more than one member is used once.
+PDFs of every public member. A file uploaded to more than one member is used
+once.
 """
 import hashlib
 import os
@@ -75,10 +76,16 @@ def _scenario_pdfs(scenario):
 
 
 def group_rag_pdfs(scenario):
-    """The scenario's own PDFs, then each translation's, each content once."""
+    """The scenario's own PDFs, then each translation's, each content once.
+
+    Only public, non-archived translations share their PDFs; private and
+    organization-only ones keep them to themselves.
+    """
     members = Scenario.objects.filter(
         id__in=translation_group_ids(scenario),
-    ).order_by('id')
+        visibility_status='public',
+        archived_at__isnull=True,
+    ).exclude(id=scenario.id).order_by('id')
     seen = set()
     pdfs = []
     for member in [scenario, *members]:

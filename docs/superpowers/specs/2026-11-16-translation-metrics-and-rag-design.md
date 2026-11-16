@@ -22,8 +22,9 @@ work, not part of this change).
 3. **Stale caches rebuilt once.** Metrics/flags CSVs computed under the old rule are not
    reused.
 4. **RAG shared across the group.** A proposal run retrieves from the PDFs of the scenario
-   and all its confirmed translations. A PDF present in several members (same content) is
-   indexed once.
+   and its confirmed translations that are public and not archived (user decision
+   2026-11-16: private and organization-only translations do not share their PDFs). A PDF
+   present in several members (same content) is indexed once.
 5. **RAG index refreshes itself** when that PDF set changes (upload, delete, translation
    confirmed or undone), without the "force" button. Today the index is built once and
    never picks up later uploads or deletions.

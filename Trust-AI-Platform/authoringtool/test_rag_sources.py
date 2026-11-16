@@ -7,6 +7,7 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from authoringtool.models import TranslationMatch
 from authoringtool import rag_sources
@@ -67,6 +68,44 @@ class GroupRagPdfsTests(RagFilesBase):
 
         self.assertEqual(len(pdfs), 1)
         self.assertEqual(pdfs[0].scenario_id, english.id)
+
+    def test_private_translation_pdfs_are_not_shared(self):
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά', visibility='private')
+        self.confirm(english, greek)
+        self.add_pdf(english[0], 'a.pdf')
+        self.add_pdf(greek[0], 'secret.pdf')
+
+        names = [pdf.filename for pdf in group_rag_pdfs(english[0])]
+
+        self.assertEqual(names, ['a.pdf'])
+
+    def test_organization_only_translation_pdfs_are_not_shared(self):
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά', visibility='org')
+        self.confirm(english, greek)
+        self.add_pdf(greek[0], 'org.pdf')
+
+        self.assertEqual(group_rag_pdfs(english[0]), [])
+
+    def test_archived_translation_pdfs_are_not_shared(self):
+        english, greek = self.pendulums()
+        greek.archived_at = timezone.now()
+        greek.save(update_fields=['archived_at'])
+        self.add_pdf(greek, 'old.pdf')
+
+        self.assertEqual(group_rag_pdfs(english), [])
+
+    def test_private_scenario_still_reads_its_own_and_public_translation_pdfs(self):
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά', visibility='private')
+        self.confirm(english, greek)
+        self.add_pdf(english[0], 'a.pdf')
+        self.add_pdf(greek[0], 'mine.pdf')
+
+        names = [pdf.filename for pdf in group_rag_pdfs(greek[0])]
+
+        self.assertEqual(names, ['mine.pdf', 'a.pdf'])
 
     def test_unconfirmed_translation_pdfs_are_not_listed(self):
         english, greek = self.pendulums()
@@ -184,6 +223,20 @@ class RagIndexTests(RagFilesBase):
             patcher = mock.patch(target, value)
             patcher.start()
             self.addCleanup(patcher.stop)
+
+    def test_index_leaves_out_private_translation_pdfs(self):
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά', visibility='private')
+        self.confirm(english, greek)
+        self.add_pdf(english[0], 'a.pdf')
+        self.add_pdf(greek[0], 'secret.pdf')
+
+        chunk_and_index_pdfs(english[0].id)
+
+        self.assertEqual(
+            [doc.metadata['source_file'] for doc in self.store.added],
+            ['a.pdf'],
+        )
 
     def test_broken_pdf_in_a_translation_is_skipped(self):
         english, greek = self.pendulums()
