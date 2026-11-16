@@ -3,7 +3,9 @@ import tempfile
 from types import SimpleNamespace
 from unittest import mock
 
+from django.contrib.auth.models import User
 from django.test import override_settings
+from django.urls import reverse
 
 from authoringtool.models import TranslationMatch
 from authoringtool.rag_sources import group_rag_pdfs, rag_pdf_signature
@@ -205,3 +207,62 @@ class RagIndexTests(RagFilesBase):
         remove_rag_indexes(english.id)
 
         self.assertEqual(os.listdir(self.index_root), [other])
+
+
+class ScenarioPageRagTests(RagFilesBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.owner)
+
+    def page(self, scenario):
+        return self.client.get(reverse('viewScenario', args=[scenario.id]))
+
+    def test_translation_pdfs_are_listed_read_only(self):
+        english, greek = self.pendulums()
+        self.add_pdf(greek, 'b.pdf')
+
+        response = self.page(english)
+
+        self.assertContains(response, 'From translations')
+        self.assertContains(response, 'b.pdf')
+        self.assertContains(response, reverse(
+            'serve_rag_pdf', kwargs={'scenario_id': greek.id, 'filename': 'b.pdf'},
+        ))
+        self.assertNotContains(response, reverse(
+            'delete_rag_pdf', kwargs={'scenario_id': greek.id, 'filename': 'b.pdf'},
+        ))
+        self.assertEqual(
+            [pdf.filename for pdf in response.context['translation_rag_files']],
+            ['b.pdf'],
+        )
+
+    def test_own_pdfs_keep_their_delete_button(self):
+        english, greek = self.pendulums()
+        self.add_pdf(english, 'a.pdf')
+
+        response = self.page(english)
+
+        self.assertContains(response, reverse(
+            'delete_rag_pdf', kwargs={'scenario_id': english.id, 'filename': 'a.pdf'},
+        ))
+        self.assertEqual(response.context['translation_rag_files'], [])
+        self.assertNotContains(response, 'From translations')
+
+    def test_hidden_translation_pdfs_are_not_listed(self):
+        stranger = User.objects.create_user('rag_stranger', password='pass')
+        stranger.groups.add(self.teachers)
+        english = self.build('Pendulum', 'English')
+        greek = self.build('Εκκρεμές', 'Ελληνικά', visibility='private', owner=stranger)
+        self.confirm(english, greek)
+        self.add_pdf(greek[0], 'secret.pdf')
+
+        response = self.page(english[0])
+
+        self.assertNotContains(response, 'secret.pdf')
+
+    def test_unconfirmed_translation_pdfs_are_not_shown(self):
+        english, greek = self.pendulums()
+        TranslationMatch.objects.update(status='rejected')
+        self.add_pdf(greek, 'b.pdf')
+
+        self.assertNotContains(self.page(english), 'b.pdf')

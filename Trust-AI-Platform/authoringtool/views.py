@@ -78,6 +78,7 @@ from .machine_translation.health import OK as AI_SERVER_OK, proposal_server_stat
 from .machine_translation.queue import retry_job
 from .models import ScenarioCollaborator, ScenarioTranslationJob
 from .proposal_diff import revision_changes
+from .rag_sources import group_rag_pdfs
 from .tasks import check_translation_service_task, drain_translation_queue_task
 from .translation_matching import (
     bundle_translations,
@@ -1148,6 +1149,20 @@ def viewScenario(request, id):
         rag_files = [f for f in os.listdir(rag_folder) if f.lower().endswith('.pdf')]
     else:
         rag_files = []
+    # PDFs of confirmed translations are read too when proposals are made;
+    # listed read-only, and only from translations this user can open.
+    viewable_translations = {}
+    translation_rag_files = []
+    for pdf in group_rag_pdfs(myScenario):
+        if pdf.scenario_id == myScenario.id:
+            continue
+        if pdf.scenario_id not in viewable_translations:
+            translation = Scenario.objects.filter(pk=pdf.scenario_id).first()
+            viewable_translations[pdf.scenario_id] = bool(
+                translation and user_can_view_scenario(request.user, translation)
+            )
+        if viewable_translations[pdf.scenario_id]:
+            translation_rag_files.append(pdf)
 
 
     current_version = myScenario.ensure_current_version(
@@ -1290,6 +1305,7 @@ def viewScenario(request, id):
         'mermaid_graph_definition': mermaid_graph_definition,
         'can_edit': can_edit,
         'rag_files': rag_files,
+        'translation_rag_files': translation_rag_files,
         "llm_html": mark_safe(sanitize_html(markdown.markdown(myScenario.llm_context or ""))),
         'implementation_count': implementation_count,
         'local_implementation_count': local_implementation_count,

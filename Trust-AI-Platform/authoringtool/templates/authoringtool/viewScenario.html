@@ -451,7 +451,7 @@
         <div class="sc-card">
           <div class="sc-card-header">
             <span><i class="bi bi-file-earmark-pdf me-2" style="color:#dc2626;"></i>RAG Documents</span>
-            <span style="font-size:11.5px; color:#9ca3af; font-weight:400;">{{ rag_files|length }} file{{ rag_files|length|pluralize }}</span>
+            <span style="font-size:11.5px; color:#9ca3af; font-weight:400;">{{ rag_files|length }} file{{ rag_files|length|pluralize }}{% if translation_rag_files %} + {{ translation_rag_files|length }} from translations{% endif %}</span>
           </div>
           <div class="sc-card-body">
             {% if can_edit or request.user.is_superuser %}
@@ -502,7 +502,46 @@
                 </div>
               </div>
               {% endfor %}
-            {% else %}
+            {% endif %}
+            {% if translation_rag_files %}
+              <div style="font-size:12px; font-weight:700; color:#374151; margin:12px 0 4px;">
+                <i class="bi bi-translate me-1"></i>From translations
+              </div>
+              <div style="font-size:11.5px; color:#6b7280; margin-bottom:6px;">
+                AI proposals also read these documents. They can be changed only in their own scenario.
+              </div>
+              {% for pdf in translation_rag_files %}
+              <div class="pdf-item">
+                <a href="#" class="pdf-link" data-bs-toggle="modal" data-bs-target="#pdfModalTr{{ forloop.counter }}">
+                  <i class="bi bi-file-earmark-pdf-fill text-danger"></i>{{ pdf.filename }}
+                </a>
+                <span style="font-size:11.5px; color:#9ca3af;">{{ pdf.language }} &middot; {{ pdf.scenario_name }}</span>
+              </div>
+
+              <div class="modal fade" id="pdfModalTr{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>{{ pdf.filename }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                      <iframe src="{% url 'serve_rag_pdf' scenario_id=pdf.scenario_id filename=pdf.filename %}"
+                              width="100%" style="height:min(700px,80vh);border:none;display:block;"></iframe>
+                    </div>
+                    <div class="modal-footer">
+                      <a href="{% url 'serve_rag_pdf' scenario_id=pdf.scenario_id filename=pdf.filename %}"
+                         class="btn btn-success" download>
+                        <i class="bi bi-download me-1"></i>Download
+                      </a>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            {% endif %}
+            {% if not rag_files and not translation_rag_files %}
               <div style="text-align:center; color:#9ca3af; padding:16px 0; font-size:13px;">
                 <i class="bi bi-file-earmark" style="font-size:28px; display:block; margin-bottom:8px;"></i>
                 No documents uploaded yet.
