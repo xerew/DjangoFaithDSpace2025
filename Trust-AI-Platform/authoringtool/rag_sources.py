@@ -1,0 +1,79 @@
+"""The RAG PDFs of a scenario together with those of its confirmed translations.
+
+Each scenario keeps its own folder (rag_pdfs/scenario_<id>/). Confirmed 1:1
+translations are one scenario in several languages, so proposals read the
+PDFs of every member. A file uploaded to more than one member is used once.
+"""
+import hashlib
+import os
+from typing import NamedTuple
+
+from django.conf import settings
+
+from .models import Scenario
+from .translation_matching import translation_group_ids
+
+
+class RagPdf(NamedTuple):
+    scenario_id: int
+    scenario_name: str
+    language: str
+    filename: str
+    path: str
+    sha256: str
+
+
+def scenario_rag_folder(scenario_id):
+    return os.path.join(settings.RAG_PDFS_ROOT, f'scenario_{scenario_id}')
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _scenario_pdfs(scenario):
+    folder = scenario_rag_folder(scenario.id)
+    if not os.path.isdir(folder):
+        return []
+    pdfs = []
+    for filename in sorted(os.listdir(folder)):
+        path = os.path.join(folder, filename)
+        if not filename.lower().endswith('.pdf') or not os.path.isfile(path):
+            continue
+        pdfs.append(RagPdf(
+            scenario_id=scenario.id,
+            scenario_name=scenario.name,
+            language=scenario.language or '',
+            filename=filename,
+            path=path,
+            sha256=_file_sha256(path),
+        ))
+    return pdfs
+
+
+def group_rag_pdfs(scenario):
+    """The scenario's own PDFs, then each translation's, each content once."""
+    members = Scenario.objects.filter(
+        id__in=translation_group_ids(scenario),
+    ).order_by('id')
+    seen = set()
+    pdfs = []
+    for member in [scenario, *members]:
+        for pdf in _scenario_pdfs(member):
+            if pdf.sha256 in seen:
+                continue
+            seen.add(pdf.sha256)
+            pdfs.append(pdf)
+    return pdfs
+
+
+def rag_pdf_signature(pdfs):
+    """Short id of the PDF contents; '' when there are none."""
+    hashes = sorted({pdf.sha256 for pdf in pdfs})
+    if not hashes:
+        return ''
+    return hashlib.sha256(','.join(hashes).encode('ascii')).hexdigest()[:12]
