@@ -9,7 +9,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from authoringtool.models import ActivityProposal, Scenario, UserProposalReview
+from authoringtool.models import (
+    Activity, ActivityProposal, ActivityType, Phase, ProposalGenerationRun, Scenario, UserProposalReview,
+)
 from categorization import proposals_report
 
 UTC = ZoneInfo('UTC')
@@ -25,22 +27,32 @@ class ProposalData(TestCase):
         self.other = Scenario.objects.create(
             name='Optics', visibility_status='public', created_by=self.staff, updated_by=self.staff,
         )
+        kind = ActivityType.objects.create(name='Explanation', created_by=self.staff, updated_by=self.staff)
+        self.activities = {}
+        for scenario in (self.scenario, self.other):
+            phase = Phase.objects.create(name='Phase', scenario=scenario, created_by=self.staff, updated_by=self.staff)
+            self.activities[scenario.id] = Activity.objects.create(
+                name='Activity', text='Text', plain_text='Text', scenario=scenario, phase=phase,
+                activity_type=kind, created_by=self.staff, updated_by=self.staff,
+            )
 
-    def proposal(self, when, proposal_type='revise', policy='', model='', scenario=None):
+    def proposal(self, when, proposal_type='revise', policy='', model='', scenario=None, run=None, detached=False):
+        scenario = scenario or self.scenario
         proposal = ActivityProposal.objects.create(
-            scenario=scenario or self.scenario, proposal_type=proposal_type,
+            scenario=scenario, proposal_type=proposal_type, generation_run=run,
+            activity=None if detached else self.activities[scenario.id],
             selection_policy=policy, llm_model=model, suggested_action='Do this',
         )
         ActivityProposal.objects.filter(pk=proposal.pk).update(created_at=when)
         return proposal
 
-    def decide(self, proposal, *statuses, reasons=None, feedback='pedagogical'):
+    def decide(self, proposal, *statuses, reasons=None, feedback='pedagogical', users=None):
         # bulk_create: no reward signal, which is not what is tested here.
         UserProposalReview.objects.bulk_create([
-            UserProposalReview(proposal=proposal, user=teacher, status=status,
+            UserProposalReview(proposal=proposal, user=user, status=status,
                                rejection_reasons=(reasons or []) if status == 'rejected' else [],
                                feedback_type=feedback if status == 'rejected' else 'pedagogical')
-            for teacher, status in zip(self.teachers, statuses)
+            for user, status in zip(users or self.teachers, statuses)
         ])
 
 
@@ -55,15 +67,38 @@ class BuildTests(ProposalData):
         s = view['summary']
         self.assertEqual((s['proposals'], s['decisions'], s['accepted'], s['rejected']), (2, 4, 2, 2))
         self.assertEqual(s['acceptance'], 0.5)
-        self.assertEqual(s['undecided'], 1)
-        self.assertEqual(s['undecided_share'], 0.2)
+        # The scenario has no generation runs: its proposal can still be decided.
+        self.assertEqual((s['open'], s['closed']), (1, 0))
         self.assertEqual(s['reviewers'], 3)
         self.assertEqual(s['proposals_decided'], 2)
-        self.assertEqual([m['month'] for m in view['months']], ['2025-07', '2025-09'])
+        # August has no proposals and is kept as a gap.
+        self.assertEqual([m['month'] for m in view['months']], ['2025-07', '2025-08', '2025-09'])
         self.assertAlmostEqual(view['months'][0]['acceptance'], 2 / 3)
-        self.assertEqual(view['months'][1]['acceptance'], 0.0)
-        self.assertEqual(view['chart']['decisions'], [3, 1])
-        self.assertEqual(view['chart']['undecided'], [0, 1])
+        self.assertIsNone(view['months'][1]['acceptance'])
+        self.assertEqual(view['months'][2]['acceptance'], 0.0)
+        self.assertEqual(view['chart']['decisions'], [3, 0, 1])
+        self.assertEqual(view['chart']['open'], [0, 0, 1])
+
+    def test_still_open_or_closed(self):
+        old = ProposalGenerationRun.objects.create(scenario=self.scenario, created_by=self.staff, is_current=False)
+        current = ProposalGenerationRun.objects.create(scenario=self.scenario, created_by=self.staff, is_current=True)
+        when = datetime(2025, 7, 1, tzinfo=UTC)
+        self.decide(self.proposal(when, run=current), 'new')                 # on the review page
+        self.decide(self.proposal(when, run=old), 'new')                     # replaced by a newer run
+        self.decide(self.proposal(when), 'new')                              # before runs, but a run exists now
+        self.decide(self.proposal(when, run=current, detached=True), 'new')  # activity removed
+        self.decide(self.proposal(when, scenario=self.other), 'new')         # scenario without runs
+        s = proposals_report.build()['summary']
+        self.assertEqual((s['open'], s['closed']), (2, 3))
+
+    def test_teachers_only(self):
+        proposal = self.proposal(datetime(2025, 7, 1, tzinfo=UTC))
+        self.decide(proposal, 'accepted', 'rejected', users=[self.staff, self.teachers[0]])
+        everyone = proposals_report.build()['summary']
+        self.assertEqual((everyone['decisions'], everyone['staff_decisions']), (2, 1))
+        teachers = proposals_report.build('teachers')['summary']
+        self.assertEqual((teachers['decisions'], teachers['acceptance'], teachers['reviewers']), (1, 0.0, 1))
+        self.assertEqual(teachers['who'], 'teachers')
 
     def test_month_in_platform_time(self):
         # 22:30 UTC on 31 July is 01:30 on 1 August in Athens.
@@ -111,6 +146,8 @@ class BuildTests(ProposalData):
         # 3 agreeing pairs on the first, 1 disagreeing pair on the split one.
         self.assertEqual(agreement['pairs'], 4)
         self.assertEqual(agreement['pairwise'], 0.75)
+        # 4 of the 5 decisions accepted: chance agreement 0.8^2 + 0.2^2.
+        self.assertAlmostEqual(agreement['chance'], 0.68)
         self.assertEqual([row['proposal_id'] for row in agreement['split']], [split.id])
 
     def test_rejection_reasons_and_structural(self):
@@ -120,6 +157,8 @@ class BuildTests(ProposalData):
         self.assertEqual(view['summary']['structural'], 1)
         self.assertEqual({row['code'] for row in view['reasons']}, {'structural_invalid', 'poor_content'})
         self.assertEqual(view['decisions'][0]['reasons'][0], 'Malformed or structurally invalid proposal')
+        self.assertEqual(view['decisions'][0]['decision'], 'Rejected')
+        self.assertEqual(view['decisions'][0]['feedback_type'], 'Structural / malformed')
 
     def test_nothing_yet(self):
         view = proposals_report.build()
@@ -138,7 +177,33 @@ class ProposalsTabTests(ProposalData):
         self.assertContains(response, 'Teachers and the AI activity proposals')
         self.assertContains(response, 'Jul 2025')
         self.assertContains(response, 'id="proposals-chart-data"')
-        self.assertContains(response, reverse('categorization_proposals_export'))
+        self.assertContains(response, reverse('categorization_proposals_export') + '?who=all')
+
+    def test_agreement_sentence(self):
+        self.client.force_login(self.staff)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'accepted')
+        response = self.client.get(self.url, {'tab': 'proposals'})
+        self.assertContains(response, '1 proposal was decided by two or more reviewers')
+        self.assertContains(response, 'Of all 1 pairs of reviewers who decided the same proposal, 100.0% decided alike')
+
+    def test_teachers_only_page(self):
+        self.client.force_login(self.staff)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'rejected',
+                    users=[self.staff, self.teachers[0]])
+        response = self.client.get(self.url, {'tab': 'proposals', 'who': 'teachers'})
+        self.assertEqual(response.context['proposals']['summary']['decisions'], 1)
+        self.assertContains(response, '?who=teachers')
+        everyone = self.client.get(self.url, {'tab': 'proposals', 'who': 'bogus'})
+        self.assertEqual(everyone.context['proposals']['summary']['who'], 'all')
+        self.assertContains(everyone, '1 of these decisions was made by a staff or admin account.')
+
+    def test_teacher_written_names_are_escaped(self):
+        self.client.force_login(self.staff)
+        Scenario.objects.filter(pk=self.scenario.pk).update(name='<script>alert(1)</script>')
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted')
+        response = self.client.get(self.url, {'tab': 'proposals'})
+        self.assertNotContains(response, '<script>alert(1)</script>')
+        self.assertContains(response, '&lt;script&gt;alert(1)&lt;/script&gt;')
 
     def test_empty_tab(self):
         self.client.force_login(self.staff)
@@ -150,6 +215,11 @@ class ProposalsTabTests(ProposalData):
         self.client.force_login(self.teachers[0])
         self.assertEqual(self.client.get(self.url, {'tab': 'proposals'}).status_code, 403)
         self.assertEqual(self.client.get(reverse('categorization_proposals_export')).status_code, 403)
+
+    def test_anonymous_export_goes_to_login(self):
+        response = self.client.get(reverse('categorization_proposals_export'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
 
     def test_export(self):
         self.client.force_login(self.staff)
@@ -163,3 +233,15 @@ class ProposalsTabTests(ProposalData):
         decisions = book['Decisions']
         self.assertEqual(decisions.max_row, 3)  # header + 2 decisions
         self.assertEqual(decisions.cell(row=2, column=6).value, '2025-07-10 03:00')  # Athens time
+        self.assertEqual(decisions.cell(row=1, column=12).value, 'Last changed')
+        self.assertEqual(decisions.cell(row=2, column=9).value, 'Accepted')
+
+    def test_export_keeps_odd_names_as_text(self):
+        self.client.force_login(self.staff)
+        Scenario.objects.filter(pk=self.scenario.pk).update(name='=cmd|x\x0bpasted')
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted')
+        response = self.client.get(reverse('categorization_proposals_export'))
+        self.assertEqual(response.status_code, 200)
+        cell = openpyxl.load_workbook(BytesIO(response.content))['Decisions'].cell(row=2, column=2)
+        self.assertEqual(cell.data_type, 's')
+        self.assertEqual(cell.value, '=cmd|xpasted')

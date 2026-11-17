@@ -524,8 +524,9 @@
       grid: { left: 56, right: 24, top: 16, bottom: 32 },
       tooltip: { trigger: 'axis', formatter: function (items) {
         var i = items[0].dataIndex, rate = d.acceptance[i];
-        return items[0].axisValue + '<br>' + d.names.acceptance + ': ' + (rate == null ? '–' : (rate * 100).toFixed(1) + '%') +
-               '<br>' + d.names.decisions + ': ' + d.decisions[i]; } },
+        var e = echarts.format.encodeHTML;
+        return e(items[0].axisValue) + '<br>' + e(d.names.acceptance) + ': ' + (rate == null ? '–' : (rate * 100).toFixed(1) + '%') +
+               '<br>' + e(d.names.decisions) + ': ' + d.decisions[i]; } },
       xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
       yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: quiet, formatter: function (x) { return Math.round(x * 100) + '%'; } },
                splitLine: { lineStyle: { color: grid } } },
@@ -544,13 +545,14 @@
                itemStyle: { color: color, borderColor: v('--body-bg', '#fff'), borderWidth: 1 } };
     }
     chart.setOption({
-      grid: { left: 56, right: 24, top: 36, bottom: 32 },
+      // Four legend entries wrap on phones; leave room for two rows.
+      grid: { left: 56, right: 24, top: chart.getWidth() < 560 ? 64 : 36, bottom: 32 },
       legend: { top: 0, textStyle: { color: ink } },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
       yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
       series: [bar(d.names.accepted, d.accepted, BLUE), bar(d.names.rejected, d.rejected, ORANGE),
-               bar(d.names.undecided, d.undecided, quiet)]
+               bar(d.names.open, d.open, quiet), bar(d.names.closed, d.closed, '#9aa0a6')]
     });
   }
 

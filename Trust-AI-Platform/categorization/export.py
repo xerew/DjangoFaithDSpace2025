@@ -22,7 +22,8 @@ def _sheet(book, title, header, rows, percent_columns=()):
     for cell in sheet[1]:
         cell.font = Font(bold=True)
     for row in rows:
-        sheet.append(list(row))
+        # Control characters (e.g. pasted from Word into a scenario name) make openpyxl refuse the file.
+        sheet.append([ILLEGAL_CHARACTERS_RE.sub('', value) if isinstance(value, str) else value for value in row])
     for column in percent_columns:
         for cell in sheet.iter_cols(min_col=column, max_col=column, min_row=2):
             for item in cell:
@@ -238,29 +239,35 @@ def proposals_workbook(view):
     book = Workbook()
     book.remove(book.active)
     rows = [
+        (_('Reviewers counted'), _('Teachers only (staff and admin accounts left out)')
+         if summary['who'] == 'teachers' else _('Everyone, staff and admin accounts included')),
         (_('AI proposals'), summary['proposals']),
         (_('Scenarios'), summary['scenarios']),
-        (_('Teacher decisions (each teacher counts once per proposal)'), summary['decisions']),
+        (_('Decisions (each reviewer counts once per proposal)'), summary['decisions']),
         (_('Accepted'), summary['accepted']),
         (_('Rejected'), summary['rejected']),
-        (_('Rejected as malformed (structural)'), summary['structural']),
+        (_('Rejected as malformed (structural; counted as rejections)'), summary['structural']),
         (_('Acceptance rate'), summary['acceptance']),
         (_('Reviewers who decided'), summary['reviewers']),
-        (_('Opened, not decided'), summary['undecided']),
-        (_('Proposals decided by two or more teachers'), agreement['proposals']),
-        (_('Of those, all teachers agreed'), agreement['unanimous']),
-        (_('Pairwise agreement between teachers'), agreement['pairwise']),
+        (_('Decisions by staff or admin accounts (on the whole platform)'), summary['staff_decisions']),
+        (_('Not decided, still open'), summary['open']),
+        (_('Not decided, closed (replaced by a newer generation or activity removed)'), summary['closed']),
+        (_('Proposals decided by two or more reviewers'), agreement['proposals']),
+        (_('Of those, all reviewers decided alike'), agreement['unanimous']),
+        (_('Pairs of reviewers on the same proposal'), agreement['pairs']),
+        (_('Share of those pairs that decided alike'), agreement['pairwise']),
+        (_('Expected by chance at this acceptance rate'), agreement['chance']),
     ]
     sheet = _sheet(book, 'Summary', [_('Measure'), _('Value')], rows)
     for row in sheet.iter_rows(min_row=2):
         if isinstance(row[1].value, float):
             row[1].number_format = PERCENT
     counts = [_('Proposals'), _('Decisions'), _('Accepted'), _('Rejected'), _('Acceptance rate'),
-              _('Opened, not decided')]
+              _('Not decided, still open'), _('Not decided, closed')]
 
     def count_row(row):
         return (row['proposals'], row['decisions'], row['accepted'], row['rejected'], row['acceptance'],
-                row['undecided'])
+                row['open'], row['closed'])
 
     _sheet(book, 'By month', [_('Month proposed'), *counts],
            [(row['month'], *count_row(row)) for row in view['months']], percent_columns=(6,))
@@ -276,10 +283,10 @@ def proposals_workbook(view):
             for row in agreement['split']])
     _sheet(book, 'Decisions',
            [_('Proposal'), _('Scenario'), _('Type'), _('How chosen'), _('Language model'), _('Proposed at'),
-            _('Reviewer'), _('Decision'), _('Feedback type'), _('Rejection reasons'), _('Decided at'),
-            _('Edited')],
+            _('Reviewer'), _('Staff or admin account'), _('Decision'), _('Feedback type'), _('Rejection reasons'),
+            _('Last changed'), _('Edited')],
            [(d['proposal_id'], d['scenario'], d['proposal_type'], d['source'], d['llm_model'],
-             _local(d['proposed_at']), d['reviewer'], d['decision'], d['feedback_type'],
-             '; '.join(d['reasons']), _local(d['decided_at']), d['was_edited'])
+             _local(d['proposed_at']), d['reviewer'], d['staff'], d['decision'], d['feedback_type'],
+             '; '.join(d['reasons']), _local(d['last_changed']), d['was_edited'])
             for d in view['decisions']])
     return _save(book)

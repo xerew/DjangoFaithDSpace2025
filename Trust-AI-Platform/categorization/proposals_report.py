@@ -1,10 +1,12 @@
 """How often teachers accept the AI activity proposals, and how that changes over time.
 
 Read live from the database on each page load: there are few proposals, and
-nothing here needs training. Every teacher's decision counts once, so a
-proposal reviewed by five teachers counts five times. A pending review is
-created as soon as a teacher opens a scenario's proposal list, so "opened,
-not decided" means exactly that, not work that was assigned.
+nothing here needs training. Every reviewer's decision counts once, so a
+proposal decided by five teachers counts five times. A pending review is
+created as soon as a teacher opens a scenario's proposal list, so an
+undecided review means the teacher saw the proposal and did not decide; it is
+"still open" while the proposal can be decided, and "closed" once a newer
+generation replaced it or its activity was removed.
 """
 
 from collections import Counter, defaultdict
@@ -13,11 +15,14 @@ from itertools import combinations
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from authoringtool.models import REJECTION_REASON_CHOICES, ActivityProposal, UserProposalReview
+from authoringtool.models import (
+    REJECTION_REASON_CHOICES, ActivityProposal, ProposalGenerationRun, UserProposalReview,
+)
 
 from .report import _period_label
 
 DECIDED = ('accepted', 'rejected')
+WHO_CHOICES = ('all', 'teachers')
 
 
 def _month(when):
@@ -26,23 +31,33 @@ def _month(when):
     return f'{when.year:04d}-{when.month:02d}'
 
 
+def _months_between(first, last):
+    """Every month from first to last ('YYYY-MM'), so gaps show as gaps."""
+    year, month = map(int, first.split('-'))
+    months = []
+    while f'{year:04d}-{month:02d}' <= last:
+        months.append(f'{year:04d}-{month:02d}')
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return months
+
+
 def _rate(accepted, rejected):
     decided = accepted + rejected
     return accepted / decided if decided else None
 
 
 def _tally():
-    return {'proposals': set(), 'accepted': 0, 'rejected': 0, 'undecided': 0}
+    return {'proposals': set(), 'accepted': 0, 'rejected': 0, 'open': 0, 'closed': 0}
 
 
-def _count(tally, proposal_id, status):
-    tally['proposals'].add(proposal_id)
-    if status == 'accepted':
-        tally['accepted'] += 1
-    elif status == 'rejected':
-        tally['rejected'] += 1
+def _count(tally, proposal, status):
+    tally['proposals'].add(proposal['id'])
+    if status in DECIDED:
+        tally[status] += 1
+    elif proposal['open']:
+        tally['open'] += 1
     else:
-        tally['undecided'] += 1
+        tally['closed'] += 1
 
 
 def _row(label, tally, **extra):
@@ -51,7 +66,8 @@ def _row(label, tally, **extra):
         'proposals': len(tally['proposals']),
         'accepted': tally['accepted'],
         'rejected': tally['rejected'],
-        'undecided': tally['undecided'],
+        'open': tally['open'],
+        'closed': tally['closed'],
         'decisions': tally['accepted'] + tally['rejected'],
         'acceptance': _rate(tally['accepted'], tally['rejected']),
         **extra,
@@ -62,17 +78,47 @@ def _source(proposal):
     return 'bandit' if proposal['selection_policy'] else 'before'
 
 
-def build():
+def _mark_open(proposals):
+    """Whether teachers can still decide each proposal, as the review page shows them.
+
+    The review page lists a scenario's current generation run, or, for a
+    scenario without runs, the proposals saved before runs existed; a
+    proposal whose activity was removed is never listed.
+    """
+    with_current_run = set(
+        ProposalGenerationRun.objects.filter(is_current=True).values_list('scenario_id', flat=True)
+    )
+    for proposal in proposals.values():
+        if proposal['activity_id'] is None:
+            proposal['open'] = False
+        elif proposal['generation_run_id'] is None:
+            proposal['open'] = proposal['scenario_id'] not in with_current_run
+        else:
+            proposal['open'] = bool(proposal['generation_run__is_current'])
+
+
+def build(who='all'):
+    """who: 'all' reviewers, or 'teachers' only (staff and admin accounts left out)."""
     proposals = {
         p['id']: p for p in ActivityProposal.objects.values(
             'id', 'scenario_id', 'scenario__name', 'proposal_type', 'selection_policy',
-            'llm_model', 'created_at',
+            'llm_model', 'created_at', 'activity_id', 'generation_run_id', 'generation_run__is_current',
         )
     }
-    reviews = list(UserProposalReview.objects.filter(proposal_id__in=proposals).values(
-        'proposal_id', 'user_id', 'user__username', 'status', 'feedback_type',
-        'rejection_reasons', 'reviewed_at', 'was_edited',
+    _mark_open(proposals)
+    all_reviews = list(UserProposalReview.objects.values(
+        'proposal_id', 'user_id', 'user__username', 'user__is_staff', 'user__is_superuser', 'status',
+        'feedback_type', 'rejection_reasons', 'reviewed_at', 'was_edited',
     ).order_by('proposal_id', 'user_id'))
+    staff_decisions = sum(
+        1 for r in all_reviews
+        if r['status'] in DECIDED and (r['user__is_staff'] or r['user__is_superuser'])
+    )
+    reviews = [
+        r for r in all_reviews
+        if r['proposal_id'] in proposals
+        and (who != 'teachers' or not (r['user__is_staff'] or r['user__is_superuser']))
+    ]
 
     months, types, sources, models, scenarios = (defaultdict(_tally) for _unused in range(5))
 
@@ -95,7 +141,7 @@ def build():
         proposal = proposals[review['proposal_id']]
         status = review['status']
         for tallies, key in groups(proposal):
-            _count(tallies[key], proposal['id'], status)
+            _count(tallies[key], proposal, status)
         if status in DECIDED:
             by_proposal[proposal['id']].append(review)
         if status == 'rejected':
@@ -103,7 +149,10 @@ def build():
 
     accepted = sum(1 for r in reviews if r['status'] == 'accepted')
     rejected = sum(1 for r in reviews if r['status'] == 'rejected')
+    undecided = [r for r in reviews if r['status'] not in DECIDED]
+    still_open = sum(1 for r in undecided if proposals[r['proposal_id']]['open'])
     summary = {
+        'who': who,
         'proposals': len(proposals),
         'proposals_decided': len(by_proposal),
         'decisions': accepted + rejected,
@@ -111,13 +160,16 @@ def build():
         'rejected': rejected,
         'structural': sum(1 for r in reviews if r['status'] == 'rejected' and r['feedback_type'] == 'structural'),
         'acceptance': _rate(accepted, rejected),
-        'undecided': len(reviews) - accepted - rejected,
-        'undecided_share': (len(reviews) - accepted - rejected) / len(reviews) if reviews else None,
+        'open': still_open,
+        'closed': len(undecided) - still_open,
         'reviewers': len({r['user_id'] for r in reviews if r['status'] in DECIDED}),
+        'staff_decisions': staff_decisions,
         'scenarios': len({p['scenario_id'] for p in proposals.values()}),
     }
 
-    month_rows = [_row(_period_label(key, key), months[key], month=key) for key in sorted(months)]
+    keys = _months_between(min(months), max(months)) if months else []
+    month_rows = [_row(_period_label(key, key), months[key] if key in months else _tally(), month=key)
+                  for key in keys]
     type_labels = dict(ActivityProposal.PROPOSAL_TYPE_CHOICES)
     source_labels = {
         'bandit': _('Chosen by the learning bandit'),
@@ -137,36 +189,39 @@ def build():
         key=lambda row: (-row['decisions'], row['label']),
     )
 
-    agreement = _agreement(by_proposal, proposals, type_labels)
     reason_labels = dict(REJECTION_REASON_CHOICES)
-    reason_rows = [
-        {'code': code, 'label': reason_labels.get(code, code), 'count': count}
-        for code, count in reasons.most_common()
-    ]
-    decisions = [
-        {
+    status_labels = {'accepted': _('Accepted'), 'rejected': _('Rejected')}
+    feedback_labels = dict(UserProposalReview._meta.get_field('feedback_type').choices)
+    decisions = []
+    for r in reviews:
+        if r['status'] not in DECIDED:
+            continue
+        proposal = proposals[r['proposal_id']]
+        decisions.append({
             'proposal_id': r['proposal_id'],
-            'scenario': proposals[r['proposal_id']]['scenario__name'],
-            'proposal_type': type_labels.get(proposals[r['proposal_id']]['proposal_type'], ''),
-            'source': source_labels[_source(proposals[r['proposal_id']])],
-            'llm_model': proposals[r['proposal_id']]['llm_model'],
-            'proposed_at': proposals[r['proposal_id']]['created_at'],
+            'scenario': proposal['scenario__name'],
+            'proposal_type': type_labels.get(proposal['proposal_type'], proposal['proposal_type']),
+            'source': source_labels[_source(proposal)],
+            'llm_model': proposal['llm_model'],
+            'proposed_at': proposal['created_at'],
             'reviewer': r['user__username'],
-            'decision': r['status'],
-            'feedback_type': r['feedback_type'],
+            'staff': bool(r['user__is_staff'] or r['user__is_superuser']),
+            'decision': status_labels[r['status']],
+            'feedback_type': feedback_labels.get(r['feedback_type'], r['feedback_type']),
             'reasons': [reason_labels.get(code, code) for code in r['rejection_reasons'] or []],
-            'decided_at': r['reviewed_at'],
+            'last_changed': r['reviewed_at'],
             'was_edited': r['was_edited'],
-        }
-        for r in reviews if r['status'] in DECIDED
-    ]
+        })
     return {
         'summary': summary,
         'months': month_rows,
         'kinds': kinds,
         'scenarios': scenario_rows,
-        'agreement': agreement,
-        'reasons': reason_rows,
+        'agreement': _agreement(by_proposal, proposals, type_labels),
+        'reasons': [
+            {'code': code, 'label': reason_labels.get(code, code), 'count': count}
+            for code, count in reasons.most_common()
+        ],
         'decisions': decisions,
         'chart': {
             'labels': [row['label'] for row in month_rows],
@@ -174,18 +229,26 @@ def build():
             'decisions': [row['decisions'] for row in month_rows],
             'accepted': [row['accepted'] for row in month_rows],
             'rejected': [row['rejected'] for row in month_rows],
-            'undecided': [row['undecided'] for row in month_rows],
+            'open': [row['open'] for row in month_rows],
+            'closed': [row['closed'] for row in month_rows],
         },
     }
 
 
 def _agreement(by_proposal, proposals, type_labels):
-    """Teachers against each other, on proposals that two or more of them decided."""
+    """Reviewers against each other, on proposals that two or more of them decided.
+
+    Pairs are pooled: a proposal decided by 6 people adds 15 pairs, one decided
+    by 2 adds 1. Chance agreement is what two reviewers deciding independently,
+    at the overall acceptance rate of these decisions, would reach.
+    """
     shared = {pid: decided for pid, decided in by_proposal.items() if len(decided) >= 2}
     pairs = agreeing = unanimous = 0
     split = []
+    statuses_all = []
     for pid, decided in shared.items():
         statuses = [r['status'] for r in decided]
+        statuses_all.extend(statuses)
         for first, second in combinations(statuses, 2):
             pairs += 1
             agreeing += first == second
@@ -200,10 +263,15 @@ def _agreement(by_proposal, proposals, type_labels):
                 'accepted': statuses.count('accepted'),
                 'rejected': statuses.count('rejected'),
             })
+    chance = None
+    if statuses_all:
+        p = statuses_all.count('accepted') / len(statuses_all)
+        chance = p * p + (1 - p) * (1 - p)
     return {
         'proposals': len(shared),
         'unanimous': unanimous,
         'pairs': pairs,
         'pairwise': agreeing / pairs if pairs else None,
+        'chance': chance,
         'split': sorted(split, key=lambda row: row['proposal_id']),
     }

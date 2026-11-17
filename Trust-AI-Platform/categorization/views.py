@@ -60,6 +60,11 @@ def _tab_links(request):
     return links
 
 
+def _who(request):
+    who = request.GET.get('who')
+    return who if who in proposals_report.WHO_CHOICES else 'all'
+
+
 def _chart_text(chart, labels=True):
     if labels:
         chart['labels'] = [_('After phase %(k)s') % {'k': k} for k in chart['checkpoints']]
@@ -142,11 +147,11 @@ def dashboard(request):
         context.update(_chatbot_context(request))
         return render(request, 'categorization/dashboard.html', context)
     if tab == 'proposals':
-        view = proposals_report.build()
+        view = proposals_report.build(_who(request))
         view['chart']['names'] = {
             'acceptance': _('Acceptance rate'), 'accepted': _('Accepted'),
-            'rejected': _('Rejected'), 'undecided': _('Opened, not decided'),
-            'decisions': _('Decisions'),
+            'rejected': _('Rejected'), 'open': _('Not decided, still open'),
+            'closed': _('Not decided, closed'), 'decisions': _('Decisions'),
         }
         context['proposals'] = view
         return render(request, 'categorization/dashboard.html', context)
@@ -257,7 +262,7 @@ def chatbot_status(request):
 @admin_only
 def proposals_export(request):
     response = HttpResponse(
-        proposals_workbook(proposals_report.build()),
+        proposals_workbook(proposals_report.build(_who(request))),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
     response['Content-Disposition'] = 'attachment; filename="ai-proposal-reviews.xlsx"'
