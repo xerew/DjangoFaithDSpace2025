@@ -1,0 +1,579 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static categorization_tags %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .cat { max-width: 1100px; }
+    .cat-card {
+      margin: 0 0 18px; padding: 16px; color: var(--body-fg);
+      background: var(--darkened-bg); border: 1px solid var(--border-color); border-radius: 8px;
+    }
+    .cat-card h2 { margin: 0 0 10px; color: var(--body-loud-color); }
+    .cat-card h3 { margin: 18px 0 8px; color: var(--body-loud-color); font-size: 0.95rem; }
+    .cat-quiet { color: var(--body-quiet-color); }
+    .cat-error { color: var(--error-fg, #ba2121); font-weight: 600; }
+    .cat-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .cat-filters label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+    .cat-filters label { max-width: 100%; }
+    .cat-filters select { min-width: 160px; max-width: 100%; }
+    .cat-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--border-color); }
+    .cat-tabs a {
+      padding: 8px 14px; border: 1px solid transparent; border-bottom: none;
+      border-radius: 6px 6px 0 0; color: var(--link-fg);
+    }
+    .cat-tabs a.active {
+      background: var(--darkened-bg); border-color: var(--border-color);
+      color: var(--body-loud-color); font-weight: 600;
+    }
+    .cat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 10px; }
+    .cat-tile { padding: 10px 12px; background: var(--body-bg); border: 1px solid var(--hairline-color); border-radius: 6px; }
+    .cat-tile .value { display: block; font-size: 1.6rem; font-weight: 600; color: var(--body-loud-color); }
+    .cat-tile .label { color: var(--body-quiet-color); }
+    .cat-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 16px; }
+    .cat-charts > div, .cat-card { min-width: 0; }
+    .cat-chart { width: 100%; height: 320px; }
+    .cat-table-wrap { overflow-x: auto; }
+    .cat table { width: 100%; }
+    .cat td.num, .cat th.num { text-align: right; white-space: nowrap; }
+    .cat td:first-child { white-space: nowrap; }
+    .cat details summary { cursor: pointer; }
+    .cat-nlu { max-height: 320px; overflow: auto; white-space: pre-wrap; font-size: 0.85rem; }
+    .cat td.cat-text { white-space: normal; }
+    @media (max-width: 640px) {
+      .cat-card { padding: 12px; }
+      .cat-chart { height: 280px; }
+    }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'Student categorization models' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="cat">
+
+  <nav class="cat-tabs">
+    <a href="{{ tab_links.final }}" class="{% if tab == 'final' %}active{% endif %}">{% translate 'Final categorization' %}</a>
+    <a href="{{ tab_links.early }}" class="{% if tab == 'early' %}active{% endif %}">{% translate 'Early prediction' %}</a>
+    <a href="{{ tab_links.time }}" class="{% if tab == 'time' %}active{% endif %}">{% translate 'Over time' %}</a>
+    <a href="{{ tab_links.chatbot }}" class="{% if tab == 'chatbot' %}active{% endif %}">{% translate 'Chatbot intents' %}</a>
+    <a href="{{ tab_links.proposals }}" class="{% if tab == 'proposals' %}active{% endif %}">{% translate 'AI proposals' %}</a>
+  </nav>
+
+  {% if tab == 'chatbot' %}
+    {% include 'categorization/chatbot_tab.html' %}
+  {% elif tab == 'proposals' %}
+    {% include 'categorization/proposals_tab.html' %}
+  {% else %}
+  <div class="cat-card">
+    <div class="cat-row" style="justify-content: space-between;">
+      <h2>{% translate 'XGBoost next to the PISA categorization' %}</h2>
+      <form method="post" action="{% url 'categorization_train' %}">
+        {% csrf_token %}
+        <button type="submit" class="button" {% if active %}disabled{% endif %}>{% translate 'Train models' %}</button>
+      </form>
+    </div>
+    <p class="cat-quiet">{% translate 'Trained on every run of public scenarios. Students who stopped early are scored by the points they gathered: unanswered activities count as 0. Every number below comes from students the model did not train on. PISA categories on the platform are not changed.' %}</p>
+    <p id="cat-status" data-active="{% if active %}1{% else %}0{% endif %}" data-url="{% url 'categorization_status' %}">
+      {% if active %}
+        <strong>{% translate 'Training is running.' %}</strong>
+        <span id="cat-progress">{{ active.progress|default:_('Waiting for the worker…') }}</span>
+      {% endif %}
+    </p>
+    {% if last_failed %}
+      <p class="cat-error">{% translate 'The last training run failed:' %} {{ last_failed.error }}</p>
+    {% endif %}
+
+    {% if selected %}
+      <p>
+        {% blocktranslate with when=selected.finished_at|date:"j M Y, H:i" who=selected.started_by.username|default:_('a command') %}Showing the run that finished on {{ when }}, started by {{ who }}.{% endblocktranslate %}
+        {% if duration is not None %}{% blocktranslate %}It took {{ duration }} seconds.{% endblocktranslate %}{% endif %}
+      </p>
+      <p>
+        {% blocktranslate with students=selected.counts.students labelled=selected.counts.labelled finished=selected.counts.finished unfinished=selected.counts.unfinished route_end=selected.counts.route_end last_phase=selected.counts.last_phase %}{{ students }} students, {{ labelled }} runs: {{ finished }} finished ({{ route_end }} reached the end of their route, {{ last_phase }} judged by the last phase) and {{ unfinished }} stopped early, scored by the points they gathered.{% endblocktranslate %}
+        {% blocktranslate with current=selected.counts.current_version older=selected.counts.older_version %}Current scenario version: {{ current }} runs; older or legacy versions: {{ older }}.{% endblocktranslate %}
+      </p>
+      <details>
+        <summary>{% blocktranslate count n=selected.counts.scenarios|length %}{{ n }} public scenario used{% plural %}{{ n }} public scenarios used{% endblocktranslate %}</summary>
+        <div class="cat-table-wrap">
+          <table>
+            <thead><tr><th>{% translate 'Scenario' %}</th><th>{% translate 'Language' %}</th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'Finished' %}</th></tr></thead>
+            <tbody>
+              {% for scenario in selected.counts.scenarios %}
+                <tr><td>{{ scenario.name }}</td><td>{{ scenario.language }}</td><td class="num">{{ scenario.runs }}</td><td class="num">{{ scenario.finished }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <p class="cat-quiet">{{ selected.parameters.fast_answer_rule }}</p>
+
+      <form method="get" class="cat-row cat-filters">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <label>{% translate 'Training run' %}
+          <select name="run">
+            {% for run in finished_runs %}
+              <option value="{{ run.id }}" {% if run.id == selected.id %}selected{% endif %}>{{ run.finished_at|date:"j M Y, H:i" }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{% translate 'Scenario' %}
+          <select name="scenario">
+            <option value="">{% translate 'All scenarios' %}</option>
+            {% for id, name in options.scenarios %}
+              <option value="{{ id }}" {% if filters.scenario == id|stringformat:"s" %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{% translate 'Language' %}
+          <select name="language">
+            <option value="">{% translate 'All languages' %}</option>
+            {% for language in options.languages %}
+              <option value="{{ language }}" {% if filters.language == language %}selected{% endif %}>{{ language }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{% translate 'Scenario version' %}
+          <select name="version">
+            <option value="">{% translate 'All versions' %}</option>
+            <option value="current" {% if filters.version == 'current' %}selected{% endif %}>{% translate 'Current version' %}</option>
+            <option value="older" {% if filters.version == 'older' %}selected{% endif %}>{% translate 'Older or legacy versions' %}</option>
+          </select>
+        </label>
+        <button type="submit" class="button">{% translate 'Apply' %}</button>
+      </form>
+    {% else %}
+      <p><strong>{% translate 'No training has finished yet.' %}</strong></p>
+    {% endif %}
+  </div>
+
+  {% if selected %}
+  {% if tab == 'final' %}
+    <div class="cat-card">
+      <div class="cat-row" style="justify-content: space-between;">
+        <h2>{% translate 'Final categorization' %}</h2>
+        <a class="button" href="{% url 'categorization_export' selected.id 'final' %}?{{ request.GET.urlencode }}">{% translate 'Download Excel' %}</a>
+      </div>
+      <p class="cat-quiet">{% translate 'The model sees the phase scores, so it should agree with PISA almost every time. The disagreements are the interesting part.' %}</p>
+      <div class="cat-tiles">
+        <div class="cat-tile"><span class="value">{{ final.overall.accuracy|pct }}</span><span class="label">{% translate 'Agreement with PISA' %}</span></div>
+        <div class="cat-tile"><span class="value">{{ final.overall.macro_f1|pct }}</span><span class="label">{% translate 'Macro F1' %}</span></div>
+        <div class="cat-tile"><span class="value">{{ final.overall.per_class.High.f1|pct }}</span><span class="label">{% translate 'F1 High' %}</span></div>
+        <div class="cat-tile"><span class="value">{{ final.overall.per_class.Moderate.f1|pct }}</span><span class="label">{% translate 'F1 Moderate' %}</span></div>
+        <div class="cat-tile"><span class="value">{{ final.overall.per_class.Low.f1|pct }}</span><span class="label">{% translate 'F1 Low' %}</span></div>
+        <div class="cat-tile"><span class="value">{{ final.overall.runs }}</span><span class="label">{% translate 'Runs' %}</span></div>
+      </div>
+
+      <h3>{% translate 'By scenario version' %}</h3>
+      <div class="cat-table-wrap"><table>
+        <thead><tr><th></th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'Agreement' %}</th><th class="num">{% translate 'Macro F1' %}</th></tr></thead>
+        <tbody>
+          <tr><td>{% translate 'Current version' %}</td><td class="num">{{ final.by_version.current.runs }}</td><td class="num">{{ final.by_version.current.accuracy|pct }}</td><td class="num">{{ final.by_version.current.macro_f1|pct }}</td></tr>
+          <tr><td>{% translate 'Older or legacy versions' %}</td><td class="num">{{ final.by_version.older.runs }}</td><td class="num">{{ final.by_version.older.accuracy|pct }}</td><td class="num">{{ final.by_version.older.macro_f1|pct }}</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="cat-charts">
+        <div>
+          <h3>{% translate 'PISA (rows) against the model (columns)' %}</h3>
+          <div id="final-confusion" class="cat-chart" role="img" aria-label="{% translate 'Confusion matrix' %}"></div>
+        </div>
+        <div>
+          <h3>{% translate 'Most important inputs' %}</h3>
+          <div id="final-importance" class="cat-chart" role="img" aria-label="{% translate 'Input importance' %}"></div>
+        </div>
+      </div>
+
+      <h3>{% translate 'Disagreements' %} ({{ final.disagreements|length }})</h3>
+      {% if final.disagreements %}
+      <div class="cat-table-wrap"><table>
+        <thead><tr>
+          <th>{% translate 'Student' %}</th><th>{% translate 'Scenario' %}</th><th>{% translate 'Language' %}</th>
+          <th>{% translate 'PISA' %}</th><th>{% translate 'Model' %}</th><th class="num">{% translate 'Confidence' %}</th>
+          <th class="num">{% translate 'PISA final %' %}</th><th class="num">{% translate 'Distance to nearest threshold' %}</th>
+        </tr></thead>
+        <tbody>
+          {% for row in final.disagreements %}
+          <tr>
+            <td>{{ row.username }}</td><td>{{ row.scenario_name }}</td><td>{{ row.language }}</td>
+            <td>{{ row.pisa }}</td><td>{{ row.model }}</td><td class="num">{{ row.confidence|pct }}</td>
+            <td class="num">{{ row.final_percentage|floatformat:1 }}</td><td class="num">{{ row.threshold_distance|floatformat:1 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+        <p class="cat-quiet">{% translate 'The model agrees with PISA on every run shown.' %}</p>
+      {% endif %}
+
+      <h3>{% translate 'Agreement per scenario' %}</h3>
+      <p class="cat-quiet">{% translate 'Unseen scenario: the model trained without this scenario and its translations. Shown for scenarios with at least 30 runs.' %}</p>
+      <div class="cat-table-wrap"><table>
+        <thead><tr><th>{% translate 'Scenario' %}</th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'Agreement' %}</th><th class="num">{% translate 'Unseen scenario' %}</th></tr></thead>
+        <tbody>
+          {% for row in final.per_scenario %}
+          <tr><td>{{ row.names }}</td><td class="num">{{ row.runs }}</td><td class="num">{{ row.agreement|pct }}</td><td class="num">{{ row.loso|pct }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  {% elif tab == 'early' %}
+    <div class="cat-card">
+      <div class="cat-row" style="justify-content: space-between;">
+        <h2>{% translate 'Early prediction' %}</h2>
+        <a class="button" href="{% url 'categorization_export' selected.id 'early' %}?{{ request.GET.urlencode }}">{% translate 'Download Excel' %}</a>
+      </div>
+      <p class="cat-quiet">{% translate 'After each phase, the model predicts the final category from what the student has done so far. "Formula so far" applies the PISA formula to the phases reached; XGBoost is only useful where it beats it.' %}</p>
+      {% if early.rows %}
+      <div id="early-trend" class="cat-chart" role="img" aria-label="{% translate 'Accuracy and macro F1 after each phase' %}"></div>
+
+      <div class="cat-table-wrap"><table>
+        <thead><tr>
+          <th>{% translate 'Checkpoint' %}</th><th class="num">{% translate 'Runs' %}</th>
+          <th class="num">{% translate 'XGBoost accuracy' %}</th><th class="num">{% translate 'Formula so far accuracy' %}</th>
+          <th class="num">{% translate 'XGBoost macro F1' %}</th><th class="num">{% translate 'Formula so far macro F1' %}</th>
+          <th class="num">{% translate 'XGBoost F1 High / Moderate / Low' %}</th><th class="num">{% translate 'Formula F1 High / Moderate / Low' %}</th>
+        </tr></thead>
+        <tbody>
+          {% for row in early.rows %}
+          <tr>
+            <td>{% blocktranslate with k=row.checkpoint %}After phase {{ k }}{% endblocktranslate %}</td>
+            <td class="num">{{ row.xgb.runs }}</td>
+            <td class="num">{{ row.xgb.accuracy|pct }}</td><td class="num">{{ row.baseline.accuracy|pct }}</td>
+            <td class="num">{{ row.xgb.macro_f1|pct }}</td><td class="num">{{ row.baseline.macro_f1|pct }}</td>
+            <td class="num">{{ row.xgb.per_class.High.f1|pct }} / {{ row.xgb.per_class.Moderate.f1|pct }} / {{ row.xgb.per_class.Low.f1|pct }}</td>
+            <td class="num">{{ row.baseline.per_class.High.f1|pct }} / {{ row.baseline.per_class.Moderate.f1|pct }} / {{ row.baseline.per_class.Low.f1|pct }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+
+      <form method="get" class="cat-row cat-filters" style="margin-top: 14px;">
+        {% for key, value in request.GET.items %}{% if key != 'checkpoint' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+        <label>{% translate 'Checkpoint' %}
+          <select name="checkpoint" onchange="this.form.submit()">
+            {% for k in early.checkpoints %}
+              <option value="{{ k }}" {% if k == early.picked %}selected{% endif %}>{% blocktranslate %}After phase {{ k }}{% endblocktranslate %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+      </form>
+
+      <div class="cat-charts">
+        <div>
+          <h3>{% translate 'Final category (rows) against the prediction (columns)' %}</h3>
+          <div id="early-confusion" class="cat-chart" role="img" aria-label="{% translate 'Confusion matrix' %}"></div>
+        </div>
+        <div>
+          <h3>{% translate 'Most important inputs' %}</h3>
+          <div id="early-importance" class="cat-chart" role="img" aria-label="{% translate 'Input importance' %}"></div>
+        </div>
+      </div>
+
+      <h3>{% translate 'Unseen scenarios at this checkpoint' %}</h3>
+      {% if early.loso %}
+      <div class="cat-table-wrap"><table>
+        <thead><tr><th>{% translate 'Scenario' %}</th><th class="num">{% translate 'Runs' %}</th><th class="num">{% translate 'XGBoost accuracy' %}</th><th class="num">{% translate 'Formula so far accuracy' %}</th></tr></thead>
+        <tbody>
+          {% for row in early.loso %}
+          <tr><td>{{ row.scenario_names }}</td><td class="num">{{ row.runs }}</td><td class="num">{{ row.accuracy|pct }}</td><td class="num">{{ row.baseline_accuracy|pct }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+        <p class="cat-quiet">{% translate 'No scenario has at least 30 runs at this checkpoint.' %}</p>
+      {% endif %}
+      {% else %}
+        <p class="cat-quiet">{% translate 'No early-prediction results for this selection.' %}</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="cat-card">
+      <div class="cat-row" style="justify-content: space-between;">
+        <h2>{% translate 'Over time' %}</h2>
+        {% if over_time and not over_time.error %}<a class="button" href="{% url 'categorization_export' selected.id 'time' %}">{% translate 'Download Excel' %}</a>{% endif %}
+      </div>
+      {% if over_time.error %}
+        <p class="cat-error">{% translate 'The over-time test failed:' %} {{ over_time.error }}</p>
+      {% elif over_time %}
+      <p class="cat-quiet">{% blocktranslate with min_runs=over_time.min_period_runs min_train=over_time.min_train_runs %}Students in the order they started (the date of their first answer). For each period, the model is trained only on the runs that started before it and tested on that period's runs, as if it had been running on the platform from the start. Months with fewer than {{ min_runs }} runs are joined with the next one; a period is tested once at least {{ min_train }} earlier runs exist. The filters above do not apply here.{% endblocktranslate %}</p>
+
+      <form method="get" class="cat-row cat-filters">
+        {% for key, value in request.GET.items %}{% if key != 'prediction' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+        <label>{% translate 'Prediction' %}
+          <select name="prediction" onchange="this.form.submit()">
+            {% for option in over_time.options %}
+              <option value="{{ option }}" {% if option == over_time.picked %}selected{% endif %}>{% if option == 'final' %}{% translate 'Final categorization' %}{% else %}{% blocktranslate with k=option %}After phase {{ k }}{% endblocktranslate %}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+      </form>
+      {% if over_time.picked == 'final' %}
+        <p class="cat-quiet">{% translate 'For the final categorization the formula is PISA itself, so only the agreement of XGBoost with it is shown.' %}</p>
+      {% endif %}
+
+      <h3>{% translate 'Accuracy and macro F1 of each period' %}</h3>
+      <div id="time-trend" class="cat-chart" role="img" aria-label="{% translate 'Accuracy and macro F1 of each period' %}"></div>
+      <h3>{% translate 'Runs the model had learned from, and runs tested' %}</h3>
+      <div id="time-runs" class="cat-chart" style="height: 220px;" role="img" aria-label="{% translate 'Runs the model had learned from, and runs tested' %}"></div>
+
+      <div class="cat-table-wrap"><table>
+        <thead><tr>
+          <th>{% translate 'Tested on' %}</th><th class="num">{% translate 'Runs learned from' %}</th><th class="num">{% translate 'Runs tested' %}</th>
+          <th class="num">{% translate 'XGBoost accuracy' %}</th><th class="num">{% translate 'Formula so far accuracy' %}</th>
+          <th class="num">{% translate 'XGBoost macro F1' %}</th><th class="num">{% translate 'Formula so far macro F1' %}</th>
+        </tr></thead>
+        <tbody>
+          {% for row in over_time.rows %}
+          <tr>
+            <td>{{ row.label }}</td><td class="num">{{ row.trained_on }}</td><td class="num">{{ row.tested }}</td>
+            {% if row.evaluated %}
+              <td class="num">{{ row.xgb.accuracy|pct }}</td>
+              <td class="num">{% if row.baseline %}{{ row.baseline.accuracy|pct }}{% else %}&ndash;{% endif %}</td>
+              <td class="num">{{ row.xgb.macro_f1|pct }}</td>
+              <td class="num">{% if row.baseline %}{{ row.baseline.macro_f1|pct }}{% else %}&ndash;{% endif %}</td>
+            {% else %}
+              <td colspan="4" class="cat-quiet">{% translate 'Not tested for this prediction: too few earlier runs to learn from, or no run of this period reached this phase.' %}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+        <p><strong>{% translate 'Train the models again to see this tab.' %}</strong></p>
+        <p class="cat-quiet">{% translate 'This run was trained before the over-time test existed.' %}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if tab == 'final' %}
+    {{ final.confusion|json_script:"final-confusion-data" }}
+    {{ final.importances|json_script:"final-importance-data" }}
+  {% elif tab == 'early' %}
+    {{ early.confusion|json_script:"early-confusion-data" }}
+    {{ early.importances|json_script:"early-importance-data" }}
+    {{ early.chart|json_script:"early-trend-data" }}
+  {% elif over_time and not over_time.error %}
+    {{ over_time.chart|json_script:"time-trend-data" }}
+  {% endif %}
+  {% endif %}
+  {% endif %}
+
+</div>
+
+<script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
+<script>
+(function () {
+  var css = getComputedStyle(document.documentElement);
+  function v(name, fallback) { return (css.getPropertyValue(name) || '').trim() || fallback; }
+  var ink = v('--body-fg', '#333'), quiet = v('--body-quiet-color', '#666'), grid = v('--hairline-color', '#e8e8e8');
+  var BLUE = '#2a78d6', ORANGE = '#eb6834';
+  var RAMP = ['#e3eefb', '#b5d0f2', '#7fb0e8', '#4a8edc', '#2a78d6', '#1c5aa6', '#123d72'];
+  var CATS = ['Low', 'Moderate', 'High'];
+  var charts = [];
+  function data(id) { var el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; }
+  function make(id) { var el = document.getElementById(id); if (!el || !window.echarts) return null; var c = echarts.init(el); charts.push(c); return c; }
+  var axisText = { color: quiet };
+
+  function confusion(id) {
+    var matrix = data(id + '-data'); var chart = matrix && make(id); if (!chart) return;
+    var cells = [], max = 1;
+    matrix.forEach(function (row) { row.forEach(function (count) { max = Math.max(max, count); }); });
+    matrix.forEach(function (row, y) { row.forEach(function (count, x) {
+      // Light text on the darker half of the ramp, dark text on the lighter half.
+      cells.push({ value: [x, y, count], label: { color: count > max * 0.5 ? '#ffffff' : '#1d2433' } });
+    }); });
+    chart.setOption({
+      grid: { left: 90, right: 16, top: 16, bottom: 48 },
+      tooltip: { formatter: function (p) { return CATS[p.value[1]] + ' → ' + CATS[p.value[0]] + ': ' + p.value[2]; } },
+      xAxis: { type: 'category', data: CATS, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: CATS, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      visualMap: { show: false, min: 0, max: max, inRange: { color: RAMP } },
+      series: [{ type: 'heatmap', data: cells, itemStyle: { borderColor: v('--body-bg', '#fff'), borderWidth: 2, borderRadius: 4 },
+        label: { show: true, fontWeight: 600, formatter: function (p) { return p.value[2]; } } }]
+    });
+  }
+
+  function importance(id) {
+    var rows = data(id + '-data'); var chart = rows && rows.length && make(id); if (!chart) return;
+    rows = rows.slice().reverse();
+    chart.setOption({
+      grid: { left: 150, right: 24, top: 8, bottom: 32 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'value', axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: rows.map(function (r) { return r.input; }), axisLabel: axisText },
+      series: [{ type: 'bar', name: 'mean |SHAP|', data: rows.map(function (r) { return r.mean_abs_shap; }),
+                 itemStyle: { color: BLUE, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 }]
+    });
+  }
+
+  function trend(id) {
+    var d = data(id + '-data'); var chart = d && make(id); if (!chart) return;
+    var labels = d.labels, names = d.names;
+    function line(name, values, color, dashed) {
+      return { type: 'line', name: name, data: values, symbolSize: 8, lineStyle: { width: 2, color: color, type: dashed ? 'dashed' : 'solid' },
+               itemStyle: { color: color, borderColor: v('--body-bg', '#fff'), borderWidth: 2 } };
+    }
+    chart.setOption({
+      // The legend wraps to two rows on phones; leave room for both.
+      grid: { left: 56, right: 24, top: chart.getWidth() < 520 ? 76 : 48, bottom: 32 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', valueFormatter: function (x) { return x == null ? '–' : (x * 100).toFixed(1) + '%'; } },
+      xAxis: { type: 'category', data: labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: quiet, formatter: function (x) { return Math.round(x * 100) + '%'; } },
+               splitLine: { lineStyle: { color: grid } } },
+      series: [
+        line(names.xgb_accuracy, d.xgb_accuracy, BLUE, false),
+        line(names.baseline_accuracy, d.baseline_accuracy, ORANGE, false),
+        line(names.xgb_f1, d.xgb_f1, BLUE, true),
+        line(names.baseline_f1, d.baseline_f1, ORANGE, true)
+      ].filter(function (s) { return s.data.some(function (x) { return x != null; }); })
+    });
+  }
+
+  function timeRuns() {
+    var d = data('time-trend-data'); var chart = d && make('time-runs'); if (!chart) return;
+    chart.setOption({
+      grid: { left: 56, right: 24, top: 36, bottom: 32 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [
+        { type: 'bar', name: d.names.trained_on, data: d.trained_on, itemStyle: { color: quiet, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
+        { type: 'bar', name: d.names.tested, data: d.tested, itemStyle: { color: BLUE, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 }
+      ]
+    });
+  }
+
+  function chatbotF1() {
+    var d = data('chatbot-chart-data'); var chart = d && d.per_intent.length && make('chatbot-f1'); if (!chart) return;
+    var rows = d.per_intent.slice().reverse();  // worst at the top
+    chart.setOption({
+      grid: { left: 150, right: 32, top: 8, bottom: 32 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (x) { return x.toFixed(2); } },
+      xAxis: { type: 'value', min: 0, max: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: rows.map(function (r) { return r.intent; }), axisLabel: axisText },
+      series: [{ type: 'bar', name: d.names.f1, data: rows.map(function (r) { return r.f1; }),
+                 itemStyle: { color: BLUE, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14,
+                 label: { show: true, position: 'right', color: ink, formatter: function (p) { return p.value.toFixed(2); } } }]
+    });
+  }
+
+  function chatbotConfusion() {
+    var d = data('chatbot-chart-data'); var el = document.getElementById('chatbot-confusion');
+    if (!d || !el || !d.confusion.rows.length) return;
+    var c = d.confusion, cells = [], max = 1;
+    // One row per intent, so the chart grows with the number of intents.
+    el.style.height = Math.max(320, 36 * c.rows.length + 140) + 'px';
+    var chart = make('chatbot-confusion'); if (!chart) return;
+    c.matrix.forEach(function (row) { row.forEach(function (n) { max = Math.max(max, n); }); });
+    c.matrix.forEach(function (row, y) { row.forEach(function (n, x) {
+      cells.push({ value: [x, y, n], label: { show: n > 0, color: n > max * 0.5 ? '#ffffff' : '#1d2433' } });
+    }); });
+    chart.setOption({
+      grid: { left: 150, right: 16, top: 16, bottom: 110 },
+      tooltip: { formatter: function (p) { var e = echarts.format.encodeHTML;
+        return e(c.rows[p.value[1]]) + ' → ' + e(c.columns[p.value[0]]) + ': ' + p.value[2]; } },
+      xAxis: { type: 'category', data: c.columns, axisLabel: { color: quiet, rotate: 40 }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'category', data: c.rows, inverse: true, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      visualMap: { show: false, min: 0, max: max, inRange: { color: RAMP } },
+      series: [{ type: 'heatmap', data: cells, itemStyle: { borderColor: v('--body-bg', '#fff'), borderWidth: 2, borderRadius: 4 },
+        label: { fontWeight: 600, formatter: function (p) { return p.value[2]; } } }]
+    });
+  }
+
+  function chatbotConfidence() {
+    var d = data('chatbot-chart-data'); var chart = d && make('chatbot-confidence'); if (!chart) return;
+    var conf = d.confidence, n = conf.right.length;
+    // Bars at the centre of each bucket on a 0-1 axis, so the fallback line sits at its exact value.
+    function at(values) { return values.map(function (count, i) { return [(i + 0.5) / n, count]; }); }
+    // A value axis cannot stack bars: the right+wrong total is drawn in blue,
+    // the wrong part in front of it from the bottom, which reads as a stack.
+    var total = conf.right.map(function (count, i) { return count + conf.wrong[i]; });
+    var width = Math.max(4, chart.getWidth() * 0.7 / n);
+    chart.setOption({
+      grid: { left: 48, right: 24, top: 40, bottom: 40 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'line' },
+                 formatter: function (items) { var i = Math.min(Math.floor(items[0].value[0] * n), n - 1);
+                   return conf.labels[i] + '<br>' + d.names.right + ': ' + conf.right[i] + '<br>' + d.names.wrong + ': ' + conf.wrong[i]; } },
+      xAxis: { type: 'value', min: 0, max: 1, interval: 0.1, axisLabel: { color: quiet, formatter: function (x) { return x.toFixed(1); } },
+               splitLine: { show: false }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [
+        { type: 'bar', name: d.names.right, data: at(total), itemStyle: { color: BLUE, borderRadius: [4, 4, 0, 0] },
+          barWidth: width, barGap: '-100%',
+          markLine: { symbol: 'none', label: { color: ink, formatter: d.names.fallback + ' ' + conf.fallback },
+                      lineStyle: { color: ink, type: 'dashed' }, data: [{ xAxis: conf.fallback }] } },
+        { type: 'bar', name: d.names.wrong, data: at(conf.wrong), itemStyle: { color: ORANGE }, barWidth: width, barGap: '-100%' }
+      ]
+    });
+  }
+
+  function proposalsRate() {
+    var d = data('proposals-chart-data'); var chart = d && make('proposals-rate'); if (!chart) return;
+    chart.setOption({
+      grid: { left: 56, right: 24, top: 16, bottom: 32 },
+      tooltip: { trigger: 'axis', formatter: function (items) {
+        var i = items[0].dataIndex, rate = d.acceptance[i];
+        var e = echarts.format.encodeHTML;
+        return e(items[0].axisValue) + '<br>' + e(d.names.acceptance) + ': ' + (rate == null ? '–' : (rate * 100).toFixed(1) + '%') +
+               '<br>' + e(d.names.decisions) + ': ' + d.decisions[i]; } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: quiet, formatter: function (x) { return Math.round(x * 100) + '%'; } },
+               splitLine: { lineStyle: { color: grid } } },
+      series: [{ type: 'line', name: d.names.acceptance, data: d.acceptance, connectNulls: false,
+                 // Point size follows the number of decisions, so a month with 2 decisions looks as slight as it is.
+                 symbolSize: function (value, p) { return Math.min(8 + Math.sqrt(d.decisions[p.dataIndex]) * 2, 24); },
+                 lineStyle: { width: 2, color: BLUE },
+                 itemStyle: { color: BLUE, borderColor: v('--body-bg', '#fff'), borderWidth: 2 } }]
+    });
+  }
+
+  function proposalsCounts() {
+    var d = data('proposals-chart-data'); var chart = d && make('proposals-counts'); if (!chart) return;
+    function bar(name, values, color) {
+      return { type: 'bar', stack: 'reviews', name: name, data: values, barMaxWidth: 28,
+               itemStyle: { color: color, borderColor: v('--body-bg', '#fff'), borderWidth: 1 } };
+    }
+    chart.setOption({
+      // Four legend entries wrap on phones; leave room for two rows.
+      grid: { left: 56, right: 24, top: chart.getWidth() < 560 ? 64 : 36, bottom: 32 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [bar(d.names.accepted, d.accepted, BLUE), bar(d.names.rejected, d.rejected, ORANGE),
+               bar(d.names.open, d.open, quiet), bar(d.names.closed, d.closed, '#9aa0a6')]
+    });
+  }
+
+  confusion('final-confusion'); importance('final-importance');
+  proposalsRate(); proposalsCounts();
+  chatbotF1(); chatbotConfusion(); chatbotConfidence();
+  confusion('early-confusion'); importance('early-importance'); trend('early-trend');
+  trend('time-trend'); timeRuns();
+  window.addEventListener('resize', function () { charts.forEach(function (c) { c.resize(); }); });
+
+  var status = document.getElementById('cat-status');
+  if (status && status.dataset.active === '1') {
+    var url = status.dataset.url;
+    setInterval(function () {
+      fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (run) {
+        if (!run.status || (run.status !== 'queued' && run.status !== 'running')) { window.location.reload(); return; }
+        var progress = document.getElementById('cat-progress');
+        if (progress && run.progress) progress.textContent = run.progress;
+      }).catch(function () {});
+    }, 5000);
+  }
+})();
+</script>
+{% endblock %}

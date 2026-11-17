@@ -1,0 +1,125 @@
+{% load i18n categorization_tags %}
+<div class="cat-card">
+  <div class="cat-row" style="justify-content: space-between;">
+    <h2>{% translate 'How well the chatbot understands students' %}</h2>
+    <form method="post" action="{% url 'categorization_chatbot_run' %}" class="cat-row">
+      {% csrf_token %}
+      <label for="chatbot-folds">{% translate 'Folds' %}</label>
+      <select id="chatbot-folds" name="folds">
+        {% for folds in fold_choices %}<option value="{{ folds }}">{{ folds }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="button" {% if chatbot_active %}disabled{% endif %}>{% translate 'Run evaluation' %}</button>
+    </form>
+  </div>
+  <p class="cat-quiet">{% translate "Cross-validation of the chatbot's training sentences (data/nlu.yml in the chatbot folder): each fold trains a throw-away model on part of the sentences and tests it on the rest. The live chatbot is not changed." %}</p>
+  <p id="cat-status" data-active="{% if chatbot_active %}1{% else %}0{% endif %}" data-url="{% url 'categorization_chatbot_status' %}">
+    {% if chatbot_active %}
+      <strong>{% blocktranslate with folds=chatbot_active.folds %}Evaluation with {{ folds }} folds is running.{% endblocktranslate %}</strong>
+      <span id="cat-progress">{{ chatbot_active.progress|default:_('Waiting for the chatbot evaluation worker…') }}</span>
+      <span class="cat-quiet">{% translate 'A run takes a few minutes; you can leave this page.' %}</span>
+    {% endif %}
+  </p>
+  {% if chatbot_failed %}
+    <p class="cat-error">{% translate 'The last chatbot evaluation failed:' %} {{ chatbot_failed.error }}</p>
+  {% endif %}
+
+  {% if evaluation %}
+    <p>
+      {% blocktranslate with when=evaluation.finished_at|date:"j M Y, H:i" who=evaluation.started_by.username|default:_('unknown') folds=evaluation.folds %}Showing the evaluation that finished on {{ when }}, started by {{ who }}, with {{ folds }} folds.{% endblocktranslate %}
+      {% if chatbot_minutes %}{% blocktranslate count minutes=chatbot_minutes %}It took {{ minutes }} minute.{% plural %}It took {{ minutes }} minutes.{% endblocktranslate %}{% endif %}
+    </p>
+    <div class="cat-row" style="justify-content: space-between;">
+      <form method="get" class="cat-row cat-filters">
+        <input type="hidden" name="tab" value="chatbot">
+        <label>{% translate 'Evaluation' %}
+          <select name="evaluation" onchange="this.form.submit()">
+            {% for item in evaluations %}
+              <option value="{{ item.id }}" {% if item.id == evaluation.id %}selected{% endif %}>{% blocktranslate with when=item.finished_at|date:"j M Y, H:i" folds=item.folds %}{{ when }}, {{ folds }} folds{% endblocktranslate %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+      </form>
+      <a class="button" href="{% url 'categorization_chatbot_export' evaluation.id %}">{% translate 'Download Excel' %}</a>
+    </div>
+  {% else %}
+    <p><strong>{% translate 'No chatbot evaluation has finished yet.' %}</strong></p>
+  {% endif %}
+</div>
+
+{% if evaluation %}
+<div class="cat-card">
+  <div class="cat-tiles">
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.accuracy|pct }}</span><span class="label">{% translate 'Accuracy' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.macro_f1|pct }}</span><span class="label">{% translate 'Macro F1' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.weighted_f1|pct }}</span><span class="label">{% translate 'Weighted F1' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.examples }}</span><span class="label">{% translate 'Example sentences' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.intents }}</span><span class="label">{% translate 'Intents' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.wrong }}</span><span class="label">{% translate 'Wrong predictions' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ chatbot.summary.wrong_above_fallback }}</span><span class="label">{% blocktranslate with threshold=chatbot.summary.fallback %}Wrong at or above the fallback {{ threshold }}{% endblocktranslate %}</span></div>
+  </div>
+  <p class="cat-quiet">
+    {% translate 'Accuracy and F1 pool the predictions of all folds. Macro F1 counts every intent equally; weighted F1 counts them by their number of sentences. Wrong answers at or above the fallback threshold are the ones the fallback would not catch.' %}
+    {% with fold=chatbot.summary.per_fold %}
+      {% if fold %}{% translate 'Per fold, mean (standard deviation):' %}
+        {% for measure, values in fold.items %}{{ measure }} {{ values.0|floatformat:3 }} ({{ values.1|floatformat:3 }}){% if not forloop.last %}; {% endif %}{% endfor %}.
+      {% endif %}
+    {% endwith %}
+  </p>
+
+  <div class="cat-charts">
+    <div>
+      <h3>{% translate 'F1 per intent' %}</h3>
+      <div id="chatbot-f1" class="cat-chart" role="img" aria-label="{% translate 'F1 per intent' %}"></div>
+    </div>
+    <div>
+      <h3>{% translate 'Confidence of right and wrong predictions' %}</h3>
+      <div id="chatbot-confidence" class="cat-chart" role="img" aria-label="{% translate 'Confidence of right and wrong predictions' %}"></div>
+    </div>
+  </div>
+
+  <h3>{% translate 'True intent (rows) against the prediction (columns)' %}</h3>
+  <div id="chatbot-confusion" class="cat-chart" role="img" aria-label="{% translate 'Confusion matrix' %}"></div>
+
+  <h3>{% translate 'Per intent' %}</h3>
+  <div class="cat-table-wrap"><table>
+    <thead><tr>
+      <th>{% translate 'Intent' %}</th><th class="num">{% translate 'Examples' %}</th><th class="num">{% translate 'Precision' %}</th>
+      <th class="num">{% translate 'Recall' %}</th><th class="num">{% translate 'F1' %}</th><th class="num">{% translate 'Wrong' %}</th>
+    </tr></thead>
+    <tbody>
+      {% for row in chatbot.per_intent %}
+      <tr>
+        <td>{{ row.intent }}</td><td class="num">{{ row.examples }}</td><td class="num">{{ row.precision|floatformat:2 }}</td>
+        <td class="num">{{ row.recall|floatformat:2 }}</td><td class="num">{{ row.f1|floatformat:2 }}</td><td class="num">{{ row.wrong }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+
+  <h3>{% translate 'Wrong predictions' %} ({{ chatbot.wrong|length }})</h3>
+  {% if chatbot.wrong %}
+  <div class="cat-table-wrap"><table>
+    <thead><tr>
+      <th>{% translate 'Sentence' %}</th><th>{% translate 'True intent' %}</th><th>{% translate 'Predicted intent' %}</th><th class="num">{% translate 'Confidence' %}</th>
+    </tr></thead>
+    <tbody>
+      {% for row in chatbot.wrong %}
+      <tr>
+        <td class="cat-text">{{ row.text }}</td><td>{{ row.intent }}</td><td>{{ row.predicted }}</td>
+        <td class="num">{{ row.confidence|floatformat:2 }}{% if row.below_fallback %} <span class="cat-quiet">({% translate 'below fallback' %})</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="cat-quiet">{% translate 'Every sentence was predicted right.' %}</p>
+  {% endif %}
+
+  <details style="margin-top: 14px;">
+    <summary>{% blocktranslate with sha=evaluation.nlu_sha256|slice:":12" version=evaluation.rasa_version %}Training sentences used (SHA-256 {{ sha }}…, Rasa {{ version }}){% endblocktranslate %}</summary>
+    <pre class="cat-nlu">{{ evaluation.nlu_text }}</pre>
+  </details>
+</div>
+{{ chatbot_charts|json_script:"chatbot-chart-data" }}
+{% endif %}

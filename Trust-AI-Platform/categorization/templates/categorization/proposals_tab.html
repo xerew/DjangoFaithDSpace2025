@@ -1,0 +1,149 @@
+{% load i18n categorization_tags %}
+{% with s=proposals.summary agreement=proposals.agreement %}
+<div class="cat-card">
+  <div class="cat-row" style="justify-content: space-between;">
+    <h2>{% translate 'Teachers and the AI activity proposals' %}</h2>
+    {% if s.proposals %}<a class="button" href="{% url 'categorization_proposals_export' %}?who={{ s.who }}">{% translate 'Download Excel' %}</a>{% endif %}
+  </div>
+  <p class="cat-quiet">{% translate 'How often reviewers accept the AI proposals to create, revise or skip an activity. Each reviewer’s decision counts once, so a proposal decided by five people counts five times. Proposals rejected as malformed count as rejections (the learning bandit ignores them). A review is opened as soon as someone opens a scenario’s proposal list; a review left undecided is "still open" while the proposal can be decided, and "closed" once a newer generation replaced it or its activity was removed. Read live from the platform; no training needed.' %}</p>
+
+  <form method="get" class="cat-row cat-filters">
+    <input type="hidden" name="tab" value="proposals">
+    <label>{% translate 'Reviewers' %}
+      <select name="who" onchange="this.form.submit()">
+        <option value="all" {% if s.who == 'all' %}selected{% endif %}>{% translate 'Everyone' %}</option>
+        <option value="teachers" {% if s.who == 'teachers' %}selected{% endif %}>{% translate 'Teachers only (no staff or admin accounts)' %}</option>
+      </select>
+    </label>
+    <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+  </form>
+  {% if s.who == 'all' and s.staff_decisions %}
+    <p class="cat-quiet">{% blocktranslate count n=s.staff_decisions %}{{ n }} of these decisions was made by a staff or admin account.{% plural %}{{ n }} of these decisions were made by staff or admin accounts.{% endblocktranslate %}</p>
+  {% endif %}
+
+  {% if s.proposals %}
+  <div class="cat-tiles">
+    <div class="cat-tile"><span class="value">{{ s.acceptance|pct }}</span><span class="label">{% translate 'Acceptance rate' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.decisions }}</span><span class="label">{% blocktranslate with accepted=s.accepted rejected=s.rejected %}Decisions ({{ accepted }} accepted, {{ rejected }} rejected){% endblocktranslate %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.proposals }}</span><span class="label">{% blocktranslate with decided=s.proposals_decided scenarios=s.scenarios %}Proposals on {{ scenarios }} scenarios, {{ decided }} decided{% endblocktranslate %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.reviewers }}</span><span class="label">{% translate 'Reviewers who decided' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.open }}</span><span class="label">{% translate 'Not decided, still open' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.closed }}</span><span class="label">{% translate 'Not decided, closed' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.structural }}</span><span class="label">{% translate 'Rejected as malformed' %}</span></div>
+  </div>
+  {% else %}
+    <p><strong>{% translate 'No AI proposals yet.' %}</strong></p>
+  {% endif %}
+</div>
+
+{% if s.proposals %}
+<div class="cat-card">
+  <h2>{% translate 'Over time' %}</h2>
+  <p class="cat-quiet">{% translate 'By the month the proposal was made, in platform time. A month with few decisions can swing to 0% or 100%: read the rate together with the number of decisions under it. Months without proposals are left empty.' %}</p>
+  <h3>{% translate 'Acceptance rate by month' %}</h3>
+  <div id="proposals-rate" class="cat-chart" role="img" aria-label="{% translate 'Acceptance rate by month' %}"></div>
+  <h3>{% translate 'Reviews by month' %}</h3>
+  <div id="proposals-counts" class="cat-chart" style="height: 260px;" role="img" aria-label="{% translate 'Reviews by month' %}"></div>
+
+  <div class="cat-table-wrap"><table>
+    <thead><tr>
+      <th>{% translate 'Month proposed' %}</th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
+      <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Not decided, still open' %}</th>
+      <th class="num">{% translate 'Not decided, closed' %}</th>
+    </tr></thead>
+    <tbody>
+      {% for row in proposals.months %}{% if row.proposals %}
+      <tr>
+        <td>{{ row.label }}</td><td class="num">{{ row.proposals }}</td><td class="num">{{ row.decisions }}</td>
+        <td class="num">{{ row.accepted }}</td><td class="num">{{ row.rejected }}</td>
+        <td class="num">{{ row.acceptance|pct }}</td><td class="num">{{ row.open }}</td><td class="num">{{ row.closed }}</td>
+      </tr>
+      {% endif %}{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="cat-card">
+  <h2>{% translate 'By kind of proposal' %}</h2>
+  <div class="cat-table-wrap"><table>
+    <thead><tr>
+      <th></th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
+      <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th>
+    </tr></thead>
+    {% for kind in proposals.kinds %}
+    <tbody>
+      <tr><th colspan="6">{{ kind.title }}</th></tr>
+      {% for row in kind.rows %}
+      <tr>
+        <td>{{ row.label }}</td><td class="num">{{ row.proposals }}</td><td class="num">{{ row.decisions }}</td>
+        <td class="num">{{ row.accepted }}</td><td class="num">{{ row.rejected }}</td><td class="num">{{ row.acceptance|pct }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table></div>
+
+  <h3>{% translate 'By scenario' %}</h3>
+  <div class="cat-table-wrap"><table>
+    <thead><tr>
+      <th>{% translate 'Scenario' %}</th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
+      <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Not decided, still open' %}</th>
+      <th class="num">{% translate 'Not decided, closed' %}</th>
+    </tr></thead>
+    <tbody>
+      {% for row in proposals.scenarios %}
+      <tr>
+        <td class="cat-text">{{ row.label }}</td><td class="num">{{ row.proposals }}</td><td class="num">{{ row.decisions }}</td>
+        <td class="num">{{ row.accepted }}</td><td class="num">{{ row.rejected }}</td>
+        <td class="num">{{ row.acceptance|pct }}</td><td class="num">{{ row.open }}</td><td class="num">{{ row.closed }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="cat-card">
+  <h2>{% translate 'Agreement between reviewers' %}</h2>
+  {% if agreement.proposals %}
+    <p id="proposals-agreement">{% blocktranslate count n=agreement.proposals with unanimous=agreement.unanimous %}{{ n }} proposal was decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike.{% plural %}{{ n }} proposals were decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike.{% endblocktranslate %}
+      {% blocktranslate with pairs=agreement.pairs pairwise=agreement.pairwise|pct %}Pairs of reviewers who decided the same proposal: {{ pairs }}; {{ pairwise }} of them decided alike.{% endblocktranslate %}
+      {% blocktranslate with rate=agreement.shared_rate|pct chance=agreement.chance|pct %}On these shared proposals {{ rate }} of the decisions were acceptances; reviewers deciding independently at that rate would agree {{ chance }} of the time by chance.{% endblocktranslate %}</p>
+    {% if agreement.one_sided %}
+      <p><strong>{% translate 'Every decision on these shared proposals was the same, so this agreement says nothing beyond chance.' %}</strong></p>
+    {% endif %}
+    <p class="cat-quiet">{% translate 'Pairs are pooled: a proposal decided by six people adds 15 pairs, one decided by two adds one.' %}</p>
+    {% if agreement.split %}
+    <h3>{% translate 'Proposals the reviewers disagreed on' %}</h3>
+    <div class="cat-table-wrap"><table>
+      <thead><tr><th>{% translate 'Proposal' %}</th><th>{% translate 'Scenario' %}</th><th>{% translate 'Type' %}</th><th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th></tr></thead>
+      <tbody>
+        {% for row in agreement.split %}
+        <tr><td>#{{ row.proposal_id }}</td><td class="cat-text">{{ row.scenario }}</td><td>{{ row.proposal_type }}</td><td class="num">{{ row.accepted }}</td><td class="num">{{ row.rejected }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+    {% endif %}
+  {% else %}
+    <p class="cat-quiet">{% translate 'No proposal has been decided by two or more reviewers yet.' %}</p>
+  {% endif %}
+
+  <h3>{% translate 'Rejection reasons' %}</h3>
+  {% if proposals.reasons %}
+  <div class="cat-table-wrap"><table>
+    <thead><tr><th>{% translate 'Reason' %}</th><th class="num">{% translate 'Times given' %}</th></tr></thead>
+    <tbody>
+      {% for row in proposals.reasons %}
+      <tr><td class="cat-text">{{ row.label }}</td><td class="num">{{ row.count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="cat-quiet">{% translate 'No rejection reasons recorded yet.' %}</p>
+  {% endif %}
+</div>
+{{ proposals.chart|json_script:"proposals-chart-data" }}
+{% endif %}
+{% endwith %}

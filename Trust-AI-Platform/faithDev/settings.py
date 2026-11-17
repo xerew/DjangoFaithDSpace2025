@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'home',
     'messaging',
     'feedback',
+    'categorization',
 ]
 
 MIDDLEWARE = [
@@ -350,6 +351,11 @@ OLLAMA_URL = os.environ.get(
 OLLAMA_TUNNEL_CONTROL_DIR = os.environ.get(
     'OLLAMA_TUNNEL_CONTROL_DIR',
     '/ollama-control',
+)
+# Fitted categorization models (admin-only XGBoost). Kept out of MEDIA_ROOT,
+# which nginx serves publicly.
+CATEGORIZATION_MODEL_DIR = os.getenv(
+    'CATEGORIZATION_MODEL_DIR', str(BASE_DIR / 'categorization_models'),
 )
 SCENARIO_FAMILY_REVIEW_LLM_MODEL = os.environ.get(
     'SCENARIO_FAMILY_REVIEW_LLM_MODEL',
