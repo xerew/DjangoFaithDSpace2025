@@ -256,7 +256,8 @@ def proposals_workbook(view):
         (_('Of those, all reviewers decided alike'), agreement['unanimous']),
         (_('Pairs of reviewers on the same proposal'), agreement['pairs']),
         (_('Share of those pairs that decided alike'), agreement['pairwise']),
-        (_('Expected by chance at this acceptance rate'), agreement['chance']),
+        (_('Acceptance rate on those shared proposals'), agreement['shared_rate']),
+        (_('Agreement expected by chance at that rate'), agreement['chance']),
     ]
     sheet = _sheet(book, 'Summary', [_('Measure'), _('Value')], rows)
     for row in sheet.iter_rows(min_row=2):

@@ -184,7 +184,17 @@ class ProposalsTabTests(ProposalData):
         self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'accepted')
         response = self.client.get(self.url, {'tab': 'proposals'})
         self.assertContains(response, '1 proposal was decided by two or more reviewers')
-        self.assertContains(response, 'Of all 1 pairs of reviewers who decided the same proposal, 100.0% decided alike')
+        self.assertContains(response, 'Pairs of reviewers who decided the same proposal: 1; 100.0% of them decided alike.')
+        self.assertContains(response, 'On these shared proposals 100.0% of the decisions were acceptances')
+        self.assertContains(response, 'so this agreement says nothing beyond chance')
+
+    def test_mixed_agreement_has_no_warning(self):
+        self.client.force_login(self.staff)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'rejected')
+        response = self.client.get(self.url, {'tab': 'proposals'})
+        self.assertContains(response, '0.0% of them decided alike')
+        self.assertContains(response, 'would agree 50.0% of the time by chance')
+        self.assertNotContains(response, 'says nothing beyond chance')
 
     def test_teachers_only_page(self):
         self.client.force_login(self.staff)

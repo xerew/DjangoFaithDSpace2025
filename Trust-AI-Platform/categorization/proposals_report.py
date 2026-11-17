@@ -263,15 +263,18 @@ def _agreement(by_proposal, proposals, type_labels):
                 'accepted': statuses.count('accepted'),
                 'rejected': statuses.count('rejected'),
             })
-    chance = None
+    chance = shared_rate = None
     if statuses_all:
-        p = statuses_all.count('accepted') / len(statuses_all)
-        chance = p * p + (1 - p) * (1 - p)
+        shared_rate = statuses_all.count('accepted') / len(statuses_all)
+        chance = shared_rate ** 2 + (1 - shared_rate) ** 2
     return {
         'proposals': len(shared),
         'unanimous': unanimous,
         'pairs': pairs,
         'pairwise': agreeing / pairs if pairs else None,
+        'shared_rate': shared_rate,
         'chance': chance,
+        # All accepted or all rejected: any two reviewers agree, whatever they think.
+        'one_sided': len(set(statuses_all)) == 1,
         'split': sorted(split, key=lambda row: row['proposal_id']),
     }

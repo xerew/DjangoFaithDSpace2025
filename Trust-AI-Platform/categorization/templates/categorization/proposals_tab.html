@@ -108,7 +108,12 @@
 <div class="cat-card">
   <h2>{% translate 'Agreement between reviewers' %}</h2>
   {% if agreement.proposals %}
-    <p id="proposals-agreement">{% blocktranslate count n=agreement.proposals with unanimous=agreement.unanimous pairs=agreement.pairs pairwise=agreement.pairwise|pct chance=agreement.chance|pct %}{{ n }} proposal was decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike. Of all {{ pairs }} pairs of reviewers who decided the same proposal, {{ pairwise }} decided alike; reviewers deciding independently at this acceptance rate would agree {{ chance }} of the time by chance.{% plural %}{{ n }} proposals were decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike. Of all {{ pairs }} pairs of reviewers who decided the same proposal, {{ pairwise }} decided alike; reviewers deciding independently at this acceptance rate would agree {{ chance }} of the time by chance.{% endblocktranslate %}</p>
+    <p id="proposals-agreement">{% blocktranslate count n=agreement.proposals with unanimous=agreement.unanimous %}{{ n }} proposal was decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike.{% plural %}{{ n }} proposals were decided by two or more reviewers; on {{ unanimous }} of them everyone decided alike.{% endblocktranslate %}
+      {% blocktranslate with pairs=agreement.pairs pairwise=agreement.pairwise|pct %}Pairs of reviewers who decided the same proposal: {{ pairs }}; {{ pairwise }} of them decided alike.{% endblocktranslate %}
+      {% blocktranslate with rate=agreement.shared_rate|pct chance=agreement.chance|pct %}On these shared proposals {{ rate }} of the decisions were acceptances; reviewers deciding independently at that rate would agree {{ chance }} of the time by chance.{% endblocktranslate %}</p>
+    {% if agreement.one_sided %}
+      <p><strong>{% translate 'Every decision on these shared proposals was the same, so this agreement says nothing beyond chance.' %}</strong></p>
+    {% endif %}
     <p class="cat-quiet">{% translate 'Pairs are pooled: a proposal decided by six people adds 15 pairs, one decided by two adds one.' %}</p>
     {% if agreement.split %}
     <h3>{% translate 'Proposals the reviewers disagreed on' %}</h3>
