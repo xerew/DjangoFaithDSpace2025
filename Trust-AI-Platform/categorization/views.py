@@ -10,8 +10,8 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import chatbot_report
-from .export import chatbot_workbook, workbook
+from . import chatbot_report, proposals_report
+from .export import chatbot_workbook, proposals_workbook, workbook
 from .models import ChatbotEvaluation, TrainingRun
 from .report import early_view, filter_options, final_view, over_time_view
 from .tasks import train_models_task
@@ -56,6 +56,7 @@ def _tab_links(request):
         links[tab] = '?' + query.urlencode()
     # The categorization filters mean nothing on the chatbot tab.
     links['chatbot'] = '?tab=chatbot'
+    links['proposals'] = '?tab=proposals'
     return links
 
 
@@ -128,7 +129,7 @@ def _chatbot_context(request):
 @admin_only
 def dashboard(request):
     tab = request.GET.get('tab')
-    tab = tab if tab in ('early', 'time', 'chatbot') else 'final'
+    tab = tab if tab in ('early', 'time', 'chatbot', 'proposals') else 'final'
     context = {
         **admin.site.each_context(request),
         'title': _('Student categorization models'),
@@ -139,6 +140,15 @@ def dashboard(request):
     }
     if tab == 'chatbot':
         context.update(_chatbot_context(request))
+        return render(request, 'categorization/dashboard.html', context)
+    if tab == 'proposals':
+        view = proposals_report.build()
+        view['chart']['names'] = {
+            'acceptance': _('Acceptance rate'), 'accepted': _('Accepted'),
+            'rejected': _('Rejected'), 'undecided': _('Opened, not decided'),
+            'decisions': _('Decisions'),
+        }
+        context['proposals'] = view
         return render(request, 'categorization/dashboard.html', context)
 
     selected = selected_run(request)
@@ -242,6 +252,16 @@ def chatbot_status(request):
         'progress': evaluation.progress,
         'error': evaluation.error,
     })
+
+
+@admin_only
+def proposals_export(request):
+    response = HttpResponse(
+        proposals_workbook(proposals_report.build()),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="ai-proposal-reviews.xlsx"'
+    return response
 
 
 @admin_only

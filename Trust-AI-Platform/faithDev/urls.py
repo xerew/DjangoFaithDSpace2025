@@ -23,6 +23,8 @@ urlpatterns = [
          name='categorization_chatbot_run'),
     path('admin/student-categorization/chatbot/status/', categorization_views.chatbot_status,
          name='categorization_chatbot_status'),
+    path('admin/student-categorization/proposals/export/', categorization_views.proposals_export,
+         name='categorization_proposals_export'),
     path('admin/student-categorization/chatbot/<int:evaluation_id>/export/',
          categorization_views.chatbot_export, name='categorization_chatbot_export'),
     path(

@@ -17,7 +17,7 @@
     .cat-filters label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
     .cat-filters label { max-width: 100%; }
     .cat-filters select { min-width: 160px; max-width: 100%; }
-    .cat-tabs { display: flex; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--border-color); }
+    .cat-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--border-color); }
     .cat-tabs a {
       padding: 8px 14px; border: 1px solid transparent; border-bottom: none;
       border-radius: 6px 6px 0 0; color: var(--link-fg);
@@ -62,10 +62,13 @@
     <a href="{{ tab_links.early }}" class="{% if tab == 'early' %}active{% endif %}">{% translate 'Early prediction' %}</a>
     <a href="{{ tab_links.time }}" class="{% if tab == 'time' %}active{% endif %}">{% translate 'Over time' %}</a>
     <a href="{{ tab_links.chatbot }}" class="{% if tab == 'chatbot' %}active{% endif %}">{% translate 'Chatbot intents' %}</a>
+    <a href="{{ tab_links.proposals }}" class="{% if tab == 'proposals' %}active{% endif %}">{% translate 'AI proposals' %}</a>
   </nav>
 
   {% if tab == 'chatbot' %}
     {% include 'categorization/chatbot_tab.html' %}
+  {% elif tab == 'proposals' %}
+    {% include 'categorization/proposals_tab.html' %}
   {% else %}
   <div class="cat-card">
     <div class="cat-row" style="justify-content: space-between;">
@@ -515,7 +518,44 @@
     });
   }
 
+  function proposalsRate() {
+    var d = data('proposals-chart-data'); var chart = d && make('proposals-rate'); if (!chart) return;
+    chart.setOption({
+      grid: { left: 56, right: 24, top: 16, bottom: 32 },
+      tooltip: { trigger: 'axis', formatter: function (items) {
+        var i = items[0].dataIndex, rate = d.acceptance[i];
+        return items[0].axisValue + '<br>' + d.names.acceptance + ': ' + (rate == null ? '–' : (rate * 100).toFixed(1) + '%') +
+               '<br>' + d.names.decisions + ': ' + d.decisions[i]; } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: quiet, formatter: function (x) { return Math.round(x * 100) + '%'; } },
+               splitLine: { lineStyle: { color: grid } } },
+      series: [{ type: 'line', name: d.names.acceptance, data: d.acceptance, connectNulls: false,
+                 // Point size follows the number of decisions, so a month with 2 decisions looks as slight as it is.
+                 symbolSize: function (value, p) { return Math.min(8 + Math.sqrt(d.decisions[p.dataIndex]) * 2, 24); },
+                 lineStyle: { width: 2, color: BLUE },
+                 itemStyle: { color: BLUE, borderColor: v('--body-bg', '#fff'), borderWidth: 2 } }]
+    });
+  }
+
+  function proposalsCounts() {
+    var d = data('proposals-chart-data'); var chart = d && make('proposals-counts'); if (!chart) return;
+    function bar(name, values, color) {
+      return { type: 'bar', stack: 'reviews', name: name, data: values, barMaxWidth: 28,
+               itemStyle: { color: color, borderColor: v('--body-bg', '#fff'), borderWidth: 1 } };
+    }
+    chart.setOption({
+      grid: { left: 56, right: 24, top: 36, bottom: 32 },
+      legend: { top: 0, textStyle: { color: ink } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: axisText, splitLine: { lineStyle: { color: grid } } },
+      series: [bar(d.names.accepted, d.accepted, BLUE), bar(d.names.rejected, d.rejected, ORANGE),
+               bar(d.names.undecided, d.undecided, quiet)]
+    });
+  }
+
   confusion('final-confusion'); importance('final-importance');
+  proposalsRate(); proposalsCounts();
   chatbotF1(); chatbotConfusion(); chatbotConfidence();
   confusion('early-confusion'); importance('early-importance'); trend('early-trend');
   trend('time-trend'); timeRuns();

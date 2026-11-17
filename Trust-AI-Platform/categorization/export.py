@@ -2,6 +2,7 @@
 
 from io import BytesIO
 
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from openpyxl import Workbook
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
@@ -222,4 +223,63 @@ def chatbot_workbook(evaluation):
 
     _sheet(book, 'Wrong predictions', header, prediction_rows(view['wrong']))
     _sheet(book, 'All predictions', header, prediction_rows(view['predictions']))
+    return _save(book)
+
+
+def _local(when):
+    """Excel has no time zones: write the platform's local time as text."""
+    return timezone.localtime(when).strftime('%Y-%m-%d %H:%M') if when else ''
+
+
+def proposals_workbook(view):
+    """Teacher decisions on the AI activity proposals, as on the proposals tab."""
+    summary = view['summary']
+    agreement = view['agreement']
+    book = Workbook()
+    book.remove(book.active)
+    rows = [
+        (_('AI proposals'), summary['proposals']),
+        (_('Scenarios'), summary['scenarios']),
+        (_('Teacher decisions (each teacher counts once per proposal)'), summary['decisions']),
+        (_('Accepted'), summary['accepted']),
+        (_('Rejected'), summary['rejected']),
+        (_('Rejected as malformed (structural)'), summary['structural']),
+        (_('Acceptance rate'), summary['acceptance']),
+        (_('Reviewers who decided'), summary['reviewers']),
+        (_('Opened, not decided'), summary['undecided']),
+        (_('Proposals decided by two or more teachers'), agreement['proposals']),
+        (_('Of those, all teachers agreed'), agreement['unanimous']),
+        (_('Pairwise agreement between teachers'), agreement['pairwise']),
+    ]
+    sheet = _sheet(book, 'Summary', [_('Measure'), _('Value')], rows)
+    for row in sheet.iter_rows(min_row=2):
+        if isinstance(row[1].value, float):
+            row[1].number_format = PERCENT
+    counts = [_('Proposals'), _('Decisions'), _('Accepted'), _('Rejected'), _('Acceptance rate'),
+              _('Opened, not decided')]
+
+    def count_row(row):
+        return (row['proposals'], row['decisions'], row['accepted'], row['rejected'], row['acceptance'],
+                row['undecided'])
+
+    _sheet(book, 'By month', [_('Month proposed'), *counts],
+           [(row['month'], *count_row(row)) for row in view['months']], percent_columns=(6,))
+    _sheet(book, 'By kind', [_('Grouping'), _('Group'), *counts],
+           [(kind['title'], row['label'], *count_row(row)) for kind in view['kinds'] for row in kind['rows']],
+           percent_columns=(7,))
+    _sheet(book, 'By scenario', [_('Scenario'), *counts],
+           [(row['label'], *count_row(row)) for row in view['scenarios']], percent_columns=(6,))
+    _sheet(book, 'Rejection reasons', [_('Reason'), _('Times given')],
+           [(row['label'], row['count']) for row in view['reasons']])
+    _sheet(book, 'Split decisions', [_('Proposal'), _('Scenario'), _('Type'), _('Accepted'), _('Rejected')],
+           [(row['proposal_id'], row['scenario'], row['proposal_type'], row['accepted'], row['rejected'])
+            for row in agreement['split']])
+    _sheet(book, 'Decisions',
+           [_('Proposal'), _('Scenario'), _('Type'), _('How chosen'), _('Language model'), _('Proposed at'),
+            _('Reviewer'), _('Decision'), _('Feedback type'), _('Rejection reasons'), _('Decided at'),
+            _('Edited')],
+           [(d['proposal_id'], d['scenario'], d['proposal_type'], d['source'], d['llm_model'],
+             _local(d['proposed_at']), d['reviewer'], d['decision'], d['feedback_type'],
+             '; '.join(d['reasons']), _local(d['decided_at']), d['was_edited'])
+            for d in view['decisions']])
     return _save(book)
