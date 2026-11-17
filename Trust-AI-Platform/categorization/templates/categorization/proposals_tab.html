@@ -5,7 +5,7 @@
     <h2>{% translate 'Teachers and the AI activity proposals' %}</h2>
     {% if s.proposals %}<a class="button" href="{% url 'categorization_proposals_export' %}?who={{ s.who }}">{% translate 'Download Excel' %}</a>{% endif %}
   </div>
-  <p class="cat-quiet">{% translate 'How often reviewers accept the AI proposals to create, revise or skip an activity. Each reviewer’s decision counts once, so a proposal decided by five people counts five times. Proposals rejected as malformed count as rejections (the learning bandit ignores them). A review is opened as soon as someone opens a scenario’s proposal list; a review left undecided is "still open" while the proposal can be decided, and "closed" once a newer generation replaced it or its activity was removed. Read live from the platform; no training needed.' %}</p>
+  <p class="cat-quiet">{% translate 'How often reviewers accept the AI proposals to create, revise or skip an activity. Each reviewer’s decision counts once, so a proposal decided by five people counts five times. Proposals rejected as malformed count as rejections (the learning bandit ignores them). As soon as someone opens a scenario’s proposal list, a review is recorded for every proposal listed, before they read anything: "opened" means the page was opened, not that the proposal was read. An opened review left undecided is "still decidable" while the proposal is on the review page, and "no longer decidable" once a newer generation replaced it or its activity was removed. Read live from the platform; no training needed.' %}</p>
 
   <form method="get" class="cat-row cat-filters">
     <input type="hidden" name="tab" value="proposals">
@@ -27,8 +27,8 @@
     <div class="cat-tile"><span class="value">{{ s.decisions }}</span><span class="label">{% blocktranslate with accepted=s.accepted rejected=s.rejected %}Decisions ({{ accepted }} accepted, {{ rejected }} rejected){% endblocktranslate %}</span></div>
     <div class="cat-tile"><span class="value">{{ s.proposals }}</span><span class="label">{% blocktranslate with decided=s.proposals_decided scenarios=s.scenarios %}Proposals on {{ scenarios }} scenarios, {{ decided }} decided{% endblocktranslate %}</span></div>
     <div class="cat-tile"><span class="value">{{ s.reviewers }}</span><span class="label">{% translate 'Reviewers who decided' %}</span></div>
-    <div class="cat-tile"><span class="value">{{ s.open }}</span><span class="label">{% translate 'Not decided, still open' %}</span></div>
-    <div class="cat-tile"><span class="value">{{ s.closed }}</span><span class="label">{% translate 'Not decided, closed' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.open }}</span><span class="label">{% translate 'Opened, not decided (still decidable)' %}</span></div>
+    <div class="cat-tile"><span class="value">{{ s.closed }}</span><span class="label">{% translate 'Opened, not decided (no longer decidable)' %}</span></div>
     <div class="cat-tile"><span class="value">{{ s.structural }}</span><span class="label">{% translate 'Rejected as malformed' %}</span></div>
   </div>
   {% else %}
@@ -39,7 +39,7 @@
 {% if s.proposals %}
 <div class="cat-card">
   <h2>{% translate 'Over time' %}</h2>
-  <p class="cat-quiet">{% translate 'By the month the proposal was made, in platform time. A month with few decisions can swing to 0% or 100%: read the rate together with the number of decisions under it. Months without proposals are left empty.' %}</p>
+  <p class="cat-quiet">{% translate 'By the month the proposal was made, in platform time. A month with few decisions can swing to 0% or 100%: read the rate together with the number of decisions under it. The line joins the months that have decisions; a month without decisions has no point.' %}</p>
   <h3>{% translate 'Acceptance rate by month' %}</h3>
   <div id="proposals-rate" class="cat-chart" role="img" aria-label="{% translate 'Acceptance rate by month' %}"></div>
   <h3>{% translate 'Reviews by month' %}</h3>
@@ -49,8 +49,8 @@
     <thead><tr>
       <th>{% translate 'Month proposed' %}</th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
       <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
-      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Not decided, still open' %}</th>
-      <th class="num">{% translate 'Not decided, closed' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Opened, not decided (still decidable)' %}</th>
+      <th class="num">{% translate 'Opened, not decided (no longer decidable)' %}</th>
     </tr></thead>
     <tbody>
       {% for row in proposals.months %}{% if row.proposals %}
@@ -90,8 +90,8 @@
     <thead><tr>
       <th>{% translate 'Scenario' %}</th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
       <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
-      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Not decided, still open' %}</th>
-      <th class="num">{% translate 'Not decided, closed' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Opened, not decided (still decidable)' %}</th>
+      <th class="num">{% translate 'Opened, not decided (no longer decidable)' %}</th>
     </tr></thead>
     <tbody>
       {% for row in proposals.scenarios %}

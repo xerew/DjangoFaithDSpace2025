@@ -250,8 +250,8 @@ def proposals_workbook(view):
         (_('Acceptance rate'), summary['acceptance']),
         (_('Reviewers who decided'), summary['reviewers']),
         (_('Decisions by staff or admin accounts (on the whole platform)'), summary['staff_decisions']),
-        (_('Not decided, still open'), summary['open']),
-        (_('Not decided, closed (replaced by a newer generation or activity removed)'), summary['closed']),
+        (_('Opened, not decided (still decidable)'), summary['open']),
+        (_('Opened, not decided (no longer decidable: replaced by a newer generation or activity removed)'), summary['closed']),
         (_('Proposals decided by two or more reviewers'), agreement['proposals']),
         (_('Of those, all reviewers decided alike'), agreement['unanimous']),
         (_('Pairs of reviewers on the same proposal'), agreement['pairs']),
@@ -264,7 +264,7 @@ def proposals_workbook(view):
         if isinstance(row[1].value, float):
             row[1].number_format = PERCENT
     counts = [_('Proposals'), _('Decisions'), _('Accepted'), _('Rejected'), _('Acceptance rate'),
-              _('Not decided, still open'), _('Not decided, closed')]
+              _('Opened, not decided (still decidable)'), _('Opened, not decided (no longer decidable)')]
 
     def count_row(row):
         return (row['proposals'], row['decisions'], row['accepted'], row['rejected'], row['acceptance'],

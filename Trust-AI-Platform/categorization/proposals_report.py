@@ -3,10 +3,11 @@
 Read live from the database on each page load: there are few proposals, and
 nothing here needs training. Every reviewer's decision counts once, so a
 proposal decided by five teachers counts five times. A pending review is
-created as soon as a teacher opens a scenario's proposal list, so an
-undecided review means the teacher saw the proposal and did not decide; it is
-"still open" while the proposal can be decided, and "closed" once a newer
-generation replaced it or its activity was removed.
+created for every listed proposal as soon as someone opens a scenario's
+proposal list, so an undecided review means the page was opened, not that the
+proposal was read. It is "open" (still decidable) while the proposal is on
+the review page, and "closed" (no longer decidable) once a newer generation
+replaced it or its activity was removed.
 """
 
 from collections import Counter, defaultdict

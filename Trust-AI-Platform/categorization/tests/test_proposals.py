@@ -196,6 +196,16 @@ class ProposalsTabTests(ProposalData):
         self.assertContains(response, 'would agree 50.0% of the time by chance')
         self.assertNotContains(response, 'says nothing beyond chance')
 
+    def test_undecided_labels_say_the_page_was_opened(self):
+        self.client.force_login(self.staff)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'new')
+        response = self.client.get(self.url, {'tab': 'proposals'})
+        self.assertContains(response, 'Opened, not decided (still decidable)')
+        self.assertContains(response, 'Opened, not decided (no longer decidable)')
+        self.assertNotContains(response, 'Not decided, still open')
+        # Months with decisions are joined into one line across empty months.
+        self.assertContains(response, 'connectNulls: true')
+
     def test_teachers_only_page(self):
         self.client.force_login(self.staff)
         self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'rejected',

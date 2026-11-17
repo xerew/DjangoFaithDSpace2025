@@ -150,8 +150,8 @@ def dashboard(request):
         view = proposals_report.build(_who(request))
         view['chart']['names'] = {
             'acceptance': _('Acceptance rate'), 'accepted': _('Accepted'),
-            'rejected': _('Rejected'), 'open': _('Not decided, still open'),
-            'closed': _('Not decided, closed'), 'decisions': _('Decisions'),
+            'rejected': _('Rejected'), 'open': _('Opened, not decided (still decidable)'),
+            'closed': _('Opened, not decided (no longer decidable)'), 'decisions': _('Decisions'),
         }
         context['proposals'] = view
         return render(request, 'categorization/dashboard.html', context)
