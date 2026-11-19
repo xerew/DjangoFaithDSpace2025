@@ -5,8 +5,7 @@ set -eu
 : "${PGDATABASE:?PGDATABASE is required}"
 : "${PGUSER:?PGUSER is required}"
 
-keep_daily=${BACKUP_KEEP_DAILY:-7}
-keep_weekly=${BACKUP_KEEP_WEEKLY:-5}
+keep_biweekly=${BACKUP_KEEP_BIWEEKLY:-1}
 keep_monthly=${BACKUP_KEEP_MONTHLY:-12}
 
 require_positive_integer() {
@@ -36,18 +35,18 @@ prune_directory() {
       done
 }
 
-require_positive_integer BACKUP_KEEP_DAILY "$keep_daily"
-require_positive_integer BACKUP_KEEP_WEEKLY "$keep_weekly"
+require_positive_integer BACKUP_KEEP_BIWEEKLY "$keep_biweekly"
 require_positive_integer BACKUP_KEEP_MONTHLY "$keep_monthly"
 
 umask 077
-mkdir -p /backups/daily /backups/weekly /backups/monthly /backups/.in-progress
+mkdir -p /backups/biweekly /backups/monthly /backups/.in-progress
 
 timestamp=$(date -u '+%Y-%m-%dT%H%M%SZ')
+day_of_month=$(printf '%s' "$timestamp" | cut -c9-10)
 safe_database=$(printf '%s' "$PGDATABASE" | tr -c 'A-Za-z0-9_.-' '_')
 filename="${safe_database}_${timestamp}.dump"
 temporary_file="/backups/.in-progress/${filename}.tmp"
-daily_file="/backups/daily/$filename"
+biweekly_file="/backups/biweekly/$filename"
 
 cleanup() {
   rm -f -- "$temporary_file"
@@ -65,21 +64,17 @@ pg_dump \
 
 # A dump is only published after pg_restore can read its archive catalogue.
 pg_restore --list "$temporary_file" >/dev/null
-mv "$temporary_file" "$daily_file"
-echo "Created verified daily backup: $daily_file"
+mv "$temporary_file" "$biweekly_file"
+echo "Created verified biweekly backup: $biweekly_file"
 
-if [ "$(date -u '+%u')" = '7' ]; then
-  cp "$daily_file" "/backups/weekly/$filename"
-  echo "Created weekly backup: /backups/weekly/$filename"
-fi
-
-if [ "$(date -u '+%d')" = '01' ]; then
-  cp "$daily_file" "/backups/monthly/$filename"
+if [ "$day_of_month" = '01' ]; then
+  # A hard link takes no extra disk space while the biweekly copy still exists.
+  ln "$biweekly_file" "/backups/monthly/$filename" 2>/dev/null \
+    || cp "$biweekly_file" "/backups/monthly/$filename"
   echo "Created monthly backup: /backups/monthly/$filename"
 fi
 
-prune_directory /backups/daily "$keep_daily"
-prune_directory /backups/weekly "$keep_weekly"
+prune_directory /backups/biweekly "$keep_biweekly"
 prune_directory /backups/monthly "$keep_monthly"
 
 trap - EXIT INT TERM
