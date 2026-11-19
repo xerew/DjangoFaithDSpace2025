@@ -149,7 +149,8 @@ def dashboard(request):
     if tab == 'proposals':
         view = proposals_report.build(_who(request))
         view['chart']['names'] = {
-            'acceptance': _('Acceptance rate'), 'accepted': _('Accepted'),
+            'overall': _('Overall acceptance rate so far'), 'accepted': _('Accepted'),
+            'of': _('accepted of'), 'month_decisions': _("Decisions on this month's proposals"),
             'rejected': _('Rejected'), 'open': _('Opened, not decided (still decidable)'),
             'closed': _('Opened, not decided (no longer decidable)'), 'decisions': _('Decisions'),
         }

@@ -12,13 +12,22 @@
     <label>{% translate 'Reviewers' %}
       <select name="who" onchange="this.form.submit()">
         <option value="all" {% if s.who == 'all' %}selected{% endif %}>{% translate 'Everyone' %}</option>
+        <option value="no_superusers" {% if s.who == 'no_superusers' %}selected{% endif %}>{% translate 'Everyone except superuser accounts' %}</option>
         <option value="teachers" {% if s.who == 'teachers' %}selected{% endif %}>{% translate 'Teachers only (no staff or admin accounts)' %}</option>
       </select>
     </label>
     <noscript><button type="submit" class="button">{% translate 'Show' %}</button></noscript>
+    {% if s.who == 'no_superusers' %}
+      <a class="button" href="?tab=proposals&amp;who=all">{% translate 'Show superuser decisions' %}</a>
+    {% elif s.who == 'all' %}
+      <a class="button" href="?tab=proposals&amp;who=no_superusers">{% translate 'Leave out superuser decisions' %}</a>
+    {% endif %}
   </form>
   {% if s.who == 'all' and s.staff_decisions %}
-    <p class="cat-quiet">{% blocktranslate count n=s.staff_decisions %}{{ n }} of these decisions was made by a staff or admin account.{% plural %}{{ n }} of these decisions were made by staff or admin accounts.{% endblocktranslate %}</p>
+    <p class="cat-quiet">{% blocktranslate count n=s.staff_decisions %}{{ n }} of these decisions was made by a staff or admin account.{% plural %}{{ n }} of these decisions were made by staff or admin accounts.{% endblocktranslate %}
+      {% if s.superuser_decisions %}{% blocktranslate count n=s.superuser_decisions %}{{ n }} of these decisions was made by a superuser account.{% plural %}{{ n }} of these decisions were made by superuser accounts.{% endblocktranslate %}{% endif %}</p>
+  {% elif s.who == 'no_superusers' and s.superuser_decisions %}
+    <p class="cat-quiet">{% blocktranslate count n=s.superuser_decisions %}{{ n }} decision by a superuser account is left out.{% plural %}{{ n }} decisions by superuser accounts are left out.{% endblocktranslate %}</p>
   {% endif %}
 
   {% if s.proposals %}
@@ -39,9 +48,9 @@
 {% if s.proposals %}
 <div class="cat-card">
   <h2>{% translate 'Over time' %}</h2>
-  <p class="cat-quiet">{% translate 'By the month the proposal was made, in platform time. A month with few decisions can swing to 0% or 100%: read the rate together with the number of decisions under it. The line joins the months that have decisions; a month without decisions has no point.' %}</p>
-  <h3>{% translate 'Acceptance rate by month' %}</h3>
-  <div id="proposals-rate" class="cat-chart" role="img" aria-label="{% translate 'Acceptance rate by month' %}"></div>
+  <p class="cat-quiet">{% translate 'By the month the proposal was made, in platform time. The line is the overall acceptance rate: each month adds its decisions to all the earlier ones, so with 5 of 5 accepted in September and 3 of 5 in October, October shows 8 of 10 (80%). A month without decisions keeps the rate of the month before; a bigger point means more decisions in that month. Each month on its own is in the table below.' %}</p>
+  <h3>{% translate 'Overall acceptance rate up to each month' %}</h3>
+  <div id="proposals-rate" class="cat-chart" role="img" aria-label="{% translate 'Overall acceptance rate up to each month' %}"></div>
   <h3>{% translate 'Reviews by month' %}</h3>
   <div id="proposals-counts" class="cat-chart" style="height: 260px;" role="img" aria-label="{% translate 'Reviews by month' %}"></div>
 
@@ -49,7 +58,8 @@
     <thead><tr>
       <th>{% translate 'Month proposed' %}</th><th class="num">{% translate 'Proposals' %}</th><th class="num">{% translate 'Decisions' %}</th>
       <th class="num">{% translate 'Accepted' %}</th><th class="num">{% translate 'Rejected' %}</th>
-      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Opened, not decided (still decidable)' %}</th>
+      <th class="num">{% translate 'Acceptance rate' %}</th><th class="num">{% translate 'Overall so far' %}</th>
+      <th class="num">{% translate 'Opened, not decided (still decidable)' %}</th>
       <th class="num">{% translate 'Opened, not decided (no longer decidable)' %}</th>
     </tr></thead>
     <tbody>
@@ -57,7 +67,9 @@
       <tr>
         <td>{{ row.label }}</td><td class="num">{{ row.proposals }}</td><td class="num">{{ row.decisions }}</td>
         <td class="num">{{ row.accepted }}</td><td class="num">{{ row.rejected }}</td>
-        <td class="num">{{ row.acceptance|pct }}</td><td class="num">{{ row.open }}</td><td class="num">{{ row.closed }}</td>
+        <td class="num">{{ row.acceptance|pct }}</td>
+        <td class="num">{{ row.overall_acceptance|pct }}{% if row.overall_decisions %} ({{ row.overall_accepted }}/{{ row.overall_decisions }}){% endif %}</td>
+        <td class="num">{{ row.open }}</td><td class="num">{{ row.closed }}</td>
       </tr>
       {% endif %}{% endfor %}
     </tbody>

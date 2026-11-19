@@ -7,7 +7,9 @@ created for every listed proposal as soon as someone opens a scenario's
 proposal list, so an undecided review means the page was opened, not that the
 proposal was read. It is "open" (still decidable) while the proposal is on
 the review page, and "closed" (no longer decidable) once a newer generation
-replaced it or its activity was removed.
+replaced it or its activity was removed. The overall rate on the chart adds
+up every decision from the first month to each month, so one busy or quiet
+month does not swing it.
 """
 
 from collections import Counter, defaultdict
@@ -23,7 +25,7 @@ from authoringtool.models import (
 from .report import _period_label
 
 DECIDED = ('accepted', 'rejected')
-WHO_CHOICES = ('all', 'teachers')
+WHO_CHOICES = ('all', 'no_superusers', 'teachers')
 
 
 def _month(when):
@@ -98,8 +100,28 @@ def _mark_open(proposals):
             proposal['open'] = bool(proposal['generation_run__is_current'])
 
 
+def _left_out(review, who):
+    if who == 'teachers':
+        return review['user__is_staff'] or review['user__is_superuser']
+    if who == 'no_superusers':
+        return review['user__is_superuser']
+    return False
+
+
+def _add_overall(month_rows):
+    """Each month's overall rate: every decision from the first month up to it."""
+    accepted = decided = 0
+    for row in month_rows:
+        accepted += row['accepted']
+        decided += row['decisions']
+        row['overall_accepted'] = accepted
+        row['overall_decisions'] = decided
+        row['overall_acceptance'] = _rate(accepted, decided - accepted)
+
+
 def build(who='all'):
-    """who: 'all' reviewers, or 'teachers' only (staff and admin accounts left out)."""
+    """who: 'all' reviewers, 'no_superusers' (superuser accounts left out), or
+    'teachers' only (staff and superuser accounts left out)."""
     proposals = {
         p['id']: p for p in ActivityProposal.objects.values(
             'id', 'scenario_id', 'scenario__name', 'proposal_type', 'selection_policy',
@@ -115,11 +137,10 @@ def build(who='all'):
         1 for r in all_reviews
         if r['status'] in DECIDED and (r['user__is_staff'] or r['user__is_superuser'])
     )
-    reviews = [
-        r for r in all_reviews
-        if r['proposal_id'] in proposals
-        and (who != 'teachers' or not (r['user__is_staff'] or r['user__is_superuser']))
-    ]
+    superuser_decisions = sum(
+        1 for r in all_reviews if r['status'] in DECIDED and r['user__is_superuser']
+    )
+    reviews = [r for r in all_reviews if r['proposal_id'] in proposals and not _left_out(r, who)]
 
     months, types, sources, models, scenarios = (defaultdict(_tally) for _unused in range(5))
 
@@ -165,12 +186,14 @@ def build(who='all'):
         'closed': len(undecided) - still_open,
         'reviewers': len({r['user_id'] for r in reviews if r['status'] in DECIDED}),
         'staff_decisions': staff_decisions,
+        'superuser_decisions': superuser_decisions,
         'scenarios': len({p['scenario_id'] for p in proposals.values()}),
     }
 
     keys = _months_between(min(months), max(months)) if months else []
     month_rows = [_row(_period_label(key, key), months[key] if key in months else _tally(), month=key)
                   for key in keys]
+    _add_overall(month_rows)
     type_labels = dict(ActivityProposal.PROPOSAL_TYPE_CHOICES)
     source_labels = {
         'bandit': _('Chosen by the learning bandit'),
@@ -226,7 +249,9 @@ def build(who='all'):
         'decisions': decisions,
         'chart': {
             'labels': [row['label'] for row in month_rows],
-            'acceptance': [row['acceptance'] for row in month_rows],
+            'overall': [row['overall_acceptance'] for row in month_rows],
+            'overall_accepted': [row['overall_accepted'] for row in month_rows],
+            'overall_decisions': [row['overall_decisions'] for row in month_rows],
             'decisions': [row['decisions'] for row in month_rows],
             'accepted': [row['accepted'] for row in month_rows],
             'rejected': [row['rejected'] for row in month_rows],

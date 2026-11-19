@@ -239,8 +239,10 @@ def proposals_workbook(view):
     book = Workbook()
     book.remove(book.active)
     rows = [
-        (_('Reviewers counted'), _('Teachers only (staff and admin accounts left out)')
-         if summary['who'] == 'teachers' else _('Everyone, staff and admin accounts included')),
+        (_('Reviewers counted'), {
+            'teachers': _('Teachers only (staff and admin accounts left out)'),
+            'no_superusers': _('Everyone except superuser accounts'),
+        }.get(summary['who'], _('Everyone, staff and admin accounts included'))),
         (_('AI proposals'), summary['proposals']),
         (_('Scenarios'), summary['scenarios']),
         (_('Decisions (each reviewer counts once per proposal)'), summary['decisions']),
@@ -250,6 +252,7 @@ def proposals_workbook(view):
         (_('Acceptance rate'), summary['acceptance']),
         (_('Reviewers who decided'), summary['reviewers']),
         (_('Decisions by staff or admin accounts (on the whole platform)'), summary['staff_decisions']),
+        (_('Decisions by superuser accounts (on the whole platform)'), summary['superuser_decisions']),
         (_('Opened, not decided (still decidable)'), summary['open']),
         (_('Opened, not decided (no longer decidable: replaced by a newer generation or activity removed)'), summary['closed']),
         (_('Proposals decided by two or more reviewers'), agreement['proposals']),
@@ -270,8 +273,9 @@ def proposals_workbook(view):
         return (row['proposals'], row['decisions'], row['accepted'], row['rejected'], row['acceptance'],
                 row['open'], row['closed'])
 
-    _sheet(book, 'By month', [_('Month proposed'), *counts],
-           [(row['month'], *count_row(row)) for row in view['months']], percent_columns=(6,))
+    _sheet(book, 'By month', [_('Month proposed'), *counts, _('Overall acceptance rate up to this month')],
+           [(row['month'], *count_row(row), row['overall_acceptance']) for row in view['months']],
+           percent_columns=(6, 9))
     _sheet(book, 'By kind', [_('Grouping'), _('Group'), *counts],
            [(kind['title'], row['label'], *count_row(row)) for kind in view['kinds'] for row in kind['rows']],
            percent_columns=(7,))

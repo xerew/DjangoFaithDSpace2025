@@ -100,6 +100,38 @@ class BuildTests(ProposalData):
         self.assertEqual((teachers['decisions'], teachers['acceptance'], teachers['reviewers']), (1, 0.0, 1))
         self.assertEqual(teachers['who'], 'teachers')
 
+    def test_without_superusers(self):
+        admin = User.objects.create_user('admin', is_staff=True, is_superuser=True)
+        proposal = self.proposal(datetime(2025, 7, 1, tzinfo=UTC))
+        self.decide(proposal, 'accepted', 'rejected', 'accepted', users=[admin, self.staff, self.teachers[0]])
+        everyone = proposals_report.build()['summary']
+        self.assertEqual((everyone['decisions'], everyone['superuser_decisions']), (3, 1))
+        # Staff who are not superusers still count.
+        view = proposals_report.build('no_superusers')
+        self.assertEqual((view['summary']['decisions'], view['summary']['accepted']), (2, 1))
+        self.assertEqual(view['summary']['who'], 'no_superusers')
+        self.assertEqual([d['reviewer'] for d in view['decisions']], ['staff', 'teacher0'])
+
+    def test_overall_rate_adds_up_the_months(self):
+        september = self.proposal(datetime(2025, 9, 10, tzinfo=UTC))
+        self.decide(september, 'accepted', 'accepted')
+        october = self.proposal(datetime(2025, 10, 10, tzinfo=UTC))
+        self.decide(october, 'accepted', 'rejected', 'rejected')
+        self.proposal(datetime(2025, 11, 10, tzinfo=UTC))  # nothing decided in November
+        months = proposals_report.build()['months']
+        self.assertEqual([row['acceptance'] for row in months], [1.0, 1 / 3, None])
+        # September 2/2, then October adds 1/3: 3 of 5 overall, and November keeps it.
+        self.assertEqual([row['overall_acceptance'] for row in months], [1.0, 0.6, 0.6])
+        self.assertEqual([(row['overall_accepted'], row['overall_decisions']) for row in months],
+                         [(2, 2), (3, 5), (3, 5)])
+
+    def test_overall_rate_starts_at_the_first_decision(self):
+        self.decide(self.proposal(datetime(2025, 7, 10, tzinfo=UTC)), 'new')
+        self.decide(self.proposal(datetime(2025, 8, 10, tzinfo=UTC)), 'rejected')
+        view = proposals_report.build()
+        self.assertEqual([row['overall_acceptance'] for row in view['months']], [None, 0.0])
+        self.assertEqual(view['chart']['overall'], [None, 0.0])
+
     def test_month_in_platform_time(self):
         # 22:30 UTC on 31 July is 01:30 on 1 August in Athens.
         self.proposal(datetime(2025, 7, 31, 22, 30, tzinfo=UTC))
@@ -203,8 +235,39 @@ class ProposalsTabTests(ProposalData):
         self.assertContains(response, 'Opened, not decided (still decidable)')
         self.assertContains(response, 'Opened, not decided (no longer decidable)')
         self.assertNotContains(response, 'Not decided, still open')
-        # Months with decisions are joined into one line across empty months.
-        self.assertContains(response, 'connectNulls: true')
+        self.assertContains(response, 'Overall acceptance rate up to each month')
+        self.assertContains(response, 'd.overall')
+
+    def test_superuser_button(self):
+        self.client.force_login(self.staff)
+        admin = User.objects.create_user('admin', is_staff=True, is_superuser=True)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'rejected',
+                    users=[admin, self.teachers[0]])
+        response = self.client.get(self.url, {'tab': 'proposals'})
+        self.assertContains(response, '?tab=proposals&amp;who=no_superusers')
+        self.assertContains(response, 'Leave out superuser decisions')
+        self.assertContains(response, '1 of these decisions was made by a superuser account.')
+        hidden = self.client.get(self.url, {'tab': 'proposals', 'who': 'no_superusers'})
+        self.assertEqual(hidden.context['proposals']['summary']['decisions'], 1)
+        self.assertContains(hidden, 'Show superuser decisions')
+        self.assertContains(hidden, '?tab=proposals&amp;who=all')
+        self.assertContains(hidden, reverse('categorization_proposals_export') + '?who=no_superusers')
+
+    def test_export_without_superusers(self):
+        self.client.force_login(self.staff)
+        admin = User.objects.create_user('admin', is_staff=True, is_superuser=True)
+        self.decide(self.proposal(datetime(2025, 7, 1, tzinfo=UTC)), 'accepted', 'rejected',
+                    users=[admin, self.teachers[0]])
+        response = self.client.get(reverse('categorization_proposals_export'), {'who': 'no_superusers'})
+        book = openpyxl.load_workbook(BytesIO(response.content))
+        summary = {row[0]: row[1] for row in book['Summary'].iter_rows(min_row=2, values_only=True)}
+        self.assertEqual(summary['Reviewers counted'], 'Everyone except superuser accounts')
+        self.assertEqual(summary['Decisions (each reviewer counts once per proposal)'], 1)
+        self.assertEqual(summary['Decisions by superuser accounts (on the whole platform)'], 1)
+        self.assertEqual(book['Decisions'].max_row, 2)
+        by_month = book['By month']
+        self.assertEqual(by_month.cell(row=1, column=9).value, 'Overall acceptance rate up to this month')
+        self.assertEqual(by_month.cell(row=2, column=9).value, 0.0)
 
     def test_teachers_only_page(self):
         self.client.force_login(self.staff)

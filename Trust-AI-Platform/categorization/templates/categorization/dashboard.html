@@ -523,18 +523,20 @@
     chart.setOption({
       grid: { left: 56, right: 24, top: 16, bottom: 32 },
       tooltip: { trigger: 'axis', formatter: function (items) {
-        var i = items[0].dataIndex, rate = d.acceptance[i];
+        var i = items[0].dataIndex, rate = d.overall[i];
         var e = echarts.format.encodeHTML;
-        return e(items[0].axisValue) + '<br>' + e(d.names.acceptance) + ': ' + (rate == null ? '–' : (rate * 100).toFixed(1) + '%') +
-               '<br>' + e(d.names.decisions) + ': ' + d.decisions[i]; } },
+        return e(items[0].axisValue) + '<br>' + e(d.names.overall) + ': ' +
+               (rate == null ? '–' : (rate * 100).toFixed(1) + '% (' + d.overall_accepted[i] + ' ' + e(d.names.of) + ' ' + d.overall_decisions[i] + ')') +
+               '<br>' + e(d.names.month_decisions) + ': ' + d.decisions[i] + ' (' + d.accepted[i] + ' ' + e(d.names.accepted).toLowerCase() + ')'; } },
       xAxis: { type: 'category', data: d.labels, axisLabel: axisText, axisLine: { lineStyle: { color: grid } } },
       yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: quiet, formatter: function (x) { return Math.round(x * 100) + '%'; } },
                splitLine: { lineStyle: { color: grid } } },
-      series: [{ type: 'line', name: d.names.acceptance, data: d.acceptance,
-                 // Months with decisions are rarely next to each other; join them so the trend reads as a line.
-                 connectNulls: true,
-                 // Point size follows the number of decisions, so a month with 2 decisions looks as slight as it is.
-                 symbolSize: function (value, p) { return Math.min(8 + Math.sqrt(d.decisions[p.dataIndex]) * 2, 24); },
+      // d.overall: every decision from the first month up to each month, so the line carries on
+      // through months without decisions instead of breaking.
+      series: [{ type: 'line', name: d.names.overall, data: d.overall, showAllSymbol: true,
+                 // Point size follows that month's own decisions; a month that added none gets a small point.
+                 symbolSize: function (value, p) { var n = d.decisions[p.dataIndex];
+                   return n ? Math.min(8 + Math.sqrt(n) * 2, 24) : 5; },
                  lineStyle: { width: 2, color: BLUE },
                  itemStyle: { color: BLUE, borderColor: v('--body-bg', '#fff'), borderWidth: 2 } }]
     });
