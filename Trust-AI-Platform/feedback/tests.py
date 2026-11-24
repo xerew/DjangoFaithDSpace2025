@@ -88,9 +88,54 @@ class FeedbackSubmitEndpointTests(TestCase):
             options=['Yes', 'No'], is_required=True, order=1,
         )
 
+        self.greek = Scenario.objects.create(name='FB Submit Greek', language='Greek',
+                                             created_by=self.teacher, updated_by=self.teacher)
+        self.q_choice.translations = {'el': {'text': 'Χρήσιμο;', 'options': ['Ναι', 'Όχι']}}
+        self.q_choice.save()
+
     def _submit(self, form, answers):
         url = reverse('feedback_submit', args=[form.id, self.scenario.id])
         return self.client.post(url, json.dumps({'answers': answers}), content_type='application/json')
+
+    def _submit_to(self, scenario, form, answers):
+        url = reverse('feedback_submit', args=[form.id, scenario.id])
+        return self.client.post(url, json.dumps({'answers': answers}), content_type='application/json')
+
+    def test_choice_by_position_stores_original_wording_and_language(self):
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit_to(self.greek, self.student_form, {str(self.q_choice.id): 1})
+        self.assertTrue(r.json()['success'])
+        response = FeedbackResponse.objects.get(user=self.student, scenario=self.greek)
+        self.assertEqual(response.language, 'el')
+        self.assertEqual(response.answers.get(question=self.q_choice).answer_text, 'No')
+
+    def test_numeric_option_text_is_not_mistaken_for_position(self):
+        q = FeedbackQuestion.objects.create(form=self.student_form, text='Rate', question_type='choice',
+                                            options=['1', '2', '3', '4', '5'], is_required=False, order=3)
+        self.client.login(username='fb_student', password='pass')
+        self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): 0, str(q.id): 0})
+        self.assertEqual(FeedbackAnswer.objects.get(question=q).answer_text, '1')
+        FeedbackResponse.objects.all().delete()
+        self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): 0, str(q.id): '5'})
+        self.assertEqual(FeedbackAnswer.objects.get(question=q).answer_text, '5')
+
+    def test_legacy_text_submission_still_accepted(self):
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit_to(self.greek, self.student_form, {str(self.q_choice.id): 'Yes'})
+        self.assertTrue(r.json()['success'])
+        self.assertEqual(FeedbackAnswer.objects.get(question=self.q_choice).answer_text, 'Yes')
+
+    def test_bad_positions_rejected(self):
+        self.client.login(username='fb_student', password='pass')
+        for bad in (2, -1, True, 1.0, 'Ναι'):
+            r = self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): bad})
+            self.assertEqual(r.status_code, 400, bad)
+        self.assertFalse(FeedbackResponse.objects.exists())
+
+    def test_required_error_quotes_question_in_shown_language(self):
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit_to(self.greek, self.student_form, {})
+        self.assertIn('Χρήσιμο;', r.json()['error'])
 
     def test_student_can_submit_student_form(self):
         self.client.login(username='fb_student', password='pass')
@@ -421,6 +466,15 @@ class TeacherFeedbackTriggerTests(TestCase):
         r = self._create_personal()
         self.assertIsNone(r.context['feedback_form_json'])
 
+    def test_popup_is_served_in_scenario_language(self):
+        self.scenario.language = 'Greek'
+        self.scenario.save()
+        self.form.translations = {'el': {'title': 'Σχόλια', 'description': ''}}
+        self.form.save()
+        r = self._create_personal()
+        data = json.loads(r.context['feedback_form_json'])
+        self.assertEqual((data['language'], data['title']), ('el', 'Σχόλια'))
+
     def test_session_flag_consumed_after_one_render(self):
         self._create_personal()
         r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
@@ -453,6 +507,16 @@ class StudentFeedbackTriggerTests(TestCase):
         r = self.client.get(reverse('studentView', args=[self.scenario.id]))
         self.assertIsNotNone(r.context['feedback_form_json'])
         self.assertContains(r, 'feedbackModal')
+
+    def test_popup_is_served_in_scenario_language(self):
+        self.scenario.language = 'Greek'
+        self.scenario.save()
+        self.form.translations = {'el': {'title': 'Σχόλια', 'description': ''}}
+        self.form.save()
+        self.client.login(username='fb_sv_student', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        data = json.loads(r.context['feedback_form_json'])
+        self.assertEqual((data['language'], data['title']), ('el', 'Σχόλια'))
 
     def test_teacher_gets_no_feedback_form(self):
         self.client.login(username='fb_sv_teacher', password='pass')

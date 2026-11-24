@@ -4074,10 +4074,10 @@ def proposal_list_view(request, scenario_id):
 
     feedback_form_json = None
     if request.session.pop('feedback_prompt_scenario_id', None) == myScenario.id:
-        from feedback.utils import get_applicable_form, serialize_form, user_has_responded
+        from feedback.utils import display_language, get_applicable_form, serialize_form, user_has_responded
         fb_form = get_applicable_form(myScenario, 'teacher')
         if fb_form and not user_has_responded(fb_form, request.user, myScenario):
-            feedback_form_json = _json.dumps(serialize_form(fb_form), ensure_ascii=False)
+            feedback_form_json = _json.dumps(serialize_form(fb_form, display_language(fb_form, myScenario)), ensure_ascii=False)
 
     return render(request, 'authoringtool/proposal_list.html', {
         'proposals':         proposals,

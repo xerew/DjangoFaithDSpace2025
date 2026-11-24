@@ -104,10 +104,10 @@ def scenario_viewer(request, scenario_id):
 
     feedback_form_json = None
     if not is_teacher:
-        from feedback.utils import get_applicable_form, serialize_form, user_has_responded
+        from feedback.utils import display_language, get_applicable_form, serialize_form, user_has_responded
         fb_form = get_applicable_form(scenario, 'student')
         if fb_form and not user_has_responded(fb_form, user, scenario):
-            feedback_form_json = json.dumps(serialize_form(fb_form), ensure_ascii=False)
+            feedback_form_json = json.dumps(serialize_form(fb_form, display_language(fb_form, scenario)), ensure_ascii=False)
 
     help_paused = (
         not is_teacher

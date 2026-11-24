@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
         input.type = 'radio';
         input.name = 'fbq_' + q.id;
         input.id = 'fbq_' + q.id + '_' + i;
-        input.value = opt;
+        input.value = String(i);  // position; the server stores the original wording
         const lab = document.createElement('label');
         lab.className = 'form-check-label';
         lab.setAttribute('for', input.id);
@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
     formData.questions.forEach(function (q) {
       const els = document.getElementsByName('fbq_' + q.id);
       if (q.type === 'choice') {
-        for (const el of els) { if (el.checked) answers[q.id] = el.value; }
+        for (const el of els) { if (el.checked) answers[q.id] = parseInt(el.value, 10); }
       } else if (els.length) {
         answers[q.id] = els[0].value;
       }

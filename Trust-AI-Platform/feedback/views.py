@@ -11,6 +11,7 @@ from functools import wraps
 
 from authoringtool.models import Scenario
 from .models import FeedbackAnswer, FeedbackForm, FeedbackQuestion, FeedbackResponse
+from .utils import display_language, serialize_form
 
 
 def staff_required(view_func):
@@ -24,8 +25,23 @@ def staff_required(view_func):
 
 
 def _clean_answer(answers, question):
+    """The text to store for one answer: '' when unanswered, None when invalid.
+
+    A choice arrives as the option's position (a JSON integer) and is stored
+    in the original wording, whatever language the form was shown in. Pages
+    opened before positions were sent post the original wording as a string.
+    """
     raw = answers.get(str(question.id))
-    return raw.strip() if isinstance(raw, str) else ''
+    if raw is None:
+        return ''
+    if question.question_type == 'choice':
+        if isinstance(raw, int) and not isinstance(raw, bool):
+            return question.options[raw] if 0 <= raw < len(question.options) else None
+        if isinstance(raw, str):
+            raw = raw.strip()
+            return raw if raw == '' or raw in question.options else None
+        return None
+    return raw.strip() if isinstance(raw, str) else None
 
 
 @require_POST
@@ -53,19 +69,26 @@ def submit_feedback(request, form_id, scenario_id):
     if not isinstance(answers, dict):
         return JsonResponse({'success': False, 'error': 'Invalid answers payload.'}, status=400)
 
+    language = display_language(form, scenario)
+    shown_text = {q['id']: q['text'] for q in serialize_form(form, language)['questions']}
     questions = list(form.questions.all())
+    cleaned = {}
     for question in questions:
         raw = _clean_answer(answers, question)
+        text = shown_text.get(question.id, question.text)
+        if raw is None:
+            return JsonResponse({'success': False, 'error': f'Invalid option for "{text}".'}, status=400)
         if question.is_required and not raw:
-            return JsonResponse({'success': False, 'error': f'Question "{question.text}" is required.'}, status=400)
-        if raw and question.question_type == 'choice' and raw not in question.options:
-            return JsonResponse({'success': False, 'error': f'Invalid option for "{question.text}".'}, status=400)
+            return JsonResponse({'success': False, 'error': f'Question "{text}" is required.'}, status=400)
+        cleaned[question.id] = raw
 
     try:
         with transaction.atomic():
-            response = FeedbackResponse.objects.create(form=form, user=request.user, scenario=scenario)
+            response = FeedbackResponse.objects.create(
+                form=form, user=request.user, scenario=scenario, language=language,
+            )
             for question in questions:
-                raw = _clean_answer(answers, question)
+                raw = cleaned[question.id]
                 if raw:
                     FeedbackAnswer.objects.create(response=response, question=question, answer_text=raw)
     except IntegrityError:
