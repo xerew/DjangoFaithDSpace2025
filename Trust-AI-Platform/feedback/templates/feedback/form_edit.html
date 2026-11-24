@@ -231,6 +231,10 @@ document.addEventListener('DOMContentLoaded', function () {
     row._id = (typeof q.id === 'number') ? q.id : null;
     row._translations = (q.translations && typeof q.translations === 'object') ? q.translations : {};
     row._answerCount = q.answer_count || 0;
+    // Original options as last seen, so translations can follow their wording
+    // when options are deleted, reordered or added.
+    row._lastOptions = (q.options || []).slice();
+    row.querySelector('.q-options').addEventListener('input', function () { remapOptionTranslations(row); });
     if (row._answerCount) {
       row.querySelector('.q-type').disabled = true;
       row.querySelector('.q-options').readOnly = true;
@@ -283,6 +287,24 @@ document.addEventListener('DOMContentLoaded', function () {
     return row.querySelector('.q-options').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
   }
   function isChoice(row) { return row.querySelector('.q-type').value === 'choice'; }
+  // Translated options belong to an original option's wording, not its
+  // position: a deleted option loses its translation, a moved one keeps it.
+  function remapOptionTranslations(row) {
+    const current = rowOptions(row);
+    Object.keys(row._translations).forEach(function (code) {
+      const tr = row._translations[code];
+      if (!tr || typeof tr !== 'object') return;
+      const old = Array.isArray(tr.options) ? tr.options : [];
+      const byWording = {};
+      row._lastOptions.forEach(function (opt, i) {
+        if (!(opt in byWording)) byWording[opt] = old[i];
+      });
+      tr.options = current.map(function (opt) {
+        return typeof byWording[opt] === 'string' ? byWording[opt] : '';
+      });
+    });
+    row._lastOptions = current;
+  }
   function formEntry(code) {
     if (!formTranslations[code] || typeof formTranslations[code] !== 'object') formTranslations[code] = {};
     return formTranslations[code];
