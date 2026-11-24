@@ -63,7 +63,7 @@
         <i class="bi bi-chevron-down" style="color:#888;"></i>
         <div>
           <div style="font-weight:600; font-size:14px; color:#012970;">{{ row.response.user.get_full_name|default:row.response.user.username }}</div>
-          <div class="response-meta">{{ row.response.scenario.name }} · {{ row.response.submitted_at|date:"d M Y, H:i" }}</div>
+          <div class="response-meta">{{ row.response.scenario.name }} · {{ row.response.submitted_at|date:"d M Y, H:i" }}{% if row.language %} · {{ row.language }}{% endif %}</div>
         </div>
         <form method="post" action="{% url 'feedback_response_delete' row.response.id %}" class="action-form" onsubmit="return confirm('Delete this response?');" onclick="event.stopPropagation();">
           {% csrf_token %}

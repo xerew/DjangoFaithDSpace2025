@@ -365,6 +365,7 @@ def feedback_form_responses(request, form_id):
         answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
         response_rows.append({
             'response': response,
+            'language': language_name(response.language),
             'answers': [(q, answer_map.get(q.id, '')) for q in questions],
         })
     return render(request, 'feedback/form_responses.html', {
@@ -387,13 +388,14 @@ def feedback_response_delete(request, response_id):
 def _export_rows(form):
     """Header row + one row per response, question columns in question order."""
     questions = list(form.questions.all())
-    header = ['Username', 'Scenario', 'Submitted'] + [q.text for q in questions]
+    header = ['Username', 'Scenario', 'Submitted', 'Language'] + [q.text for q in questions]
     rows = [header]
     responses = form.responses.select_related('user', 'scenario').prefetch_related('answers')
     for response in responses:
         answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
         rows.append(
-            [response.user.username, response.scenario.name, response.submitted_at.strftime('%Y-%m-%d %H:%M')]
+            [response.user.username, response.scenario.name, response.submitted_at.strftime('%Y-%m-%d %H:%M'),
+             response.language]
             + [answer_map.get(q.id, '') for q in questions]
         )
     return rows

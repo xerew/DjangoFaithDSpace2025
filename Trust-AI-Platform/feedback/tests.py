@@ -529,6 +529,26 @@ class FeedbackResponsesAndExportTests(TestCase):
         self.assertIn('Yes', rows[1])
         self.assertIn('Nice tool', rows[1])
 
+    def _add_greek_response(self):
+        self.response.language = 'en'
+        self.response.save()
+        greek_user = User.objects.create_user('fb_exp_el', password='pass')
+        greek = FeedbackResponse.objects.create(form=self.form, user=greek_user, scenario=self.scenario, language='el')
+        FeedbackAnswer.objects.create(response=greek, question=self.q1, answer_text='Yes')
+
+    def test_export_has_language_column_and_pools_answers(self):
+        from feedback.views import _export_rows
+        self._add_greek_response()
+        rows = _export_rows(self.form)
+        self.assertEqual(rows[0][:5], ['Username', 'Scenario', 'Submitted', 'Language', 'Useful?'])
+        self.assertEqual(sorted(r[3] for r in rows[1:]), ['el', 'en'])
+        self.assertEqual([r[4] for r in rows[1:]], ['Yes', 'Yes'])
+
+    def test_responses_page_shows_language(self):
+        self._add_greek_response()
+        r = self.client.get(reverse('feedback_form_responses', args=[self.form.id]))
+        self.assertContains(r, '· Greek')
+
     def test_exports_blocked_for_non_staff(self):
         self.client.logout()
         self.client.login(username='fb_exp_user', password='pass')
