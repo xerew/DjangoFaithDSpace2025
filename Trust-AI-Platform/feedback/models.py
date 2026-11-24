@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+from .languages import LANGUAGE_CHOICES
+
 
 class FeedbackForm(models.Model):
     AUDIENCE_CHOICES = [('teacher', 'Teacher'), ('student', 'Student')]
@@ -12,6 +14,10 @@ class FeedbackForm(models.Model):
     assign_to_all = models.BooleanField(default=True)
     included_scenarios = models.ManyToManyField('authoringtool.Scenario', blank=True, related_name='included_feedback_forms')
     excluded_scenarios = models.ManyToManyField('authoringtool.Scenario', blank=True, related_name='excluded_feedback_forms')
+    # Language of title, description, questions and options as typed.
+    source_language = models.CharField(max_length=8, choices=LANGUAGE_CHOICES, default='en')
+    # {"el": {"title": "...", "description": "..."}}
+    translations = models.JSONField(default=dict, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='feedback_forms')
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
@@ -39,6 +45,8 @@ class FeedbackQuestion(models.Model):
     options = models.JSONField(default=list, blank=True)
     is_required = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
+    # {"el": {"text": "...", "options": ["...", ...]}}; options match by position.
+    translations = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ['order', 'pk']
@@ -52,6 +60,8 @@ class FeedbackResponse(models.Model):
     # PROTECT: responses are research data, never deleted with the user or scenario.
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='feedback_responses')
     scenario = models.ForeignKey('authoringtool.Scenario', on_delete=models.PROTECT, related_name='feedback_responses')
+    # Language of the version the person was shown.
+    language = models.CharField(max_length=8, blank=True, default='')
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

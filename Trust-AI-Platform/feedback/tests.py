@@ -2,7 +2,7 @@ import json
 
 from django.contrib.auth.models import Group, User
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from authoringtool.models import Scenario
@@ -488,3 +488,65 @@ class FormEditorScenarioControlsTests(TestCase):
     def test_no_match_hint_rendered(self):
         r = self.client.get(reverse('feedback_form_create'))
         self.assertContains(r, 'id="scenarioNoMatch"')
+
+
+class FeedbackLanguageTests(SimpleTestCase):
+    def test_language_code_accepts_code_english_and_native_names(self):
+        from feedback.languages import language_code
+        self.assertEqual(language_code('Greek'), 'el')
+        self.assertEqual(language_code('GREEK'), 'el')
+        self.assertEqual(language_code(' ελληνικά '), 'el')
+        self.assertEqual(language_code('pt'), 'pt')
+        self.assertIsNone(language_code('Italian'))
+        self.assertIsNone(language_code(''))
+        self.assertIsNone(language_code(None))
+
+
+class FeedbackTranslationServingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('fb_tr', password='pass')
+
+        def mk(name, lang):
+            return Scenario.objects.create(name=name, language=lang, created_by=self.user, updated_by=self.user)
+
+        self.greek, self.italian, self.english, self.french = (
+            mk('TR el', 'Greek'), mk('TR it', 'Italian'), mk('TR en', 'English'), mk('TR fr', 'French'))
+        self.form = FeedbackForm.objects.create(
+            title='Feedback', description='Tell us', audience='student', created_by=self.user,
+            translations={'el': {'title': 'Σχόλια', 'description': ''}})
+        self.q1 = FeedbackQuestion.objects.create(
+            form=self.form, text='Useful?', question_type='choice', options=['Yes', 'No', 'Maybe'], order=1,
+            translations={'el': {'text': 'Χρήσιμο;', 'options': ['Ναι', '']}})
+        self.q2 = FeedbackQuestion.objects.create(form=self.form, text='Comments?', question_type='text', order=2)
+
+    def test_display_language_uses_scenario_language_when_translated(self):
+        from feedback.utils import display_language
+        self.assertEqual(display_language(self.form, self.greek), 'el')
+
+    def test_display_language_falls_back_to_source(self):
+        from feedback.utils import display_language
+        for scenario in (self.italian, self.english, self.french):  # French: no fr translation
+            self.assertEqual(display_language(self.form, scenario), 'en', scenario.language)
+
+    def test_serialize_translates_field_by_field(self):
+        from feedback.utils import serialize_form
+        data = serialize_form(self.form, 'el')
+        self.assertEqual(data['language'], 'el')
+        self.assertEqual(data['title'], 'Σχόλια')
+        self.assertEqual(data['description'], 'Tell us')
+        self.assertEqual(data['questions'][0]['text'], 'Χρήσιμο;')
+        self.assertEqual(data['questions'][0]['options'], ['Ναι', 'No', 'Maybe'])
+        self.assertEqual(data['questions'][1]['text'], 'Comments?')
+
+    def test_serialize_without_language_is_original(self):
+        from feedback.utils import serialize_form
+        data = serialize_form(self.form)
+        self.assertEqual((data['language'], data['title']), ('en', 'Feedback'))
+        self.assertEqual(data['questions'][0]['options'], ['Yes', 'No', 'Maybe'])
+
+    def test_translation_in_source_language_is_ignored(self):
+        from feedback.utils import display_language, serialize_form
+        self.form.source_language = 'el'
+        self.form.save()
+        self.assertEqual(display_language(self.form, self.greek), 'el')
+        self.assertEqual(serialize_form(self.form, 'el')['title'], 'Feedback')
