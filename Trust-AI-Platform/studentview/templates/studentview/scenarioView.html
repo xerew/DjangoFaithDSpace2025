@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
     formData.questions.forEach(function (q) {
       const els = document.getElementsByName('fbq_' + q.id);
       if (q.type === 'choice') {
-        for (const el of els) { if (el.checked) answers[q.id] = parseInt(el.value, 10); }
+        for (const el of els) { if (el.checked) { const i = parseInt(el.value, 10); answers[q.id] = {position: i, label: q.options[i]}; } }
       } else if (els.length) {
         answers[q.id] = els[0].value;
       }

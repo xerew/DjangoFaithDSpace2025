@@ -119,6 +119,30 @@ class FeedbackSubmitEndpointTests(TestCase):
         self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): 0, str(q.id): '5'})
         self.assertEqual(FeedbackAnswer.objects.get(question=q).answer_text, '5')
 
+    def test_position_with_shown_label_stores_original(self):
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit_to(self.greek, self.student_form, {str(self.q_choice.id): {'position': 1, 'label': 'Όχι'}})
+        self.assertTrue(r.json()['success'])
+        self.assertEqual(FeedbackAnswer.objects.get(question=self.q_choice).answer_text, 'No')
+
+    def test_stale_position_after_reorder_is_rejected(self):
+        # The page showed ['Yes', 'No']; an admin reordered the options before submit.
+        self.q_choice.options = ['No', 'Yes']
+        self.q_choice.translations = {}
+        self.q_choice.save()
+        self.client.login(username='fb_student', password='pass')
+        r = self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): {'position': 0, 'label': 'Yes'}})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('changed', r.json()['error'])
+        self.assertFalse(FeedbackResponse.objects.exists())
+
+    def test_malformed_position_objects_rejected(self):
+        self.client.login(username='fb_student', password='pass')
+        for bad in ({'position': 0}, {'label': 'Yes'}, {'position': True, 'label': 'No'}, {'position': 5, 'label': 'Yes'}):
+            r = self._submit_to(self.scenario, self.student_form, {str(self.q_choice.id): bad})
+            self.assertEqual(r.status_code, 400, bad)
+        self.assertFalse(FeedbackResponse.objects.exists())
+
     def test_legacy_text_submission_still_accepted(self):
         self.client.login(username='fb_student', password='pass')
         r = self._submit_to(self.greek, self.student_form, {str(self.q_choice.id): 'Yes'})

@@ -25,17 +25,36 @@ def staff_required(view_func):
     return _wrapped
 
 
-def _clean_answer(answers, question):
-    """The text to store for one answer: '' when unanswered, None when invalid.
+# Returned by _clean_answer when the chosen option is no longer where the page showed it.
+FORM_CHANGED = object()
 
-    A choice arrives as the option's position (a JSON integer) and is stored
-    in the original wording, whatever language the form was shown in. Pages
-    opened before positions were sent post the original wording as a string.
+
+def _is_position(value, count):
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value < count
+
+
+def _clean_answer(answers, question, shown_options=()):
+    """The text to store for one answer: '' when unanswered, None when invalid,
+    FORM_CHANGED when the form was edited after the page was opened.
+
+    The popup sends a choice as {"position": i, "label": shown text}; it is
+    stored in the original wording, whatever language the form was shown in.
+    The label must still be what the form shows at that position, so a page
+    opened before the options were reordered cannot store the wrong option.
+    A bare position and, for pages opened before positions were sent, the
+    original wording as a string are also accepted.
     """
     raw = answers.get(str(question.id))
     if raw is None:
         return ''
     if question.question_type == 'choice':
+        if isinstance(raw, dict):
+            position, label = raw.get('position'), raw.get('label')
+            if not _is_position(position, len(question.options)) or not isinstance(label, str):
+                return None
+            if position >= len(shown_options) or shown_options[position] != label:
+                return FORM_CHANGED
+            return question.options[position]
         if isinstance(raw, int) and not isinstance(raw, bool):
             return question.options[raw] if 0 <= raw < len(question.options) else None
         if isinstance(raw, str):
@@ -71,12 +90,18 @@ def submit_feedback(request, form_id, scenario_id):
         return JsonResponse({'success': False, 'error': 'Invalid answers payload.'}, status=400)
 
     language = display_language(form, scenario)
-    shown_text = {q['id']: q['text'] for q in serialize_form(form, language)['questions']}
+    shown = {q['id']: q for q in serialize_form(form, language)['questions']}
     questions = list(form.questions.all())
     cleaned = {}
     for question in questions:
-        raw = _clean_answer(answers, question)
-        text = shown_text.get(question.id, question.text)
+        shown_question = shown.get(question.id, {})
+        raw = _clean_answer(answers, question, shown_question.get('options', ()))
+        text = shown_question.get('text', question.text)
+        if raw is FORM_CHANGED:
+            return JsonResponse({
+                'success': False,
+                'error': 'This form has changed since you opened it. Please reload the page and answer again.',
+            }, status=400)
         if raw is None:
             return JsonResponse({'success': False, 'error': f'Invalid option for "{text}".'}, status=400)
         if question.is_required and not raw:
