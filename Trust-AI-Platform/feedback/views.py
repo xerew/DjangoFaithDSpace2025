@@ -11,7 +11,7 @@ from functools import wraps
 
 from authoringtool.models import Scenario
 from .models import FeedbackAnswer, FeedbackForm, FeedbackQuestion, FeedbackResponse
-from .languages import LANGUAGE_CODES, language_name
+from .languages import FEEDBACK_LANGUAGES, LANGUAGE_CODES, language_name
 from .utils import display_language, serialize_form
 
 
@@ -286,6 +286,43 @@ def feedback_form_list(request):
     return render(request, 'feedback/form_list.html', {'forms': forms})
 
 
+def _editor_context(request, form, error=None):
+    """Context for the form editor. After a failed save it re-shows what was
+    posted, with answer counts taken from the database so locks stay on."""
+    context = {
+        'form_obj': form, 'scenarios': Scenario.objects.order_by('name'),
+        'languages': FEEDBACK_LANGUAGES,
+    }
+    if request.method != 'POST':
+        context.update({
+            'questions_json': _editor_questions_json(form) if form else '[]',
+            'form_translations_json': json.dumps(form.translations or {}) if form else '{}',
+            'source_language': form.source_language if form else 'en',
+        })
+        return context
+    try:
+        posted = json.loads(request.POST.get('questions_json') or '[]')
+    except json.JSONDecodeError:
+        posted = []
+    if not isinstance(posted, list):
+        posted = []
+    counts = {}
+    if form is not None:
+        counts = dict(form.questions.annotate(n=Count('answers')).values_list('id', 'n'))
+    for item in posted:
+        if isinstance(item, dict):
+            item['answer_count'] = counts.get(item.get('id'), 0)
+    context.update({
+        'error': error,
+        'questions_json': json.dumps(posted),
+        'form_translations_json': request.POST.get('form_translations_json') or '{}',
+        'source_language': request.POST.get('source_language') or 'en',
+        'posted': request.POST,
+        'posted_scenario_ids': {int(s) for s in request.POST.getlist('scenarios') if s.isdigit()},
+    })
+    return context
+
+
 @staff_required
 def feedback_form_create(request):
     if request.method == 'POST':
@@ -293,15 +330,8 @@ def feedback_form_create(request):
         if error is None:
             messages.success(request, 'Feedback form created.')
             return redirect('feedback_form_list')
-        return render(request, 'feedback/form_edit.html', {
-            'form_obj': None, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
-            'questions_json': request.POST.get('questions_json') or '[]',
-            'posted': request.POST,
-            'posted_scenario_ids': {int(s) for s in request.POST.getlist('scenarios') if s.isdigit()},
-        })
-    return render(request, 'feedback/form_edit.html', {
-        'form_obj': None, 'scenarios': Scenario.objects.order_by('name'), 'questions_json': '[]',
-    })
+        return render(request, 'feedback/form_edit.html', _editor_context(request, None, error))
+    return render(request, 'feedback/form_edit.html', _editor_context(request, None))
 
 
 @staff_required
@@ -312,16 +342,8 @@ def feedback_form_edit(request, form_id):
         if error is None:
             messages.success(request, 'Feedback form updated.')
             return redirect('feedback_form_list')
-        return render(request, 'feedback/form_edit.html', {
-            'form_obj': form, 'error': error, 'scenarios': Scenario.objects.order_by('name'),
-            'questions_json': request.POST.get('questions_json') or '[]',
-            'posted': request.POST,
-            'posted_scenario_ids': {int(s) for s in request.POST.getlist('scenarios') if s.isdigit()},
-        })
-    questions_json = _editor_questions_json(form)
-    return render(request, 'feedback/form_edit.html', {
-        'form_obj': form, 'scenarios': Scenario.objects.order_by('name'), 'questions_json': questions_json,
-    })
+        return render(request, 'feedback/form_edit.html', _editor_context(request, form, error))
+    return render(request, 'feedback/form_edit.html', _editor_context(request, form))
 
 
 @require_POST

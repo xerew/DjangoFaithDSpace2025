@@ -26,6 +26,12 @@
   .question-row { border:1px solid #e8edf5; border-radius:10px; padding:14px; margin-bottom:10px; background:#fafbff; }
   .question-row .remove-q { color:#c62828; background:none; border:none; cursor:pointer; }
   .scenario-box { max-height: 260px; overflow-y: auto; border:1px solid #e8edf5; border-radius:10px; padding:12px 14px; }
+  .lang-tabs { border-bottom:1px solid #e8edf5; margin-bottom:16px; flex-wrap:wrap; }
+  .lang-tabs .nav-link { font-size:13px; color:#555; padding:6px 12px; }
+  .lang-tabs .nav-link.active { color:#1a56db; font-weight:600; }
+  .tr-original { font-size:12.5px; color:#666; margin-bottom:4px; }
+  .tr-block { border:1px solid #e8edf5; border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#fafbff; }
+  .q-locked-note { font-size:12px; color:#92400e; margin-top:6px; }
   .warn-banner { background:#fef3c7; color:#92400e; border-radius:8px; padding:10px 14px; font-size:13px; margin-bottom:14px; }
 </style>
 
@@ -52,7 +58,7 @@
       <div class="card-body p-4">
         {% if form_obj and form_obj.responses.exists %}
         <div class="warn-banner"><i class="bi bi-exclamation-triangle-fill me-1"></i>
-          This form already has responses. Saving will replace all questions and <strong>permanently erase the answers already collected</strong> — export the responses first if you need them.
+          This form already has responses. Removing a question erases its answers; editing text and translations keeps them.
         </div>
         {% endif %}
         {% if error %}
@@ -61,14 +67,32 @@
 
         <form method="post" id="feedbackFormEditor">
           {% csrf_token %}
-          <div class="mb-3">
-            <label class="field-label">Title</label>
-            <input type="text" name="title" class="form-control" required
-                   value="{% if posted %}{{ posted.title }}{% elif form_obj %}{{ form_obj.title }}{% endif %}">
+          <ul class="nav lang-tabs" id="langTabs">
+            <li class="nav-item"><button type="button" class="nav-link lang-tab active" data-lang="">Original</button></li>
+            {% for code, english, native in languages %}
+            <li class="nav-item"><button type="button" class="nav-link lang-tab" data-lang="{{ code }}" data-native="{{ native }}">{{ native }}</button></li>
+            {% endfor %}
+          </ul>
+          <div id="translationPane" style="display:none;"></div>
+          <div id="originalPane">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-8">
+              <label class="field-label">Title</label>
+              <input type="text" name="title" id="formTitle" class="form-control" required
+                     value="{% if posted %}{{ posted.title }}{% elif form_obj %}{{ form_obj.title }}{% endif %}">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="field-label">Original language</label>
+              <select name="source_language" id="sourceLanguage" class="form-select">
+                {% for code, english, native in languages %}
+                <option value="{{ code }}" {% if code == source_language %}selected{% endif %}>{{ native }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="mb-3">
             <label class="field-label">Description (shown above the questions)</label>
-            <textarea name="description" class="form-control" rows="2">{% if posted %}{{ posted.description }}{% elif form_obj %}{{ form_obj.description }}{% endif %}</textarea>
+            <textarea name="description" id="formDescription" class="form-control" rows="2">{% if posted %}{{ posted.description }}{% elif form_obj %}{{ form_obj.description }}{% endif %}</textarea>
           </div>
           <div class="row g-3 mb-3">
             <div class="col-12 col-md-6">
@@ -93,7 +117,9 @@
             <button type="button" class="btn btn-sm btn-outline-primary" id="addQuestionBtn"><i class="bi bi-plus-lg"></i> Add question</button>
           </div>
           <div id="questionList"></div>
+          </div>
           <input type="hidden" name="questions_json" id="questionsJson">
+          <input type="hidden" name="form_translations_json" id="formTranslationsJson">
 
           <hr>
           <label class="field-label">Scenario assignment</label>
@@ -139,6 +165,7 @@
 </main>
 
 {{ questions_json|json_script:"initialQuestions" }}
+{{ form_translations_json|json_script:"initialFormTranslations" }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const list = document.getElementById('questionList');
@@ -201,12 +228,27 @@ document.addEventListener('DOMContentLoaded', function () {
     row.querySelector('.q-type').value = q.type || 'choice';
     row.querySelector('.q-required').checked = q.required !== false;
     row.querySelector('.q-options').value = (q.options || []).join('\n');
+    row._id = (typeof q.id === 'number') ? q.id : null;
+    row._translations = (q.translations && typeof q.translations === 'object') ? q.translations : {};
+    row._answerCount = q.answer_count || 0;
+    if (row._answerCount) {
+      row.querySelector('.q-type').disabled = true;
+      row.querySelector('.q-options').readOnly = true;
+      const note = document.createElement('div');
+      note.className = 'q-locked-note';
+      note.textContent = 'Has answers: type and options are locked.';
+      row.appendChild(note);
+    }
     function syncOptionsVisibility() {
       row.querySelector('.q-options-wrap').style.display =
         row.querySelector('.q-type').value === 'choice' ? '' : 'none';
     }
     row.querySelector('.q-type').addEventListener('change', syncOptionsVisibility);
-    row.querySelector('.remove-q').addEventListener('click', function () { row.remove(); });
+    row.querySelector('.remove-q').addEventListener('click', function () {
+      if (row._answerCount && !confirm('Removing this question erases its ' + row._answerCount + ' answers. Continue?')) return;
+      row.remove();
+      refreshTabLabels();
+    });
     syncOptionsVisibility();
     return row;
   }
@@ -222,17 +264,152 @@ document.addEventListener('DOMContentLoaded', function () {
     initial.forEach(function (q) { list.appendChild(questionRow(q)); });
   }
 
+  // ── Translations ──
+  const titleInput = document.getElementById('formTitle');
+  const descInput = document.getElementById('formDescription');
+  const sourceSelect = document.getElementById('sourceLanguage');
+  const originalPane = document.getElementById('originalPane');
+  const translationPane = document.getElementById('translationPane');
+  const tabs = Array.from(document.querySelectorAll('.lang-tab'));
+  let formTranslations = {};
+  try {
+    const parsed = JSON.parse(JSON.parse(document.getElementById('initialFormTranslations').textContent));
+    if (parsed && typeof parsed === 'object') formTranslations = parsed;
+  } catch (e) { formTranslations = {}; }
+  let activeLang = '';
+
+  function rows() { return Array.from(list.querySelectorAll('.question-row')); }
+  function rowOptions(row) {
+    return row.querySelector('.q-options').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function isChoice(row) { return row.querySelector('.q-type').value === 'choice'; }
+  function formEntry(code) {
+    if (!formTranslations[code] || typeof formTranslations[code] !== 'object') formTranslations[code] = {};
+    return formTranslations[code];
+  }
+  function rowEntry(row, code) {
+    if (!row._translations[code] || typeof row._translations[code] !== 'object') row._translations[code] = {};
+    const entry = row._translations[code];
+    if (!Array.isArray(entry.options)) entry.options = [];
+    return entry;
+  }
+  function blank(v) { return !(typeof v === 'string' && v.trim()); }
+
+  function countEmpty(code) {
+    let n = 0;
+    const ft = formTranslations[code] || {};
+    if (!blank(titleInput.value) && blank(ft.title)) n++;
+    if (!blank(descInput.value) && blank(ft.description)) n++;
+    rows().forEach(function (row) {
+      const tr = row._translations[code] || {};
+      if (!blank(row.querySelector('.q-text').value) && blank(tr.text)) n++;
+      if (isChoice(row)) {
+        const opts = Array.isArray(tr.options) ? tr.options : [];
+        rowOptions(row).forEach(function (_o, i) { if (blank(opts[i])) n++; });
+      }
+    });
+    return n;
+  }
+
+  function refreshTabLabels() {
+    tabs.forEach(function (tab) {
+      const code = tab.dataset.lang;
+      if (!code) return;
+      tab.parentElement.style.display = code === sourceSelect.value ? 'none' : '';
+      const empty = countEmpty(code);
+      tab.textContent = tab.dataset.native + (empty ? ' (' + empty + ' empty)' : '');
+    });
+  }
+
+  function field(parent, original, value, multiline, onInput) {
+    const label = document.createElement('div');
+    label.className = 'tr-original';
+    label.textContent = original;
+    const input = document.createElement(multiline ? 'textarea' : 'input');
+    input.className = 'form-control form-control-sm mb-2';
+    if (!multiline) input.type = 'text';
+    else input.rows = 2;
+    input.placeholder = original;
+    input.value = value || '';
+    input.addEventListener('input', function () { onInput(input.value); refreshTabLabels(); });
+    parent.appendChild(label);
+    parent.appendChild(input);
+  }
+
+  function renderTranslationPane(code) {
+    translationPane.innerHTML = '';
+    const ft = formEntry(code);
+    const head = document.createElement('div');
+    head.className = 'tr-block';
+    field(head, 'Title: ' + titleInput.value, ft.title, false, function (v) { ft.title = v; });
+    if (!blank(descInput.value)) {
+      field(head, 'Description: ' + descInput.value, ft.description, true, function (v) { ft.description = v; });
+    }
+    translationPane.appendChild(head);
+    rows().forEach(function (row, n) {
+      const original = row.querySelector('.q-text').value;
+      if (blank(original)) return;
+      const tr = rowEntry(row, code);
+      const block = document.createElement('div');
+      block.className = 'tr-block';
+      field(block, 'Question ' + (n + 1) + ': ' + original, tr.text, false, function (v) { tr.text = v; });
+      if (isChoice(row)) {
+        rowOptions(row).forEach(function (opt, i) {
+          field(block, 'Option ' + (i + 1) + ': ' + opt, tr.options[i], false, function (v) { tr.options[i] = v; });
+        });
+      }
+      translationPane.appendChild(block);
+    });
+  }
+
+  function showTab(code) {
+    activeLang = code;
+    tabs.forEach(function (tab) { tab.classList.toggle('active', tab.dataset.lang === code); });
+    if (code) {
+      renderTranslationPane(code);
+      originalPane.style.display = 'none';
+      translationPane.style.display = '';
+    } else {
+      translationPane.style.display = 'none';
+      originalPane.style.display = '';
+    }
+    refreshTabLabels();
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () { showTab(tab.dataset.lang); });
+  });
+  sourceSelect.addEventListener('change', function () {
+    if (activeLang === sourceSelect.value) showTab('');
+    else refreshTabLabels();
+  });
+  originalPane.addEventListener('input', refreshTabLabels);
+  refreshTabLabels();
+
   editorForm.addEventListener('submit', function () {
     const questions = [];
-    list.querySelectorAll('.question-row').forEach(function (row) {
+    rows().forEach(function (row) {
+      const options = rowOptions(row);
+      const translations = {};
+      Object.keys(row._translations).forEach(function (code) {
+        const tr = row._translations[code] || {};
+        translations[code] = {
+          text: typeof tr.text === 'string' ? tr.text : '',
+          // Never more translated options than original ones.
+          options: (Array.isArray(tr.options) ? tr.options : []).slice(0, isChoice(row) ? options.length : 0),
+        };
+      });
       questions.push({
+        id: row._id,
         text: row.querySelector('.q-text').value,
         type: row.querySelector('.q-type').value,
-        options: row.querySelector('.q-options').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean),
+        options: options,
         required: row.querySelector('.q-required').checked,
+        translations: translations,
       });
     });
     hiddenInput.value = JSON.stringify(questions);
+    document.getElementById('formTranslationsJson').value = JSON.stringify(formTranslations);
   });
 });
 </script>

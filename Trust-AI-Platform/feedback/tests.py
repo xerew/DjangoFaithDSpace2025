@@ -411,6 +411,24 @@ class FeedbackManagementViewTests(TestCase):
         self.assertEqual((item['id'], item['answer_count']), (q.id, 1))
         self.assertEqual(item['translations'], q.translations)
 
+    def test_edit_page_has_language_controls_and_new_banner(self):
+        form, q, _ = self._answered_form()
+        self.client.login(username='fb_staff', password='pass')
+        content = self.client.get(reverse('feedback_form_edit', args=[form.id])).content.decode()
+        self.assertIn('name="source_language"', content)
+        self.assertIn('name="form_translations_json"', content)
+        self.assertIn('data-lang="el"', content)
+        self.assertIn('Removing a question erases its answers', content)
+        self.assertNotIn('permanently erase the answers already collected', content)
+
+    def test_validation_error_keeps_posted_translations(self):
+        form, q, _ = self._answered_form()
+        r = self._post_edit(form, [self._q(q, options=['Yes', 'No', 'Maybe'])],
+                            form_translations={'el': {'title': 'Σχόλια', 'description': ''}}, source_language='en')
+        self.assertContains(r, 'already has answers')
+        self.assertEqual(json.loads(r.context['form_translations_json']), {'el': {'title': 'Σχόλια', 'description': ''}})
+        self.assertEqual(r.context['source_language'], 'en')
+
     def test_delete_form(self):
         form = FeedbackForm.objects.create(title='Doomed', audience='student', created_by=self.staff)
         self.client.login(username='fb_staff', password='pass')
