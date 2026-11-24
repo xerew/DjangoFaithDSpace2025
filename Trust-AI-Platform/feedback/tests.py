@@ -305,17 +305,111 @@ class FeedbackManagementViewTests(TestCase):
         self.assertTrue(form.applies_to(self.scenario))
         self.assertFalse(form.applies_to(other))
 
-    def test_edit_replaces_questions(self):
-        form = FeedbackForm.objects.create(title='Editable', audience='student', created_by=self.staff)
-        FeedbackQuestion.objects.create(form=form, text='Old Q', question_type='text', order=1)
+    def _answered_form(self, title='Editable'):
+        form = FeedbackForm.objects.create(title=title, audience='student', created_by=self.staff)
+        q = FeedbackQuestion.objects.create(form=form, text='Useful?', question_type='choice',
+                                            options=['Yes', 'No'], order=0)
+        response = FeedbackResponse.objects.create(form=form, user=self.plain, scenario=self.scenario)
+        answer = FeedbackAnswer.objects.create(response=response, question=q, answer_text='No')
+        return form, q, answer
+
+    def _q(self, q, **changes):
+        data = {'id': q.id, 'text': q.text, 'type': q.question_type, 'options': list(q.options),
+                'required': q.is_required, 'translations': {}}
+        data.update(changes)
+        return data
+
+    def _post_edit(self, form, questions, form_translations=None, source_language='en'):
         self.client.login(username='fb_staff', password='pass')
-        self.client.post(reverse('feedback_form_edit', args=[form.id]), {
-            'title': 'Editable v2', 'audience': 'student', 'is_active': 'on', 'assign_to_all': 'on',
-            'questions_json': json.dumps([{'text': 'New Q', 'type': 'text', 'options': [], 'required': True}]),
+        return self.client.post(reverse('feedback_form_edit', args=[form.id]), {
+            'title': form.title, 'audience': form.audience, 'is_active': 'on', 'assign_to_all': 'on',
+            'source_language': source_language,
+            'questions_json': json.dumps(questions),
+            'form_translations_json': json.dumps(form_translations or {}),
         })
+
+    def test_edit_keeps_answers_when_translating(self):
+        form, q, answer = self._answered_form()
+        self._post_edit(form, [self._q(q, translations={'el': {'text': 'Χρήσιμο;', 'options': ['Ναι', 'Όχι']}})],
+                        form_translations={'el': {'title': 'Σχόλια', 'description': ''}})
+        q.refresh_from_db()
         form.refresh_from_db()
-        self.assertEqual(form.title, 'Editable v2')
-        self.assertEqual(list(form.questions.values_list('text', flat=True)), ['New Q'])
+        self.assertTrue(FeedbackAnswer.objects.filter(pk=answer.pk).exists())
+        self.assertEqual(q.translations['el']['options'], ['Ναι', 'Όχι'])
+        self.assertEqual(form.translations['el']['title'], 'Σχόλια')
+
+    def test_edit_creates_new_and_deletes_missing_questions(self):
+        form, q_keep, keep_answer = self._answered_form()
+        q_keep.text = 'Keep'
+        q_keep.save()
+        q_drop = FeedbackQuestion.objects.create(form=form, text='Drop', question_type='text', order=1)
+        drop_answer = FeedbackAnswer.objects.create(response=keep_answer.response, question=q_drop, answer_text='x')
+        self._post_edit(form, [self._q(q_keep),
+                               {'id': None, 'text': 'New', 'type': 'text', 'options': [], 'required': False}])
+        self.assertFalse(FeedbackQuestion.objects.filter(pk=q_drop.pk).exists())
+        self.assertFalse(FeedbackAnswer.objects.filter(pk=drop_answer.pk).exists())
+        self.assertTrue(FeedbackAnswer.objects.filter(pk=keep_answer.pk).exists())
+        self.assertEqual(list(form.questions.values_list('text', flat=True)), ['Keep', 'New'])
+
+    def test_answered_question_options_and_type_are_locked(self):
+        form, q, answer = self._answered_form()
+        for change in ({'options': ['Yes', 'No', 'Maybe']}, {'type': 'text', 'options': []}):
+            r = self._post_edit(form, [self._q(q, **change)])
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, 'already has answers')
+            q.refresh_from_db()
+            self.assertEqual((q.question_type, q.options), ('choice', ['Yes', 'No']))
+            self.assertTrue(FeedbackAnswer.objects.filter(pk=answer.pk).exists())
+
+    def test_unanswered_question_options_can_change(self):
+        form = FeedbackForm.objects.create(title='Fresh', audience='student', created_by=self.staff)
+        q = FeedbackQuestion.objects.create(form=form, text='Useful?', question_type='choice',
+                                            options=['Yes', 'No'], order=0)
+        self._post_edit(form, [self._q(q, options=['Yes', 'No', 'Maybe'])])
+        q.refresh_from_db()
+        self.assertEqual(q.options, ['Yes', 'No', 'Maybe'])
+
+    def test_foreign_question_id_rejected(self):
+        form, _q, _a = self._answered_form()
+        other, other_q, _ = self._answered_form(title='Other')
+        r = self._post_edit(form, [self._q(other_q, text='Hijacked')])
+        self.assertContains(r, 'Invalid question data.')
+        other_q.refresh_from_db()
+        self.assertEqual((other_q.text, other_q.form_id), ('Useful?', other.id))
+
+    def test_translation_validation(self):
+        form, q, _ = self._answered_form()
+        r = self._post_edit(form, [self._q(q, translations={'it': {'text': 'Utile?', 'options': []}})])
+        self.assertContains(r, 'Unknown translation language: it.')
+        r = self._post_edit(form, [self._q(q, translations={'el': {'text': 'Χρήσιμο;', 'options': ['Ναι', 'Όχι', 'Ίσως']}})])
+        self.assertContains(r, 'The Greek translation of &quot;Useful?&quot; has more options than the original.')
+
+    def test_whitespace_translations_are_saved_empty(self):
+        form, q, _ = self._answered_form()
+        self._post_edit(form, [self._q(q, translations={'el': {'text': '   ', 'options': [' ', 'Όχι']}})])
+        q.refresh_from_db()
+        self.assertEqual(q.translations, {'el': {'text': '', 'options': ['', 'Όχι']}})
+
+    def test_source_language_saved_and_validated(self):
+        self.client.login(username='fb_staff', password='pass')
+        payload = {'title': 'Greek original', 'audience': 'student', 'is_active': 'on', 'assign_to_all': 'on',
+                   'source_language': 'el',
+                   'questions_json': json.dumps([{'text': 'Χρήσιμο;', 'type': 'text', 'options': [], 'required': True}])}
+        self.client.post(reverse('feedback_form_create'), payload)
+        self.assertEqual(FeedbackForm.objects.get(title='Greek original').source_language, 'el')
+        r = self.client.post(reverse('feedback_form_create'), dict(payload, title='Bad', source_language='xx'))
+        self.assertContains(r, 'Invalid original language.')
+        self.assertFalse(FeedbackForm.objects.filter(title='Bad').exists())
+
+    def test_edit_page_lists_ids_translations_and_answer_counts(self):
+        form, q, _ = self._answered_form()
+        q.translations = {'el': {'text': 'Χρήσιμο;', 'options': ['Ναι', 'Όχι']}}
+        q.save()
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.get(reverse('feedback_form_edit', args=[form.id]))
+        item = json.loads(r.context['questions_json'])[0]
+        self.assertEqual((item['id'], item['answer_count']), (q.id, 1))
+        self.assertEqual(item['translations'], q.translations)
 
     def test_delete_form(self):
         form = FeedbackForm.objects.create(title='Doomed', audience='student', created_by=self.staff)
