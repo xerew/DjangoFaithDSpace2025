@@ -806,6 +806,17 @@ class DeleteDatabaseData(Action):
                 """,
                 (scenario_id, user_id)
             )
+            # Retire the attempt too: Start resumes from the newest
+            # non-abandoned attempt, so a kept attempt would say "already
+            # completed" or jump back to the old question. The row is kept.
+            cursor.execute(
+                """
+                UPDATE authoringtool_scenarioimplementation
+                SET status = 'abandoned'
+                WHERE user_id = %s AND scenario_id = %s AND status <> 'abandoned'
+                """,
+                (user_id, scenario_id)
+            )
             conn.commit()
         except Exception as e:
             conn.rollback()

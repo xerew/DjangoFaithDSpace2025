@@ -73,6 +73,26 @@ class RestartRuleTests(unittest.TestCase):
         cursor, _ = run_action(actions.DeleteDatabaseData(), can_reset=True)
         self.assertTrue([s for s in cursor.statements if s.startswith('DELETE')])
 
+    def test_teacher_reset_retires_their_attempt(self):
+        # Rasa resumes from the newest non-abandoned attempt, so a teacher's
+        # completed or half-done attempt must not survive the reset; otherwise
+        # Start says "already completed" or resumes at the old question.
+        cursor, _ = run_action(actions.DeleteDatabaseData(), can_reset=True)
+        retire = [
+            s for s in cursor.statements
+            if s.startswith('UPDATE authoringtool_scenarioimplementation')
+            and "status = 'abandoned'" in s
+        ]
+        self.assertTrue(retire, 'the teacher attempt must be marked abandoned')
+        self.assertIn('user_id = %s', retire[0])
+        self.assertIn('scenario_id = %s', retire[0])
+
+    def test_student_restart_keeps_attempt(self):
+        cursor, _ = run_action(actions.DeleteDatabaseData(), can_reset=False)
+        self.assertFalse(
+            [s for s in cursor.statements if 'scenarioimplementation' in s and s.startswith('UPDATE')],
+        )
+
     def test_student_is_not_offered_a_restart_confirmation(self):
         _, texts = run_action(actions.ActionConfirm(), can_reset=False)
         self.assertIn('Restarting the scenario is not available', ' '.join(texts))
