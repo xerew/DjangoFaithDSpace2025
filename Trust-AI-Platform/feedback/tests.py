@@ -583,6 +583,11 @@ class TeacherFeedbackTriggerTests(TestCase):
         self.assertIsNotNone(r.context['feedback_form_json'])
         self.assertContains(r, 'feedbackModal')
 
+    def test_popup_has_no_skip_button(self):
+        r = self._create_personal()
+        self.assertContains(r, 'id="feedbackModalSubmit"')
+        self.assertNotContains(r, 'data-bs-dismiss="modal">Skip</button>')
+
     def test_no_modal_without_creation_flow(self):
         r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
         self.assertIsNone(r.context['feedback_form_json'])
@@ -649,6 +654,12 @@ class StudentFeedbackTriggerTests(TestCase):
         r = self.client.get(reverse('studentView', args=[self.scenario.id]))
         data = json.loads(r.context['feedback_form_json'])
         self.assertEqual((data['language'], data['title']), ('el', 'Σχόλια'))
+
+    def test_popup_has_no_skip_button(self):
+        self.client.login(username='fb_sv_student', password='pass')
+        r = self.client.get(reverse('studentView', args=[self.scenario.id]))
+        self.assertContains(r, 'id="feedbackModalSubmit"')
+        self.assertNotContains(r, 'data-bs-dismiss="modal">Skip</button>')
 
     def test_teacher_gets_no_feedback_form(self):
         self.client.login(username='fb_sv_teacher', password='pass')
