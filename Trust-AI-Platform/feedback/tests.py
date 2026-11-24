@@ -573,6 +573,15 @@ class FeedbackResponsesAndExportTests(TestCase):
         r = self.client.get(reverse('feedback_form_responses', args=[self.form.id]))
         self.assertContains(r, '· Greek')
 
+    def test_response_without_language_shows_form_original_language(self):
+        from feedback.views import _export_rows
+        self.assertEqual(self.response.language, '')  # given before languages were recorded
+        self.form.source_language = 'el'
+        self.form.save()
+        self.assertEqual(_export_rows(self.form)[1][3], 'el')
+        r = self.client.get(reverse('feedback_form_responses', args=[self.form.id]))
+        self.assertContains(r, '· Greek')
+
     def test_exports_blocked_for_non_staff(self):
         self.client.logout()
         self.client.login(username='fb_exp_user', password='pass')

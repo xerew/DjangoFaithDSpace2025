@@ -390,7 +390,7 @@ def feedback_form_responses(request, form_id):
         answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
         response_rows.append({
             'response': response,
-            'language': language_name(response.language),
+            'language': language_name(response.language or form.source_language),
             'answers': [(q, answer_map.get(q.id, '')) for q in questions],
         })
     return render(request, 'feedback/form_responses.html', {
@@ -420,7 +420,7 @@ def _export_rows(form):
         answer_map = {a.question_id: a.answer_text for a in response.answers.all()}
         rows.append(
             [response.user.username, response.scenario.name, response.submitted_at.strftime('%Y-%m-%d %H:%M'),
-             response.language]
+             response.language or form.source_language]
             + [answer_map.get(q.id, '') for q in questions]
         )
     return rows

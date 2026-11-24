@@ -3,14 +3,6 @@
 from django.db import migrations, models
 
 
-def mark_existing_responses(apps, schema_editor):
-    """Responses so far saw the original text."""
-    FeedbackResponse = apps.get_model('feedback', 'FeedbackResponse')
-    for response in FeedbackResponse.objects.select_related('form').filter(language=''):
-        response.language = response.form.source_language
-        response.save(update_fields=['language'])
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -38,5 +30,4 @@ class Migration(migrations.Migration):
             name='language',
             field=models.CharField(blank=True, default='', max_length=8),
         ),
-        migrations.RunPython(mark_existing_responses, migrations.RunPython.noop),
     ]

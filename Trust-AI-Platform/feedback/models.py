@@ -60,7 +60,8 @@ class FeedbackResponse(models.Model):
     # PROTECT: responses are research data, never deleted with the user or scenario.
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='feedback_responses')
     scenario = models.ForeignKey('authoringtool.Scenario', on_delete=models.PROTECT, related_name='feedback_responses')
-    # Language of the version the person was shown.
+    # Language of the version the person was shown. Blank for responses given
+    # before languages were recorded: they saw the form's original language.
     language = models.CharField(max_length=8, blank=True, default='')
     submitted_at = models.DateTimeField(auto_now_add=True)
 

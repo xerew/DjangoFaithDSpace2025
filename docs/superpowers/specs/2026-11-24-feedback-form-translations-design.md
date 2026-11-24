@@ -88,8 +88,11 @@ The user picked A.
   translates the original `options[i]`; a missing or blank entry falls back to
   the original.
 - `FeedbackResponse.language`: code of the version the person saw, blank
-  allowed. A data migration sets existing responses to their form's
-  `source_language`, since they saw the original text.
+  allowed. Responses given before this change stay blank and are shown and
+  exported as their form's current `source_language`, so correcting a form's
+  original language also corrects its older responses. *(Changed after the
+  final review: a one-time backfill would have stamped every old response
+  `en`, even for forms written in another language.)*
 
 ### Choosing the language
 
