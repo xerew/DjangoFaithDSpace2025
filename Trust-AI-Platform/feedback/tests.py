@@ -435,6 +435,16 @@ class FeedbackManagementViewTests(TestCase):
         self.assertEqual((item['id'], item['answer_count']), (q.id, 1))
         self.assertEqual(item['translations'], q.translations)
 
+    def test_edit_page_keeps_question_order(self):
+        # Created out of order, so pk order differs from the saved order.
+        form = FeedbackForm.objects.create(title='Ordered', audience='student', created_by=self.staff)
+        FeedbackQuestion.objects.create(form=form, text='Second', question_type='text', order=1)
+        FeedbackQuestion.objects.create(form=form, text='First', question_type='text', order=0)
+        self.client.login(username='fb_staff', password='pass')
+        r = self.client.get(reverse('feedback_form_edit', args=[form.id]))
+        texts = [item['text'] for item in json.loads(r.context['questions_json'])]
+        self.assertEqual(texts, ['First', 'Second'])
+
     def test_edit_page_has_language_controls_and_new_banner(self):
         form, q, _ = self._answered_form()
         self.client.login(username='fb_staff', password='pass')

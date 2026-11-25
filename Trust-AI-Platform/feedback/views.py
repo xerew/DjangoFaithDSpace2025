@@ -298,7 +298,9 @@ def _editor_questions_json(form):
             'required': q.is_required, 'translations': q.translations or {},
             'answer_count': q.answer_count,
         }
-        for q in form.questions.annotate(answer_count=Count('answers'))
+        # Explicit order_by: Django drops Meta.ordering from GROUP BY queries,
+        # and saving the editor writes back whatever order it shows.
+        for q in form.questions.annotate(answer_count=Count('answers')).order_by('order', 'pk')
     ])
 
 
