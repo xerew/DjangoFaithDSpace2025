@@ -850,12 +850,12 @@ document.querySelectorAll('.collapse').forEach(el => {
 
 {% if feedback_form_json %}
 {{ feedback_form_json|json_script:"feedbackFormData" }}
-<div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content" style="border-radius:14px;">
       <div class="modal-header" style="background:linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%);color:#fff;border-radius:14px 14px 0 0;">
         <h5 class="modal-title" id="feedbackModalTitle" style="font-size:16px;font-weight:700;"></h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        {% comment "Close button hidden for now so the form gets answered; remove this comment tag to show it again." %}<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>{% endcomment %}
       </div>
       <div class="modal-body">
         <p class="text-muted" id="feedbackModalDesc" style="font-size:13.5px;"></p>

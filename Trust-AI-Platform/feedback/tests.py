@@ -9,6 +9,17 @@ from authoringtool.models import Scenario
 from feedback.models import FeedbackAnswer, FeedbackForm, FeedbackQuestion, FeedbackResponse
 
 
+def assert_popup_cannot_be_closed(test, response):
+    """The feedback popup has no close button and ignores outside clicks and Escape."""
+    html = response.content.decode()
+    start = html.index('id="feedbackModal"')
+    opening = html[html.rindex('<div', 0, start):html.index('>', start)]
+    test.assertIn('data-bs-backdrop="static"', opening)
+    test.assertIn('data-bs-keyboard="false"', opening)
+    popup = html[start:html.index('id="feedbackModalSubmit"', start)]
+    test.assertNotIn('btn-close', popup)
+
+
 class FeedbackFormAppliesToTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('fb_admin', password='pass', is_staff=True)
@@ -630,6 +641,7 @@ class TeacherFeedbackTriggerTests(TestCase):
         r = self._create_personal()
         self.assertContains(r, 'id="feedbackModalSubmit"')
         self.assertNotContains(r, 'data-bs-dismiss="modal">Skip</button>')
+        assert_popup_cannot_be_closed(self, r)
 
     def test_no_modal_without_creation_flow(self):
         r = self.client.get(reverse('proposal_list', args=[self.scenario.id]))
@@ -703,6 +715,7 @@ class StudentFeedbackTriggerTests(TestCase):
         r = self.client.get(reverse('studentView', args=[self.scenario.id]))
         self.assertContains(r, 'id="feedbackModalSubmit"')
         self.assertNotContains(r, 'data-bs-dismiss="modal">Skip</button>')
+        assert_popup_cannot_be_closed(self, r)
 
     def test_teacher_gets_no_feedback_form(self):
         self.client.login(username='fb_sv_teacher', password='pass')
