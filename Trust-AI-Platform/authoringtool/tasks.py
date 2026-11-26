@@ -3606,8 +3606,13 @@ def validate_proposal_data(
     expected_activity_type=None,
     expected_answer_count=None,
     require_insert_after=False,
+    keep_answers_when_empty=False,
 ):
-    """Validate action-specific invariants and return normalized proposal data."""
+    """Validate action-specific invariants and return normalized proposal data.
+
+    keep_answers_when_empty: a question revision without answers keeps the
+    activity's current answers, so it skips the answer checks.
+    """
     normalized = normalize_proposal_data(data)
     errors = []
 
@@ -3657,7 +3662,7 @@ def validate_proposal_data(
         errors.append("answers must be an array")
         answers = []
 
-    if activity_type == "Question":
+    if activity_type == "Question" and not (keep_answers_when_empty and not answers):
         if not 2 <= len(answers) <= 4:
             errors.append("Question activities must contain 2 to 4 answers")
         if (
@@ -4872,6 +4877,7 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
                     flagged_old,
                     proposal.proposal_type,
                 ),
+                keep_answers_when_empty=proposal.proposal_type == "revise",
             )
 
         except (json.JSONDecodeError, TypeError, ProposalValidationError) as e:

@@ -85,6 +85,17 @@ class RevisionChangesTests(ActivityFixture, TestCase):
         self.assertTrue(rows['Answers']['answers'][0]['changed'])
         self.assertTrue(rows['Answers']['changed'])
 
+    def test_revision_without_answers_keeps_the_current_ones(self):
+        # Older proposals can carry no answers; that means "unchanged", not "removed".
+        rows = self.rows({'activity_name': 'Activity 6', 'content': 'Which is true?', 'answers': []})
+
+        answers = rows['Answers']
+        self.assertFalse(answers['changed'])
+        self.assertEqual(
+            [(a['proposed'], a['proposed_correct']) for a in answers['answers']],
+            [('Longer is slower', True), ('Mass matters', False)],
+        )
+
     def test_activity_without_answers_has_no_answers_row(self):
         self.activity.answers.all().delete()
 
@@ -153,3 +164,32 @@ class ProposalListRevisionChangesTests(ActivityFixture, TestCase):
         response = self.client.get(self.url)
 
         self.assertNotContains(response, '<script>alert(1)</script>')
+
+
+class ApplyRevisionWithoutAnswersTests(ActivityFixture, TestCase):
+    def test_text_is_revised_and_the_answers_are_kept(self):
+        from unittest.mock import patch
+        from authoringtool.tasks import apply_proposals_to_cloned_scenario
+
+        user = self.activity.created_by
+        scenario = self.activity.scenario
+        payload = json.dumps({
+            'action': 'revise', 'activity_name': 'Activity 6', 'activity_type': 'Question',
+            'content': 'Based on your data, which is true?', 'answers': [],
+            'insert_location': 'after', 'explanation': 'Clearer wording.',
+        })
+        proposal = ActivityProposal.objects.create(
+            scenario=scenario, phase=self.activity.phase, activity=self.activity,
+            proposal_type='revise', json_action=payload, json_translated_action=payload,
+        )
+        review = UserProposalReview.objects.create(proposal=proposal, user=user, status='accepted')
+
+        with patch('authoringtool.tasks.get_accepted_reviews_for_personal_scenario', return_value=[review]),                 patch('authoringtool.tasks.refactor_all_proposals_to_json'):
+            apply_proposals_to_cloned_scenario(scenario, scenario, {self.activity.id: self.activity}, user)
+
+        self.activity.refresh_from_db()
+        self.assertEqual(self.activity.plain_text, 'Based on your data, which is true?')
+        self.assertEqual(
+            list(self.activity.answers.order_by('id').values_list('text', 'is_correct')),
+            [('Longer is slower', True), ('Mass matters', False)],
+        )

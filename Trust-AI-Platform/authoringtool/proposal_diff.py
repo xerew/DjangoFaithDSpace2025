@@ -55,7 +55,8 @@ def revision_changes(activity, proposed):
         (_clean(answer.text), answer.is_correct)
         for answer in activity.answers.order_by('id')
     ]
-    proposed_answers = [_answer(answer) for answer in proposed.get('answers') or []]
+    # A revision without answers keeps the current ones (older proposals).
+    proposed_answers = [_answer(answer) for answer in proposed.get('answers') or []] or current_answers
     if current_answers or proposed_answers:
         answers = []
         for index in range(max(len(current_answers), len(proposed_answers))):
