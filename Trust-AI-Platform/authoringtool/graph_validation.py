@@ -282,8 +282,23 @@ def validate_scenario_graph(scenario):
     return issues
 
 
-def assert_scenario_graph_integrity(scenario):
-    issues = validate_scenario_graph(scenario)
+def graph_issue_keys(issues, activity_ids=None):
+    """(code, activity id) for each issue, with ids translated through
+    activity_ids (original id -> copy id) when given."""
+    activity_ids = activity_ids or {}
+    return {
+        (issue["code"], activity_ids.get(issue.get("activity_id"), issue.get("activity_id")))
+        for issue in issues
+    }
+
+
+def assert_scenario_graph_integrity(scenario, tolerated=()):
+    """Raise for the scenario's graph issues, except the tolerated
+    (code, activity id) pairs, e.g. problems its original already had."""
+    issues = [
+        issue for issue in validate_scenario_graph(scenario)
+        if (issue["code"], issue.get("activity_id")) not in tolerated
+    ]
     if issues:
         raise ScenarioGraphValidationError(issues)
     return True

@@ -821,29 +821,8 @@ class ScenarioGraphIntegrityTests(TestCase):
 
         self.assertEqual(clone.start_activity.name, "First")
 
-    def test_invalid_graph_rolls_back_clone_and_records_failure(self):
-        self.activity("Start")
-        self.activity("Unreachable")
-
-        result = apply_user_proposals_to_new_scenario.run(
-            self.scenario.id,
-            self.user.id,
-        )
-
-        self.assertEqual(result, "scenario error")
-        self.assertFalse(
-            Scenario.objects.filter(origin_scenario=self.scenario).exists()
-        )
-        failure = ProposalStructuralFailure.objects.get(
-            scenario=self.scenario,
-            stage="graph_integrity",
-        )
-        self.assertTrue(
-            any(
-                issue["code"] == "unreachable_activity"
-                for issue in failure.errors
-            )
-        )
+    # A problem the proposals make still stops the copy: see
+    # test_personal_scenario_build. One the original already has does not.
 
 
 class StructuralFeedbackTests(TestCase):

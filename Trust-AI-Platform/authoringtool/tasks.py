@@ -31,6 +31,8 @@ from .evidence import (
 from .graph_validation import (
     ScenarioGraphValidationError,
     assert_scenario_graph_integrity,
+    graph_issue_keys,
+    validate_scenario_graph,
 )
 from .help_time import help_cache_token, help_totals
 from .machine_translation.health import (
@@ -4699,7 +4701,13 @@ def _build_personal_scenario(scenario_id, user_id):
                         activity_ids=[activity_mapping[aid].id for aid in question_bunch.activity_ids]
                     )
         
-        assert_scenario_graph_integrity(new_scenario)
+        # Problems the original already has (say, a leftover activity nothing
+        # leads to) are copied as they are; only new ones stop the copy.
+        tolerated = graph_issue_keys(
+            validate_scenario_graph(original_scenario),
+            {old_id: new.id for old_id, new in activity_mapping.items()},
+        )
+        assert_scenario_graph_integrity(new_scenario, tolerated)
 
         # After new_scenario is created and before apply_proposals_to_cloned_scenario
         existing_simulation = None
@@ -4724,7 +4732,7 @@ def _build_personal_scenario(scenario_id, user_id):
             default_vr_ar_experiment=existing_vr_ar_experiment,
         )
 
-        assert_scenario_graph_integrity(new_scenario)
+        assert_scenario_graph_integrity(new_scenario, tolerated)
 
         new_scenario.ensure_current_version(
             created_by=user,
@@ -4956,8 +4964,8 @@ def apply_proposals_to_cloned_scenario(original_scenario, new_scenario, activity
             uses_branching = flagged_new.is_evaluatable and hasattr(flagged_new, "branching")
 
             if uses_branching:
-                # 🔁 Split if proposal targets multiple categories
-                for single_cat_action in split_multi_category_action(data):
+                # One activity per place the chosen levels lead to.
+                for single_cat_action in split_by_branch_target(data, flagged_new):
                     new_act = create_activity_from_json_action(single_cat_action, phase, new_scenario, user,
                                                                default_simulation, default_experiment_ll, default_vr_ar_experiment)
                     connect_created_activity(
@@ -5178,7 +5186,9 @@ def connect_created_activity(flagged_activity, new_activity, insert_location, ta
                                 defaults={"next_activity": original_target}
                             )
                     else:
-                        NextQuestionLogic.objects.create(activity=new_activity, next_activity=original_target)
+                        NextQuestionLogic.objects.get_or_create(
+                            activity=new_activity, answer=None, next_activity=original_target,
+                        )
 
                 # flagged → new
                 setattr(branching, attr, new_activity)
@@ -5360,6 +5370,47 @@ def refactor_all_proposals_to_json():
 #         split_actions.append(cloned)
 
 #     return split_actions
+
+BRANCH_LEVELS = (
+    ('high', 'High', 'next_question_on_high_id'),
+    ('moderate', 'Moderate', 'next_question_on_mid_id'),
+    ('low', 'Low', 'next_question_on_low_id'),
+)
+
+
+def split_by_branch_target(action, flagged):
+    """Split a create action next to a branching activity so every path survives.
+
+    Inserted after it, one new activity can only lead on to one place, but
+    the High, Moderate and Low levels may each go somewhere else. So there
+    is one copy per place the chosen levels lead to, named after its levels
+    when there is more than one copy. "All" or no level means every level.
+    Inserted before it, a single activity is enough.
+    """
+    target = action.get("target_category") or []
+    if isinstance(target, str):
+        target = [target]
+    wanted = {str(level).strip().lower() for level in target}
+    wanted = {'moderate' if level in ('mid', 'medium') else level for level in wanted}
+    levels = [level for level in BRANCH_LEVELS if level[0] in wanted] or list(BRANCH_LEVELS)
+
+    if action.get("insert_location") == "before":
+        return [{**action, "target_category": [label for _, label, _ in levels]}]
+
+    groups = {}
+    for _, label, field in levels:
+        groups.setdefault(getattr(flagged.branching, field), []).append(label)
+    if len(groups) == 1:
+        return [{**action, "target_category": next(iter(groups.values()))}]
+    return [
+        {
+            **action,
+            "activity_name": f"{action['activity_name']} ({', '.join(labels)})",
+            "target_category": labels,
+        }
+        for labels in groups.values()
+    ]
+
 
 def split_multi_category_action(parsed):
     """
