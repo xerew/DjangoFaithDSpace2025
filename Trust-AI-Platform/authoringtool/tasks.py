@@ -2815,7 +2815,7 @@ def get_data_insight(flag):
                 f"{category} group error rate is very high ({percent_wrong}%), indicating a conceptual gap."
             )
             resolutions.append(
-                "Suggest **creating** interactive explanation covering the missing concept before this activity with an informational video or data."
+                "Suggest **creating** a short explanation of the missing concept before this activity, or **revising** the activity so its wording and answer choices build up to the concept."
             )
         elif percent_wrong <= 25:
             insights.append(
@@ -2838,7 +2838,7 @@ def get_data_insight(flag):
             f"{category} group spends {avg_time}s, well above average, suggesting confusion or cognitive overload."
         )
         resolutions.append(
-            "Add a concise **video walkthrough** or **annotated image** explaining each step, to reduce load."
+            "Add a short written **explanation** of each step before this activity, or **revise** its wording to reduce load."
         )
 
     # --- Engagement Risk: Too Fast ---
@@ -2847,7 +2847,7 @@ def get_data_insight(flag):
             f"{category} group spends only {avg_time}s, suggesting skimming or that the activity is trivial."
         )
         resolutions.append(
-            "Either **skip** this activity for this group or **revise** by adding reflective questions or richer multimedia (e.g., an image-based quiz)."
+            "Either **skip** this activity for this group or **revise** it by adding a reflective question that needs more thought."
         )
 
     # --- Extreme Correctness Pattern ---
@@ -2856,7 +2856,7 @@ def get_data_insight(flag):
             f"{category} group performance is misaligned with peers, signaling a difficulty mismatch."
         )
         resolutions.append(
-            "Introduce a **bridging activity**—e.g., a conceptual animation or mini-experiment—targeted to this group."
+            "Introduce a **bridging activity** (a short explanation, a stepping-stone question, or an experiment with the existing simulation or lab) targeted to this group."
         )
 
     # --- Timing Discrepancy Under Extreme Correctness ---
@@ -2869,8 +2869,8 @@ def get_data_insight(flag):
                 f"overload, not disengagement."
             )
             resolutions.append(
-                "Add a **worked example** or **conceptual video** before this activity to reduce cognitive "
-                "load, and consider breaking it into smaller steps."
+                "Add a written **worked example** or short explanation before this activity to reduce "
+                "cognitive load, and consider breaking it into smaller steps."
             )
         elif "0% wrong" in reason:
             # Unexpected deliberation under perfect performance sub-case
@@ -2888,7 +2888,7 @@ def get_data_insight(flag):
                 f"{category} group's timing anomaly suggests flow or clarity issues despite correctness extremes."
             )
             resolutions.append(
-                "Consider **revising** instructions to clarify decision points, or **creating** a quick formative check-in slide."
+                "Consider **revising** instructions to clarify decision points, or **creating** a quick check-in question."
             )
 
     # --- Systemic Failure ---
@@ -3255,12 +3255,20 @@ def _context_rows(contexts):
     }
 
 
-def _select_thompson_action(contexts, rows, configuration):
-    scores = {action: 0.0 for action in ACTIONS}
+def _allowed(allowed_actions):
+    """The actions in ACTIONS order, limited to allowed_actions when given."""
+    if allowed_actions is None:
+        return list(ACTIONS)
+    return [action for action in ACTIONS if action in set(allowed_actions)] or list(ACTIONS)
+
+
+def _select_thompson_action(contexts, rows, configuration, allowed_actions=None):
+    actions = _allowed(allowed_actions)
+    scores = {action: 0.0 for action in actions}
     prior_alpha = max(0.0001, configuration.thompson_prior_alpha)
     prior_beta = max(0.0001, configuration.thompson_prior_beta)
     for flag_type, category in contexts:
-        for action in ACTIONS:
+        for action in actions:
             row = rows.get((flag_type, category, action))
             successes = row.positive_reward_count if row else 0
             failures = row.negative_reward_count if row else 0
@@ -3271,14 +3279,15 @@ def _select_thompson_action(contexts, rows, configuration):
     return max(scores, key=scores.get)
 
 
-def _select_ucb_action(contexts, rows, configuration):
+def _select_ucb_action(contexts, rows, configuration, allowed_actions=None):
+    actions = _allowed(allowed_actions)
     total_observations = sum(row.reward_count for row in rows.values())
     untried_actions = set()
-    scores = {action: 0.0 for action in ACTIONS}
+    scores = {action: 0.0 for action in actions}
     strength = max(0.0, configuration.ucb_exploration_strength)
 
     for flag_type, category in contexts:
-        for action in ACTIONS:
+        for action in actions:
             row = rows.get((flag_type, category, action))
             if not row or row.reward_count == 0:
                 untried_actions.add(action)
@@ -3297,11 +3306,16 @@ def _select_ucb_action(contexts, rows, configuration):
     return max(scores, key=scores.get)
 
 
-def _select_contextual_bandit_action(contexts):
+def _select_contextual_bandit_action(contexts, allowed_actions=None):
+    """Pick an action for the flag contexts.
+
+    allowed_actions limits the choice (see allowed_proposal_actions); every
+    path — cold start, Thompson and UCB — stays inside it.
+    """
     configuration = _get_bandit_policy_configuration()
     contexts = set(contexts)
     if not contexts:
-        return _select_weighted_exploration_action(configuration)
+        return _select_weighted_exploration_action(configuration, allowed_actions)
 
     rows = _context_rows(contexts)
     context_reward_counts = {
@@ -3316,15 +3330,15 @@ def _select_contextual_bandit_action(contexts):
         reward_count < configuration.minimum_context_rewards
         for reward_count in context_reward_counts.values()
     ):
-        return _select_weighted_exploration_action(configuration)
+        return _select_weighted_exploration_action(configuration, allowed_actions)
 
     if configuration.policy == "ucb":
-        return _select_ucb_action(contexts, rows, configuration)
-    return _select_thompson_action(contexts, rows, configuration)
+        return _select_ucb_action(contexts, rows, configuration, allowed_actions)
+    return _select_thompson_action(contexts, rows, configuration, allowed_actions)
 
 # Bump when the proposal prompt or schema changes, so analyses can tell
 # proposals produced by different prompts apart.
-PROPOSAL_PROMPT_VERSION = '2026-10-14'
+PROPOSAL_PROMPT_VERSION = '2026-11-27'
 PROPOSAL_TEMPERATURE = 0.2
 _THOMPSON_PROBABILITY_DRAWS = 2000
 
@@ -3357,17 +3371,18 @@ def _weighted_probabilities(configuration=None, allowed_actions=None):
     return {a: w / total for a, w in weights}
 
 
-def _thompson_probabilities(contexts, rows, configuration):
+def _thompson_probabilities(contexts, rows, configuration, allowed_actions=None):
     """Monte Carlo estimate of how often each action wins a Thompson draw.
 
     Uses its own random generator so it never disturbs the draw that
     actually chose the action.
     """
+    actions = _allowed(allowed_actions)
     rng = random.Random()
     prior_alpha = max(0.0001, configuration.thompson_prior_alpha)
     prior_beta = max(0.0001, configuration.thompson_prior_beta)
     params = {}
-    for action in ACTIONS:
+    for action in actions:
         params[action] = []
         for flag_type, category in contexts:
             row = rows.get((flag_type, category, action))
@@ -3375,25 +3390,62 @@ def _thompson_probabilities(contexts, rows, configuration):
                 prior_alpha + (row.positive_reward_count if row else 0),
                 prior_beta + (row.negative_reward_count if row else 0),
             ))
-    wins = {action: 0 for action in ACTIONS}
+    wins = {action: 0 for action in actions}
     for _ in range(_THOMPSON_PROBABILITY_DRAWS):
         scores = {
             action: sum(rng.betavariate(a, b) for a, b in params[action])
-            for action in ACTIONS
+            for action in actions
         }
         wins[max(scores, key=scores.get)] += 1
-    return {action: wins[action] / _THOMPSON_PROBABILITY_DRAWS for action in ACTIONS}
+    return {action: wins[action] / _THOMPSON_PROBABILITY_DRAWS for action in actions}
+
+
+def _flag_allows_skip(flag):
+    """True when the flag says the group finds the activity easy, or the
+    activity is disconnected — the only cases where skipping it can help.
+
+    Every other flag means students are struggling (high error rate, too
+    slow, all wrong, out-of-order results). Removing the activity would not
+    close that gap, so skip is not offered for them.
+    """
+    if getattr(flag, 'is_isolated', False):
+        return True
+    flag_type = flag.flag_type or ''
+    reason = getattr(flag, 'flag_reason', '') or ''
+    if 'Engagement risk (too fast' in flag_type:
+        return True
+    if flag_type == 'Timing discrepancy under extreme correctness':
+        return '0% wrong' in reason and '100% wrong' not in reason
+    return False
+
+
+def allowed_proposal_actions(flag_list):
+    """The actions the evidence permits for one flagged activity.
+
+    Skip only when every flag allows it; create and revise always.
+    """
+    flag_list = list(flag_list)
+    if all(_flag_allows_skip(flag) for flag in flag_list):
+        return tuple(ACTIONS)
+    return tuple(action for action in ACTIONS if action != 'skip')
 
 
 def choose_proposal_action(flag_list):
-    """Pick create/revise/skip for a flagged activity and log the propensity."""
+    """Pick create/revise/skip for a flagged activity and log the propensity.
+
+    The choice and the logged probabilities stay inside the actions the
+    evidence permits (allowed_proposal_actions).
+    """
+    flag_list = list(flag_list)
+    allowed = allowed_proposal_actions(flag_list)
     contexts = {(flag.flag_type, flag.category) for flag in flag_list}
     logged_contexts = sorted([list(context) for context in contexts])
     configuration = _get_bandit_policy_configuration()
-    action = _select_contextual_bandit_action(list(contexts))
+    action = _select_contextual_bandit_action(list(contexts), allowed)
     if not contexts:
         return BanditDecision(action, 'weighted_exploration',
-                              _weighted_probabilities(configuration), logged_contexts)
+                              _weighted_probabilities(configuration, allowed),
+                              logged_contexts)
     rows = _context_rows(contexts)
     rewards = {
         context: sum(
@@ -3403,10 +3455,11 @@ def choose_proposal_action(flag_list):
     }
     if any(count < configuration.minimum_context_rewards for count in rewards.values()):
         return BanditDecision(action, 'weighted_exploration',
-                              _weighted_probabilities(configuration), logged_contexts)
+                              _weighted_probabilities(configuration, allowed),
+                              logged_contexts)
     if configuration.policy == 'ucb':
         untried = {
-            a for (f, c) in contexts for a in ACTIONS
+            a for (f, c) in contexts for a in allowed
             if not rows.get((f, c, a)) or rows[(f, c, a)].reward_count == 0
         }
         if untried:
@@ -3415,7 +3468,7 @@ def choose_proposal_action(flag_list):
                                   logged_contexts)
         return BanditDecision(action, 'ucb', {action: 1.0}, logged_contexts)
     return BanditDecision(action, 'thompson',
-                          _thompson_probabilities(contexts, rows, configuration),
+                          _thompson_probabilities(contexts, rows, configuration, allowed),
                           logged_contexts)
 
 
@@ -3884,6 +3937,7 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
         message = 'No activities are at risk, so no proposals were needed.'
     else:
         message = f"{written} new proposal{'s' if written != 1 else ''} are ready to review."
+
     progress.finish(True, message)
     return f"Completed LLM analysis + proposal generation for scenario {scenario_id}"
 
@@ -4243,6 +4297,9 @@ def _generate_llm_context(scenario_id, force_rebuild, triggered_by_id, progress)
             "answers array, and explain why no change is useful.\n\n"
             "- Do NOT include open-ended or discussion prompts; only MCQs for Question type.\n"
             "- Students perform experiments—they do not invent them here.\n"
+            "- Never mention or rely on a video, animation, image, file or any other material that is "
+            "not already in this scenario: students see only the text you write (and, for experiments, "
+            "the existing simulation or lab). Ignore any such media in the hints above.\n"
             "- Respond entirely in English.\n"
             "- Never use any percentage-based thresholds or \"if more than X%\" language.\n\n"
 
