@@ -17,8 +17,10 @@ STAGES = [
     ('overview', 'Summarising the scenario and its phases', 'Summarised the scenario and its phases', 6),
     ('paths', 'Analysing learning paths', 'Analysed learning paths', 15),
     ('risk', 'Finding activities at risk', 'Found activities at risk', 4),
-    ('proposals', 'Writing proposals', 'Wrote proposals', 40),
+    ('proposals', 'Writing proposals', 'Wrote proposals', 36),
     ('saving', 'Saving the new proposals', 'Saved the new proposals', 4),
+    ('translations', 'Copying the proposals to the translations',
+     'Copied the proposals to the translations', 4),
 ]
 STAGE_KEYS = [key for key, *_ in STAGES]
 

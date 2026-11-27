@@ -183,14 +183,16 @@ class GenerationJobFixture(TestCase):
             evidence_signature=get_evidence_context(self.scenario, scope='local')['signature'],
         )
 
-    def run_job(self, proposals=None, probe=None, force=False):
+    def run_job(self, proposals=None, probe=None, force=False, translate=None):
         replacements = {
             'probe_proposal_model': MagicMock(side_effect=probe),
             'chunk_and_index_pdfs': MagicMock(),
             'ollama_text': MagicMock(return_value='ctx'),
             'calculate_activities_in_risk': MagicMock(),
             'request_validated_proposal': MagicMock(side_effect=proposals or []),
-            'translate_proposal_fields': MagicMock(side_effect=lambda data, language: dict(data)),
+            'translate_proposal_fields': MagicMock(
+                side_effect=translate or (lambda data, language: dict(data)),
+            ),
             'validate_proposal_data': MagicMock(side_effect=lambda data, **kwargs: data),
             'get_data_insight': MagicMock(return_value=('', '')),
             'get_phase_based_prior_summary': MagicMock(return_value=''),

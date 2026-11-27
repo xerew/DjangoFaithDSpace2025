@@ -48,7 +48,7 @@ class JobProgressTests(SimpleTestCase):
         self.assertEqual(status['percent'], 18)  # 2 + 4 + 25 * 2/4
         self.assertEqual(status['detail'], '"Pendulum length"')
         stages = status['stages']
-        self.assertEqual(len(stages), 8)
+        self.assertEqual(len(stages), 9)
         self.assertEqual(stages[0]['status'], 'done')
         self.assertEqual(stages[1]['summary'], 'Read the PDFs (2 files)')
         self.assertEqual(stages[2]['status'], 'active')
@@ -160,7 +160,7 @@ class ProgressViewTests(TestCase):
 
         self.assertTrue(data['running'])
         self.assertEqual(data['stage'], 'pdfs')
-        self.assertEqual(len(data['stages']), 8)
+        self.assertEqual(len(data['stages']), 9)
 
     def test_status_endpoint_without_a_job(self):
         self.assertEqual(self.client.get(self.status_url).json(), {'state': 'none', 'running': False})

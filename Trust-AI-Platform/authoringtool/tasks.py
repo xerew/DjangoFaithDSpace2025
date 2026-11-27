@@ -48,7 +48,7 @@ from .performance_formula import (
     scored_activity_ids,
     weighted_percentage,
 )
-from .proposal_progress import JobProgress
+from .proposal_progress import JobProgress, job_status
 from .rag_sources import group_rag_pdfs, rag_pdf_signature, scenario_rag_folder
 from .translation_matching import (
     pooled_implementation_count,
@@ -3938,8 +3938,161 @@ def generate_llm_context_for_scenario(scenario_id, force_rebuild=False, triggere
     else:
         message = f"{written} new proposal{'s' if written != 1 else ''} are ready to review."
 
+    # The run is now current here; the confirmed translations get it too.
+    scenario = Scenario.objects.get(pk=scenario_id)
+    run = ProposalGenerationRun.objects.filter(scenario=scenario, is_current=True).first()
+    if run is not None:
+        updated, left_alone = copy_proposals_to_translations(
+            scenario, run, starter or scenario.created_by, progress,
+        )
+        if updated:
+            message += ' The translations got the same proposals: ' + ', '.join(updated) + '.'
+        if left_alone:
+            message += ' Not updated: ' + '; '.join(left_alone) + '.'
     progress.finish(True, message)
     return f"Completed LLM analysis + proposal generation for scenario {scenario_id}"
+
+
+def copy_proposals_to_translations(scenario, source_run, triggered_by, progress=None):
+    """Give every confirmed translation the run's proposals, in its language.
+
+    Proposals are generated once, from the evidence pooled across the
+    translations. Each translation gets a run of its own (replacing its
+    current one) with the same proposals on its matching activities; its
+    teachers review that copy separately. Archived translations and ones
+    with their own proposal job running are left alone.
+
+    Returns (names updated, notes on translations left alone).
+    """
+    maps = translation_activity_maps(scenario)
+    members = list(
+        Scenario.objects.filter(id__in=maps, archived_at__isnull=True).order_by('id')
+    )
+    proposals = list(
+        source_run.proposals.select_related('activity')
+        .prefetch_related('flag', 'categories_in_risk')
+        .order_by('id')
+    )
+    if progress:
+        progress.stage('translations', total=len(members))
+    updated, left_alone = [], []
+    for done, member in enumerate(members):
+        if progress:
+            progress.step(done, f'"{member.name}"')
+        status = job_status(member.id)
+        if status and status.get('running'):
+            left_alone.append(f'{member.name} (its own proposal job is running)')
+            continue
+        to_member = {ours: theirs for theirs, ours in maps[member.id].items()}
+        try:
+            _copy_run_to_translation(
+                member, source_run, proposals, to_member, triggered_by,
+                scenario.language,
+            )
+        except Exception as exc:  # one translation must not stop the others
+            print(f"[proposal] Copy to translation {member.id} failed: {exc}")
+            left_alone.append(f'{member.name} ({exc})')
+            continue
+        updated.append(member.name)
+    if progress:
+        progress.step(len(members), '')
+        progress.summary(
+            f"Copied the proposals to {len(updated)} translation{'s' if len(updated) != 1 else ''}"
+            if updated else 'No translations to update'
+        )
+    return updated, left_alone
+
+
+def _copy_run_to_translation(member, source_run, proposals, to_member, triggered_by,
+                             source_language):
+    evidence_scope = 'compatible' if member.family_pooling_enabled else 'local'
+    evidence_context = get_evidence_context(member, scope=evidence_scope)
+    summary = proposal_evidence_summary(member, evidence_context)
+    summary['copied_from'] = {
+        'scenario_id': source_run.scenario_id,
+        'run_id': source_run.id,
+    }
+    run = ProposalGenerationRun.start_new(
+        member,
+        triggered_by,
+        evidence_scope=evidence_scope,
+        evidence_version_ids=evidence_context['version_ids'],
+        evidence_summary=summary,
+        current=False,
+    )
+    activities = Activity.objects.select_related('phase').in_bulk(
+        [to_member[p.activity_id] for p in proposals if p.activity_id in to_member]
+    )
+    same_language = (
+        (member.language or '').strip().casefold()
+        == (source_language or '').strip().casefold()
+    )
+    for proposal in proposals:
+        activity = activities.get(to_member.get(proposal.activity_id))
+        if activity is None:
+            continue  # no counterpart (e.g. an unreachable activity)
+        if same_language:
+            translated_raw = proposal.json_translated_action
+        else:
+            structured = json.loads(proposal.json_action)
+            try:
+                translated = validate_proposal_data(
+                    translate_proposal_fields(structured, member.language),
+                    expected_action=proposal.proposal_type,
+                    keep_answers_when_empty=True,
+                )
+                translated['target_category'] = structured.get('target_category')
+            except Exception as exc:
+                record_proposal_structural_failure(
+                    scenario=member,
+                    generation_run=run,
+                    activity=activity,
+                    selected_action=proposal.proposal_type,
+                    stage='translation',
+                    errors=exc,
+                    raw_output=proposal.json_action,
+                )
+                translated = structured
+            translated_raw = json.dumps(translated, ensure_ascii=False)
+
+        copy = ActivityProposal.objects.create(
+            scenario=member,
+            generation_run=run,
+            phase=activity.phase,
+            activity=activity,
+            proposal_type=proposal.proposal_type,
+            suggested_action=proposal.suggested_action,
+            translated_action=translated_raw,
+            json_action=proposal.json_action,
+            json_translated_action=translated_raw,
+            status='new',
+            llm_model=proposal.llm_model,
+            prompt_version=proposal.prompt_version,
+            selection_policy=proposal.selection_policy,
+            selection_probability=proposal.selection_probability,
+            action_probabilities=proposal.action_probabilities,
+            selection_contexts=proposal.selection_contexts,
+        )
+        copy.flag.set([
+            ActivityFlag.objects.create(
+                activity=activity,
+                scenario=member,
+                phase=activity.phase,
+                category=flag.category,
+                flag_type=flag.flag_type,
+                flag_reason=flag.flag_reason,
+                is_at_risk=flag.is_at_risk,
+                value_at_risk=flag.value_at_risk,
+                threshold_used=flag.threshold_used,
+                auto_flagged=flag.auto_flagged,
+                evidence_scope=evidence_scope,
+                evidence_signature=evidence_context['signature'],
+                evidence_sources=evidence_context['sources'],
+            )
+            for flag in proposal.flag.all()
+        ])
+        copy.categories_in_risk.set(proposal.categories_in_risk.all())
+    run.make_current()
 
 
 def _generate_llm_context(scenario_id, force_rebuild, triggered_by_id, progress):
