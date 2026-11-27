@@ -1,0 +1,26 @@
+# A local copy of the platform for generating AI proposals on a PC with its
+# own Ollama, from a database dump of the server. The proposals are then
+# exported (manage.py export_proposals) and imported on the server
+# (manage.py import_proposals). See deploy/home-proposals/LOCAL_PROPOSALS_SETUP.md.
+#
+# Start only what proposals need (no tunnel, no email scheduler, no Rasa):
+#   docker compose -f docker-compose.yml -f docker-compose.home.yml up -d --no-deps db redis web celery
+#
+# Never start celerybeat here: it sends the campaign emails.
+services:
+  web:
+    # Django's own server with DEBUG on serves the static files; no nginx.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+      python manage.py runserver 0.0.0.0:8000"
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    # Reachable from this PC only.
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  celery:
+    environment:
+      # The Ollama running on this PC (Docker Desktop forwards this name to
+      # the PC's own 127.0.0.1).
+      OLLAMA_URL: http://host.docker.internal:11434
