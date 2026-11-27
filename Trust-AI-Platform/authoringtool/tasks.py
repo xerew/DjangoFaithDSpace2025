@@ -3597,7 +3597,10 @@ def build_proposal_json_schema(
     }
 
 
-_ANSWER_LABEL_RE = re.compile(r"^\s*[A-Za-z]\s*[\.\):\-]\s*")
+# One or more leading position labels in any alphabet ("A. ", "Γ) ", or the
+# stacked "A. Α. " a translation leaves behind). A label must be followed by
+# a space, so an abbreviation such as "Π.χ." stays part of the answer.
+_ANSWER_LABEL_RE = re.compile(r"^\s*(?:[^\W\d_]\s*[.):\-](?:\s+|$))+")
 
 
 def format_proposal_answer_text(text, index):
@@ -4743,9 +4746,14 @@ def translate_proposal_fields(structured_data, scenario_language):
         if value:
             translated[field] = translate_text(value, scenario_language)
 
-    for answer in translated.get("answers", []):
+    # Only the answer itself is translated: a translated label ("Α.", "Γ.")
+    # would end up next to the Latin one the page adds back.
+    for index, answer in enumerate(translated.get("answers", [])):
         if answer.get("text"):
-            answer["text"] = translate_text(answer["text"], scenario_language)
+            body = _ANSWER_LABEL_RE.sub("", answer["text"].strip()).strip()
+            answer["text"] = format_proposal_answer_text(
+                translate_text(body, scenario_language), index,
+            )
 
     return translated
 
