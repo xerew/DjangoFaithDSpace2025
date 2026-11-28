@@ -4580,7 +4580,8 @@ def _generate_llm_context(scenario_id, force_rebuild, triggered_by_id, progress)
     print(f"ProposalGenerationRun {generation_run.id} is now current ({written} proposals)")
 
     # 6️⃣ Write out a CSV snapshot of all proposals
-    base = os.path.join(settings.BASE_DIR, 'ai_metrics_cache')
+    base = settings.AI_METRICS_CACHE_ROOT
+    os.makedirs(base, exist_ok=True)
     fp   = os.path.join(base, f'scenario_{scenario_id}_activity_proposals.csv')
     qs   = ActivityProposal.objects.filter(scenario=scenario).prefetch_related('flag', 'categories_in_risk')
     rows = qs.values('id', 'activity__name', 'phase__name', 'proposal_type', 'status', 'created_at', 'reviewed_at', 'reviewer__username')
